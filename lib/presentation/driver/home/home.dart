@@ -31,9 +31,11 @@ class DriverHome extends StatefulWidget {
   State<DriverHome> createState() => _DriverHomeState();
 }
 
-class _DriverHomeState extends State<DriverHome> {
+class _DriverHomeState extends State<DriverHome>
+    with SingleTickerProviderStateMixin {
   final PanelController _panelController = PanelController();
   final PanelController _destinationPanelController = PanelController();
+  late final AnimationController _goOnlineArrowController;
   GoogleMapController? _mapController;
   bool visibleRecentRides = false;
   bool isPanelOpen = false;
@@ -57,6 +59,10 @@ class _DriverHomeState extends State<DriverHome> {
   @override
   void initState() {
     super.initState();
+    _goOnlineArrowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat();
     _loadMarkers();
   }
 
@@ -241,19 +247,49 @@ class _DriverHomeState extends State<DriverHome> {
                         child: Container(
                           height: 54,
                           decoration: BoxDecoration(
-                            color: isAccountActivated
-                                ? const Color(0xFF2FBE7B)
-                                : Colors.grey.shade400,
+                            color: AppColor.white,
                             borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: const Color(0xFFDDE3E7),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF252E3A)
+                                    .withOpacity(0.06),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: Center(
-                            child: TextWidget(
-                              text: isAccountActivated
-                                  ? "Go online"
-                                  : "Account pending",
-                              color: AppColor.white,
-                              fontSize: 17,
-                              fontWeight: fwSemiBold,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                TextWidget(
+                                  text: isAccountActivated
+                                      ? "Go online"
+                                      : "Account pending",
+                                  color: const Color(0xFF4B5157),
+                                  fontSize: 17,
+                                  fontWeight: fwSemiBold,
+                                ),
+                                if (isAccountActivated)
+                                  RotationTransition(
+                                    turns: _goOnlineArrowController,
+                                    child: const SizedBox(
+                                      width: 142,
+                                      height: 46,
+                                      child: Align(
+                                        alignment: Alignment.topCenter,
+                                        child: Icon(
+                                          Icons.arrow_forward_rounded,
+                                          color: Color(0xFF6A7076),
+                                          size: 17,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
@@ -756,6 +792,7 @@ class _DriverHomeState extends State<DriverHome> {
 
   @override
   void dispose() {
+    _goOnlineArrowController.dispose();
     _mapController?.dispose();
     super.dispose();
   }
