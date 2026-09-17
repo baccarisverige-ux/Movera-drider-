@@ -122,91 +122,56 @@ class _DriverHomeState extends State<DriverHome> {
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: ResSize.h * 122,
+              minHeight: 190,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
               defaultPanelState: PanelState.CLOSED,
-              maxHeight: MediaQuery.of(context).size.height * 0.62,
+              maxHeight: MediaQuery.of(context).size.height * 0.86,
               parallaxEnabled: false,
               onPanelSlide: (double pos) {
                 setState(() {
                   isPanelOpen = pos > 0.3;
                 });
               },
-              collapsed: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFCFDFD),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: const Color(0xFFE1E8EC)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF102F45).withOpacity(0.14),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+              collapsed: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF1F3F5),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(26),
                   ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 8),
-                      _seatBeltHandle(onTap: _panelController.open),
-                      const SizedBox(height: 4),
-                      Expanded(
-                        child: Center(
-                          child: InkWell(
-                            onTap: isAccountActivated
-                                ? () {
-                                    setState(() {
-                                      showRideRequests = true;
-                                    });
-                                  }
-                                : _showAccountActivationDialog,
-                            customBorder: const CircleBorder(),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Lottie.asset(
-                                  AppAssets.circleGrow,
-                                  height: 74,
-                                  width: 74,
-                                ),
-                                Container(
-                                  height: 58,
-                                  width: 58,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF102F45),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: const Color(0xFF36C59A),
-                                      width: 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF36C59A)
-                                            .withOpacity(0.32),
-                                        blurRadius: 16,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Image.asset(
-                                      AppAssets.homeImage1,
-                                      height: 35,
-                                      color: AppColor.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                ),
+                child: Column(
+                  children: [
+                    InkWell(
+                      onTap: _panelController.open,
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 9),
+                          Container(
+                            width: 42,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDDE2E7),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 10),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: _sheetAlertCard(
+                              icon: Icons.analytics_outlined,
+                              iconColor: const Color(0xFF2FBE7B),
+                              title:
+                                  "See how your acceptance rate affects you",
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const Spacer(),
+                    _sheetBottomNavigation(),
+                  ],
                 ),
               ),
               panelBuilder: (ScrollController sc) => panelColumn(sc),
@@ -398,333 +363,490 @@ class _DriverHomeState extends State<DriverHome> {
   }
 
   Widget panelColumn(ScrollController sc) {
-    const ink = Color(0xFF102F45);
-    const mint = Color(0xFF36C59A);
-    const line = Color(0xFFE3E9EC);
-    const muted = Color(0xFF74838D);
+    const green = Color(0xFF2FBE7B);
+    const canvas = Color(0xFFF1F3F5);
+    const ink = Color(0xFF252E3A);
+    const muted = Color(0xFF8A97A8);
 
     return AnimatedOpacity(
-      duration: const Duration(milliseconds: 180),
+      duration: const Duration(milliseconds: 160),
       opacity: isPanelOpen ? 1.0 : 0.0,
       child: Container(
-        margin: const EdgeInsets.only(top: 6),
         decoration: const BoxDecoration(
-          color: Color(0xFFFCFDFD),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          color: canvas,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
         child: Column(
           children: [
-            const SizedBox(height: 8),
-            _seatBeltHandle(onTap: _panelController.close),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                screenHorizPadding,
-                10,
-                screenHorizPadding,
-                8,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextWidget(
-                      text: "DRIVER MODE",
-                      color: ink,
-                      fontSize: 13,
-                      fontWeight: fwSemiBold,
-                    ),
+            InkWell(
+              onTap: _panelController.close,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDE2E7),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  InkWell(
-                    onTap: _panelController.close,
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      height: 38,
-                      width: 38,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0F4F6),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: ink,
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-            const Divider(height: 1, color: line),
             Expanded(
-              child: SingleChildScrollView(
+              child: ListView(
                 controller: sc,
-                padding: EdgeInsets.fromLTRB(
-                  screenHorizPadding,
-                  20,
-                  screenHorizPadding,
-                  MediaQuery.paddingOf(context).bottom + 30,
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      height: 72,
-                      width: 72,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEAF8F4),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: mint.withOpacity(0.45),
-                          width: 2,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.local_taxi_rounded,
-                        color: ink,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextWidget(
-                      text: isAccountActivated
-                          ? "Ready to drive"
-                          : "Account pending",
-                      color: ink,
-                      fontSize: 22,
-                      fontWeight: fwSemiBold,
-                    ),
-                    const SizedBox(height: 5),
-                    TextWidget(
-                      text: isAccountActivated
-                          ? "Go online when you are ready"
-                          : "Complete activation to start driving",
-                      color: muted,
-                      fontSize: 12,
-                      fontWeight: fwNormal,
-                    ),
-                    const SizedBox(height: 18),
-                    InkWell(
-                      onTap: isAccountActivated
-                          ? () {
-                              _panelController.close().then((_) {
-                                setState(() {
-                                  showRideRequests = true;
-                                });
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
+                children: [
+                  InkWell(
+                    onTap: isAccountActivated
+                        ? () {
+                            _panelController.close().then((_) {
+                              setState(() {
+                                showRideRequests = true;
                               });
-                            }
-                          : _showAccountActivationDialog,
-                      borderRadius: BorderRadius.circular(18),
-                      child: Container(
-                        height: 56,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: isAccountActivated
-                              ? ink
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(18),
+                            });
+                          }
+                        : _showAccountActivationDialog,
+                    borderRadius: BorderRadius.circular(24),
+                    child: Container(
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: isAccountActivated
+                            ? green
+                            : Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Center(
+                        child: TextWidget(
+                          text: isAccountActivated
+                              ? "Go online"
+                              : "Account pending",
+                          color: AppColor.white,
+                          fontSize: 17,
+                          fontWeight: fwSemiBold,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _sheetAlertCard(
+                    icon: Icons.analytics_outlined,
+                    iconColor: green,
+                    title: "See how your acceptance rate affects you",
+                  ),
+                  const SizedBox(height: 10),
+                  _sheetAlertCard(
+                    icon: Icons.calendar_month_outlined,
+                    iconColor: const Color(0xFF8F9CAF),
+                    title: "Scheduled rides available",
+                    subtitle: "View open requests in your area",
+                  ),
+                  const SizedBox(height: 10),
+                  _sheetAlertCard(
+                    icon: Icons.card_giftcard_rounded,
+                    iconColor: const Color(0xFF5968F3),
+                    title: "Earn up to 2,500 SEK extra",
+                    subtitle: "Invite friends to drive with Movera",
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                    decoration: BoxDecoration(
+                      color: AppColor.white,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextWidget(
+                                text: "Today, 06:00 – 18 Sep, 04:00",
+                                color: muted,
+                                fontSize: 12,
+                                fontWeight: fwNormal,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: muted,
+                              size: 21,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        TextWidget(
+                          text: "Bonus 550 SEK for 13 rides!",
+                          color: ink,
+                          fontSize: 20,
+                          fontWeight: fwSemiBold,
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.directions_car_filled_rounded,
+                              color: muted,
+                              size: 17,
+                            ),
+                            const SizedBox(width: 7),
+                            TextWidget(
+                              text: "All categories",
+                              color: muted,
+                              fontSize: 12,
+                              fontWeight: fwMedium,
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              width: 1,
+                              height: 20,
+                              color: const Color(0xFFDDE2E7),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(
+                              Icons.location_on_rounded,
+                              color: muted,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: TextWidget(
+                                text: "Selected area",
+                                color: muted,
+                                fontSize: 12,
+                                fontWeight: fwMedium,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
                           children: [
                             Container(
-                              height: 30,
-                              width: 30,
-                              decoration: BoxDecoration(
-                                color: isAccountActivated
-                                    ? mint
-                                    : Colors.grey.shade400,
-                                shape: BoxShape.circle,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 7,
                               ),
-                              child: Icon(
-                                Icons.power_settings_new_rounded,
-                                color: isAccountActivated
-                                    ? ink
-                                    : Colors.grey.shade700,
-                                size: 18,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F2F5),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: TextWidget(
+                                text: "Rides: 0/13",
+                                color: ink,
+                                fontSize: 12,
+                                fontWeight: fwMedium,
                               ),
                             ),
                             const SizedBox(width: 10),
                             TextWidget(
-                              text: isAccountActivated
-                                  ? "GO ONLINE"
-                                  : "ACTIVATION REQUIRED",
-                              color: isAccountActivated
-                                  ? AppColor.white
-                                  : Colors.grey.shade700,
-                              fontSize: 13,
-                              fontWeight: fwSemiBold,
+                              text: "View all conditions",
+                              color: muted,
+                              fontSize: 12,
+                              fontWeight: fwMedium,
                             ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 13),
+                        const Divider(
+                          height: 1,
+                          color: Color(0xFFE5E9ED),
+                        ),
+                        const SizedBox(height: 13),
+                        TextWidget(
+                          text: "View all campaigns",
+                          color: const Color(0xFF179B5A),
+                          fontSize: 13,
+                          fontWeight: fwSemiBold,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 22),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColor.white,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: line),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _driverStatCard(
+                          title: "Movera rewards",
+                          mainText: "Inactive",
+                          mainColor: ink,
+                          icon: Icons.lock_rounded,
+                          iconColor: const Color(0xFFD31E36),
+                          footer: "Increase your points to reactivate",
+                        ),
                       ),
-                      child: Column(
-                        children: [
-                          _driverMenuRow(
-                            icon: Icons.alt_route_rounded,
-                            title: "Set destination",
-                            subtitle: "Find rides heading your way",
-                            accent: mint,
-                          ),
-                          const Divider(
-                            height: 1,
-                            indent: 66,
-                            color: line,
-                          ),
-                          _driverMenuRow(
-                            icon: Icons.schedule_rounded,
-                            title: "Driving time",
-                            subtitle: "See today’s activity",
-                            accent: const Color(0xFF5E7E91),
-                          ),
-                          const Divider(
-                            height: 1,
-                            indent: 66,
-                            color: line,
-                          ),
-                          _driverMenuRow(
-                            icon: Icons.shield_outlined,
-                            title: "Safety centre",
-                            subtitle: "Open driver safety tools",
-                            accent: const Color(0xFFDF9B42),
-                            onTap: () {
-                              showSafetyToolKitSheet(context);
-                            },
-                          ),
-                          const Divider(
-                            height: 1,
-                            indent: 66,
-                            color: line,
-                          ),
-                          _driverMenuRow(
-                            icon: Icons.auto_awesome_rounded,
-                            title: "Rewards",
-                            subtitle: "Offers and driver bonuses",
-                            accent: const Color(0xFF7767D8),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                BottomToTopTransition(Promotions()),
-                              );
-                            },
-                          ),
-                        ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _driverStatCard(
+                          title: "Driver score",
+                          mainText: "89%",
+                          mainColor: ink,
+                          badge: "Warning",
+                          badgeColor: const Color(0xFFFF8A00),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _driverStatCard(
+                          title: "Star rating",
+                          mainText: "★ 4.88",
+                          mainColor: ink,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _driverStatCard(
+                          title: "Acceptance rate",
+                          mainText: "39%",
+                          mainColor: ink,
+                          footer: "Minimum 15% required",
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
+            _sheetBottomNavigation(),
           ],
         ),
       ),
     );
   }
 
-  Widget _seatBeltHandle({required VoidCallback onTap}) {
-    return Semantics(
-      button: true,
-      label: "Toggle driver sheet",
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: SizedBox(
-          height: 30,
-          width: 190,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 150,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF102F45),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              Positioned(
-                right: 8,
-                child: Container(
-                  height: 24,
-                  width: 32,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFCFDFD),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: const Color(0xFF102F45),
-                      width: 2,
-                    ),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF36C59A),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+  Widget _sheetAlertCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    String? subtitle,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: AppColor.white,
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: Row(
+        children: [
+          Container(
+            height: 44,
+            width: 44,
+            decoration: BoxDecoration(
+              color: iconColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColor.white, size: 24),
           ),
-        ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextWidget(
+                  text: title,
+                  color: const Color(0xFF252E3A),
+                  fontSize: 15,
+                  fontWeight: fwSemiBold,
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 3),
+                  TextWidget(
+                    text: subtitle,
+                    color: const Color(0xFF667483),
+                    fontSize: 11,
+                    fontWeight: fwNormal,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _driverMenuRow({
-    required IconData icon,
+  Widget _driverStatCard({
     required String title,
-    required String subtitle,
-    required Color accent,
+    required String mainText,
+    required Color mainColor,
+    IconData? icon,
+    Color? iconColor,
+    String? badge,
+    Color? badgeColor,
+    String? footer,
+  }) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 142),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColor.white,
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextWidget(
+                  text: title,
+                  color: const Color(0xFF8A97A8),
+                  fontSize: 12,
+                  fontWeight: fwNormal,
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF9DA9B8),
+                size: 19,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: iconColor, size: 18),
+                const SizedBox(width: 5),
+              ],
+              Expanded(
+                child: TextWidget(
+                  text: mainText,
+                  color: mainColor,
+                  fontSize: 19,
+                  fontWeight: fwSemiBold,
+                ),
+              ),
+            ],
+          ),
+          if (badge != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: badgeColor,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: TextWidget(
+                text: badge,
+                color: AppColor.white,
+                fontSize: 11,
+                fontWeight: fwSemiBold,
+              ),
+            ),
+          ],
+          if (footer != null) ...[
+            const SizedBox(height: 10),
+            TextWidget(
+              text: footer,
+              color: const Color(0xFF8A97A8),
+              fontSize: 10,
+              fontWeight: fwNormal,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _sheetBottomNavigation() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        18,
+        9,
+        18,
+        MediaQuery.paddingOf(context).bottom + 8,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColor.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE2E7EB)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _sheetNavItem(
+            icon: Icons.home_rounded,
+            label: "Home",
+            active: true,
+          ),
+          _sheetNavItem(
+            icon: Icons.payments_outlined,
+            label: "Earn more",
+            onTap: () {
+              Navigator.push(
+                context,
+                BottomToTopTransition(Promotions()),
+              );
+            },
+          ),
+          _sheetNavItem(
+            icon: Icons.schedule_rounded,
+            label: "Rides",
+          ),
+          _sheetNavItem(
+            icon: Icons.help_outline_rounded,
+            label: "Help",
+            hasNotification: true,
+            onTap: () {
+              showSafetyToolKitSheet(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sheetNavItem({
+    required IconData icon,
+    required String label,
+    bool active = false,
+    bool hasNotification = false,
     VoidCallback? onTap,
   }) {
+    final color = active
+        ? const Color(0xFF252E3A)
+        : const Color(0xFF8996A8);
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        child: Row(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 72,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            Container(
-              height: 38,
-              width: 38,
-              decoration: BoxDecoration(
-                color: accent.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(13),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: color, size: 25),
+                const SizedBox(height: 4),
+                TextWidget(
+                  text: label,
+                  color: color,
+                  fontSize: 10,
+                  fontWeight: active ? fwSemiBold : fwNormal,
+                ),
+              ],
+            ),
+            if (hasNotification)
+              const Positioned(
+                right: 12,
+                top: -2,
+                child: CircleAvatar(
+                  radius: 5,
+                  backgroundColor: Color(0xFFEF4D5A),
+                ),
               ),
-              child: Icon(icon, color: accent, size: 20),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextWidget(
-                    text: title,
-                    color: const Color(0xFF102F45),
-                    fontSize: 13,
-                    fontWeight: fwSemiBold,
-                  ),
-                  const SizedBox(height: 3),
-                  TextWidget(
-                    text: subtitle,
-                    color: const Color(0xFF74838D),
-                    fontSize: 10,
-                    fontWeight: fwNormal,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: Color(0xFFAAB6BD),
-              size: 22,
-            ),
           ],
         ),
       ),
