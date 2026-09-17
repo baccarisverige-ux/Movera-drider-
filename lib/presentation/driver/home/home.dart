@@ -166,17 +166,18 @@ class _DriverHomeState extends State<DriverHome> {
                                 ),
                               ],
                             ),
-                            Padding(
-                              padding: EdgeInsets.only(right: ResSize.w * 30),
-                              child: TextWidget(
-                                text: isAccountActivated
-                                    ? "Ready to go online"
-                                    : "Account pending",
-                                fontSize: 14,
-                                fontWeight: fwMedium,
-                                color: isAccountActivated
-                                    ? Colors.green
-                                    : Colors.orange,
+                            Expanded(
+                              child: Center(
+                                child: TextWidget(
+                                  text: isAccountActivated
+                                      ? "Ready to go online"
+                                      : "Account pending",
+                                  fontSize: 14,
+                                  fontWeight: fwMedium,
+                                  color: isAccountActivated
+                                      ? Colors.green
+                                      : Colors.orange,
+                                ),
                               ),
                             ),
                             Image.asset(
