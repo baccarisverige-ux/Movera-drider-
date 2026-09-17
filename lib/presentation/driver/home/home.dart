@@ -44,7 +44,7 @@ class _DriverHomeState extends State<DriverHome> {
   Set<Marker> _markers = {};
 
   static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(33.6844, 73.0479),
+    target: LatLng(59.3293, 18.0686),
     zoom: 14.0,
   );
 
@@ -64,7 +64,7 @@ class _DriverHomeState extends State<DriverHome> {
     _markers.add(
       Marker(
         markerId: MarkerId('driver_location'),
-        position: LatLng(33.6844, 73.0479),
+        position: LatLng(59.3293, 18.0686),
         infoWindow: InfoWindow(title: 'Your Location'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ),

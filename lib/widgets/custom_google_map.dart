@@ -57,9 +57,9 @@ class CustomGoogleMap extends StatefulWidget {
 class _CustomGoogleMapState extends State<CustomGoogleMap> {
   GoogleMapController? _mapController;
 
-  // Default location - Islamabad coordinates
+  // Default location - central Stockholm, the app's operating city.
   static const CameraPosition _defaultPosition = CameraPosition(
-    target: LatLng(33.6844, 73.0479),
+    target: LatLng(59.3293, 18.0686),
     zoom: 14.0,
   );
 

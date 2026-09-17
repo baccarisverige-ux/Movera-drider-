@@ -31,6 +31,16 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
+      - name: Configure Google Maps
+        env:
+          GOOGLE_MAPS_API_KEY: ${{ secrets.Maps131189 }}
+        run: |
+          if [ -z "$GOOGLE_MAPS_API_KEY" ]; then
+            echo "The Maps131189 repository secret is missing or empty."
+            exit 1
+          fi
+          sed -i "s|GOOGLE_MAPS_API_KEY|$GOOGLE_MAPS_API_KEY|g" web/index.html
+
       - name: Build Drider web
         run: flutter build web --release --base-href "/Movera-drider-/"
 

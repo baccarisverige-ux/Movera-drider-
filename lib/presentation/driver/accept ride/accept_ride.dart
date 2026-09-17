@@ -33,7 +33,7 @@ class _AcceptRideState extends State<AcceptRide> {
 
   // Default location
   static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(33.6844, 73.0479), // Islamabad coordinates
+    target: LatLng(59.3293, 18.0686), // Central Stockholm
     zoom: 14.0,
   );
 
@@ -49,7 +49,7 @@ class _AcceptRideState extends State<AcceptRide> {
     _markers.add(
       Marker(
         markerId: MarkerId('driver_location'),
-        position: LatLng(33.6844, 73.0479),
+        position: LatLng(59.3293, 18.0686),
         infoWindow: InfoWindow(title: 'Your Location'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ),
