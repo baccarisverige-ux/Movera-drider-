@@ -507,16 +507,19 @@ class _DriverHomeState extends State<DriverHome>
                   child: Row(
                     children: [
                       Container(
-                        height: 46,
-                        width: 46,
+                        height: 42,
+                        width: 42,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF252E3A),
-                          borderRadius: BorderRadius.circular(15),
+                          color: AppColor.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFDDE4E1),
+                          ),
                         ),
                         child: const Icon(
-                          Icons.payments_outlined,
-                          color: Colors.white,
-                          size: 23,
+                          Icons.account_balance_wallet_outlined,
+                          color: Color(0xFF435149),
+                          size: 21,
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -587,20 +590,16 @@ class _DriverHomeState extends State<DriverHome>
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         children: [
-          Container(
-            height: 40,
-            width: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F5F6),
-              borderRadius: BorderRadius.circular(13),
-            ),
+          SizedBox(
+            height: 34,
+            width: 34,
             child: Icon(
               icon,
-              color: const Color(0xFF47545B),
+              color: const Color(0xFF69757B),
               size: 21,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
