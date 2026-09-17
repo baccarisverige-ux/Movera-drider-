@@ -22,6 +22,7 @@ import 'package:movera/widgets/sizedbox_extention.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:lottie/lottie.dart' hide Marker;
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 class DriverHome extends StatefulWidget {
   const DriverHome({super.key});
@@ -37,6 +38,11 @@ class _DriverHomeState extends State<DriverHome> {
   bool visibleRecentRides = false;
   bool isPanelOpen = false;
   bool _blockMapGestures = false;
+  bool _sheetPointerActive = false;
+  double _mainPanelPosition = 0;
+
+  static const Duration _sheetMotionDuration = Duration(milliseconds: 420);
+  static const Curve _sheetMotionCurve = Curves.easeOutCubic;
   bool showRideRequests = false;
   bool isAccountActivated = true;
 
@@ -93,6 +99,42 @@ class _DriverHomeState extends State<DriverHome> {
     });
   }
 
+  void _setMapGesturesBlocked(bool value) {
+    if (!mounted || _blockMapGestures == value) return;
+    setState(() {
+      _blockMapGestures = value;
+    });
+  }
+
+  void _onSheetPointerDown(PointerDownEvent event) {
+    _sheetPointerActive = true;
+    _setMapGesturesBlocked(true);
+  }
+
+  void _onSheetPointerEnd(PointerEvent event) {
+    _sheetPointerActive = false;
+    if (_mainPanelPosition <= 0.001) {
+      _setMapGesturesBlocked(false);
+    }
+  }
+
+  Future<void> _openDriverSheet() async {
+    _setMapGesturesBlocked(true);
+    await _panelController.animatePanelToPosition(
+      1,
+      duration: _sheetMotionDuration,
+      curve: _sheetMotionCurve,
+    );
+  }
+
+  Future<void> _closeDriverSheet() async {
+    await _panelController.animatePanelToPosition(
+      0,
+      duration: _sheetMotionDuration,
+      curve: _sheetMotionCurve,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -131,8 +173,9 @@ class _DriverHomeState extends State<DriverHome> {
               maxHeight: MediaQuery.of(context).size.height * 0.86,
               parallaxEnabled: false,
               onPanelSlide: (double pos) {
+                _mainPanelPosition = pos;
                 final nextPanelOpen = pos > 0.3;
-                final nextBlockMap = pos > 0.001;
+                final nextBlockMap = _sheetPointerActive || pos > 0.001;
                 if (isPanelOpen != nextPanelOpen ||
                     _blockMapGestures != nextBlockMap) {
                   setState(() {
@@ -141,15 +184,27 @@ class _DriverHomeState extends State<DriverHome> {
                   });
                 }
               },
+              onPanelOpened: () {
+                _mainPanelPosition = 1;
+                _setMapGesturesBlocked(true);
+              },
               onPanelClosed: () {
-                if (_blockMapGestures || isPanelOpen) {
+                _mainPanelPosition = 0;
+                _sheetPointerActive = false;
+                if (isPanelOpen) {
                   setState(() {
-                    _blockMapGestures = false;
                     isPanelOpen = false;
                   });
                 }
+                _setMapGesturesBlocked(false);
               },
-              collapsed: Container(
+              collapsed: PointerInterceptor(
+                child: Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: _onSheetPointerDown,
+                  onPointerUp: _onSheetPointerEnd,
+                  onPointerCancel: _onSheetPointerEnd,
+                  child: Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFFF1F3F5),
                   borderRadius: BorderRadius.vertical(
@@ -159,7 +214,7 @@ class _DriverHomeState extends State<DriverHome> {
                 child: Column(
                   children: [
                     InkWell(
-                      onTap: _panelController.open,
+                      onTap: _openDriverSheet,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         child: Container(
@@ -208,8 +263,19 @@ class _DriverHomeState extends State<DriverHome> {
                     _sheetBottomNavigation(),
                   ],
                 ),
+                  ),
+                ),
               ),
-              panelBuilder: (ScrollController sc) => panelColumn(sc),
+
+              panelBuilder: (ScrollController sc) => PointerInterceptor(
+                child: Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: _onSheetPointerDown,
+                  onPointerUp: _onSheetPointerEnd,
+                  onPointerCancel: _onSheetPointerEnd,
+                  child: panelColumn(sc),
+                ),
+              ),
               body: AbsorbPointer(
                 absorbing: _blockMapGestures,
                 child: body(),
@@ -416,7 +482,7 @@ class _DriverHomeState extends State<DriverHome> {
         child: Column(
           children: [
             InkWell(
-              onTap: _panelController.close,
+              onTap: _closeDriverSheet,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Container(
