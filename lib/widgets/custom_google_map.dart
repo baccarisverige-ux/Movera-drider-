@@ -271,7 +271,6 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
       buildingsEnabled: widget.buildingsEnabled,
       indoorViewEnabled: widget.indoorViewEnabled,
       mapType: widget.mapType,
-      style: widget.customMapStyle ?? _defaultMapStyle,
       padding: widget.padding,
       onMapCreated: (GoogleMapController controller) {
         _mapController = controller;
@@ -279,6 +278,20 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
         if (widget.onMapCreated != null) {
           widget.onMapCreated!(controller);
         }
+
+        // Applying a style during web map construction can prevent the
+        // platform view from appearing. Apply it after the map is ready and
+        // keep a styling failure from taking down the map itself.
+        Future<void>.delayed(const Duration(milliseconds: 300), () async {
+          if (!mounted) return;
+          try {
+            await controller.setMapStyle(
+              widget.customMapStyle ?? _defaultMapStyle,
+            );
+          } catch (_) {
+            // The default Google map remains usable if a platform rejects style.
+          }
+        });
       },
       onTap: widget.onTap,
       onLongPress: widget.onLongPress,
