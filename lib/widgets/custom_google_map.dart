@@ -77,14 +77,14 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     "featureType": "landscape.natural",
     "elementType": "geometry",
     "stylers": [
-      { "color": "#3E7656" }
+      { "color": "#1F6B3A" }
     ]
   },
   {
     "featureType": "poi.park",
     "elementType": "geometry",
     "stylers": [
-      { "color": "#3E7656" },
+      { "color": "#1F6B3A" },
       { "visibility": "on" }
     ]
   },
@@ -189,14 +189,14 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     "featureType": "water",
     "elementType": "geometry",
     "stylers": [
-      { "color": "#1E5F88" }
+      { "color": "#0B4F8A" }
     ]
   },
   {
     "featureType": "water",
     "elementType": "geometry.fill",
     "stylers": [
-      { "color": "#1E5F88" }
+      { "color": "#0B4F8A" }
     ]
   },
   {
@@ -271,13 +271,10 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
       buildingsEnabled: widget.buildingsEnabled,
       indoorViewEnabled: widget.indoorViewEnabled,
       mapType: widget.mapType,
+      style: widget.customMapStyle ?? _defaultMapStyle,
       padding: widget.padding,
       onMapCreated: (GoogleMapController controller) {
         _mapController = controller;
-        // Apply custom style or default style
-        String styleToApply = widget.customMapStyle ?? _defaultMapStyle;
-        _mapController?.setMapStyle(styleToApply);
-
         // Call the provided onMapCreated callback
         if (widget.onMapCreated != null) {
           widget.onMapCreated!(controller);
