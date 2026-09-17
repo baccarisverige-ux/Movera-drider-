@@ -122,7 +122,7 @@ class _DriverHomeState extends State<DriverHome> {
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 190,
+              minHeight: 160,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -145,28 +145,48 @@ class _DriverHomeState extends State<DriverHome> {
                   children: [
                     InkWell(
                       onTap: _panelController.open,
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 9),
-                          Container(
-                            width: 42,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDDE2E7),
-                              borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        child: Container(
+                          width: 42,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDDE2E7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+                      child: InkWell(
+                        onTap: isAccountActivated
+                            ? () {
+                                setState(() {
+                                  showRideRequests = true;
+                                });
+                              }
+                            : _showAccountActivationDialog,
+                        borderRadius: BorderRadius.circular(24),
+                        child: Container(
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: isAccountActivated
+                                ? const Color(0xFF2FBE7B)
+                                : Colors.grey.shade400,
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Center(
+                            child: TextWidget(
+                              text: isAccountActivated
+                                  ? "Go online"
+                                  : "Account pending",
+                              color: AppColor.white,
+                              fontSize: 17,
+                              fontWeight: fwSemiBold,
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            child: _sheetAlertCard(
-                              icon: Icons.analytics_outlined,
-                              iconColor: const Color(0xFF2FBE7B),
-                              title:
-                                  "See how your acceptance rate affects you",
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                     const Spacer(),
@@ -363,7 +383,6 @@ class _DriverHomeState extends State<DriverHome> {
   }
 
   Widget panelColumn(ScrollController sc) {
-    const green = Color(0xFF2FBE7B);
     const canvas = Color(0xFFF1F3F5);
     const ink = Color(0xFF252E3A);
     const muted = Color(0xFF8A97A8);
@@ -397,60 +416,15 @@ class _DriverHomeState extends State<DriverHome> {
                 controller: sc,
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
                 children: [
-                  InkWell(
-                    onTap: isAccountActivated
-                        ? () {
-                            _panelController.close().then((_) {
-                              setState(() {
-                                showRideRequests = true;
-                              });
-                            });
-                          }
-                        : _showAccountActivationDialog,
-                    borderRadius: BorderRadius.circular(24),
-                    child: Container(
-                      height: 58,
-                      decoration: BoxDecoration(
-                        color: isAccountActivated
-                            ? green
-                            : Colors.grey.shade400,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Center(
-                        child: TextWidget(
-                          text: isAccountActivated
-                              ? "Go online"
-                              : "Account pending",
-                          color: AppColor.white,
-                          fontSize: 17,
-                          fontWeight: fwSemiBold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _sheetAlertCard(
-                    icon: Icons.analytics_outlined,
-                    iconColor: green,
-                    title: "See how your acceptance rate affects you",
-                  ),
-                  const SizedBox(height: 10),
                   _sheetAlertCard(
                     icon: Icons.calendar_month_outlined,
                     iconColor: const Color(0xFF8F9CAF),
                     title: "Scheduled rides available",
                     subtitle: "View open requests in your area",
                   ),
-                  const SizedBox(height: 10),
-                  _sheetAlertCard(
-                    icon: Icons.card_giftcard_rounded,
-                    iconColor: const Color(0xFF5968F3),
-                    title: "Earn up to 2,500 SEK extra",
-                    subtitle: "Invite friends to drive with Movera",
-                  ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
                     decoration: BoxDecoration(
                       color: AppColor.white,
                       borderRadius: BorderRadius.circular(18),
@@ -548,68 +522,14 @@ class _DriverHomeState extends State<DriverHome> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 13),
-                        const Divider(
-                          height: 1,
-                          color: Color(0xFFE5E9ED),
-                        ),
-                        const SizedBox(height: 13),
-                        TextWidget(
-                          text: "View all campaigns",
-                          color: const Color(0xFF179B5A),
-                          fontSize: 13,
-                          fontWeight: fwSemiBold,
-                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _driverStatCard(
-                          title: "Movera rewards",
-                          mainText: "Inactive",
-                          mainColor: ink,
-                          icon: Icons.lock_rounded,
-                          iconColor: const Color(0xFFD31E36),
-                          footer: "Increase your points to reactivate",
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _driverStatCard(
-                          title: "Driver score",
-                          mainText: "89%",
-                          mainColor: ink,
-                          badge: "Warning",
-                          badgeColor: const Color(0xFFFF8A00),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _driverStatCard(
-                          title: "Star rating",
-                          mainText: "★ 4.88",
-                          mainColor: ink,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _driverStatCard(
-                          title: "Acceptance rate",
-                          mainText: "39%",
-                          mainColor: ink,
-                          footer: "Minimum 15% required",
-                        ),
-                      ),
-                    ],
+                  _driverStatCard(
+                    title: "Star rating",
+                    mainText: "★ 4.88",
+                    mainColor: ink,
                   ),
                 ],
               ),
