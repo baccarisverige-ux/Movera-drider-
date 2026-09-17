@@ -437,186 +437,137 @@ class _DriverHomeState extends State<DriverHome>
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      barrierColor: const Color(0xFF172027).withOpacity(0.28),
+      barrierColor: const Color(0xFF172027).withOpacity(0.30),
       isScrollControlled: true,
       builder: (sheetContext) {
         return SafeArea(
           top: false,
           minimum: const EdgeInsets.fromLTRB(10, 0, 10, 10),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF1F3F5),
-              borderRadius: BorderRadius.all(Radius.circular(28)),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            decoration: BoxDecoration(
+              color: AppColor.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF172027).withOpacity(0.12),
+                  blurRadius: 28,
+                  offset: const Offset(0, -8),
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 42,
-                  height: 5,
+                  width: 38,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD9DFE3),
+                    color: const Color(0xFFDCE2E5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Container(
-                      height: 42,
-                      width: 42,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF252E3A),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.insights_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
                     const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Today",
-                            style: TextStyle(
-                              color: Color(0xFF252E3A),
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            "Your driving activity",
-                            style: TextStyle(
-                              color: Color(0xFF7B878E),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        "Today",
+                        style: TextStyle(
+                          color: Color(0xFF252E3A),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(sheetContext),
-                      icon: const Icon(Icons.close_rounded),
-                      color: const Color(0xFF566168),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _todayMetricCard(
-                        icon: Icons.payments_rounded,
-                        iconBackground: const Color(0xFFE7F7F0),
-                        iconColor: const Color(0xFF158A5B),
-                        value: "183.25 kr",
-                        label: "Earnings today",
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _todayMetricCard(
-                        icon: Icons.local_taxi_rounded,
-                        iconBackground: const Color(0xFFEAF2F8),
-                        iconColor: const Color(0xFF3B7197),
-                        value: "3",
-                        label: "Rides today",
+                    InkWell(
+                      onTap: () => Navigator.pop(sheetContext),
+                      borderRadius: BorderRadius.circular(20),
+                      child: const SizedBox(
+                        height: 36,
+                        width: 36,
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: Color(0xFF7A858B),
+                          size: 20,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 17),
                   decoration: BoxDecoration(
-                    color: AppColor.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFE1E6E9)),
+                    color: const Color(0xFFF5F7F7),
+                    borderRadius: BorderRadius.circular(22),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            height: 38,
-                            width: 38,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFE7F7F0),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.route_rounded,
-                              color: Color(0xFF2FBE7B),
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 11),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Last trip",
-                                  style: TextStyle(
-                                    color: Color(0xFF252E3A),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  "Comfort ride • 21:42",
-                                  style: TextStyle(
-                                    color: Color(0xFF7B878E),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Text(
-                            "126 kr",
-                            style: TextStyle(
-                              color: Color(0xFF252E3A),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                      Container(
+                        height: 46,
+                        width: 46,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF252E3A),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: const Icon(
+                          Icons.payments_outlined,
+                          color: Colors.white,
+                          size: 23,
+                        ),
                       ),
-                      const SizedBox(height: 14),
-                      const Divider(height: 1, color: Color(0xFFE7EBED)),
-                      const SizedBox(height: 13),
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.radio_button_checked_rounded,
-                            color: Color(0xFF2FBE7B),
-                            size: 15,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              "Central Station → Södermalm",
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "183.25 kr",
                               style: TextStyle(
-                                color: Color(0xFF566168),
-                                fontSize: 12,
+                                color: Color(0xFF20282E),
+                                fontSize: 27,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.7,
+                              ),
+                            ),
+                            SizedBox(height: 3),
+                            Text(
+                              "Total earnings today",
+                              style: TextStyle(
+                                color: Color(0xFF7B878E),
+                                fontSize: 11,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ),
+                      Container(
+                        height: 8,
+                        width: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2FBE7B),
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 8),
+                _premiumActivityRow(
+                  icon: Icons.local_taxi_outlined,
+                  title: "3 rides",
+                  subtitle: "Completed today",
+                ),
+                const Divider(height: 1, color: Color(0xFFE8ECEE)),
+                _premiumActivityRow(
+                  icon: Icons.route_outlined,
+                  title: "Central Station → Södermalm",
+                  subtitle: "Last trip • Comfort • 21:42",
+                  trailing: "126 kr",
                 ),
               ],
             ),
@@ -626,49 +577,67 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _todayMetricCard({
+  Widget _premiumActivityRow({
     required IconData icon,
-    required Color iconBackground,
-    required Color iconColor,
-    required String value,
-    required String label,
+    required String title,
+    required String subtitle,
+    String? trailing,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColor.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE1E6E9)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
         children: [
           Container(
-            height: 38,
-            width: 38,
+            height: 40,
+            width: 40,
             decoration: BoxDecoration(
-              color: iconBackground,
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFF3F5F6),
+              borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(icon, color: iconColor, size: 21),
-          ),
-          const SizedBox(height: 13),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Color(0xFF252E3A),
-              fontSize: 19,
-              fontWeight: FontWeight.w700,
+            child: Icon(
+              icon,
+              color: const Color(0xFF47545B),
+              size: 21,
             ),
           ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF7B878E),
-              fontSize: 11,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF252E3A),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Color(0xFF8A959B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
+          if (trailing != null) ...[
+            const SizedBox(width: 10),
+            Text(
+              trailing,
+              style: const TextStyle(
+                color: Color(0xFF252E3A),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ],
       ),
     );
