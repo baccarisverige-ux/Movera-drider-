@@ -35,7 +35,7 @@ class _DriverHomeState extends State<DriverHome>
     with SingleTickerProviderStateMixin {
   final PanelController _panelController = PanelController();
   final PanelController _destinationPanelController = PanelController();
-  late final AnimationController _goOnlineArrowController;
+  late final AnimationController _goOnlinePulseController;
   GoogleMapController? _mapController;
   bool visibleRecentRides = false;
   bool isPanelOpen = false;
@@ -59,10 +59,10 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void initState() {
     super.initState();
-    _goOnlineArrowController = AnimationController(
+    _goOnlinePulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2600),
-    )..repeat();
+    )..repeat(reverse: true);
     _loadMarkers();
   }
 
@@ -244,54 +244,46 @@ class _DriverHomeState extends State<DriverHome>
                               }
                             : _showAccountActivationDialog,
                         borderRadius: BorderRadius.circular(24),
-                        child: Container(
-                          height: 54,
-                          decoration: BoxDecoration(
-                            color: AppColor.white,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: const Color(0xFFDDE3E7),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF252E3A)
-                                    .withOpacity(0.06),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
+                        child: AnimatedBuilder(
+                          animation: _goOnlinePulseController,
                           child: Center(
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                TextWidget(
-                                  text: isAccountActivated
-                                      ? "Go online"
-                                      : "Account pending",
-                                  color: const Color(0xFF4B5157),
-                                  fontSize: 17,
-                                  fontWeight: fwSemiBold,
-                                ),
-                                if (isAccountActivated)
-                                  RotationTransition(
-                                    turns: _goOnlineArrowController,
-                                    child: const SizedBox(
-                                      width: 142,
-                                      height: 46,
-                                      child: Align(
-                                        alignment: Alignment.topCenter,
-                                        child: Icon(
-                                          Icons.arrow_forward_rounded,
-                                          color: Color(0xFF6A7076),
-                                          size: 17,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
+                            child: TextWidget(
+                              text: isAccountActivated
+                                  ? "Go online"
+                                  : "Account pending",
+                              color: const Color(0xFF4B5157),
+                              fontSize: 17,
+                              fontWeight: fwSemiBold,
                             ),
                           ),
+                          builder: (context, child) {
+                            final pulse = _goOnlinePulseController.value;
+                            return Container(
+                              height: 54,
+                              decoration: BoxDecoration(
+                                color: AppColor.white,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: Color.lerp(
+                                    const Color(0xFFDDE3E7),
+                                    const Color(0xFFB9C5CC),
+                                    pulse,
+                                  )!,
+                                  width: 1 + (pulse * 0.45),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF252E3A)
+                                        .withOpacity(0.04 + (pulse * 0.08)),
+                                    blurRadius: 8 + (pulse * 12),
+                                    spreadRadius: pulse * 1.2,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: child,
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -792,7 +784,7 @@ class _DriverHomeState extends State<DriverHome>
 
   @override
   void dispose() {
-    _goOnlineArrowController.dispose();
+    _goOnlinePulseController.dispose();
     _mapController?.dispose();
     super.dispose();
   }
