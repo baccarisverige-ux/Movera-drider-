@@ -336,55 +336,71 @@ class _DriverHomeState extends State<DriverHome>
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Container(
-                      height: ResSize.h * 48,
-                      width: ResSize.w * 152,
-                      padding: const EdgeInsets.all(4),
+                      height: ResSize.h * 38,
+                      width: ResSize.w * 126,
                       decoration: BoxDecoration(
-                        color: AppColor.white.withOpacity(0.97),
-                        borderRadius: BorderRadius.circular(28),
+                        color: AppColor.white,
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: AppColor.white.withOpacity(0.9),
-                          width: 1.5,
+                          color: const Color(0xFFE1E5E8),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF172027).withOpacity(0.18),
-                            blurRadius: 20,
-                            offset: const Offset(0, 7),
-                          ),
-                          BoxShadow(
-                            color: AppColor.white.withOpacity(0.7),
-                            blurRadius: 2,
-                            offset: const Offset(0, -1),
+                            color: const Color(0xFF252E3A).withOpacity(0.16),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
+                      clipBehavior: Clip.antiAlias,
                       child: Row(
                         children: [
-                          Builder(
-                            builder: (context) => _mapControlButton(
-                              icon: Icons.menu_rounded,
-                              semanticsLabel: "Menu",
-                              onTap: () => Scaffold.of(context).openDrawer(),
+                          Expanded(
+                            child: Builder(
+                              builder: (context) => InkWell(
+                                onTap: () {
+                                  Scaffold.of(context).openDrawer();
+                                },
+                                child: Center(
+                                  child: Icon(
+                                    Icons.menu_rounded,
+                                    size: ResSize.h * 20,
+                                    color: AppColor.black,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 3),
-                          _mapControlButton(
-                            icon: Icons.search_rounded,
-                            semanticsLabel: "Search",
-                            onTap: () {
-                              showDriverSearchPickupLocationSheet(
-                                context,
-                                openDestinationPanel,
-                              );
-                            },
+                          _mapControlDivider(),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () {
+                                showDriverSearchPickupLocationSheet(
+                                  context,
+                                  openDestinationPanel,
+                                );
+                              },
+                              child: Center(
+                                child: Image.asset(
+                                  AppAssets.search,
+                                  height: ResSize.h * 17,
+                                  color: AppColor.black,
+                                ),
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 3),
-                          _mapControlButton(
-                            icon: Icons.account_balance_wallet_rounded,
-                            semanticsLabel: "Today's activity",
-                            accent: true,
-                            onTap: _showTodaySummary,
+                          _mapControlDivider(),
+                          Expanded(
+                            child: InkWell(
+                              onTap: _showTodaySummary,
+                              child: Center(
+                                child: Icon(
+                                  Icons.bar_chart_rounded,
+                                  size: ResSize.h * 19,
+                                  color: AppColor.black,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -409,35 +425,11 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _mapControlButton({
-    required IconData icon,
-    required String semanticsLabel,
-    required VoidCallback onTap,
-    bool accent = false,
-  }) {
-    return Expanded(
-      child: Semantics(
-        button: true,
-        label: semanticsLabel,
-        child: Material(
-          color: accent ? const Color(0xFFE4F6EF) : Colors.transparent,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            splashColor: const Color(0xFF2FBE7B).withOpacity(0.15),
-            child: Center(
-              child: Icon(
-                icon,
-                size: ResSize.h * 20,
-                color: accent
-                    ? const Color(0xFF158A5B)
-                    : const Color(0xFF252E3A),
-              ),
-            ),
-          ),
-        ),
-      ),
+  Widget _mapControlDivider() {
+    return Container(
+      height: ResSize.h * 22,
+      width: 1,
+      color: const Color(0xFFE1E5E8),
     );
   }
 
@@ -445,226 +437,128 @@ class _DriverHomeState extends State<DriverHome>
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      barrierColor: const Color(0xFF111820).withOpacity(0.34),
+      barrierColor: const Color(0xFF172027).withOpacity(0.28),
       isScrollControlled: true,
       builder: (sheetContext) {
         return SafeArea(
           top: false,
           minimum: const EdgeInsets.fromLTRB(10, 0, 10, 10),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F6F7),
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF111820).withOpacity(0.18),
-                  blurRadius: 30,
-                  offset: const Offset(0, -8),
-                ),
-              ],
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF1F3F5),
+              borderRadius: BorderRadius.all(Radius.circular(28)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 40,
+                  width: 42,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD5DCE0),
+                    color: const Color(0xFFD9DFE3),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Row(
                   children: [
+                    Container(
+                      height: 42,
+                      width: 42,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF252E3A),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.insights_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Today's activity",
+                            "Today",
                             style: TextStyle(
-                              color: Color(0xFF20282E),
-                              fontSize: 21,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.4,
+                              color: Color(0xFF252E3A),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           SizedBox(height: 2),
                           Text(
-                            "Live overview of your day",
+                            "Your driving activity",
                             style: TextStyle(
                               color: Color(0xFF7B878E),
                               fontSize: 12,
-                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Material(
-                      color: AppColor.white,
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: () => Navigator.pop(sheetContext),
-                        child: const SizedBox(
-                          height: 38,
-                          width: 38,
-                          child: Icon(
-                            Icons.close_rounded,
-                            color: Color(0xFF4C585F),
-                            size: 20,
-                          ),
-                        ),
-                      ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.close_rounded),
+                      color: const Color(0xFF566168),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF18252E), Color(0xFF29414A)],
+                Row(
+                  children: [
+                    Expanded(
+                      child: _todayMetricCard(
+                        icon: Icons.payments_rounded,
+                        iconBackground: const Color(0xFFE7F7F0),
+                        iconColor: const Color(0xFF158A5B),
+                        value: "183.25 kr",
+                        label: "Earnings today",
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF18252E).withOpacity(0.22),
-                        blurRadius: 20,
-                        offset: const Offset(0, 9),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _todayMetricCard(
+                        icon: Icons.local_taxi_rounded,
+                        iconBackground: const Color(0xFFEAF2F8),
+                        iconColor: const Color(0xFF3B7197),
+                        value: "3",
+                        label: "Rides today",
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        height: 54,
-                        width: 54,
-                        decoration: BoxDecoration(
-                          color: AppColor.white.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(17),
-                          border: Border.all(
-                            color: AppColor.white.withOpacity(0.18),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.payments_rounded,
-                          color: Color(0xFF62D7AA),
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "TOTAL EARNINGS TODAY",
-                              style: TextStyle(
-                                color: Color(0xFFAFC0C6),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                            SizedBox(height: 5),
-                            Text(
-                              "183.25 kr",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 27,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.7,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF62D7AA).withOpacity(0.14),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle_rounded,
-                              color: Color(0xFF62D7AA),
-                              size: 14,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              "Updated",
-                              style: TextStyle(
-                                color: Color(0xFFBCEEDB),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                _activityInfoCard(
-                  icon: Icons.directions_car_filled_rounded,
-                  iconBackground: const Color(0xFFE6F3FF),
-                  iconColor: const Color(0xFF2879B9),
-                  title: "3 rides",
-                  subtitle: "Completed today",
-                  trailingIcon: Icons.arrow_forward_ios_rounded,
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppColor.white,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: const Color(0xFFE5E9EB)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF1A2730).withOpacity(0.05),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE1E6E9)),
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Container(
-                            height: 46,
-                            width: 46,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [Color(0xFF49D19A), Color(0xFF159666)],
-                              ),
-                              borderRadius: BorderRadius.circular(15),
+                            height: 38,
+                            width: 38,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFE7F7F0),
+                              shape: BoxShape.circle,
                             ),
                             child: const Icon(
                               Icons.route_rounded,
-                              color: Colors.white,
-                              size: 24,
+                              color: Color(0xFF2FBE7B),
+                              size: 20,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 11),
                           const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -673,17 +567,16 @@ class _DriverHomeState extends State<DriverHome>
                                   "Last trip",
                                   style: TextStyle(
                                     color: Color(0xFF252E3A),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                SizedBox(height: 3),
+                                SizedBox(height: 2),
                                 Text(
-                                  "Comfort • 21:42",
+                                  "Comfort ride • 21:42",
                                   style: TextStyle(
                                     color: Color(0xFF7B878E),
                                     fontSize: 11,
-                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -692,66 +585,32 @@ class _DriverHomeState extends State<DriverHome>
                           const Text(
                             "126 kr",
                             style: TextStyle(
-                              color: Color(0xFF20282E),
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF252E3A),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      const Divider(height: 1, color: Color(0xFFE8ECEE)),
                       const SizedBox(height: 14),
+                      const Divider(height: 1, color: Color(0xFFE7EBED)),
+                      const SizedBox(height: 13),
                       const Row(
                         children: [
-                          SizedBox(
-                            width: 22,
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.radio_button_checked_rounded,
-                                  size: 16,
-                                  color: Color(0xFF2FBE7B),
-                                ),
-                                SizedBox(
-                                  height: 18,
-                                  child: VerticalDivider(
-                                    width: 1,
-                                    thickness: 1.5,
-                                    color: Color(0xFFC8D1D5),
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.location_on_rounded,
-                                  size: 18,
-                                  color: Color(0xFF252E3A),
-                                ),
-                              ],
-                            ),
+                          Icon(
+                            Icons.radio_button_checked_rounded,
+                            color: Color(0xFF2FBE7B),
+                            size: 15,
                           ),
-                          SizedBox(width: 9),
+                          SizedBox(width: 8),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Central Station",
-                                  style: TextStyle(
-                                    color: Color(0xFF39444A),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                SizedBox(height: 17),
-                                Text(
-                                  "Södermalm",
-                                  style: TextStyle(
-                                    color: Color(0xFF39444A),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              "Central Station → Södermalm",
+                              style: TextStyle(
+                                color: Color(0xFF566168),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
@@ -767,60 +626,49 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _activityInfoCard({
+  Widget _todayMetricCard({
     required IconData icon,
     required Color iconBackground,
     required Color iconColor,
-    required String title,
-    required String subtitle,
-    IconData? trailingIcon,
+    required String value,
+    required String label,
   }) {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColor.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5E9EB)),
+        border: Border.all(color: const Color(0xFFE1E6E9)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            height: 44,
-            width: 44,
+            height: 38,
+            width: 38,
             decoration: BoxDecoration(
               color: iconBackground,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: iconColor, size: 23),
+            child: Icon(icon, color: iconColor, size: 21),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xFF252E3A),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: Color(0xFF7B878E),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 13),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF252E3A),
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          if (trailingIcon != null)
-            Icon(trailingIcon, color: const Color(0xFFA1ABB0), size: 16),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF7B878E),
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );
