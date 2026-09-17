@@ -5,8 +5,6 @@ import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/models/onboarding.dart';
 import 'package:movera/presentation/driver/auth/starter/starter.dart';
-import 'package:movera/presentation/rider/auth/starter/starter.dart';
-import 'package:movera/presentation/rider/home/home.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 import 'package:movera/widgets/responsive_size.dart';
@@ -178,7 +176,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ? () {
                                   Navigator.pushReplacement(
                                     context,
-                                    BottomToTopTransition(Home()),
+                                    BottomToTopTransition(
+                                      const DriverStarter(),
+                                    ),
                                   );
                                 }
                               : () {
