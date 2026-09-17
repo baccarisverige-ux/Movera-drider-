@@ -9,7 +9,6 @@ import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
-import 'package:movera/presentation/driver/home/components/recent_rides.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
 import 'package:movera/presentation/driver/promotions/promotions.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
@@ -40,7 +39,6 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _onlineTransitionTimer;
   Timer? _offerSimulationTimer;
   GoogleMapController? _mapController;
-  bool visibleRecentRides = false;
   bool isPanelOpen = false;
   bool _blockMapGestures = false;
   bool _sheetPointerActive = false;
@@ -327,7 +325,7 @@ class _DriverHomeState extends State<DriverHome>
               : SizedBox(),
 
           Visibility(
-            visible: visibleRecentRides ? false : true,
+            visible: true,
             child: Padding(
               padding: EdgeInsets.symmetric(
                 vertical: ResSize.h * 55,
@@ -335,92 +333,77 @@ class _DriverHomeState extends State<DriverHome>
               ),
               child: Column(
                 children: [
-                  SizedBox(
-                    height: ResSize.h * 38,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            height: ResSize.h * 38,
-                            width: ResSize.w * 84,
-                            decoration: BoxDecoration(
-                              color: AppColor.white,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: const Color(0xFFE1E5E8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      height: ResSize.h * 38,
+                      width: ResSize.w * 126,
+                      decoration: BoxDecoration(
+                        color: AppColor.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFFE1E5E8),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF252E3A).withOpacity(0.16),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Builder(
+                              builder: (context) => InkWell(
+                                onTap: () {
+                                  Scaffold.of(context).openDrawer();
+                                },
+                                child: Center(
+                                  child: Icon(
+                                    Icons.menu_rounded,
+                                    size: ResSize.h * 20,
+                                    color: AppColor.black,
+                                  ),
+                                ),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF252E3A)
-                                      .withOpacity(0.16),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Builder(
-                                    builder: (context) => InkWell(
-                                      onTap: () {
-                                        Scaffold.of(context).openDrawer();
-                                      },
-                                      child: Center(
-                                        child: Icon(
-                                          Icons.menu_rounded,
-                                          size: ResSize.h * 20,
-                                          color: AppColor.black,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  height: ResSize.h * 22,
-                                  width: 1,
-                                  color: const Color(0xFFE1E5E8),
-                                ),
-                                Expanded(
-                                  child: InkWell(
-                                    onTap: () {
-                                      showDriverSearchPickupLocationSheet(
-                                        context,
-                                        openDestinationPanel,
-                                      );
-                                    },
-                                    child: Center(
-                                      child: Image.asset(
-                                        AppAssets.search,
-                                        height: ResSize.h * 17,
-                                        color: AppColor.black,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
-                        ),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(22),
-                          onTap: () {
-                            setState(() {
-                              visibleRecentRides = true;
-                            });
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Image.asset(
-                              AppAssets.logo,
-                              height: ResSize.h * 22,
+                          _mapControlDivider(),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () {
+                                showDriverSearchPickupLocationSheet(
+                                  context,
+                                  openDestinationPanel,
+                                );
+                              },
+                              child: Center(
+                                child: Image.asset(
+                                  AppAssets.search,
+                                  height: ResSize.h * 17,
+                                  color: AppColor.black,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          _mapControlDivider(),
+                          Expanded(
+                            child: InkWell(
+                              onTap: _showTodaySummary,
+                              child: Center(
+                                child: Icon(
+                                  Icons.bar_chart_rounded,
+                                  size: ResSize.h * 19,
+                                  color: AppColor.black,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   isDestinationPanel
@@ -436,18 +419,242 @@ class _DriverHomeState extends State<DriverHome>
 
           // The former third floating map button was intentionally removed.
 
-          visibleRecentRides
-              ? Padding(
-                  padding: EdgeInsets.only(top: ResSize.h * 20),
-                  child: DriverHomeRecentRides(
-                    onVisible: () {
-                      setState(() {
-                        visibleRecentRides = false;
-                      });
-                    },
+
+        ],
+      ),
+    );
+  }
+
+  Widget _mapControlDivider() {
+    return Container(
+      height: ResSize.h * 22,
+      width: 1,
+      color: const Color(0xFFE1E5E8),
+    );
+  }
+
+  void _showTodaySummary() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: const Color(0xFF172027).withOpacity(0.28),
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          minimum: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF1F3F5),
+              borderRadius: BorderRadius.all(Radius.circular(28)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD9DFE3),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                )
-              : SizedBox(),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Container(
+                      height: 42,
+                      width: 42,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF252E3A),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.insights_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Today",
+                            style: TextStyle(
+                              color: Color(0xFF252E3A),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "Your driving activity",
+                            style: TextStyle(
+                              color: Color(0xFF7B878E),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.close_rounded),
+                      color: const Color(0xFF566168),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _todayMetricCard(
+                        icon: Icons.account_balance_wallet_rounded,
+                        value: "183.25 kr",
+                        label: "Earnings today",
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _todayMetricCard(
+                        icon: Icons.local_taxi_rounded,
+                        value: "3",
+                        label: "Rides today",
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColor.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE1E6E9)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            height: 38,
+                            width: 38,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFE7F7F0),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.route_rounded,
+                              color: Color(0xFF2FBE7B),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 11),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Last trip",
+                                  style: TextStyle(
+                                    color: Color(0xFF252E3A),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  "Comfort ride • 21:42",
+                                  style: TextStyle(
+                                    color: Color(0xFF7B878E),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Text(
+                            "126 kr",
+                            style: TextStyle(
+                              color: Color(0xFF252E3A),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      const Divider(height: 1, color: Color(0xFFE7EBED)),
+                      const SizedBox(height: 13),
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.radio_button_checked_rounded,
+                            color: Color(0xFF2FBE7B),
+                            size: 15,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Central Station → Södermalm",
+                              style: TextStyle(
+                                color: Color(0xFF566168),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _todayMetricCard({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColor.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE1E6E9)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF66737B), size: 20),
+          const SizedBox(height: 13),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF252E3A),
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF7B878E),
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );
