@@ -77,14 +77,14 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     "featureType": "landscape.natural",
     "elementType": "geometry",
     "stylers": [
-      { "color": "#D2F8E1" }
+      { "color": "#3E7656" }
     ]
   },
   {
     "featureType": "poi.park",
     "elementType": "geometry",
     "stylers": [
-      { "color": "#D2F8E1" },
+      { "color": "#3E7656" },
       { "visibility": "on" }
     ]
   },
@@ -189,14 +189,14 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     "featureType": "water",
     "elementType": "geometry",
     "stylers": [
-      { "color": "#8EDBF3" }
+      { "color": "#1E5F88" }
     ]
   },
   {
     "featureType": "water",
     "elementType": "geometry.fill",
     "stylers": [
-      { "color": "#8EDBF3" }
+      { "color": "#1E5F88" }
     ]
   },
   {
