@@ -235,56 +235,57 @@ class _DriverHomeState extends State<DriverHome>
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-                      child: InkWell(
-                        onTap: isAccountActivated
-                            ? () {
-                                setState(() {
-                                  showRideRequests = true;
-                                });
-                              }
-                            : _showAccountActivationDialog,
-                        borderRadius: BorderRadius.circular(24),
-                        child: AnimatedBuilder(
-                          animation: _goOnlinePulseController,
-                          child: Center(
-                            child: TextWidget(
-                              text: isAccountActivated
-                                  ? "Go online"
-                                  : "Account pending",
-                              color: const Color(0xFF4B5157),
-                              fontSize: 17,
-                              fontWeight: fwSemiBold,
-                            ),
+                      child: AnimatedBuilder(
+                        animation: _goOnlinePulseController,
+                        child: Center(
+                          child: TextWidget(
+                            text: isAccountActivated
+                                ? "Go online"
+                                : "Account pending",
+                            color: const Color(0xFF3F454A),
+                            fontSize: 17,
+                            fontWeight: fwSemiBold,
                           ),
-                          builder: (context, child) {
-                            final pulse = _goOnlinePulseController.value;
-                            return Container(
-                              height: 54,
-                              decoration: BoxDecoration(
-                                color: AppColor.white,
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: Color.lerp(
-                                    const Color(0xFFDDE3E7),
-                                    const Color(0xFFB9C5CC),
-                                    pulse,
-                                  )!,
-                                  width: 1 + (pulse * 0.45),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF252E3A)
-                                        .withOpacity(0.04 + (pulse * 0.08)),
-                                    blurRadius: 8 + (pulse * 12),
-                                    spreadRadius: pulse * 1.2,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: child,
-                            );
-                          },
                         ),
+                        builder: (context, child) {
+                          final pulse = _goOnlinePulseController.value;
+                          return Material(
+                            color: AppColor.white,
+                            elevation: 5 + (pulse * 2.5),
+                            shadowColor: const Color(0xFF252E3A)
+                                .withOpacity(0.24 + (pulse * 0.08)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              side: BorderSide(
+                                color: Color.lerp(
+                                  const Color(0xFFCDD5DA),
+                                  const Color(0xFFAEBBC2),
+                                  pulse,
+                                )!,
+                                width: 1.2,
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: isAccountActivated
+                                  ? () {
+                                      setState(() {
+                                        showRideRequests = true;
+                                      });
+                                    }
+                                  : _showAccountActivationDialog,
+                              splashColor:
+                                  const Color(0xFF252E3A).withOpacity(0.08),
+                              highlightColor:
+                                  const Color(0xFF252E3A).withOpacity(0.05),
+                              child: SizedBox(
+                                height: 54,
+                                width: double.infinity,
+                                child: child,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const Spacer(),
