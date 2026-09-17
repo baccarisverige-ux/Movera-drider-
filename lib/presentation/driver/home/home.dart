@@ -115,113 +115,84 @@ class _DriverHomeState extends State<DriverHome> {
               body: body(isDestinationPanel: true),
             )
           : SlidingUpPanel(
-              color: AppColor.white,
+              color: Colors.transparent,
               backdropColor: Colors.transparent,
               backdropOpacity: 0,
               backdropEnabled: false, // Changed to false
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: ResSize.h * 88,
+              minHeight: ResSize.h * 96,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
               defaultPanelState: PanelState.CLOSED,
-              maxHeight: MediaQuery.of(context).size.height * 0.54,
+              maxHeight: MediaQuery.of(context).size.height * 0.62,
               parallaxEnabled: false,
               onPanelSlide: (double pos) {
                 setState(() {
                   isPanelOpen = pos > 0.3;
                 });
               },
-              collapsed: InkWell(
-                onTap: _panelController.open,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColor.white,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(28),
+              collapsed: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                child: InkWell(
+                  onTap: _panelController.open,
+                  borderRadius: BorderRadius.circular(28),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFCFDFD),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: const Color(0xFFE1E8EC)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF102F45).withOpacity(0.14),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF183F5B).withOpacity(0.12),
-                        blurRadius: 24,
-                        offset: const Offset(0, -6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 7),
-                      Container(
-                        width: 38,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9E3E8),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: screenHorizPadding,
+                    child: Row(
+                      children: [
+                        Container(
+                          height: 44,
+                          width: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF102F45),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Row(
-                            children: [
-                              Container(
-                                height: 40,
-                                width: 40,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF153F5F),
-                                      Color(0xFF2376A5),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Center(
-                                  child: Image.asset(
-                                    AppAssets.logo,
-                                    height: 23,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextWidget(
-                                  text: isAccountActivated
-                                      ? "Movera Drive  •  Ready for rides"
-                                      : "Movera Drive  •  Account pending",
-                                  fontSize: 13,
-                                  fontWeight: fwSemiBold,
-                                  color: const Color(0xFF153F5F),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                height: 36,
-                                width: 36,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEAF3F7),
-                                  borderRadius: BorderRadius.circular(13),
-                                ),
-                                child: const Icon(
-                                  Icons.keyboard_arrow_up_rounded,
-                                  size: 22,
-                                  color: Color(0xFF153F5F),
-                                ),
-                              ),
-                            ],
+                          child: Center(
+                            child: Image.asset(
+                              AppAssets.logo,
+                              height: 24,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextWidget(
+                            text: "MOVERA  •  DRIVER MODE",
+                            fontSize: 12,
+                            fontWeight: fwSemiBold,
+                            color: const Color(0xFF102F45),
+                          ),
+                        ),
+                        Container(
+                          height: 40,
+                          width: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF36C59A),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: const Icon(
+                            Icons.keyboard_arrow_up_rounded,
+                            size: 24,
+                            color: Color(0xFF102F45),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -414,201 +385,221 @@ class _DriverHomeState extends State<DriverHome> {
   }
 
   Widget panelColumn(ScrollController sc) {
-    const moveraNavy = Color(0xFF153F5F);
-    const moveraBlue = Color(0xFF2376A5);
-    const moveraMint = Color(0xFF36C59A);
-    const moveraCanvas = Color(0xFFF4F8FA);
+    const ink = Color(0xFF102F45);
+    const mint = Color(0xFF36C59A);
+    const line = Color(0xFFE3E9EC);
+    const muted = Color(0xFF74838D);
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 180),
       opacity: isPanelOpen ? 1.0 : 0.0,
       child: Container(
+        margin: const EdgeInsets.only(top: 6),
         decoration: const BoxDecoration(
-          color: moveraCanvas,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          color: Color(0xFFFCFDFD),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
           children: [
-            8.height,
+            const SizedBox(height: 10),
             Container(
-              width: ResSize.w * 38,
-              height: ResSize.h * 4,
+              width: 42,
+              height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFD4E0E6),
+                color: const Color(0xFFD6DFE4),
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 screenHorizPadding,
-                ResSize.h * 8,
+                10,
                 screenHorizPadding,
-                ResSize.h * 10,
+                8,
               ),
               child: Row(
                 children: [
+                  Expanded(
+                    child: TextWidget(
+                      text: "DRIVER MODE",
+                      color: ink,
+                      fontSize: 13,
+                      fontWeight: fwSemiBold,
+                    ),
+                  ),
                   InkWell(
                     onTap: _panelController.close,
                     borderRadius: BorderRadius.circular(14),
                     child: Container(
-                      height: ResSize.h * 36,
-                      width: ResSize.w * 36,
+                      height: 38,
+                      width: 38,
                       decoration: BoxDecoration(
-                        color: AppColor.white,
-                        borderRadius: BorderRadius.circular(13),
+                        color: const Color(0xFFF0F4F6),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.keyboard_arrow_down_rounded,
-                        size: ResSize.h * 23,
-                        color: moveraNavy,
+                        color: ink,
+                        size: 24,
                       ),
-                    ),
-                  ),
-                  12.width,
-                  Expanded(
-                    child: TextWidget(
-                      text: "Driver hub",
-                      color: moveraNavy,
-                      fontSize: 18,
-                      fontWeight: fwSemiBold,
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: ResSize.w * 10,
-                      vertical: ResSize.h * 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isAccountActivated
-                          ? moveraMint.withOpacity(0.12)
-                          : Colors.orange.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: TextWidget(
-                      text: isAccountActivated ? "Ready" : "Pending",
-                      color: isAccountActivated
-                          ? moveraNavy
-                          : Colors.orange.shade800,
-                      fontSize: 11,
-                      fontWeight: fwSemiBold,
                     ),
                   ),
                 ],
               ),
             ),
+            const Divider(height: 1, color: line),
             Expanded(
               child: SingleChildScrollView(
                 controller: sc,
                 padding: EdgeInsets.fromLTRB(
                   screenHorizPadding,
-                  0,
+                  20,
                   screenHorizPadding,
-                  ResSize.h * 12,
+                  MediaQuery.paddingOf(context).bottom + 30,
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(ResSize.h * 16),
+                      height: 72,
+                      width: 72,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [moveraNavy, moveraBlue],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                        color: const Color(0xFFEAF8F4),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: mint.withOpacity(0.45),
+                          width: 2,
                         ),
-                        borderRadius: BorderRadius.circular(22),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            height: ResSize.h * 46,
-                            width: ResSize.w * 46,
-                            decoration: BoxDecoration(
-                              color: AppColor.white.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: Icon(
-                              Icons.local_taxi_rounded,
-                              color: moveraMint,
-                              size: ResSize.h * 25,
-                            ),
-                          ),
-                          13.width,
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextWidget(
-                                  text: "Ready when you are",
-                                  fontSize: 16,
-                                  fontWeight: fwSemiBold,
-                                  color: AppColor.white,
-                                ),
-                                4.height,
-                                TextWidget(
-                                  text:
-                                      "Your route tools are prepared for the next drive.",
-                                  fontSize: 11,
-                                  fontWeight: fwNormal,
-                                  color: AppColor.white.withOpacity(0.74),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      child: const Icon(
+                        Icons.local_taxi_rounded,
+                        color: ink,
+                        size: 32,
                       ),
                     ),
-                    16.height,
+                    const SizedBox(height: 12),
                     TextWidget(
-                      text: "Quick tools",
-                      color: moveraNavy,
-                      fontSize: 14,
+                      text: isAccountActivated
+                          ? "Ready to drive"
+                          : "Account pending",
+                      color: ink,
+                      fontSize: 22,
                       fontWeight: fwSemiBold,
                     ),
-                    10.height,
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _hubToolCard(
-                            icon: Icons.alt_route_rounded,
-                            title: "Waybill",
-                            subtitle: "Set destination",
-                            color: moveraBlue,
-                          ),
+                    const SizedBox(height: 5),
+                    TextWidget(
+                      text: isAccountActivated
+                          ? "Go online when you are ready"
+                          : "Complete activation to start driving",
+                      color: muted,
+                      fontSize: 12,
+                      fontWeight: fwNormal,
+                    ),
+                    const SizedBox(height: 18),
+                    InkWell(
+                      onTap: isAccountActivated
+                          ? () {
+                              _panelController.close().then((_) {
+                                setState(() {
+                                  showRideRequests = true;
+                                });
+                              });
+                            }
+                          : _showAccountActivationDialog,
+                      borderRadius: BorderRadius.circular(18),
+                      child: Container(
+                        height: 56,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isAccountActivated
+                              ? ink
+                              : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(18),
                         ),
-                        10.width,
-                        Expanded(
-                          child: _hubToolCard(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              height: 30,
+                              width: 30,
+                              decoration: BoxDecoration(
+                                color: isAccountActivated
+                                    ? mint
+                                    : Colors.grey.shade400,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.power_settings_new_rounded,
+                                color: isAccountActivated
+                                    ? ink
+                                    : Colors.grey.shade700,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            TextWidget(
+                              text: isAccountActivated
+                                  ? "GO ONLINE"
+                                  : "ACTIVATION REQUIRED",
+                              color: isAccountActivated
+                                  ? AppColor.white
+                                  : Colors.grey.shade700,
+                              fontSize: 13,
+                              fontWeight: fwSemiBold,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColor.white,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: line),
+                      ),
+                      child: Column(
+                        children: [
+                          _driverMenuRow(
+                            icon: Icons.alt_route_rounded,
+                            title: "Set destination",
+                            subtitle: "Find rides heading your way",
+                            accent: mint,
+                          ),
+                          const Divider(
+                            height: 1,
+                            indent: 66,
+                            color: line,
+                          ),
+                          _driverMenuRow(
                             icon: Icons.schedule_rounded,
                             title: "Driving time",
-                            subtitle: "View activity",
-                            color: moveraNavy,
+                            subtitle: "See today’s activity",
+                            accent: const Color(0xFF5E7E91),
                           ),
-                        ),
-                      ],
-                    ),
-                    10.height,
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _hubToolCard(
+                          const Divider(
+                            height: 1,
+                            indent: 66,
+                            color: line,
+                          ),
+                          _driverMenuRow(
                             icon: Icons.shield_outlined,
-                            title: "Safety",
-                            subtitle: "Driver toolkit",
-                            color: moveraMint,
+                            title: "Safety centre",
+                            subtitle: "Open driver safety tools",
+                            accent: const Color(0xFFDF9B42),
                             onTap: () {
                               showSafetyToolKitSheet(context);
                             },
                           ),
-                        ),
-                        10.width,
-                        Expanded(
-                          child: _hubToolCard(
+                          const Divider(
+                            height: 1,
+                            indent: 66,
+                            color: line,
+                          ),
+                          _driverMenuRow(
                             icon: Icons.auto_awesome_rounded,
                             title: "Rewards",
-                            subtitle: "Offers & bonuses",
-                            color: const Color(0xFF7767D8),
+                            subtitle: "Offers and driver bonuses",
+                            accent: const Color(0xFF7767D8),
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -616,87 +607,10 @@ class _DriverHomeState extends State<DriverHome> {
                               );
                             },
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
-                ),
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.fromLTRB(
-                screenHorizPadding,
-                ResSize.h * 10,
-                screenHorizPadding,
-                MediaQuery.paddingOf(context).bottom + ResSize.h * 10,
-              ),
-              decoration: BoxDecoration(
-                color: AppColor.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: moveraNavy.withOpacity(0.08),
-                    blurRadius: 18,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: InkWell(
-                onTap: isAccountActivated
-                    ? () {
-                        _panelController.close().then((_) {
-                          setState(() {
-                            showRideRequests = true;
-                          });
-                        });
-                      }
-                    : _showAccountActivationDialog,
-                borderRadius: BorderRadius.circular(18),
-                child: Container(
-                  height: ResSize.h * 50,
-                  decoration: BoxDecoration(
-                    gradient: isAccountActivated
-                        ? const LinearGradient(
-                            colors: [moveraNavy, moveraBlue],
-                          )
-                        : null,
-                    color: isAccountActivated
-                        ? null
-                        : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        height: ResSize.h * 28,
-                        width: ResSize.w * 28,
-                        decoration: BoxDecoration(
-                          color: isAccountActivated
-                              ? moveraMint
-                              : Colors.grey.shade400,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.power_settings_new_rounded,
-                          color: isAccountActivated
-                              ? moveraNavy
-                              : Colors.grey.shade700,
-                          size: ResSize.h * 18,
-                        ),
-                      ),
-                      10.width,
-                      TextWidget(
-                        text:
-                            isAccountActivated ? "Go online" : "Account pending",
-                        fontSize: 14,
-                        fontWeight: fwSemiBold,
-                        color: isAccountActivated
-                            ? AppColor.white
-                            : Colors.grey.shade700,
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
@@ -706,58 +620,54 @@ class _DriverHomeState extends State<DriverHome> {
     );
   }
 
-  Widget _hubToolCard({
+  Widget _driverMenuRow({
     required IconData icon,
     required String title,
     required String subtitle,
-    required Color color,
+    required Color accent,
     VoidCallback? onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: EdgeInsets.all(ResSize.h * 12),
-        decoration: BoxDecoration(
-          color: AppColor.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE5EDF1)),
-        ),
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         child: Row(
           children: [
             Container(
-              height: ResSize.h * 34,
-              width: ResSize.w * 34,
+              height: 38,
+              width: 38,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.11),
-                borderRadius: BorderRadius.circular(12),
+                color: accent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(13),
               ),
-              child: Icon(
-                icon,
-                color: color,
-                size: ResSize.h * 19,
-              ),
+              child: Icon(icon, color: accent, size: 20),
             ),
-            9.width,
+            const SizedBox(width: 13),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextWidget(
                     text: title,
-                    color: const Color(0xFF153F5F),
-                    fontSize: 12,
+                    color: const Color(0xFF102F45),
+                    fontSize: 13,
                     fontWeight: fwSemiBold,
                   ),
-                  2.height,
+                  const SizedBox(height: 3),
                   TextWidget(
                     text: subtitle,
-                    color: AppColor.subtitle,
-                    fontSize: 9,
+                    color: const Color(0xFF74838D),
+                    fontSize: 10,
                     fontWeight: fwNormal,
                   ),
                 ],
               ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFFAAB6BD),
+              size: 22,
             ),
           ],
         ),
