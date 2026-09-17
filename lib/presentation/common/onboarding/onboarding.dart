@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:circle_progress_bar/circle_progress_bar.dart';
 import 'package:movera/constants/appassets.dart';
@@ -22,6 +24,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String currentTitle = '';
   String currentSubtitle = '';
   int currentPageIndex = 0;
+  Timer? _imageAnimationTimer;
 
   final List<OnBoardingModel> onBoardingList = [
     OnBoardingModel(
@@ -45,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.initState();
     currentTitle = onBoardingList[currentPageIndex].title;
     currentSubtitle = onBoardingList[currentPageIndex].subTitle;
-    Future.delayed(const Duration(milliseconds: 500), () {
+    _imageAnimationTimer = Timer(const Duration(milliseconds: 500), () {
       if (!mounted) return;
       setState(() {
         isImageAnimate = true;
@@ -63,6 +66,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   void dispose() {
+    _imageAnimationTimer?.cancel();
     controller.dispose();
     super.dispose();
   }
