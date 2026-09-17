@@ -516,7 +516,10 @@ class _DriverHomeState extends State<DriverHome> {
                       ),
                     ],
                   ),
-                  55.height,
+                  SizedBox(
+                    height:
+                        MediaQuery.paddingOf(context).bottom + ResSize.h * 12,
+                  ),
                 ],
               ),
             ),
