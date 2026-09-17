@@ -37,8 +37,7 @@ class _DriverHomeState extends State<DriverHome> {
   bool visibleRecentRides = false;
   bool isPanelOpen = false;
   bool showRideRequests = false;
-  bool isAccountActivated =
-      false; // This should come from your backend/state management
+  bool isAccountActivated = true;
 
   // ignore: prefer_final_fields
   Set<Marker> _markers = {};
@@ -52,12 +51,6 @@ class _DriverHomeState extends State<DriverHome> {
   void initState() {
     super.initState();
     _loadMarkers();
-    // Show popup after widget is built if account is not activated
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!isAccountActivated) {
-        _showAccountActivationDialog();
-      }
-    });
   }
 
   void _loadMarkers() {
