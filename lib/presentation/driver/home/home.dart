@@ -155,10 +155,10 @@ class _DriverHomeState extends State<DriverHome> {
                   ),
                   child: Column(
                     children: [
-                      7.height,
+                      const SizedBox(height: 7),
                       Container(
-                        width: ResSize.w * 38,
-                        height: ResSize.h * 4,
+                        width: 38,
+                        height: 4,
                         decoration: BoxDecoration(
                           color: const Color(0xFFD9E3E8),
                           borderRadius: BorderRadius.circular(20),
@@ -172,8 +172,8 @@ class _DriverHomeState extends State<DriverHome> {
                           child: Row(
                             children: [
                               Container(
-                                height: ResSize.h * 42,
-                                width: ResSize.w * 42,
+                                height: 40,
+                                width: 40,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [
@@ -183,78 +183,38 @@ class _DriverHomeState extends State<DriverHome> {
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
-                                  borderRadius: BorderRadius.circular(15),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Center(
                                   child: Image.asset(
                                     AppAssets.logo,
-                                    height: ResSize.h * 24,
+                                    height: 23,
                                   ),
                                 ),
                               ),
-                              12.width,
+                              const SizedBox(width: 12),
                               Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    TextWidget(
-                                      text: "Movera Drive",
-                                      fontSize: 15,
-                                      fontWeight: fwSemiBold,
-                                      color: const Color(0xFF153F5F),
-                                    ),
-                                    3.height,
-                                    Row(
-                                      children: [
-                                        Container(
-                                          height: ResSize.h * 7,
-                                          width: ResSize.w * 7,
-                                          decoration: BoxDecoration(
-                                            color: isAccountActivated
-                                                ? const Color(0xFF36C59A)
-                                                : Colors.orange,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        6.width,
-                                        TextWidget(
-                                          text: isAccountActivated
-                                              ? "Ready for rides"
-                                              : "Account pending",
-                                          fontSize: 11,
-                                          fontWeight: fwMedium,
-                                          color: AppColor.subtitle,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                child: TextWidget(
+                                  text: isAccountActivated
+                                      ? "Movera Drive  •  Ready for rides"
+                                      : "Movera Drive  •  Account pending",
+                                  fontSize: 13,
+                                  fontWeight: fwSemiBold,
+                                  color: const Color(0xFF153F5F),
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: ResSize.w * 12,
-                                  vertical: ResSize.h * 8,
-                                ),
+                                height: 36,
+                                width: 36,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFEAF3F7),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(13),
                                 ),
-                                child: Row(
-                                  children: [
-                                    TextWidget(
-                                      text: "Open hub",
-                                      fontSize: 11,
-                                      fontWeight: fwSemiBold,
-                                      color: const Color(0xFF153F5F),
-                                    ),
-                                    5.width,
-                                    Icon(
-                                      Icons.keyboard_arrow_up_rounded,
-                                      size: ResSize.h * 18,
-                                      color: const Color(0xFF153F5F),
-                                    ),
-                                  ],
+                                child: const Icon(
+                                  Icons.keyboard_arrow_up_rounded,
+                                  size: 22,
+                                  color: Color(0xFF153F5F),
                                 ),
                               ),
                             ],
