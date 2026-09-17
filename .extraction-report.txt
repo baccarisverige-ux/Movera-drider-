@@ -1,0 +1,30 @@
+Movera Drider extraction report
+===============================
+Total reconstructed files: 360
+
+Archive contents:
+- driver-part-1-source.zip: 81 files
+- driver-part-2-assets.zip: 146 files
+- driver-part-3-mobile-web.zip: 68 files
+- driver-part-4-project-files.zip: 65 files
+
+Top-level reconstructed entries:
+- .gitignore
+- .metadata
+- README.md
+- UPLOAD_MANIFEST.txt
+- analysis_options.yaml
+- android
+- assets
+- ios
+- lib
+- linux
+- macos
+- pubspec.lock
+- pubspec.yaml
+- tatus
+- test
+- web
+- windows
+
+Conflicting duplicate paths: none
