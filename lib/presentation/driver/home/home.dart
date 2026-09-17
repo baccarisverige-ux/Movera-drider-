@@ -334,21 +334,22 @@ class _DriverHomeState extends State<DriverHome>
               child: Column(
                 children: [
                   Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: Alignment.centerRight,
                     child: Container(
-                      height: ResSize.h * 38,
-                      width: ResSize.w * 126,
+                      height: ResSize.h * 52,
+                      width: ResSize.w * 168,
                       decoration: BoxDecoration(
                         color: AppColor.white,
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(30),
                         border: Border.all(
-                          color: const Color(0xFFE1E5E8),
+                          color: const Color(0xFFF0F2F3),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF252E3A).withOpacity(0.16),
-                            blurRadius: 14,
-                            offset: const Offset(0, 5),
+                            color: const Color(0xFF172027).withOpacity(0.13),
+                            blurRadius: 24,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 9),
                           ),
                         ],
                       ),
@@ -363,8 +364,8 @@ class _DriverHomeState extends State<DriverHome>
                                 },
                                 child: Center(
                                   child: Icon(
-                                    Icons.menu_rounded,
-                                    size: ResSize.h * 20,
+                                    Icons.menu_open_rounded,
+                                    size: ResSize.h * 22,
                                     color: AppColor.black,
                                   ),
                                 ),
@@ -381,9 +382,9 @@ class _DriverHomeState extends State<DriverHome>
                                 );
                               },
                               child: Center(
-                                child: Image.asset(
-                                  AppAssets.search,
-                                  height: ResSize.h * 17,
+                                child: Icon(
+                                  Icons.search_rounded,
+                                  size: ResSize.h * 22,
                                   color: AppColor.black,
                                 ),
                               ),
@@ -395,8 +396,8 @@ class _DriverHomeState extends State<DriverHome>
                               onTap: _showTodaySummary,
                               child: Center(
                                 child: Icon(
-                                  Icons.bar_chart_rounded,
-                                  size: ResSize.h * 19,
+                                  Icons.account_balance_wallet_outlined,
+                                  size: ResSize.h * 21,
                                   color: AppColor.black,
                                 ),
                               ),
@@ -427,9 +428,9 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _mapControlDivider() {
     return Container(
-      height: ResSize.h * 22,
+      height: ResSize.h * 28,
       width: 1,
-      color: const Color(0xFFE1E5E8),
+      color: const Color(0xFFE2E5E7),
     );
   }
 
