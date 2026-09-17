@@ -122,7 +122,7 @@ class _DriverHomeState extends State<DriverHome> {
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: ResSize.h * 96,
+              minHeight: ResSize.h * 122,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -135,64 +135,77 @@ class _DriverHomeState extends State<DriverHome> {
                 });
               },
               collapsed: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                child: InkWell(
-                  onTap: _panelController.open,
-                  borderRadius: BorderRadius.circular(28),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFCFDFD),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: const Color(0xFFE1E8EC)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF102F45).withOpacity(0.14),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          height: 44,
-                          width: 44,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF102F45),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Center(
-                            child: Image.asset(
-                              AppAssets.logo,
-                              height: 24,
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFCFDFD),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: const Color(0xFFE1E8EC)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF102F45).withOpacity(0.14),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      _seatBeltHandle(onTap: _panelController.open),
+                      const SizedBox(height: 4),
+                      Expanded(
+                        child: Center(
+                          child: InkWell(
+                            onTap: isAccountActivated
+                                ? () {
+                                    setState(() {
+                                      showRideRequests = true;
+                                    });
+                                  }
+                                : _showAccountActivationDialog,
+                            customBorder: const CircleBorder(),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Lottie.asset(
+                                  AppAssets.circleGrow,
+                                  height: 74,
+                                  width: 74,
+                                ),
+                                Container(
+                                  height: 58,
+                                  width: 58,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF102F45),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFF36C59A),
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF36C59A)
+                                            .withOpacity(0.32),
+                                        blurRadius: 16,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Image.asset(
+                                      AppAssets.homeImage1,
+                                      height: 35,
+                                      color: AppColor.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextWidget(
-                            text: "MOVERA  •  DRIVER MODE",
-                            fontSize: 12,
-                            fontWeight: fwSemiBold,
-                            color: const Color(0xFF102F45),
-                          ),
-                        ),
-                        Container(
-                          height: 40,
-                          width: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF36C59A),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: const Icon(
-                            Icons.keyboard_arrow_up_rounded,
-                            size: 24,
-                            color: Color(0xFF102F45),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -401,15 +414,8 @@ class _DriverHomeState extends State<DriverHome> {
         ),
         child: Column(
           children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 42,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFD6DFE4),
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
+            const SizedBox(height: 8),
+            _seatBeltHandle(onTap: _panelController.close),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 screenHorizPadding,
@@ -615,6 +621,56 @@ class _DriverHomeState extends State<DriverHome> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _seatBeltHandle({required VoidCallback onTap}) {
+    return Semantics(
+      button: true,
+      label: "Toggle driver sheet",
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: SizedBox(
+          height: 30,
+          width: 190,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 150,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF102F45),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              Positioned(
+                right: 8,
+                child: Container(
+                  height: 24,
+                  width: 32,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFCFDFD),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFF102F45),
+                      width: 2,
+                    ),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF36C59A),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
