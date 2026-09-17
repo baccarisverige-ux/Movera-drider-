@@ -7,7 +7,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/recent_rides.dart';
@@ -23,7 +22,6 @@ import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'package:lottie/lottie.dart' hide Marker;
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 class DriverHome extends StatefulWidget {
@@ -337,68 +335,93 @@ class _DriverHomeState extends State<DriverHome>
               ),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        height: ResSize.h * 32,
-                        width: ResSize.w * 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColor.white,
-                        ),
-                        child: Builder(
-                          builder: (context) => GestureDetector(
-                            onTap: () {
-                              Scaffold.of(context).openDrawer();
-                            },
-                            child: Center(
-                              child: Icon(
-                                Icons.menu_rounded,
-                                size: ResSize.h * 20,
-                                color: AppColor.black,
+                  SizedBox(
+                    height: ResSize.h * 38,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            height: ResSize.h * 38,
+                            width: ResSize.w * 84,
+                            decoration: BoxDecoration(
+                              color: AppColor.white,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: const Color(0xFFE1E5E8),
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF252E3A)
+                                      .withOpacity(0.16),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Builder(
+                                    builder: (context) => InkWell(
+                                      onTap: () {
+                                        Scaffold.of(context).openDrawer();
+                                      },
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.menu_rounded,
+                                          size: ResSize.h * 20,
+                                          color: AppColor.black,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  height: ResSize.h * 22,
+                                  width: 1,
+                                  color: const Color(0xFFE1E5E8),
+                                ),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () {
+                                      showDriverSearchPickupLocationSheet(
+                                        context,
+                                        openDestinationPanel,
+                                      );
+                                    },
+                                    child: Center(
+                                      child: Image.asset(
+                                        AppAssets.search,
+                                        height: ResSize.h * 17,
+                                        color: AppColor.black,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ),
-                      InkWell(
-                        child: IconButton(
-                          onPressed: () {
+                        InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: () {
                             setState(() {
                               visibleRecentRides = true;
                             });
                           },
-                          icon: Image.asset(
-                            AppAssets.logo,
-                            height: ResSize.h * 22,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        height: ResSize.h * 32,
-                        width: ResSize.w * 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColor.white,
-                        ),
-                        child: Center(
-                          child: GestureDetector(
-                            onTap: () {
-                              showDriverSearchPickupLocationSheet(
-                                context,
-                                openDestinationPanel,
-                              );
-                            },
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
                             child: Image.asset(
-                              AppAssets.search,
-                              height: ResSize.h * 16,
-                              color: AppColor.black,
+                              AppAssets.logo,
+                              height: ResSize.h * 22,
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   isDestinationPanel
                       ? Padding(
@@ -411,37 +434,7 @@ class _DriverHomeState extends State<DriverHome>
             ),
           ),
 
-          isDestinationPanel
-              ? SizedBox()
-              : Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: EdgeInsets.only(top: ResSize.h * 100),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          BottomToTopTransition(AcceptRide()),
-                        );
-                      },
-                      child: Container(
-                        margin: EdgeInsets.only(
-                          right: screenHorizPadding,
-                          top: ResSize.h * 10,
-                        ),
-                        height: ResSize.h * 32,
-                        width: ResSize.w * 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColor.white,
-                        ),
-                        child: Center(
-                          child: Lottie.asset(AppAssets.circleGrow),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+          // The former third floating map button was intentionally removed.
 
           visibleRecentRides
               ? Padding(
