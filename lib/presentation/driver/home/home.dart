@@ -171,7 +171,7 @@ class _DriverHomeState extends State<DriverHome>
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 160,
+              minHeight: 100,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -288,7 +288,6 @@ class _DriverHomeState extends State<DriverHome>
                       ),
                     ),
                     const Spacer(),
-                    _sheetBottomNavigation(),
                   ],
                 ),
                   ),
@@ -543,7 +542,6 @@ class _DriverHomeState extends State<DriverHome>
                 ],
               ),
             ),
-            _sheetBottomNavigation(),
           ],
         ),
       ),
@@ -682,102 +680,6 @@ class _DriverHomeState extends State<DriverHome>
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _sheetBottomNavigation() {
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        18,
-        9,
-        18,
-        MediaQuery.paddingOf(context).bottom + 8,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColor.white,
-        border: Border(
-          top: BorderSide(color: Color(0xFFE2E7EB)),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _sheetNavItem(
-            icon: Icons.home_rounded,
-            label: "Home",
-            active: true,
-          ),
-          _sheetNavItem(
-            icon: Icons.payments_outlined,
-            label: "Earn more",
-            onTap: () {
-              Navigator.push(
-                context,
-                BottomToTopTransition(Promotions()),
-              );
-            },
-          ),
-          _sheetNavItem(
-            icon: Icons.schedule_rounded,
-            label: "Rides",
-          ),
-          _sheetNavItem(
-            icon: Icons.help_outline_rounded,
-            label: "Help",
-            hasNotification: true,
-            onTap: () {
-              showSafetyToolKitSheet(context);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sheetNavItem({
-    required IconData icon,
-    required String label,
-    bool active = false,
-    bool hasNotification = false,
-    VoidCallback? onTap,
-  }) {
-    final color = active
-        ? const Color(0xFF252E3A)
-        : const Color(0xFF8996A8);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: 72,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: color, size: 25),
-                const SizedBox(height: 4),
-                TextWidget(
-                  text: label,
-                  color: color,
-                  fontSize: 10,
-                  fontWeight: active ? fwSemiBold : fwNormal,
-                ),
-              ],
-            ),
-            if (hasNotification)
-              const Positioned(
-                right: 12,
-                top: -2,
-                child: CircleAvatar(
-                  radius: 5,
-                  backgroundColor: Color(0xFFEF4D5A),
-                ),
-              ),
-          ],
-        ),
       ),
     );
   }
