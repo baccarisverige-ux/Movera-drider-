@@ -12,11 +12,17 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(const MoveraApp());
+
+    // ScreenUtilInit with ensureScreenSize initializes on the next frame.
+    // Give the app one short frame before asserting the real startup screen.
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(Splash), findsOneWidget);
+    expect(tester.takeException(), isNull);
 
     await tester.pump(const Duration(seconds: 4));
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(OnboardingScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
