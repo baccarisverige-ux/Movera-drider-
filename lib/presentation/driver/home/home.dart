@@ -1,3 +1,5 @@
+import 'dart:async';
+
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
@@ -37,6 +39,8 @@ class _DriverHomeState extends State<DriverHome>
   final PanelController _destinationPanelController = PanelController();
   late final AnimationController _goOnlinePulseController;
   late final AnimationController _radarSweepController;
+  Timer? _onlineTransitionTimer;
+  Timer? _offerSimulationTimer;
   GoogleMapController? _mapController;
   bool visibleRecentRides = false;
   bool isPanelOpen = false;
@@ -48,6 +52,7 @@ class _DriverHomeState extends State<DriverHome>
   static const Curve _sheetMotionCurve = Curves.easeOutCubic;
   bool showRideRequests = false;
   bool isAccountActivated = true;
+  bool _isGoingOnline = false;
   bool _isOnline = false;
   bool _hasRideOffers = false;
 
@@ -244,6 +249,8 @@ class _DriverHomeState extends State<DriverHome>
                       padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
                       child: _isOnline
                           ? _buildTripRadarButton()
+                          : _isGoingOnline
+                          ? _buildGoingOnlineButton()
                           : _buildGoOnlineButton(),
                     ),
                     const Spacer(),
@@ -458,15 +465,44 @@ class _DriverHomeState extends State<DriverHome>
       _showAccountActivationDialog();
       return;
     }
+
+    _onlineTransitionTimer?.cancel();
+    _offerSimulationTimer?.cancel();
+
     setState(() {
-      _isOnline = true;
-      // The current frontend ride repository already contains demo offers.
-      _hasRideOffers = true;
+      _isGoingOnline = true;
+      _isOnline = false;
+      _hasRideOffers = false;
     });
+
+    _onlineTransitionTimer = Timer(
+      const Duration(milliseconds: 1400),
+      () {
+        if (!mounted) return;
+        setState(() {
+          _isGoingOnline = false;
+          _isOnline = true;
+        });
+
+        // Frontend demo: replace this timer with the backend ride-offer stream.
+        _offerSimulationTimer = Timer(
+          const Duration(milliseconds: 2800),
+          () {
+            if (!mounted || !_isOnline) return;
+            setState(() {
+              _hasRideOffers = true;
+            });
+          },
+        );
+      },
+    );
   }
 
   Future<void> _goOffline() async {
+    _onlineTransitionTimer?.cancel();
+    _offerSimulationTimer?.cancel();
     setState(() {
+      _isGoingOnline = false;
       _isOnline = false;
       _hasRideOffers = false;
     });
@@ -522,6 +558,42 @@ class _DriverHomeState extends State<DriverHome>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildGoingOnlineButton() {
+    return Material(
+      color: AppColor.white,
+      elevation: 7,
+      shadowColor: const Color(0xFF252E3A).withOpacity(0.25),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: const BorderSide(color: Color(0xFFC4CED4), width: 1.2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        height: 54,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            RotationTransition(
+              turns: _radarSweepController,
+              child: const Icon(
+                Icons.sync_rounded,
+                color: Color(0xFF3F454A),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 10),
+            TextWidget(
+              text: "Connecting to Movera",
+              color: const Color(0xFF3F454A),
+              fontSize: 15,
+              fontWeight: fwSemiBold,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -603,7 +675,9 @@ class _DriverHomeState extends State<DriverHome>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextWidget(
-                      text: "Trip radar",
+                      text: _hasRideOffers
+                          ? "New ride request"
+                          : "Finding a new trip",
                       color: const Color(0xFF30363B),
                       fontSize: 15,
                       fontWeight: fwSemiBold,
@@ -611,8 +685,8 @@ class _DriverHomeState extends State<DriverHome>
                     const SizedBox(height: 2),
                     TextWidget(
                       text: _hasRideOffers
-                          ? "New ride offers available"
-                          : "Scanning nearby rides",
+                          ? "A nearby passenger is waiting • Tap to view"
+                          : "Searching for ride requests near you",
                       color: const Color(0xFF7B878E),
                       fontSize: 10,
                       fontWeight: fwNormal,
@@ -890,6 +964,8 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void dispose() {
     _goOnlinePulseController.dispose();
+    _onlineTransitionTimer?.cancel();
+    _offerSimulationTimer?.cancel();
     _radarSweepController.dispose();
     _mapController?.dispose();
     super.dispose();
