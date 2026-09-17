@@ -171,7 +171,7 @@ class _DriverHomeState extends State<DriverHome>
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 100,
+              minHeight: 160,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -288,6 +288,7 @@ class _DriverHomeState extends State<DriverHome>
                       ),
                     ),
                     const Spacer(),
+                    _emptyBottomNavigation(),
                   ],
                 ),
                   ),
@@ -542,6 +543,7 @@ class _DriverHomeState extends State<DriverHome>
                 ],
               ),
             ),
+            _emptyBottomNavigation(),
           ],
         ),
       ),
@@ -679,6 +681,33 @@ class _DriverHomeState extends State<DriverHome>
               fontWeight: fwNormal,
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyBottomNavigation() {
+    return Container(
+      height: MediaQuery.paddingOf(context).bottom + 62,
+      padding: EdgeInsets.fromLTRB(
+        18,
+        9,
+        18,
+        MediaQuery.paddingOf(context).bottom + 8,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColor.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE2E7EB)),
+        ),
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          SizedBox(width: 72, height: 44),
+          SizedBox(width: 72, height: 44),
+          SizedBox(width: 72, height: 44),
+          SizedBox(width: 72, height: 44),
         ],
       ),
     );
