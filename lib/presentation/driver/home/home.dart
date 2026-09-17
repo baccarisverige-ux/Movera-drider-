@@ -36,6 +36,7 @@ class _DriverHomeState extends State<DriverHome> {
   GoogleMapController? _mapController;
   bool visibleRecentRides = false;
   bool isPanelOpen = false;
+  bool _blockMapGestures = false;
   bool showRideRequests = false;
   bool isAccountActivated = true;
 
@@ -130,9 +131,23 @@ class _DriverHomeState extends State<DriverHome> {
               maxHeight: MediaQuery.of(context).size.height * 0.86,
               parallaxEnabled: false,
               onPanelSlide: (double pos) {
-                setState(() {
-                  isPanelOpen = pos > 0.3;
-                });
+                final nextPanelOpen = pos > 0.3;
+                final nextBlockMap = pos > 0.001;
+                if (isPanelOpen != nextPanelOpen ||
+                    _blockMapGestures != nextBlockMap) {
+                  setState(() {
+                    isPanelOpen = nextPanelOpen;
+                    _blockMapGestures = nextBlockMap;
+                  });
+                }
+              },
+              onPanelClosed: () {
+                if (_blockMapGestures || isPanelOpen) {
+                  setState(() {
+                    _blockMapGestures = false;
+                    isPanelOpen = false;
+                  });
+                }
               },
               collapsed: Container(
                 decoration: const BoxDecoration(
@@ -195,7 +210,10 @@ class _DriverHomeState extends State<DriverHome> {
                 ),
               ),
               panelBuilder: (ScrollController sc) => panelColumn(sc),
-              body: body(),
+              body: AbsorbPointer(
+                absorbing: _blockMapGestures,
+                child: body(),
+              ),
             ),
     );
   }
@@ -421,109 +439,6 @@ class _DriverHomeState extends State<DriverHome> {
                     iconColor: const Color(0xFF8F9CAF),
                     title: "Scheduled rides available",
                     subtitle: "View open requests in your area",
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-                    decoration: BoxDecoration(
-                      color: AppColor.white,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextWidget(
-                                text: "Today, 06:00 – 18 Sep, 04:00",
-                                color: muted,
-                                fontSize: 12,
-                                fontWeight: fwNormal,
-                              ),
-                            ),
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: muted,
-                              size: 21,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        TextWidget(
-                          text: "Bonus 550 SEK for 13 rides!",
-                          color: ink,
-                          fontSize: 20,
-                          fontWeight: fwSemiBold,
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.directions_car_filled_rounded,
-                              color: muted,
-                              size: 17,
-                            ),
-                            const SizedBox(width: 7),
-                            TextWidget(
-                              text: "All categories",
-                              color: muted,
-                              fontSize: 12,
-                              fontWeight: fwMedium,
-                            ),
-                            const SizedBox(width: 12),
-                            Container(
-                              width: 1,
-                              height: 20,
-                              color: const Color(0xFFDDE2E7),
-                            ),
-                            const SizedBox(width: 12),
-                            const Icon(
-                              Icons.location_on_rounded,
-                              color: muted,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: TextWidget(
-                                text: "Selected area",
-                                color: muted,
-                                fontSize: 12,
-                                fontWeight: fwMedium,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                                vertical: 7,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0F2F5),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: TextWidget(
-                                text: "Rides: 0/13",
-                                color: ink,
-                                fontSize: 12,
-                                fontWeight: fwMedium,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            TextWidget(
-                              text: "View all conditions",
-                              color: muted,
-                              fontSize: 12,
-                              fontWeight: fwMedium,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
                   ),
                   const SizedBox(height: 12),
                   _driverStatCard(
