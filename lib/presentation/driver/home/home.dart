@@ -32,10 +32,11 @@ class DriverHome extends StatefulWidget {
 }
 
 class _DriverHomeState extends State<DriverHome>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final PanelController _panelController = PanelController();
   final PanelController _destinationPanelController = PanelController();
   late final AnimationController _goOnlinePulseController;
+  late final AnimationController _radarSweepController;
   GoogleMapController? _mapController;
   bool visibleRecentRides = false;
   bool isPanelOpen = false;
@@ -47,6 +48,8 @@ class _DriverHomeState extends State<DriverHome>
   static const Curve _sheetMotionCurve = Curves.easeOutCubic;
   bool showRideRequests = false;
   bool isAccountActivated = true;
+  bool _isOnline = false;
+  bool _hasRideOffers = false;
 
   // ignore: prefer_final_fields
   Set<Marker> _markers = {};
@@ -63,6 +66,10 @@ class _DriverHomeState extends State<DriverHome>
       vsync: this,
       duration: const Duration(milliseconds: 2600),
     )..repeat(reverse: true);
+    _radarSweepController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
     _loadMarkers();
   }
 
@@ -235,58 +242,9 @@ class _DriverHomeState extends State<DriverHome>
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-                      child: AnimatedBuilder(
-                        animation: _goOnlinePulseController,
-                        child: Center(
-                          child: TextWidget(
-                            text: isAccountActivated
-                                ? "Go online"
-                                : "Account pending",
-                            color: const Color(0xFF3F454A),
-                            fontSize: 17,
-                            fontWeight: fwSemiBold,
-                          ),
-                        ),
-                        builder: (context, child) {
-                          final pulse = _goOnlinePulseController.value;
-                          return Material(
-                            color: AppColor.white,
-                            elevation: 5 + (pulse * 2.5),
-                            shadowColor: const Color(0xFF252E3A)
-                                .withOpacity(0.24 + (pulse * 0.08)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              side: BorderSide(
-                                color: Color.lerp(
-                                  const Color(0xFFCDD5DA),
-                                  const Color(0xFFAEBBC2),
-                                  pulse,
-                                )!,
-                                width: 1.2,
-                              ),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              onTap: isAccountActivated
-                                  ? () {
-                                      setState(() {
-                                        showRideRequests = true;
-                                      });
-                                    }
-                                  : _showAccountActivationDialog,
-                              splashColor:
-                                  const Color(0xFF252E3A).withOpacity(0.08),
-                              highlightColor:
-                                  const Color(0xFF252E3A).withOpacity(0.05),
-                              child: SizedBox(
-                                height: 54,
-                                width: double.infinity,
-                                child: child,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                      child: _isOnline
+                          ? _buildTripRadarButton()
+                          : _buildGoOnlineButton(),
                     ),
                     const Spacer(),
                     _emptyBottomNavigation(),
@@ -495,6 +453,193 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  void _goOnline() {
+    if (!isAccountActivated) {
+      _showAccountActivationDialog();
+      return;
+    }
+    setState(() {
+      _isOnline = true;
+      // The current frontend ride repository already contains demo offers.
+      _hasRideOffers = true;
+    });
+  }
+
+  Future<void> _goOffline() async {
+    setState(() {
+      _isOnline = false;
+      _hasRideOffers = false;
+    });
+    await _closeDriverSheet();
+  }
+
+  void _openRideOffers() {
+    setState(() {
+      showRideRequests = true;
+      _hasRideOffers = false;
+    });
+  }
+
+  Widget _buildGoOnlineButton() {
+    return AnimatedBuilder(
+      animation: _goOnlinePulseController,
+      child: Center(
+        child: TextWidget(
+          text: isAccountActivated ? "Go online" : "Account pending",
+          color: const Color(0xFF3F454A),
+          fontSize: 17,
+          fontWeight: fwSemiBold,
+        ),
+      ),
+      builder: (context, child) {
+        final pulse = _goOnlinePulseController.value;
+        return Material(
+          color: AppColor.white,
+          elevation: 5 + (pulse * 2.5),
+          shadowColor: const Color(0xFF252E3A)
+              .withOpacity(0.24 + (pulse * 0.08)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: Color.lerp(
+                const Color(0xFFCDD5DA),
+                const Color(0xFFAEBBC2),
+                pulse,
+              )!,
+              width: 1.2,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _goOnline,
+            splashColor: const Color(0xFF252E3A).withOpacity(0.08),
+            highlightColor: const Color(0xFF252E3A).withOpacity(0.05),
+            child: SizedBox(
+              height: 54,
+              width: double.infinity,
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTripRadarButton() {
+    final radarOpacity = Tween<double>(
+      begin: 0.35,
+      end: 1,
+    ).animate(_goOnlinePulseController);
+
+    return Material(
+      color: AppColor.white,
+      elevation: 7,
+      shadowColor: const Color(0xFF252E3A).withOpacity(0.28),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: const BorderSide(color: Color(0xFFCDD5DA), width: 1.2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: _openRideOffers,
+        splashColor: const Color(0xFF252E3A).withOpacity(0.08),
+        child: SizedBox(
+          height: 54,
+          child: Row(
+            children: [
+              const SizedBox(width: 12),
+              FadeTransition(
+                opacity: _hasRideOffers
+                    ? radarOpacity
+                    : const AlwaysStoppedAnimation<double>(1),
+                child: SizedBox(
+                  height: 40,
+                  width: 40,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        height: 40,
+                        width: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F4F5),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF3F454A),
+                            width: 1.4,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        height: 25,
+                        width: 25,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF9AA6AD),
+                          ),
+                        ),
+                      ),
+                      RotationTransition(
+                        turns: _radarSweepController,
+                        child: const Icon(
+                          Icons.navigation_rounded,
+                          color: Color(0xFF3F454A),
+                          size: 19,
+                        ),
+                      ),
+                      const CircleAvatar(
+                        radius: 3,
+                        backgroundColor: Color(0xFF2FBE7B),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextWidget(
+                      text: "Trip radar",
+                      color: const Color(0xFF30363B),
+                      fontSize: 15,
+                      fontWeight: fwSemiBold,
+                    ),
+                    const SizedBox(height: 2),
+                    TextWidget(
+                      text: _hasRideOffers
+                          ? "New ride offers available"
+                          : "Scanning nearby rides",
+                      color: const Color(0xFF7B878E),
+                      fontSize: 10,
+                      fontWeight: fwNormal,
+                    ),
+                  ],
+                ),
+              ),
+              if (_hasRideOffers)
+                FadeTransition(
+                  opacity: radarOpacity,
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 14),
+                    height: 10,
+                    width: 10,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF2FBE7B),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget panelColumn(ScrollController sc) {
     const canvas = Color(0xFFF1F3F5);
     const ink = Color(0xFF252E3A);
@@ -544,6 +689,34 @@ class _DriverHomeState extends State<DriverHome>
                 ],
               ),
             ),
+            if (_isOnline)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: _goOffline,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF3F454A),
+                      backgroundColor: AppColor.white,
+                      side: const BorderSide(
+                        color: Color(0xFFBFC9CF),
+                        width: 1.2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                    ),
+                    child: TextWidget(
+                      text: "Go offline",
+                      color: const Color(0xFF3F454A),
+                      fontSize: 15,
+                      fontWeight: fwSemiBold,
+                    ),
+                  ),
+                ),
+              ),
             _emptyBottomNavigation(),
           ],
         ),
@@ -717,6 +890,7 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void dispose() {
     _goOnlinePulseController.dispose();
+    _radarSweepController.dispose();
     _mapController?.dispose();
     super.dispose();
   }
