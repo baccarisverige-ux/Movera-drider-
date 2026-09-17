@@ -43,6 +43,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     currentTitle = onBoardingList[currentPageIndex].title;
     currentSubtitle = onBoardingList[currentPageIndex].subTitle;
     Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
       setState(() {
         isImageAnimate = true;
       });
@@ -56,6 +57,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     for (var item in onBoardingList) {
       precacheImage(AssetImage(item.image), context);
     }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   bool isImageAnimate = false;
@@ -101,22 +108,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           child: Padding(
                             padding: EdgeInsets.only(
                               top: ResSize.h * 50,
-                              // left: ResSize.w * 30,
-                              // right: ResSize.w * 30,
                               bottom: ResSize.h * 30,
                             ),
-                            child: SizedBox(
-                              child: Transform.scale(
-                                scale: 1.2,
-                                child: AnimatedOpacity(
-                                  duration: const Duration(milliseconds: 1500),
-                                  opacity: isImageAnimate ? 1.0 : 0.0,
-                                  child: Image.asset(
-                                    onBoardingList[index].image,
-                                    height:
-                                        MediaQuery.of(context).size.height *
-                                        0.40,
-                                  ),
+                            child: Transform.scale(
+                              scale: 1.2,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 1500),
+                                opacity: isImageAnimate ? 1.0 : 0.0,
+                                child: Image.asset(
+                                  onBoardingList[index].image,
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.40,
                                 ),
                               ),
                             ),
@@ -131,7 +133,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Container(
               decoration: BoxDecoration(
                 color: AppColor.white,
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
@@ -151,22 +153,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   vertical: ResSize.h * 35,
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     TextWidget(
                       text: currentTitle,
                       color: AppColor.title,
-                      fontSize: ResSize.setSp(24),
+                      fontSize: 24,
                       fontWeight: fwBold,
                     ),
                     22.height,
                     TextWidget(
                       text: currentSubtitle,
                       color: AppColor.darkTitle,
-                      fontSize: ResSize.setSp(14),
+                      fontSize: 14,
                       fontWeight: fwNormal,
                       textAlign: TextAlign.center,
                     ),
-
                     29.height,
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -195,7 +197,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             child: CircleProgressBar(
                               strokeWidth: 3,
                               backgroundColor: Colors.transparent,
-                              foregroundColor: Color(0xff98B1A7),
+                              foregroundColor: const Color(0xff98B1A7),
                               value:
                                   ((currentPageIndex + 1) *
                                   1.0 /
@@ -207,9 +209,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     color: AppColor.primary,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Center(
+                                  child: const Center(
                                     child: Padding(
-                                      padding: const EdgeInsets.all(12.0),
+                                      padding: EdgeInsets.all(12.0),
                                       child: Icon(
                                         Icons.arrow_forward_rounded,
                                         color: AppColor.white,
