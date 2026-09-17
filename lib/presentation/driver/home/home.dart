@@ -23,8 +23,6 @@ import 'package:movera/widgets/custom_google_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:lottie/lottie.dart' hide Marker;
 
-enum _MapDisplayMode { framed, expanded, fullscreen }
-
 class DriverHome extends StatefulWidget {
   const DriverHome({super.key});
 
@@ -40,8 +38,6 @@ class _DriverHomeState extends State<DriverHome> {
   bool isPanelOpen = false;
   bool showRideRequests = false;
   bool isAccountActivated = true;
-  bool isOnline = false;
-  _MapDisplayMode _mapDisplayMode = _MapDisplayMode.framed;
 
   // ignore: prefer_final_fields
   Set<Marker> _markers = {};
@@ -93,22 +89,6 @@ class _DriverHomeState extends State<DriverHome> {
     // Wait for main panel to close, then open destination panel
     Future.delayed(Duration(milliseconds: 100), () {
       _destinationPanelController.open();
-    });
-  }
-
-  void _expandMapFromTap() {
-    if (!isOnline && _mapDisplayMode == _MapDisplayMode.framed) {
-      setState(() {
-        _mapDisplayMode = _MapDisplayMode.expanded;
-      });
-    }
-  }
-
-  void _toggleFullscreenMap() {
-    setState(() {
-      _mapDisplayMode = _mapDisplayMode == _MapDisplayMode.fullscreen
-          ? _MapDisplayMode.expanded
-          : _MapDisplayMode.fullscreen;
     });
   }
 
@@ -219,106 +199,27 @@ class _DriverHomeState extends State<DriverHome> {
   }
 
   Widget body({bool isDestinationPanel = false}) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final isFullscreen = _mapDisplayMode == _MapDisplayMode.fullscreen;
-    final isExpanded = _mapDisplayMode == _MapDisplayMode.expanded;
-    final mapTop = isFullscreen
-        ? 0.0
-        : isExpanded
-        ? screenHeight * 0.12
-        : screenHeight * 0.18;
-    final mapBottom = isFullscreen
-        ? 0.0
-        : isExpanded
-        ? screenHeight * 0.18
-        : screenHeight * 0.30;
-    final mapSide = isFullscreen ? 0.0 : ResSize.w * 16;
-    final mapRadius = isFullscreen ? 0.0 : ResSize.w * 26;
-
     return SizedBox(
       height: MediaQuery.of(context).size.height,
       width: double.infinity,
       child: Stack(
         children: [
-          const Positioned.fill(
-            child: ColoredBox(color: Color(0xFFF4F5F4)),
-          ),
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 420),
-            curve: Curves.easeInOutCubic,
-            top: mapTop,
-            bottom: mapBottom,
-            left: mapSide,
-            right: mapSide,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 420),
-              curve: Curves.easeInOutCubic,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: AppColor.white,
-                borderRadius: BorderRadius.circular(mapRadius),
-                border: isFullscreen
-                    ? null
-                    : Border.all(color: const Color(0xFFE3E7E4)),
-                boxShadow: isFullscreen
-                    ? const []
-                    : const [
-                        BoxShadow(
-                          color: Color(0x1F183127),
-                          blurRadius: 28,
-                          offset: Offset(0, 12),
-                        ),
-                      ],
-              ),
-              child: CustomGoogleMap(
-                initialPosition: _initialPosition,
-                markers: _markers,
-                myLocationEnabled: true,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                mapToolbarEnabled: false,
-                compassEnabled: false,
-                trafficEnabled: false,
-                buildingsEnabled: true,
-                indoorViewEnabled: false,
-                mapType: MapType.normal,
-                onMapCreated: (GoogleMapController controller) {
-                  _mapController = controller;
-                },
-                onTap: (LatLng position) {
-                  _expandMapFromTap();
-                },
-              ),
-            ),
-          ),
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 420),
-            curve: Curves.easeInOutCubic,
-            right: isFullscreen ? ResSize.w * 18 : ResSize.w * 28,
-            bottom: isFullscreen
-                ? ResSize.h * 92
-                : mapBottom + ResSize.h * 14,
-            child: Material(
-              color: AppColor.white,
-              shape: const CircleBorder(),
-              elevation: 8,
-              shadowColor: const Color(0x33183127),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: _toggleFullscreenMap,
-                child: SizedBox(
-                  height: ResSize.h * 46,
-                  width: ResSize.w * 46,
-                  child: Icon(
-                    isFullscreen
-                        ? Icons.fullscreen_exit_rounded
-                        : Icons.fullscreen_rounded,
-                    color: AppColor.title,
-                    size: ResSize.h * 24,
-                  ),
-                ),
-              ),
-            ),
+          CustomGoogleMap(
+            initialPosition: _initialPosition,
+            markers: _markers,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            compassEnabled: false,
+            trafficEnabled: false,
+            buildingsEnabled: true,
+            indoorViewEnabled: false,
+            mapType: MapType.normal,
+            onMapCreated: (GoogleMapController controller) {
+              _mapController = controller;
+            },
+            onTap: (LatLng position) {},
           ),
           isDestinationPanel
               ? Align(
@@ -566,7 +467,6 @@ class _DriverHomeState extends State<DriverHome> {
                             ? () {
                                 _panelController.close().then((_) {
                                   setState(() {
-                                    isOnline = true;
                                     showRideRequests = true;
                                   });
                                 });
