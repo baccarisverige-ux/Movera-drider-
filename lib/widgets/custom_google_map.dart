@@ -60,199 +60,91 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
   // Default location - central Stockholm, the app's operating city.
   static const CameraPosition _defaultPosition = CameraPosition(
     target: LatLng(59.3293, 18.0686),
-    zoom: 14.0,
+    zoom: 13.0,
   );
 
   // Map style with custom client colors
+  // Exact visual palette shared with Movera Rider.
   static const String _defaultMapStyle = '''
 [
   {
+    "elementType": "geometry",
+    "stylers": [{"color": "#eef1e8"}]
+  },
+  {
+    "elementType": "labels.icon",
+    "stylers": [{"visibility": "off"}]
+  },
+  {
+    "elementType": "labels.text.fill",
+    "stylers": [{"color": "#747974"}]
+  },
+  {
+    "elementType": "labels.text.stroke",
+    "stylers": [{"color": "#f7f8f3"}, {"weight": 2}]
+  },
+  {
+    "featureType": "administrative",
+    "elementType": "geometry.stroke",
+    "stylers": [{"color": "#d9dcd4"}]
+  },
+  {
     "featureType": "landscape",
     "elementType": "geometry",
-    "stylers": [
-      { "color": "#F7F7F7" }
-    ]
-  },
-  {
-    "featureType": "landscape.natural",
-    "elementType": "geometry",
-    "stylers": [
-      { "color": "#1F6B3A" }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "geometry",
-    "stylers": [
-      { "color": "#1F6B3A" },
-      { "visibility": "on" }
-    ]
-  },
-  {
-    "featureType": "poi.business",
-    "stylers": [
-      { "visibility": "simplified" }
-    ]
-  },
-  {
-    "featureType": "poi.medical",
-    "stylers": [
-      { "visibility": "off" }
-    ]
-  },
-  {
-    "featureType": "poi.school",
-    "stylers": [
-      { "visibility": "off" }
-    ]
-  },
-  {
-    "featureType": "poi.government",
-    "stylers": [
-      { "visibility": "off" }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry",
-    "stylers": [
-      { "color": "#D3D3D3" }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      { "color": "#C0C0C0" },
-      { "weight": 0.5 }
-    ]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry",
-    "stylers": [
-      { "color": "#AEBBC5" }
-    ]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      { "color": "#B8C7D0" },
-      { "weight": 1 }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry",
-    "stylers": [
-      { "color": "#AEBBC5" }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      { "color": "#B8C7D0" },
-      { "weight": 1.5 }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "geometry",
-    "stylers": [
-      { "color": "#D3D3D3" }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      { "color": "#C0C0C0" },
-      { "weight": 0.3 }
-    ]
-  },
-  {
-    "featureType": "transit.station",
-    "stylers": [
-      { "visibility": "simplified" }
-    ]
-  },
-  {
-    "featureType": "transit.line",
-    "elementType": "geometry",
-    "stylers": [
-      { "color": "#AEBBC5" }
-    ]
-  },
-  {
-    "featureType": "water",
-    "elementType": "geometry",
-    "stylers": [
-      { "color": "#0B4F8A" }
-    ]
-  },
-  {
-    "featureType": "water",
-    "elementType": "geometry.fill",
-    "stylers": [
-      { "color": "#0B4F8A" }
-    ]
+    "stylers": [{"color": "#d8edb5"}]
   },
   {
     "featureType": "landscape.man_made",
     "elementType": "geometry",
-    "stylers": [
-      { "color": "#F7F7F7" }
-    ]
+    "stylers": [{"color": "#f2f2ef"}]
   },
   {
-    "featureType": "administrative.locality",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      { "color": "#333333" }
-    ]
+    "featureType": "poi",
+    "elementType": "geometry",
+    "stylers": [{"color": "#c1e589"}]
   },
   {
-    "featureType": "administrative.neighborhood",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      { "color": "#666666" }
-    ]
+    "featureType": "poi.park",
+    "elementType": "geometry",
+    "stylers": [{"color": "#aedb6f"}]
   },
   {
     "featureType": "road",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      { "color": "#333333" }
-    ]
+    "elementType": "geometry",
+    "stylers": [{"color": "#ffffff"}]
   },
   {
     "featureType": "road",
-    "elementType": "labels.text.stroke",
-    "stylers": [
-      { "color": "#FFFFFF" },
-      { "weight": 2 }
-    ]
+    "elementType": "geometry.stroke",
+    "stylers": [{"color": "#d9dcd5"}]
   },
   {
-    "featureType": "administrative.country",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      { "color": "#AEBBC5" },
-      { "weight": 1 }
-    ]
+    "featureType": "road.highway",
+    "elementType": "geometry",
+    "stylers": [{"color": "#fffdf5"}]
   },
   {
-    "featureType": "administrative.province",
+    "featureType": "road.highway",
     "elementType": "geometry.stroke",
-    "stylers": [
-      { "color": "#AEBBC5" },
-      { "weight": 0.8 }
-    ]
+    "stylers": [{"color": "#d5d9cf"}]
+  },
+  {
+    "featureType": "transit",
+    "elementType": "geometry",
+    "stylers": [{"color": "#e6e8e3"}]
+  },
+  {
+    "featureType": "water",
+    "elementType": "geometry",
+    "stylers": [{"color": "#bfe5ef"}]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.fill",
+    "stylers": [{"color": "#66848a"}]
   }
 ]
-''';
+'''
 
   @override
   Widget build(BuildContext context) {
@@ -305,7 +197,8 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
 
   @override
   void dispose() {
-    _mapController?.dispose();
+    // GoogleMap owns its platform controller. Avoid a second web disposal.
+    _mapController = null;
     super.dispose();
   }
 }
