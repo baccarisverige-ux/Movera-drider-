@@ -7,7 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/presentation/common/chat/chat.dart';
+import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
@@ -419,8 +419,8 @@ class _DriverHomeState extends State<DriverHome>
             ),
           if (!isDestinationPanel)
             Positioned(
-              right: 18,
-              bottom: 104,
+              left: 18,
+              top: ResSize.h * 55,
               child: Material(
                 color: AppColor.white,
                 elevation: 6,
@@ -817,77 +817,83 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _buildTripRadarButton() {
     final radarOpacity = Tween<double>(
-      begin: 0.35,
+      begin: 0.45,
       end: 1,
     ).animate(_goOnlinePulseController);
 
     return Material(
-      color: const Color(0xFFE1E4E7),
-      elevation: 7,
-      shadowColor: const Color(0xFF252E3A).withOpacity(0.28),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: Color(0xFFCDD5DA), width: 1.2),
-      ),
+      color: Colors.transparent,
+      elevation: 9,
+      shadowColor: const Color(0xFF10181D).withOpacity(0.34),
+      borderRadius: BorderRadius.circular(27),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _openRideOffers,
-        splashColor: const Color(0xFF252E3A).withOpacity(0.08),
-        child: SizedBox(
-          height: 46,
-          width: 260,
+      child: Ink(
+        width: 278,
+        height: 58,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF263239), Color(0xFF172127)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(27),
+          border: Border.all(color: const Color(0xFF3C494F)),
+        ),
+        child: InkWell(
+          onTap: _openRideOffers,
+          borderRadius: BorderRadius.circular(27),
+          splashColor: const Color(0xFF2FBE7B).withOpacity(0.16),
           child: Row(
             children: [
-              const SizedBox(width: 12),
+              const SizedBox(width: 9),
               FadeTransition(
                 opacity: _hasRideOffers
                     ? radarOpacity
                     : const AlwaysStoppedAnimation<double>(1),
                 child: SizedBox(
-                  height: 40,
-                  width: 40,
+                  height: 44,
+                  width: 44,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
                       Container(
-                        height: 40,
-                        width: 40,
+                        height: 42,
+                        width: 42,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F4F5),
+                          color: const Color(0xFF2FBE7B).withOpacity(0.13),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFF3F454A),
-                            width: 1.4,
+                            color: const Color(0xFF52D99A).withOpacity(0.70),
                           ),
                         ),
                       ),
                       Container(
-                        height: 25,
-                        width: 25,
+                        height: 27,
+                        width: 27,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFF9AA6AD),
+                            color: const Color(0xFF52D99A).withOpacity(0.42),
                           ),
                         ),
                       ),
                       RotationTransition(
                         turns: _radarSweepController,
                         child: const Icon(
-                          Icons.navigation_rounded,
-                          color: Color(0xFF3F454A),
-                          size: 19,
+                          Icons.radar_rounded,
+                          color: Color(0xFF52D99A),
+                          size: 25,
                         ),
                       ),
                       const CircleAvatar(
-                        radius: 3,
-                        backgroundColor: Color(0xFF2FBE7B),
+                        radius: 2.7,
+                        backgroundColor: Colors.white,
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -895,18 +901,18 @@ class _DriverHomeState extends State<DriverHome>
                   children: [
                     TextWidget(
                       text: _hasRideOffers
-                          ? "New ride request"
-                          : "Finding a new trip",
-                      color: const Color(0xFF30363B),
-                      fontSize: 15,
+                          ? "New ride available"
+                          : "Finding new trips",
+                      color: Colors.white,
+                      fontSize: 14,
                       fontWeight: fwSemiBold,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     TextWidget(
                       text: _hasRideOffers
-                          ? "A nearby passenger is waiting • Tap to view"
-                          : "Searching for ride requests near you",
-                      color: const Color(0xFF7B878E),
+                          ? "Tap to review the offer"
+                          : "Scanning nearby requests",
+                      color: const Color(0xFFADB8BE),
                       fontSize: 10,
                       fontWeight: fwNormal,
                     ),
@@ -917,13 +923,22 @@ class _DriverHomeState extends State<DriverHome>
                 FadeTransition(
                   opacity: radarOpacity,
                   child: Container(
-                    margin: const EdgeInsets.only(right: 14),
+                    margin: const EdgeInsets.only(right: 16),
                     height: 10,
                     width: 10,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF2FBE7B),
+                      color: Color(0xFF52D99A),
                       shape: BoxShape.circle,
                     ),
+                  ),
+                )
+              else
+                const Padding(
+                  padding: EdgeInsets.only(right: 16),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF87949B),
+                    size: 22,
                   ),
                 ),
             ],
@@ -968,7 +983,7 @@ class _DriverHomeState extends State<DriverHome>
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
                 children: [
                   _sheetAlertCard(
-                    icon: Icons.calendar_month_outlined,
+                    icon: Icons.event_available_outlined,
                     iconColor: const Color(0xFF8F9CAF),
                     title: "Scheduled rides available",
                     subtitle: "View open requests in your area",
@@ -1173,7 +1188,7 @@ class _DriverHomeState extends State<DriverHome>
       child: Row(
         children: [
           _sheetQuickAction(
-            icon: Icons.account_balance_wallet_outlined,
+            icon: Icons.wallet_outlined,
             tooltip: "Wallet",
             onTap: () {
               Navigator.push(
@@ -1183,22 +1198,22 @@ class _DriverHomeState extends State<DriverHome>
             },
           ),
           _sheetQuickAction(
-            icon: Icons.home_rounded,
+            icon: Icons.home_outlined,
             tooltip: "Home",
             onTap: _closeDriverSheet,
           ),
           _sheetQuickAction(
-            icon: Icons.chat_bubble_outline_rounded,
+            icon: Icons.forum_outlined,
             tooltip: "Inbox",
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const Chat()),
+                MaterialPageRoute(builder: (_) => const SupportInboxScreen()),
               );
             },
           ),
           _sheetQuickAction(
-            icon: Icons.menu_rounded,
+            icon: Icons.grid_view_rounded,
             tooltip: "Menu",
             onTap: () => _scaffoldKey.currentState?.openDrawer(),
           ),
