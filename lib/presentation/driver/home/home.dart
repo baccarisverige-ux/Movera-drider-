@@ -342,8 +342,8 @@ class _DriverHomeState extends State<DriverHome>
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
-                      height: ResSize.h * 50,
-                      width: ResSize.w * 108,
+                      height: ResSize.h * 38.5,
+                      width: ResSize.w * 83,
                       decoration: BoxDecoration(
                         color: AppColor.white,
                         borderRadius: BorderRadius.circular(30),
@@ -371,7 +371,7 @@ class _DriverHomeState extends State<DriverHome>
                                 child: Center(
                                   child: Icon(
                                     Icons.menu_open_rounded,
-                                    size: ResSize.h * 22,
+                                    size: ResSize.h * 17,
                                     color: AppColor.black,
                                   ),
                                 ),
@@ -390,7 +390,7 @@ class _DriverHomeState extends State<DriverHome>
                               child: Center(
                                 child: Image.asset(
                                   AppAssets.search,
-                                  height: ResSize.h * 17,
+                                  height: ResSize.h * 13,
                                   color: AppColor.black,
                                 ),
                               ),
@@ -442,7 +442,7 @@ class _DriverHomeState extends State<DriverHome>
                     child: Icon(
                       Icons.shield_outlined,
                       color: Color(0xFF3F4A50),
-                      size: 24,
+                      size: 18.5,
                     ),
                   ),
                 ),
@@ -457,7 +457,7 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _mapControlDivider() {
     return Container(
-      height: ResSize.h * 28,
+      height: ResSize.h * 22,
       width: 1,
       color: const Color(0xFFE2E5E7),
     );
