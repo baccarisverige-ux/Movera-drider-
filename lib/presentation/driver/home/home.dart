@@ -1124,19 +1124,54 @@ class _DriverHomeState extends State<DriverHome>
         children: [
           if (showActivity)
             Material(
-              color: const Color(0xFFF3F5F6),
-              shape: const CircleBorder(),
+              color: const Color(0xFFF4F6F6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: const BorderSide(color: Color(0xFFE5E9EA)),
+              ),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
                 onTap: _showTodaySummary,
-                splashColor: const Color(0xFF2FBE7B).withOpacity(0.14),
+                splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
                 child: const SizedBox(
                   height: 46,
-                  width: 46,
-                  child: Icon(
-                    Icons.account_balance_wallet_outlined,
-                    color: Color(0xFF3F4A50),
-                    size: 22,
+                  width: 238,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet_outlined,
+                          color: Color(0xFF455159),
+                          size: 21,
+                        ),
+                        SizedBox(width: 11),
+                        Expanded(
+                          child: Text(
+                            "Today",
+                            style: TextStyle(
+                              color: Color(0xFF6F7B81),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          "183.25 kr",
+                          style: TextStyle(
+                            color: Color(0xFF252E3A),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(width: 7),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: Color(0xFF9AA4A9),
+                          size: 19,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
