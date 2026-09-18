@@ -185,7 +185,7 @@ class _DriverHomeState extends State<DriverHome>
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 94,
+              minHeight: 104,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -224,42 +224,7 @@ class _DriverHomeState extends State<DriverHome>
                   onPointerDown: _onSheetPointerDown,
                   onPointerUp: _onSheetPointerEnd,
                   onPointerCancel: _onSheetPointerEnd,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFCFCFD),
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(30),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0x1A152027),
-                          blurRadius: 24,
-                          offset: Offset(0, -8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        InkWell(
-                          onTap: _openDriverSheet,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 7, bottom: 3),
-                            child: Container(
-                              width: 36,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFCED4D8),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: _emptyBottomNavigation(showQuickActions: true),
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: _buildCollapsedDriverDock(),
                 ),
               ),
 
@@ -1313,6 +1278,258 @@ class _DriverHomeState extends State<DriverHome>
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildCollapsedDriverDock() {
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
+
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: 14,
+          right: 14,
+          bottom: 0,
+          height: 84 + safeBottom,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFD9DEE1),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(34),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF10191E).withOpacity(0.18),
+                  blurRadius: 26,
+                  spreadRadius: 1,
+                  offset: const Offset(0, -7),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          left: 8,
+          right: 8,
+          bottom: 4,
+          height: 86 + safeBottom,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFFFFFFF),
+                  Color(0xFFF7F8F9),
+                  Color(0xFFE9EDF0),
+                ],
+                stops: [0, 0.56, 1],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(36),
+              ),
+              border: Border.all(
+                color: Colors.white,
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.88),
+                  blurRadius: 4,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          top: 0,
+          child: Container(
+            width: 88,
+            height: 31,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFFFFF), Color(0xFFF1F4F5)],
+              ),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white, width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF18242A).withOpacity(0.13),
+                  blurRadius: 16,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Container(
+              width: 31,
+              height: 4,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFB8C0C5), Color(0xFFD5DADD)],
+                ),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.white,
+                    blurRadius: 1,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 18,
+          right: 18,
+          top: 28,
+          bottom: safeBottom + 7,
+          child: Row(
+            children: [
+              _collapsedDockAction(
+                icon: Icons.grid_view_rounded,
+                tooltip: "Menu",
+                onTap: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
+              _collapsedDockAction(
+                icon: Icons.wallet_outlined,
+                tooltip: "Wallet",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WalletScreen()),
+                  );
+                },
+              ),
+              _collapsedDockAction(
+                icon: Icons.forum_outlined,
+                tooltip: "Inbox",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SupportInboxScreen(),
+                    ),
+                  );
+                },
+              ),
+              AnimatedBuilder(
+                animation: _goOnlinePulseController,
+                builder: (context, child) {
+                  return _collapsedDockAction(
+                    icon: Icons.calendar_month_outlined,
+                    tooltip: "Scheduled",
+                    onTap: _openScheduledRides,
+                    hasAlert: _hasScheduledRideOffers,
+                    pulse: _goOnlinePulseController.value,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _collapsedDockAction({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+    bool hasAlert = false,
+    double pulse = 0,
+  }) {
+    final alertGlow = hasAlert ? 0.12 + (pulse * 0.16) : 0.0;
+
+    return Expanded(
+      child: Tooltip(
+        message: tooltip,
+        child: Center(
+          child: Container(
+            height: 47,
+            width: 47,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: hasAlert
+                    ? const [Color(0xFFF4FFFA), Color(0xFFDCEFE7)]
+                    : const [Color(0xFFFFFFFF), Color(0xFFE6EAEC)],
+              ),
+              border: Border.all(
+                color: hasAlert
+                    ? const Color(0xFFB8DDCD)
+                    : const Color(0xFFD9DEE1),
+              ),
+              boxShadow: [
+                const BoxShadow(
+                  color: Color(0xFFFFFFFF),
+                  blurRadius: 2,
+                  offset: Offset(-2, -2),
+                ),
+                BoxShadow(
+                  color: (hasAlert
+                          ? const Color(0xFF2FBE7B)
+                          : const Color(0xFF172027))
+                      .withOpacity(hasAlert ? alertGlow : 0.16),
+                  blurRadius: hasAlert ? 14 : 8,
+                  offset: const Offset(2, 5),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: onTap,
+                customBorder: const CircleBorder(),
+                splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 21,
+                      color: hasAlert
+                          ? const Color(0xFF16895B)
+                          : const Color(0xFF273238),
+                    ),
+                    if (hasAlert)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2FBE7B),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF2FBE7B)
+                                    .withOpacity(0.45 + pulse * 0.4),
+                                blurRadius: 7,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
