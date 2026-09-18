@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
+import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
@@ -34,6 +35,7 @@ class DriverHome extends StatefulWidget {
 
 class _DriverHomeState extends State<DriverHome>
     with TickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final PanelController _panelController = PanelController();
   final PanelController _destinationPanelController = PanelController();
   late final AnimationController _goOnlinePulseController;
@@ -155,6 +157,7 @@ class _DriverHomeState extends State<DriverHome>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       drawer: const DriverSideMenu(),
       body: showRideRequests
           ? RideRequests(
@@ -182,7 +185,7 @@ class _DriverHomeState extends State<DriverHome>
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 160,
+              minHeight: 88,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -222,40 +225,33 @@ class _DriverHomeState extends State<DriverHome>
                   onPointerUp: _onSheetPointerEnd,
                   onPointerCancel: _onSheetPointerEnd,
                   child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF1F3F5),
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(26),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    InkWell(
-                      onTap: _openDriverSheet,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        child: Container(
-                          width: 42,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFDDE2E7),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF7F8F9),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(26),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-                      child: _isOnline
-                          ? _buildTripRadarButton()
-                          : _isGoingOnline
-                          ? _buildGoingOnlineButton()
-                          : _buildGoOnlineButton(),
+                    child: Column(
+                      children: [
+                        InkWell(
+                          onTap: _openDriverSheet,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 7, bottom: 3),
+                            child: Container(
+                              width: 38,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD5DADF),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: _emptyBottomNavigation(showQuickActions: true),
+                        ),
+                      ],
                     ),
-                    const Spacer(),
-                    _emptyBottomNavigation(showQuickActions: true),
-                  ],
-                ),
                   ),
                 ),
               ),
@@ -408,7 +404,43 @@ class _DriverHomeState extends State<DriverHome>
             ),
           ),
 
-          // The former third floating map button was intentionally removed.
+          if (!isDestinationPanel)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 104,
+              child: Center(
+                child: _isOnline
+                    ? _buildTripRadarButton()
+                    : _isGoingOnline
+                    ? _buildGoingOnlineButton()
+                    : _buildGoOnlineButton(),
+              ),
+            ),
+          if (!isDestinationPanel)
+            Positioned(
+              right: 18,
+              bottom: 104,
+              child: Material(
+                color: AppColor.white,
+                elevation: 6,
+                shadowColor: const Color(0xFF1D2730).withOpacity(0.20),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  onTap: () => showSafetyToolKitSheet(context),
+                  customBorder: const CircleBorder(),
+                  child: const SizedBox(
+                    height: 52,
+                    width: 52,
+                    child: Icon(
+                      Icons.shield_outlined,
+                      color: Color(0xFF3F4A50),
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
 
         ],
@@ -715,7 +747,7 @@ class _DriverHomeState extends State<DriverHome>
       builder: (context, child) {
         final pulse = _goOnlinePulseController.value;
         return Material(
-          color: AppColor.white,
+          color: const Color(0xFFE1E4E7),
           elevation: 5 + (pulse * 2.5),
           shadowColor: const Color(0xFF252E3A)
               .withOpacity(0.24 + (pulse * 0.08)),
@@ -736,8 +768,8 @@ class _DriverHomeState extends State<DriverHome>
             splashColor: const Color(0xFF252E3A).withOpacity(0.08),
             highlightColor: const Color(0xFF252E3A).withOpacity(0.05),
             child: SizedBox(
-              height: 54,
-              width: double.infinity,
+              height: 46,
+              width: 184,
               child: child,
             ),
           ),
@@ -748,7 +780,7 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _buildGoingOnlineButton() {
     return Material(
-      color: AppColor.white,
+      color: const Color(0xFFE1E4E7),
       elevation: 7,
       shadowColor: const Color(0xFF252E3A).withOpacity(0.25),
       shape: RoundedRectangleBorder(
@@ -757,7 +789,8 @@ class _DriverHomeState extends State<DriverHome>
       ),
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
-        height: 54,
+        height: 46,
+        width: 220,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -789,7 +822,7 @@ class _DriverHomeState extends State<DriverHome>
     ).animate(_goOnlinePulseController);
 
     return Material(
-      color: AppColor.white,
+      color: const Color(0xFFE1E4E7),
       elevation: 7,
       shadowColor: const Color(0xFF252E3A).withOpacity(0.28),
       shape: RoundedRectangleBorder(
@@ -801,7 +834,8 @@ class _DriverHomeState extends State<DriverHome>
         onTap: _openRideOffers,
         splashColor: const Color(0xFF252E3A).withOpacity(0.08),
         child: SizedBox(
-          height: 54,
+          height: 46,
+          width: 260,
           child: Row(
             children: [
               const SizedBox(width: 12),
@@ -976,7 +1010,7 @@ class _DriverHomeState extends State<DriverHome>
                   ),
                 ),
               ),
-            _emptyBottomNavigation(),
+            _emptyBottomNavigation(showQuickActions: true),
           ],
         ),
       ),
@@ -1120,63 +1154,74 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Widget _emptyBottomNavigation({bool showQuickActions = false}) {
+    if (!showQuickActions) return const SizedBox.shrink();
+
     return Container(
-      height: MediaQuery.paddingOf(context).bottom + 68,
+      height: MediaQuery.paddingOf(context).bottom + 62,
       padding: EdgeInsets.fromLTRB(
-        12,
-        7,
-        12,
-        MediaQuery.paddingOf(context).bottom + 6,
+        16,
+        2,
+        16,
+        MediaQuery.paddingOf(context).bottom + 4,
       ),
       decoration: const BoxDecoration(
-        color: AppColor.white,
+        color: Color(0xFFF7F8F9),
         border: Border(
-          top: BorderSide(color: Color(0xFFE7EAEC)),
+          top: BorderSide(color: Color(0xFFE8EBED)),
         ),
       ),
-      child: showQuickActions
-          ? Row(
-              children: [
-                _sheetQuickAction(
-                  icon: Icons.account_balance_wallet_outlined,
-                  label: "Wallet",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const WalletScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 6),
-                AnimatedBuilder(
-                  animation: _goOnlinePulseController,
-                  builder: (context, child) {
-                    return _sheetQuickAction(
-                      icon: Icons.calendar_month_outlined,
-                      label: "Scheduled",
-                      onTap: _openScheduledRides,
-                      hasAlert: _hasScheduledRideOffers,
-                      pulse: _goOnlinePulseController.value,
-                    );
-                  },
-                ),
-                const SizedBox(width: 6),
-                _sheetQuickAction(
-                  icon: Icons.shield_outlined,
-                  label: "Safety",
-                  onTap: () => showSafetyToolKitSheet(context),
-                ),
-              ],
-            )
-          : const SizedBox.shrink(),
+      child: Row(
+        children: [
+          _sheetQuickAction(
+            icon: Icons.account_balance_wallet_outlined,
+            tooltip: "Wallet",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WalletScreen()),
+              );
+            },
+          ),
+          _sheetQuickAction(
+            icon: Icons.home_rounded,
+            tooltip: "Home",
+            onTap: _closeDriverSheet,
+          ),
+          _sheetQuickAction(
+            icon: Icons.chat_bubble_outline_rounded,
+            tooltip: "Inbox",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const Chat()),
+              );
+            },
+          ),
+          _sheetQuickAction(
+            icon: Icons.menu_rounded,
+            tooltip: "Menu",
+            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+          AnimatedBuilder(
+            animation: _goOnlinePulseController,
+            builder: (context, child) {
+              return _sheetQuickAction(
+                icon: Icons.calendar_month_outlined,
+                tooltip: "Scheduled",
+                onTap: _openScheduledRides,
+                hasAlert: _hasScheduledRideOffers,
+                pulse: _goOnlinePulseController.value,
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Widget _sheetQuickAction({
     required IconData icon,
-    required String label,
+    required String tooltip,
     required VoidCallback onTap,
     bool hasAlert = false,
     double pulse = 0,
@@ -1184,71 +1229,46 @@ class _DriverHomeState extends State<DriverHome>
     final alertStrength = hasAlert ? (0.55 + (pulse * 0.45)) : 0.0;
 
     return Expanded(
-      child: Material(
-        color: hasAlert
-            ? Color.lerp(
-                const Color(0xFFF2F8F5),
-                const Color(0xFFE2F4EC),
-                pulse,
-              )
-            : const Color(0xFFF7F8F8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(17),
-          side: BorderSide(
-            color: hasAlert
-                ? const Color(0xFF2FBE7B).withOpacity(alertStrength)
-                : const Color(0xFFE8EBEC),
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
-          child: SizedBox(
-            height: 52,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      icon,
-                      color: hasAlert
-                          ? const Color(0xFF16895B)
-                          : const Color(0xFF3F4A50),
-                      size: 21,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: hasAlert
-                            ? const Color(0xFF16895B)
-                            : const Color(0xFF59656B),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                if (hasAlert)
-                  Positioned(
-                    top: 7,
-                    right: 12,
-                    child: Opacity(
-                      opacity: alertStrength,
-                      child: Container(
-                        height: 8,
-                        width: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF2FBE7B),
-                          shape: BoxShape.circle,
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
+            child: SizedBox(
+              height: 50,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    color: hasAlert
+                        ? const Color(0xFF16895B)
+                        : const Color(0xFF3F4A50),
+                    size: 24,
+                  ),
+                  if (hasAlert)
+                    Positioned(
+                      top: 7,
+                      right: 13,
+                      child: Opacity(
+                        opacity: alertStrength,
+                        child: Container(
+                          height: 8,
+                          width: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF2FBE7B),
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
