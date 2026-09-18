@@ -808,23 +808,23 @@ class _DriverHomeState extends State<DriverHome>
     double sweep = 0,
   }) {
     const mint = Color(0xFF58E5A6);
-    final glowStrength = active ? 0.16 + (pulse * 0.10) : 0.10;
-    final ringScale = active ? 0.92 + (pulse * 0.15) : 1.0;
+    final glowStrength = active ? 0.12 + (pulse * 0.28) : 0.08;
+    final ringScale = active ? 0.76 + (pulse * 0.40) : 1.0;
 
     return Semantics(
       button: true,
       label: "$title, $status. $subtitle",
       child: SizedBox(
-        width: 160,
-        height: 160,
+        width: 104,
+        height: 104,
         child: Stack(
           alignment: Alignment.center,
           children: [
             Transform.scale(
               scale: ringScale,
               child: Container(
-                width: 157,
-                height: 157,
+                width: 102,
+                height: 102,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: mint.withOpacity(active ? 0.035 : 0.025),
@@ -836,8 +836,8 @@ class _DriverHomeState extends State<DriverHome>
               ),
             ),
             Container(
-              width: 138,
-              height: 138,
+              width: 90,
+              height: 90,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: mint.withOpacity(active ? 0.045 : 0.03),
@@ -848,8 +848,8 @@ class _DriverHomeState extends State<DriverHome>
               ),
             ),
             Container(
-              width: 122,
-              height: 122,
+              width: 79,
+              height: 79,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFFBFD9CF).withOpacity(0.12),
@@ -860,8 +860,8 @@ class _DriverHomeState extends State<DriverHome>
                 boxShadow: [
                   BoxShadow(
                     color: mint.withOpacity(glowStrength),
-                    blurRadius: active ? 24 : 16,
-                    spreadRadius: active ? 6 : 3,
+                    blurRadius: active ? 19 : 11,
+                    spreadRadius: active ? 5 : 2,
                   ),
                 ],
               ),
@@ -870,13 +870,13 @@ class _DriverHomeState extends State<DriverHome>
               Transform.rotate(
                 angle: sweep * 6.283185307179586,
                 child: SizedBox(
-                  width: 116,
-                  height: 116,
+                  width: 75,
+                  height: 75,
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: Container(
-                      width: 2.5,
-                      height: 25,
+                      width: 2,
+                      height: 18,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4),
                         gradient: LinearGradient(
@@ -899,8 +899,8 @@ class _DriverHomeState extends State<DriverHome>
               shape: const CircleBorder(),
               clipBehavior: Clip.antiAlias,
               child: Ink(
-                width: 113,
-                height: 113,
+                width: 73,
+                height: 73,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const RadialGradient(
@@ -934,7 +934,7 @@ class _DriverHomeState extends State<DriverHome>
                     alignment: Alignment.center,
                     children: [
                       Container(
-                        margin: const EdgeInsets.all(5),
+                        margin: const EdgeInsets.all(3),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
@@ -944,10 +944,10 @@ class _DriverHomeState extends State<DriverHome>
                         ),
                       ),
                       Positioned(
-                        top: 18,
+                        top: 10,
                         child: Container(
-                          width: offer ? 9 : 7,
-                          height: offer ? 9 : 7,
+                          width: offer ? 7 : 5,
+                          height: offer ? 7 : 5,
                           decoration: BoxDecoration(
                             color: offer ? const Color(0xFFFFD166) : mint,
                             shape: BoxShape.circle,
@@ -957,15 +957,15 @@ class _DriverHomeState extends State<DriverHome>
                                         ? const Color(0xFFFFD166)
                                         : mint)
                                     .withOpacity(0.82),
-                                blurRadius: offer ? 13 : 9,
-                                spreadRadius: offer ? 3 : 1.5,
+                                blurRadius: offer ? 11 : 7,
+                                spreadRadius: offer ? 2.5 : 1,
                               ),
                             ],
                           ),
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(11, 26, 11, 8),
+                        padding: const EdgeInsets.fromLTRB(6, 16, 6, 4),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -976,13 +976,13 @@ class _DriverHomeState extends State<DriverHome>
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 12.5,
+                                fontSize: 8.8,
                                 height: 1.1,
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: -0.3,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2.5)
                             Text(
                               status,
                               textAlign: TextAlign.center,
@@ -990,15 +990,15 @@ class _DriverHomeState extends State<DriverHome>
                                 color: offer
                                     ? const Color(0xFFFFD166)
                                     : const Color(0xFFD8E1DE),
-                                fontSize: 7.2,
+                                fontSize: 5.4,
                                 height: 1,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: 1.7,
+                                letterSpacing: 1.0,
                               ),
                             ),
-                            const SizedBox(height: 5),
+                            const SizedBox(height: 3)
                             Container(
-                              width: 14,
+                              width: 10,
                               height: 1,
                               color: Colors.white.withOpacity(0.36),
                             ),
@@ -1008,8 +1008,8 @@ class _DriverHomeState extends State<DriverHome>
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: Color(0xFFB7C2BE),
-                                fontSize: 8.3,
-                                height: 1.18,
+                                fontSize: 5.9,
+                                height: 1.12,
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
@@ -1018,12 +1018,12 @@ class _DriverHomeState extends State<DriverHome>
                       ),
                       if (loading)
                         Positioned(
-                          bottom: 10,
+                          bottom: 5,
                           child: SizedBox(
-                            width: 11,
-                            height: 11,
+                            width: 8,
+                            height: 8,
                             child: CircularProgressIndicator(
-                              strokeWidth: 1.3,
+                              strokeWidth: 1.1,
                               color: mint.withOpacity(0.85),
                             ),
                           ),
