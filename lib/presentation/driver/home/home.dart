@@ -415,7 +415,7 @@ class _DriverHomeState extends State<DriverHome>
             Positioned(
               left: 0,
               right: 0,
-              bottom: 104,
+              bottom: 112,
               child: Center(
                 child: _isOnline
                     ? _buildTripRadarButton()
@@ -744,300 +744,296 @@ class _DriverHomeState extends State<DriverHome>
     return AnimatedBuilder(
       animation: _goOnlinePulseController,
       builder: (context, child) {
-        final pulse = _goOnlinePulseController.value;
-        return Material(
-          color: Colors.transparent,
-          elevation: 5 + (pulse * 2),
-          shadowColor: const Color(0xFF263238).withOpacity(0.18),
-          borderRadius: BorderRadius.circular(27),
-          clipBehavior: Clip.antiAlias,
-          child: Ink(
-            width: 246,
-            height: 54,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFCFDFD), Color(0xFFE8ECEE)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(27),
-              border: Border.all(
-                color: Color.lerp(
-                  const Color(0xFFC8CED2),
-                  const Color(0xFFADB7BD),
-                  pulse,
-                )!,
-              ),
-            ),
-            child: InkWell(
-              onTap: _goOnline,
-              borderRadius: BorderRadius.circular(27),
-              splashColor: const Color(0xFF202A30).withOpacity(0.08),
-              child: Row(
-                children: [
-                  const SizedBox(width: 8),
-                  Container(
-                    height: 40,
-                    width: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE1E6E8),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFC8D0D4)),
-                    ),
-                    child: const Icon(
-                      Icons.radar_rounded,
-                      color: Color(0xFF68747B),
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 11),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextWidget(
-                          text: isAccountActivated
-                              ? "Trip radar"
-                              : "Account pending",
-                          color: const Color(0xFF303A40),
-                          fontSize: 14,
-                          fontWeight: fwSemiBold,
-                        ),
-                        const SizedBox(height: 2),
-                        TextWidget(
-                          text: isAccountActivated
-                              ? "Offline • Tap to start"
-                              : "Activation is required",
-                          color: const Color(0xFF727E85),
-                          fontSize: 10,
-                          fontWeight: fwNormal,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(right: 14),
-                    child: Icon(
-                      Icons.power_settings_new_rounded,
-                      color: Color(0xFF59666D),
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        return _buildRadarOrb(
+          title: isAccountActivated ? "Trip radar" : "Account pending",
+          status: isAccountActivated ? "OFFLINE" : "UNAVAILABLE",
+          subtitle: isAccountActivated
+              ? "Tap to start\nscanning"
+              : "Activation required",
+          onTap: _goOnline,
+          pulse: _goOnlinePulseController.value,
         );
       },
     );
   }
 
   Widget _buildGoingOnlineButton() {
-    return Material(
-      color: Colors.transparent,
-      elevation: 8,
-      shadowColor: const Color(0xFF10181D).withOpacity(0.30),
-      borderRadius: BorderRadius.circular(27),
-      clipBehavior: Clip.antiAlias,
-      child: Ink(
-        width: 270,
-        height: 58,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF39454B), Color(0xFF232D32)],
-          ),
-          borderRadius: BorderRadius.circular(27),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 9),
-            Container(
-              height: 42,
-              width: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFF2FBE7B).withOpacity(0.14),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFF52D99A).withOpacity(0.55),
-                ),
-              ),
-              child: RotationTransition(
-                turns: _radarSweepController,
-                child: const Icon(
-                  Icons.radar_rounded,
-                  color: Color(0xFF52D99A),
-                  size: 25,
-                ),
-              ),
-            ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextWidget(
-                    text: "Starting trip radar",
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: fwSemiBold,
-                  ),
-                  const SizedBox(height: 3),
-                  TextWidget(
-                    text: "Connecting to nearby requests",
-                    color: const Color(0xFFB3BDC2),
-                    fontSize: 10,
-                    fontWeight: fwNormal,
-                  ),
-                ],
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Color(0xFF52D99A),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _radarSweepController,
+      builder: (context, child) {
+        return _buildRadarOrb(
+          title: "Trip radar",
+          status: "CONNECTING",
+          subtitle: "Starting nearby\nride scanning",
+          active: true,
+          loading: true,
+          sweep: _radarSweepController.value,
+        );
+      },
     );
   }
 
   Widget _buildTripRadarButton() {
-    final radarOpacity = Tween<double>(
-      begin: 0.45,
-      end: 1,
-    ).animate(_goOnlinePulseController);
-
-    return Material(
-      color: Colors.transparent,
-      elevation: 9,
-      shadowColor: const Color(0xFF10181D).withOpacity(0.34),
-      borderRadius: BorderRadius.circular(27),
-      clipBehavior: Clip.antiAlias,
-      child: Ink(
-        width: 278,
-        height: 58,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF263239), Color(0xFF172127)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(27),
-          border: Border.all(color: const Color(0xFF3C494F)),
-        ),
-        child: InkWell(
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        _goOnlinePulseController,
+        _radarSweepController,
+      ]),
+      builder: (context, child) {
+        return _buildRadarOrb(
+          title: _hasRideOffers ? "New ride" : "Finding new trips",
+          status: _hasRideOffers ? "RIDE AVAILABLE" : "SCANNING",
+          subtitle: _hasRideOffers
+              ? "Tap to view\nthe offer"
+              : "Searching nearby\nrequests",
+          active: true,
+          offer: _hasRideOffers,
+          pulse: _goOnlinePulseController.value,
+          sweep: _radarSweepController.value,
           onTap: _openRideOffers,
-          borderRadius: BorderRadius.circular(27),
-          splashColor: const Color(0xFF2FBE7B).withOpacity(0.16),
-          child: Row(
-            children: [
-              const SizedBox(width: 9),
-              FadeTransition(
-                opacity: _hasRideOffers
-                    ? radarOpacity
-                    : const AlwaysStoppedAnimation<double>(1),
+        );
+      },
+    );
+  }
+
+  Widget _buildRadarOrb({
+    required String title,
+    required String status,
+    required String subtitle,
+    VoidCallback? onTap,
+    bool active = false,
+    bool loading = false,
+    bool offer = false,
+    double pulse = 0,
+    double sweep = 0,
+  }) {
+    const mint = Color(0xFF58E5A6);
+    final glowStrength = active ? 0.16 + (pulse * 0.10) : 0.10;
+    final ringScale = active ? 0.985 + (pulse * 0.035) : 1.0;
+
+    return Semantics(
+      button: true,
+      label: "$title, $status. $subtitle",
+      child: SizedBox(
+        width: 246,
+        height: 246,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Transform.scale(
+              scale: ringScale,
+              child: Container(
+                width: 242,
+                height: 242,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: mint.withOpacity(active ? 0.035 : 0.025),
+                  border: Border.all(
+                    color: mint.withOpacity(active ? 0.22 : 0.15),
+                    width: 1.2,
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              width: 212,
+              height: 212,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: mint.withOpacity(active ? 0.045 : 0.03),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.72),
+                  width: 1.2,
+                ),
+              ),
+            ),
+            Container(
+              width: 188,
+              height: 188,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFBFD9CF).withOpacity(0.12),
+                border: Border.all(
+                  color: mint.withOpacity(active ? 0.30 : 0.19),
+                  width: 1.1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: mint.withOpacity(glowStrength),
+                    blurRadius: active ? 34 : 24,
+                    spreadRadius: active ? 8 : 4,
+                  ),
+                ],
+              ),
+            ),
+            if (active)
+              Transform.rotate(
+                angle: sweep * 6.283185307179586,
                 child: SizedBox(
-                  height: 44,
-                  width: 44,
+                  width: 178,
+                  height: 178,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      width: 3,
+                      height: 37,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            mint.withOpacity(0),
+                            mint.withOpacity(0.72),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Material(
+              color: Colors.transparent,
+              elevation: 16,
+              shadowColor: const Color(0xFF12201C).withOpacity(0.38),
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: Ink(
+                width: 174,
+                height: 174,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const RadialGradient(
+                    center: Alignment(-0.24, -0.32),
+                    radius: 0.95,
+                    colors: [
+                      Color(0xFF263632),
+                      Color(0xFF17221F),
+                      Color(0xFF0B1110),
+                    ],
+                    stops: [0, 0.56, 1],
+                  ),
+                  border: Border.all(
+                    color: const Color(0xFF899B95),
+                    width: 2.2,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x66000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 7),
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  onTap: onTap,
+                  customBorder: const CircleBorder(),
+                  splashColor: mint.withOpacity(0.12),
+                  highlightColor: mint.withOpacity(0.06),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
                       Container(
-                        height: 42,
-                        width: 42,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2FBE7B).withOpacity(0.13),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFF52D99A).withOpacity(0.70),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        height: 27,
-                        width: 27,
+                        margin: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFF52D99A).withOpacity(0.42),
+                            color: Colors.white.withOpacity(0.08),
+                            width: 1,
                           ),
                         ),
                       ),
-                      RotationTransition(
-                        turns: _radarSweepController,
-                        child: const Icon(
-                          Icons.radar_rounded,
-                          color: Color(0xFF52D99A),
-                          size: 25,
+                      Positioned(
+                        top: 30,
+                        child: Container(
+                          width: offer ? 13 : 10,
+                          height: offer ? 13 : 10,
+                          decoration: BoxDecoration(
+                            color: offer ? const Color(0xFFFFD166) : mint,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (offer
+                                        ? const Color(0xFFFFD166)
+                                        : mint)
+                                    .withOpacity(0.82),
+                                blurRadius: offer ? 18 : 12,
+                                spreadRadius: offer ? 4 : 2,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const CircleAvatar(
-                        radius: 2.7,
-                        backgroundColor: Colors.white,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 39, 20, 14),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 17,
+                                height: 1.1,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              status,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: offer
+                                    ? const Color(0xFFFFD166)
+                                    : const Color(0xFFD8E1DE),
+                                fontSize: 9.5,
+                                height: 1,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 3.0,
+                              ),
+                            ),
+                            const SizedBox(height: 9),
+                            Container(
+                              width: 20,
+                              height: 1,
+                              color: Colors.white.withOpacity(0.36),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              subtitle,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Color(0xFFB7C2BE),
+                                fontSize: 11,
+                                height: 1.28,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      if (loading)
+                        Positioned(
+                          bottom: 18,
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.7,
+                              color: mint.withOpacity(0.85),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextWidget(
-                      text: _hasRideOffers
-                          ? "New ride available"
-                          : "Finding new trips",
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: fwSemiBold,
-                    ),
-                    const SizedBox(height: 3),
-                    TextWidget(
-                      text: _hasRideOffers
-                          ? "Tap to review the offer"
-                          : "Scanning nearby requests",
-                      color: const Color(0xFFADB8BE),
-                      fontSize: 10,
-                      fontWeight: fwNormal,
-                    ),
-                  ],
-                ),
-              ),
-              if (_hasRideOffers)
-                FadeTransition(
-                  opacity: radarOpacity,
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    height: 10,
-                    width: 10,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF52D99A),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                )
-              else
-                const Padding(
-                  padding: EdgeInsets.only(right: 16),
-                  child: Icon(
-                    Icons.chevron_right_rounded,
-                    color: Color(0xFF87949B),
-                    size: 22,
-                  ),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
