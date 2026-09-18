@@ -185,7 +185,7 @@ class _DriverHomeState extends State<DriverHome>
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 88,
+              minHeight: 94,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -226,10 +226,17 @@ class _DriverHomeState extends State<DriverHome>
                   onPointerCancel: _onSheetPointerEnd,
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: Color(0xFFF7F8F9),
+                      color: Color(0xFFFCFCFD),
                       borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(26),
+                        top: Radius.circular(30),
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x1A152027),
+                          blurRadius: 24,
+                          offset: Offset(0, -8),
+                        ),
+                      ],
                     ),
                     child: Column(
                       children: [
@@ -238,10 +245,10 @@ class _DriverHomeState extends State<DriverHome>
                           child: Padding(
                             padding: const EdgeInsets.only(top: 7, bottom: 3),
                             child: Container(
-                              width: 38,
+                              width: 36,
                               height: 4,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFD5DADF),
+                                color: const Color(0xFFCED4D8),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
@@ -335,8 +342,8 @@ class _DriverHomeState extends State<DriverHome>
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
-                      height: ResSize.h * 52,
-                      width: ResSize.w * 112,
+                      height: ResSize.h * 50,
+                      width: ResSize.w * 108,
                       decoration: BoxDecoration(
                         color: AppColor.white,
                         borderRadius: BorderRadius.circular(30),
@@ -345,10 +352,10 @@ class _DriverHomeState extends State<DriverHome>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF172027).withOpacity(0.13),
-                            blurRadius: 24,
-                            spreadRadius: 1,
-                            offset: const Offset(0, 9),
+                            color: const Color(0xFF172027).withOpacity(0.11),
+                            blurRadius: 18,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 7),
                           ),
                         ],
                       ),
@@ -748,7 +755,11 @@ class _DriverHomeState extends State<DriverHome>
             width: 246,
             height: 54,
             decoration: BoxDecoration(
-              color: const Color(0xFFDDE1E4),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFCFDFD), Color(0xFFE8ECEE)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(27),
               border: Border.all(
                 color: Color.lerp(
@@ -769,9 +780,9 @@ class _DriverHomeState extends State<DriverHome>
                     height: 40,
                     width: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFC9D0D4),
+                      color: const Color(0xFFE1E6E8),
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFAAB4BA)),
+                      border: Border.all(color: const Color(0xFFC8D0D4)),
                     ),
                     child: const Icon(
                       Icons.radar_rounded,
@@ -1033,7 +1044,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Widget panelColumn(ScrollController sc) {
-    const canvas = Color(0xFFF1F3F5);
+    const canvas = Color(0xFFF7F8F9);
     const ink = Color(0xFF252E3A);
     const muted = Color(0xFF8A97A8);
 
@@ -1043,7 +1054,7 @@ class _DriverHomeState extends State<DriverHome>
       child: Container(
         decoration: const BoxDecoration(
           color: canvas,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         ),
         child: Column(
           children: [
@@ -1066,6 +1077,64 @@ class _DriverHomeState extends State<DriverHome>
                 controller: sc,
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Driver overview",
+                                style: TextStyle(
+                                  color: Color(0xFF20292F),
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                              SizedBox(height: 3),
+                              Text(
+                                "Everything you need for your shift",
+                                style: TextStyle(
+                                  color: Color(0xFF7B878E),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6F6EE),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 4,
+                                backgroundColor: Color(0xFF2FBE7B),
+                              ),
+                              SizedBox(width: 7),
+                              Text(
+                                "Ready",
+                                style: TextStyle(
+                                  color: Color(0xFF16895B),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   _sheetAlertCard(
                     icon: Icons.event_available_outlined,
                     iconColor: const Color(0xFF8F9CAF),
@@ -1256,18 +1325,15 @@ class _DriverHomeState extends State<DriverHome>
     if (!showQuickActions) return const SizedBox.shrink();
 
     return Container(
-      height: MediaQuery.paddingOf(context).bottom + 62,
+      height: MediaQuery.paddingOf(context).bottom + 66,
       padding: EdgeInsets.fromLTRB(
-        16,
-        2,
-        16,
-        MediaQuery.paddingOf(context).bottom + 4,
+        18,
+        4,
+        18,
+        MediaQuery.paddingOf(context).bottom + 5,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFF7F8F9),
-        border: Border(
-          top: BorderSide(color: Color(0xFFE8EBED)),
-        ),
+        color: Color(0xFFFCFCFD),
       ),
       child: Row(
         children: [
@@ -1325,43 +1391,48 @@ class _DriverHomeState extends State<DriverHome>
     return Expanded(
       child: Tooltip(
         message: tooltip,
-        child: Material(
-          color: Colors.transparent,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            customBorder: const CircleBorder(),
-            splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
-            child: SizedBox(
-              height: 50,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    color: hasAlert
-                        ? const Color(0xFF16895B)
-                        : const Color(0xFF3F4A50),
-                    size: 24,
-                  ),
-                  if (hasAlert)
-                    Positioned(
-                      top: 7,
-                      right: 13,
-                      child: Opacity(
-                        opacity: alertStrength,
-                        child: Container(
-                          height: 8,
-                          width: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF2FBE7B),
-                            shape: BoxShape.circle,
+        child: Center(
+          child: Material(
+            color: hasAlert
+                ? const Color(0xFFE9F7F1)
+                : const Color(0xFFF1F3F4),
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              customBorder: const CircleBorder(),
+              splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
+              child: SizedBox(
+                height: 43,
+                width: 43,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      color: hasAlert
+                          ? const Color(0xFF16895B)
+                          : const Color(0xFF354047),
+                      size: 22,
+                    ),
+                    if (hasAlert)
+                      Positioned(
+                        top: 5,
+                        right: 5,
+                        child: Opacity(
+                          opacity: alertStrength,
+                          child: Container(
+                            height: 7,
+                            width: 7,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2FBE7B),
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
