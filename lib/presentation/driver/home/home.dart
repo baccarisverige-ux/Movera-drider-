@@ -191,7 +191,7 @@ class _DriverHomeState extends State<DriverHome>
               minHeight: 94,
               padding: EdgeInsets.zero,
               boxShadow: [],
-              isDraggable: true,
+              isDraggable: false,
               defaultPanelState: PanelState.CLOSED,
               maxHeight: MediaQuery.of(context).size.height * 0.86,
               parallaxEnabled: false,
