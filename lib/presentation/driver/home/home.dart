@@ -13,6 +13,7 @@ import 'package:movera/presentation/driver/my%20queue%20position/components/in_a
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
 import 'package:movera/presentation/driver/promotions/promotions.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
+import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/search%20location/pickup_location.dart';
 import 'package:movera/presentation/driver/side%20menu/side_menu.dart';
@@ -52,6 +53,7 @@ class _DriverHomeState extends State<DriverHome>
   bool _isGoingOnline = false;
   bool _isOnline = false;
   bool _hasRideOffers = false;
+  bool _hasScheduledRideOffers = true;
 
   // ignore: prefer_final_fields
   Set<Marker> _markers = {};
@@ -687,6 +689,18 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
+  void _openScheduledRides() {
+    setState(() {
+      _hasScheduledRideOffers = false;
+    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ScheduledRidesScreen(),
+      ),
+    );
+  }
+
   Widget _buildGoOnlineButton() {
     return AnimatedBuilder(
       animation: _goOnlinePulseController,
@@ -1142,8 +1156,8 @@ class _DriverHomeState extends State<DriverHome>
                     return _sheetQuickAction(
                       icon: Icons.calendar_month_outlined,
                       label: "Scheduled",
-                      onTap: _openRideOffers,
-                      hasAlert: _hasRideOffers,
+                      onTap: _openScheduledRides,
+                      hasAlert: _hasScheduledRideOffers,
                       pulse: _goOnlinePulseController.value,
                     );
                   },
