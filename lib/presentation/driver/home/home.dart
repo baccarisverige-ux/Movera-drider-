@@ -982,7 +982,7 @@ class _DriverHomeState extends State<DriverHome>
                                 letterSpacing: -0.3,
                               ),
                             ),
-                            const SizedBox(height: 2.5)
+                            const SizedBox(height: 2.5),
                             Text(
                               status,
                               textAlign: TextAlign.center,
@@ -996,7 +996,7 @@ class _DriverHomeState extends State<DriverHome>
                                 letterSpacing: 1.0,
                               ),
                             ),
-                            const SizedBox(height: 3)
+                            const SizedBox(height: 3),
                             Container(
                               width: 10,
                               height: 1,
