@@ -177,7 +177,10 @@ class _DriverHomeState extends State<DriverHome>
               },
               body: body(isDestinationPanel: true),
             )
-          : SlidingUpPanel(
+          : Stack(
+              children: [
+                Positioned.fill(
+                  child: SlidingUpPanel(
               color: Colors.transparent,
               backdropColor: Colors.transparent,
               backdropOpacity: 0,
@@ -254,9 +257,7 @@ class _DriverHomeState extends State<DriverHome>
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: _emptyBottomNavigation(showQuickActions: true),
-                        ),
+                        const Spacer(),
                       ],
                     ),
                   ),
@@ -276,6 +277,17 @@ class _DriverHomeState extends State<DriverHome>
                 absorbing: _blockMapGestures,
                 child: body(),
               ),
+            ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: PointerInterceptor(
+                    child: _emptyBottomNavigation(showQuickActions: true),
+                  ),
+                ),
+              ],
             ),
     );
   }
@@ -1178,7 +1190,9 @@ class _DriverHomeState extends State<DriverHome>
                   ),
                 ),
               ),
-            _emptyBottomNavigation(showQuickActions: true),
+            SizedBox(
+              height: MediaQuery.paddingOf(context).bottom + 66,
+            ),
           ],
         ),
       ),
