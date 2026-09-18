@@ -736,41 +736,85 @@ class _DriverHomeState extends State<DriverHome>
   Widget _buildGoOnlineButton() {
     return AnimatedBuilder(
       animation: _goOnlinePulseController,
-      child: Center(
-        child: TextWidget(
-          text: isAccountActivated ? "Go online" : "Account pending",
-          color: const Color(0xFF3F454A),
-          fontSize: 17,
-          fontWeight: fwSemiBold,
-        ),
-      ),
       builder: (context, child) {
         final pulse = _goOnlinePulseController.value;
         return Material(
-          color: const Color(0xFFE1E4E7),
-          elevation: 5 + (pulse * 2.5),
-          shadowColor: const Color(0xFF252E3A)
-              .withOpacity(0.24 + (pulse * 0.08)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-            side: BorderSide(
-              color: Color.lerp(
-                const Color(0xFFCDD5DA),
-                const Color(0xFFAEBBC2),
-                pulse,
-              )!,
-              width: 1.2,
-            ),
-          ),
+          color: Colors.transparent,
+          elevation: 5 + (pulse * 2),
+          shadowColor: const Color(0xFF263238).withOpacity(0.18),
+          borderRadius: BorderRadius.circular(27),
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: _goOnline,
-            splashColor: const Color(0xFF252E3A).withOpacity(0.08),
-            highlightColor: const Color(0xFF252E3A).withOpacity(0.05),
-            child: SizedBox(
-              height: 46,
-              width: 184,
-              child: child,
+          child: Ink(
+            width: 246,
+            height: 54,
+            decoration: BoxDecoration(
+              color: const Color(0xFFDDE1E4),
+              borderRadius: BorderRadius.circular(27),
+              border: Border.all(
+                color: Color.lerp(
+                  const Color(0xFFC8CED2),
+                  const Color(0xFFADB7BD),
+                  pulse,
+                )!,
+              ),
+            ),
+            child: InkWell(
+              onTap: _goOnline,
+              borderRadius: BorderRadius.circular(27),
+              splashColor: const Color(0xFF202A30).withOpacity(0.08),
+              child: Row(
+                children: [
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 40,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC9D0D4),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFAAB4BA)),
+                    ),
+                    child: const Icon(
+                      Icons.radar_rounded,
+                      color: Color(0xFF68747B),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextWidget(
+                          text: isAccountActivated
+                              ? "Trip radar"
+                              : "Account pending",
+                          color: const Color(0xFF303A40),
+                          fontSize: 14,
+                          fontWeight: fwSemiBold,
+                        ),
+                        const SizedBox(height: 2),
+                        TextWidget(
+                          text: isAccountActivated
+                              ? "Offline • Tap to start"
+                              : "Activation is required",
+                          color: const Color(0xFF727E85),
+                          fontSize: 10,
+                          fontWeight: fwNormal,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 14),
+                    child: Icon(
+                      Icons.power_settings_new_rounded,
+                      color: Color(0xFF59666D),
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -780,34 +824,74 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _buildGoingOnlineButton() {
     return Material(
-      color: const Color(0xFFE1E4E7),
-      elevation: 7,
-      shadowColor: const Color(0xFF252E3A).withOpacity(0.25),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: Color(0xFFC4CED4), width: 1.2),
-      ),
+      color: Colors.transparent,
+      elevation: 8,
+      shadowColor: const Color(0xFF10181D).withOpacity(0.30),
+      borderRadius: BorderRadius.circular(27),
       clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        height: 46,
-        width: 220,
+      child: Ink(
+        width: 270,
+        height: 58,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF39454B), Color(0xFF232D32)],
+          ),
+          borderRadius: BorderRadius.circular(27),
+        ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            RotationTransition(
-              turns: _radarSweepController,
-              child: const Icon(
-                Icons.sync_rounded,
-                color: Color(0xFF3F454A),
-                size: 24,
+            const SizedBox(width: 9),
+            Container(
+              height: 42,
+              width: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2FBE7B).withOpacity(0.14),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF52D99A).withOpacity(0.55),
+                ),
+              ),
+              child: RotationTransition(
+                turns: _radarSweepController,
+                child: const Icon(
+                  Icons.radar_rounded,
+                  color: Color(0xFF52D99A),
+                  size: 25,
+                ),
               ),
             ),
-            const SizedBox(width: 10),
-            TextWidget(
-              text: "Connecting to Movera",
-              color: const Color(0xFF3F454A),
-              fontSize: 15,
-              fontWeight: fwSemiBold,
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextWidget(
+                    text: "Starting trip radar",
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: fwSemiBold,
+                  ),
+                  const SizedBox(height: 3),
+                  TextWidget(
+                    text: "Connecting to nearby requests",
+                    color: const Color(0xFFB3BDC2),
+                    fontSize: 10,
+                    fontWeight: fwNormal,
+                  ),
+                ],
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFF52D99A),
+                ),
+              ),
             ),
           ],
         ),
@@ -1188,6 +1272,11 @@ class _DriverHomeState extends State<DriverHome>
       child: Row(
         children: [
           _sheetQuickAction(
+            icon: Icons.grid_view_rounded,
+            tooltip: "Menu",
+            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+          _sheetQuickAction(
             icon: Icons.wallet_outlined,
             tooltip: "Wallet",
             onTap: () {
@@ -1198,11 +1287,6 @@ class _DriverHomeState extends State<DriverHome>
             },
           ),
           _sheetQuickAction(
-            icon: Icons.home_outlined,
-            tooltip: "Home",
-            onTap: _closeDriverSheet,
-          ),
-          _sheetQuickAction(
             icon: Icons.forum_outlined,
             tooltip: "Inbox",
             onTap: () {
@@ -1211,11 +1295,6 @@ class _DriverHomeState extends State<DriverHome>
                 MaterialPageRoute(builder: (_) => const SupportInboxScreen()),
               );
             },
-          ),
-          _sheetQuickAction(
-            icon: Icons.grid_view_rounded,
-            tooltip: "Menu",
-            onTap: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           AnimatedBuilder(
             animation: _goOnlinePulseController,
