@@ -10,6 +10,7 @@ import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
+import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
 import 'package:movera/presentation/driver/promotions/promotions.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
@@ -250,7 +251,7 @@ class _DriverHomeState extends State<DriverHome>
                           : _buildGoOnlineButton(),
                     ),
                     const Spacer(),
-                    _emptyBottomNavigation(showActivity: true),
+                    _emptyBottomNavigation(showQuickActions: true),
                   ],
                 ),
                   ),
@@ -1104,79 +1105,139 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _emptyBottomNavigation({bool showActivity = false}) {
+  Widget _emptyBottomNavigation({bool showQuickActions = false}) {
     return Container(
-      height: MediaQuery.paddingOf(context).bottom + 62,
+      height: MediaQuery.paddingOf(context).bottom + 68,
       padding: EdgeInsets.fromLTRB(
-        18,
-        8,
-        18,
-        MediaQuery.paddingOf(context).bottom + 7,
+        12,
+        7,
+        12,
+        MediaQuery.paddingOf(context).bottom + 6,
       ),
       decoration: const BoxDecoration(
         color: AppColor.white,
         border: Border(
-          top: BorderSide(color: Color(0xFFE2E7EB)),
+          top: BorderSide(color: Color(0xFFE7EAEC)),
         ),
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          if (showActivity)
-            Material(
-              color: const Color(0xFFF4F6F6),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-                side: const BorderSide(color: Color(0xFFE5E9EA)),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: _showTodaySummary,
-                splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
-                child: const SizedBox(
-                  height: 46,
-                  width: 238,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.account_balance_wallet_outlined,
-                          color: Color(0xFF455159),
-                          size: 21,
+      child: showQuickActions
+          ? Row(
+              children: [
+                _sheetQuickAction(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: "Wallet",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const WalletScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 6),
+                AnimatedBuilder(
+                  animation: _goOnlinePulseController,
+                  builder: (context, child) {
+                    return _sheetQuickAction(
+                      icon: Icons.calendar_month_outlined,
+                      label: "Scheduled",
+                      onTap: _openRideOffers,
+                      hasAlert: _hasRideOffers,
+                      pulse: _goOnlinePulseController.value,
+                    );
+                  },
+                ),
+                const SizedBox(width: 6),
+                _sheetQuickAction(
+                  icon: Icons.shield_outlined,
+                  label: "Safety",
+                  onTap: () => showSafetyToolKitSheet(context),
+                ),
+              ],
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+
+  Widget _sheetQuickAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool hasAlert = false,
+    double pulse = 0,
+  }) {
+    final alertStrength = hasAlert ? (0.55 + (pulse * 0.45)) : 0.0;
+
+    return Expanded(
+      child: Material(
+        color: hasAlert
+            ? Color.lerp(
+                const Color(0xFFF2F8F5),
+                const Color(0xFFE2F4EC),
+                pulse,
+              )
+            : const Color(0xFFF7F8F8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(17),
+          side: BorderSide(
+            color: hasAlert
+                ? const Color(0xFF2FBE7B).withOpacity(alertStrength)
+                : const Color(0xFFE8EBEC),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
+          child: SizedBox(
+            height: 52,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      color: hasAlert
+                          ? const Color(0xFF16895B)
+                          : const Color(0xFF3F4A50),
+                      size: 21,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: hasAlert
+                            ? const Color(0xFF16895B)
+                            : const Color(0xFF59656B),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                if (hasAlert)
+                  Positioned(
+                    top: 7,
+                    right: 12,
+                    child: Opacity(
+                      opacity: alertStrength,
+                      child: Container(
+                        height: 8,
+                        width: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2FBE7B),
+                          shape: BoxShape.circle,
                         ),
-                        SizedBox(width: 11),
-                        Expanded(
-                          child: Text(
-                            "Today",
-                            style: TextStyle(
-                              color: Color(0xFF6F7B81),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          "183.25 kr",
-                          style: TextStyle(
-                            color: Color(0xFF252E3A),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        SizedBox(width: 7),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: Color(0xFF9AA4A9),
-                          size: 19,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
