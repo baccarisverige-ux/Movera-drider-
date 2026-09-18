@@ -250,7 +250,7 @@ class _DriverHomeState extends State<DriverHome>
                           : _buildGoOnlineButton(),
                     ),
                     const Spacer(),
-                    _emptyBottomNavigation(),
+                    _emptyBottomNavigation(showActivity: true),
                   ],
                 ),
                   ),
@@ -337,7 +337,7 @@ class _DriverHomeState extends State<DriverHome>
                     alignment: Alignment.centerRight,
                     child: Container(
                       height: ResSize.h * 52,
-                      width: ResSize.w * 168,
+                      width: ResSize.w * 112,
                       decoration: BoxDecoration(
                         color: AppColor.white,
                         borderRadius: BorderRadius.circular(30),
@@ -385,19 +385,6 @@ class _DriverHomeState extends State<DriverHome>
                                 child: Image.asset(
                                   AppAssets.search,
                                   height: ResSize.h * 17,
-                                  color: AppColor.black,
-                                ),
-                              ),
-                            ),
-                          ),
-                          _mapControlDivider(),
-                          Expanded(
-                            child: InkWell(
-                              onTap: _showTodaySummary,
-                              child: Center(
-                                child: Icon(
-                                  Icons.account_balance_wallet_outlined,
-                                  size: ResSize.h * 21,
                                   color: AppColor.black,
                                 ),
                               ),
@@ -1117,14 +1104,14 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _emptyBottomNavigation() {
+  Widget _emptyBottomNavigation({bool showActivity = false}) {
     return Container(
       height: MediaQuery.paddingOf(context).bottom + 62,
       padding: EdgeInsets.fromLTRB(
         18,
-        9,
+        8,
         18,
-        MediaQuery.paddingOf(context).bottom + 8,
+        MediaQuery.paddingOf(context).bottom + 7,
       ),
       decoration: const BoxDecoration(
         color: AppColor.white,
@@ -1132,13 +1119,28 @@ class _DriverHomeState extends State<DriverHome>
           top: BorderSide(color: Color(0xFFE2E7EB)),
         ),
       ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          SizedBox(width: 72, height: 44),
-          SizedBox(width: 72, height: 44),
-          SizedBox(width: 72, height: 44),
-          SizedBox(width: 72, height: 44),
+          if (showActivity)
+            Material(
+              color: const Color(0xFFF3F5F6),
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: _showTodaySummary,
+                splashColor: const Color(0xFF2FBE7B).withOpacity(0.14),
+                child: const SizedBox(
+                  height: 46,
+                  width: 46,
+                  child: Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: Color(0xFF3F4A50),
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
