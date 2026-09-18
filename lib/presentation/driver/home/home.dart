@@ -382,9 +382,9 @@ class _DriverHomeState extends State<DriverHome>
                                 );
                               },
                               child: Center(
-                                child: Icon(
-                                  Icons.search_rounded,
-                                  size: ResSize.h * 22,
+                                child: Image.asset(
+                                  AppAssets.search,
+                                  height: ResSize.h * 17,
                                   color: AppColor.black,
                                 ),
                               ),
