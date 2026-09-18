@@ -144,7 +144,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     "stylers": [{"color": "#66848a"}]
   }
 ]
-'''
+''';
 
   @override
   Widget build(BuildContext context) {
