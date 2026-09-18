@@ -177,10 +177,7 @@ class _DriverHomeState extends State<DriverHome>
               },
               body: body(isDestinationPanel: true),
             )
-          : Stack(
-              children: [
-                Positioned.fill(
-                  child: SlidingUpPanel(
+          : SlidingUpPanel(
               color: Colors.transparent,
               backdropColor: Colors.transparent,
               backdropOpacity: 0,
@@ -191,7 +188,7 @@ class _DriverHomeState extends State<DriverHome>
               minHeight: 94,
               padding: EdgeInsets.zero,
               boxShadow: [],
-              isDraggable: false,
+              isDraggable: true,
               defaultPanelState: PanelState.CLOSED,
               maxHeight: MediaQuery.of(context).size.height * 0.86,
               parallaxEnabled: false,
@@ -257,7 +254,9 @@ class _DriverHomeState extends State<DriverHome>
                             ),
                           ),
                         ),
-                        const Spacer(),
+                        Expanded(
+                          child: _emptyBottomNavigation(showQuickActions: true),
+                        ),
                       ],
                     ),
                   ),
@@ -277,17 +276,6 @@ class _DriverHomeState extends State<DriverHome>
                 absorbing: _blockMapGestures,
                 child: body(),
               ),
-            ),
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: PointerInterceptor(
-                    child: _emptyBottomNavigation(showQuickActions: true),
-                  ),
-                ),
-              ],
             ),
     );
   }
@@ -1190,9 +1178,7 @@ class _DriverHomeState extends State<DriverHome>
                   ),
                 ),
               ),
-            SizedBox(
-              height: MediaQuery.paddingOf(context).bottom + 66,
-            ),
+            _emptyBottomNavigation(showQuickActions: true),
           ],
         ),
       ),
