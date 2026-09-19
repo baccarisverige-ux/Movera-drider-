@@ -1,6 +1,6 @@
 part of 'home.dart';
 
-extension _DriverHomeRadarB2 on _DriverHomeState {
+mixin _DriverHomeRadarB2 on _DriverHomeState {
   Future<void> _goOfflineImpl() async {
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
