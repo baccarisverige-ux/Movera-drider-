@@ -61,6 +61,9 @@ class _DriverHomeState extends State<DriverHome>
 
   // ignore: prefer_final_fields
   Set<Marker> _markers = {};
+  Set<Marker> _radarRouteMarkers = {};
+  Set<Polyline> _radarRoutePolylines = {};
+  bool _isRadarRoutePreview = false;
 
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(59.3293, 18.0686),
@@ -90,6 +93,77 @@ class _DriverHomeState extends State<DriverHome>
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ),
     );
+  }
+
+  Future<void> _previewRadarRoute(
+    LatLng pickup,
+    LatLng dropoff,
+  ) async {
+    final south = pickup.latitude < dropoff.latitude
+        ? pickup.latitude
+        : dropoff.latitude;
+    final north = pickup.latitude > dropoff.latitude
+        ? pickup.latitude
+        : dropoff.latitude;
+    final west = pickup.longitude < dropoff.longitude
+        ? pickup.longitude
+        : dropoff.longitude;
+    final east = pickup.longitude > dropoff.longitude
+        ? pickup.longitude
+        : dropoff.longitude;
+
+    setState(() {
+      _isRadarRoutePreview = true;
+      _radarRouteMarkers = {
+        Marker(
+          markerId: const MarkerId('radar_pickup'),
+          position: pickup,
+          infoWindow: const InfoWindow(title: 'Pickup'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          ),
+        ),
+        Marker(
+          markerId: const MarkerId('radar_dropoff'),
+          position: dropoff,
+          infoWindow: const InfoWindow(title: 'Drop-off'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueViolet,
+          ),
+        ),
+      };
+      _radarRoutePolylines = {
+        Polyline(
+          polylineId: const PolylineId('direct_offer_route'),
+          points: [pickup, dropoff],
+          color: AppColor.primary,
+          width: 6,
+          geodesic: true,
+        ),
+      };
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    if (!mounted || _mapController == null) return;
+
+    await _mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(south, west),
+          northeast: LatLng(north, east),
+        ),
+        82,
+      ),
+    );
+  }
+
+  void _clearRadarRoute() {
+    if (!mounted) return;
+    setState(() {
+      _isRadarRoutePreview = false;
+      _radarRouteMarkers = {};
+      _radarRoutePolylines = {};
+    });
   }
 
   void _showAccountActivationDialog() {
@@ -170,16 +244,25 @@ class _DriverHomeState extends State<DriverHome>
                 ),
                 ClipRect(
                   child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 9.5, sigmaY: 9.5),
+                    filter: ui.ImageFilter.blur(
+                      sigmaX: _isRadarRoutePreview ? 2.6 : 9.5,
+                      sigmaY: _isRadarRoutePreview ? 2.6 : 9.5,
+                    ),
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            const Color(0xFF172027).withOpacity(0.46),
-                            const Color(0xFF6F7D80).withOpacity(0.16),
-                            const Color(0xFFF4F7F8).withOpacity(0.24),
+                            const Color(0xFF172027).withOpacity(
+                              _isRadarRoutePreview ? 0.24 : 0.46,
+                            ),
+                            const Color(0xFF6F7D80).withOpacity(
+                              _isRadarRoutePreview ? 0.08 : 0.16,
+                            ),
+                            const Color(0xFFF4F7F8).withOpacity(
+                              _isRadarRoutePreview ? 0.10 : 0.24,
+                            ),
                           ],
                           stops: const [0.0, 0.45, 1.0],
                         ),
@@ -191,7 +274,10 @@ class _DriverHomeState extends State<DriverHome>
                   child: const SizedBox.expand(),
                 ),
                 RideRequests(
+                  onPreviewRoute: _previewRadarRoute,
+                  onClearRoute: _clearRadarRoute,
                   onCloseRides: () {
+                    _clearRadarRoute();
                     setState(() {
                       showRideRequests = false;
                     });
@@ -284,7 +370,11 @@ class _DriverHomeState extends State<DriverHome>
     return SizedBox.expand(
       child: CustomGoogleMap(
         initialPosition: _initialPosition,
-        markers: _markers,
+        markers: {
+          ..._markers,
+          ..._radarRouteMarkers,
+        },
+        polylines: _radarRoutePolylines,
         myLocationEnabled: true,
         myLocationButtonEnabled: false,
         zoomControlsEnabled: false,
@@ -300,6 +390,23 @@ class _DriverHomeState extends State<DriverHome>
         mapType: MapType.normal,
         onMapCreated: (GoogleMapController controller) {
           _mapController = controller;
+          if (_isRadarRoutePreview &&
+              _radarRouteMarkers.length >= 2) {
+            final pickup = _radarRouteMarkers
+                .firstWhere(
+                  (marker) => marker.markerId.value == 'radar_pickup',
+                )
+                .position;
+            final dropoff = _radarRouteMarkers
+                .firstWhere(
+                  (marker) => marker.markerId.value == 'radar_dropoff',
+                )
+                .position;
+            Future<void>.delayed(
+              const Duration(milliseconds: 120),
+              () => _previewRadarRoute(pickup, dropoff),
+            );
+          }
         },
         onTap: (LatLng position) {},
       ),
