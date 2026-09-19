@@ -48,6 +48,7 @@ class _DriverHomeState extends State<DriverHome>
   bool _blockMapGestures = false;
   bool _sheetPointerActive = false;
   double _mainPanelPosition = 0;
+  final ValueNotifier<double> _panelSlidePosition = ValueNotifier<double>(0);
 
   static const Duration _sheetMotionDuration = Duration(milliseconds: 420);
   static const Curve _sheetMotionCurve = Curves.easeOutCubic;
@@ -225,6 +226,7 @@ class _DriverHomeState extends State<DriverHome>
               parallaxEnabled: false,
               onPanelSlide: (double pos) {
                 _mainPanelPosition = pos;
+                _panelSlidePosition.value = pos;
                 final nextPanelOpen = pos > 0.3;
                 final nextBlockMap = _sheetPointerActive || pos > 0.001;
                 if (isPanelOpen != nextPanelOpen ||
@@ -237,10 +239,12 @@ class _DriverHomeState extends State<DriverHome>
               },
               onPanelOpened: () {
                 _mainPanelPosition = 1;
+                _panelSlidePosition.value = 1;
                 _setMapGesturesBlocked(true);
               },
               onPanelClosed: () {
                 _mainPanelPosition = 0;
+                _panelSlidePosition.value = 0;
                 _sheetPointerActive = false;
                 if (isPanelOpen) {
                   setState(() {
@@ -434,52 +438,68 @@ class _DriverHomeState extends State<DriverHome>
           ),
 
           if (!isDestinationPanel)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 520),
-              curve: Curves.easeOutCubic,
-              left: 0,
-              right: 0,
-              bottom: (_isOnline || _isGoingOnline) ? 122 : 58,
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 360),
-                  reverseDuration: const Duration(milliseconds: 260),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    final scale = Tween<double>(
-                      begin: 0.92,
-                      end: 1.0,
-                    ).animate(
-                      CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutBack,
+            ValueListenableBuilder<double>(
+              valueListenable: _panelSlidePosition,
+              builder: (context, panelPosition, child) {
+                final maxPanelHeight =
+                    MediaQuery.of(context).size.height * 0.86;
+                const minPanelHeight = 108.0;
+                final currentPanelHeight =
+                    minPanelHeight +
+                    ((maxPanelHeight - minPanelHeight) * panelPosition);
+
+                // The 104px radar remains locked into the sheet's centre notch.
+                // At the collapsed position this resolves to the existing
+                // offline position (bottom: 58), and it follows the sheet
+                // continuously while the driver drags it.
+                final radarBottom = currentPanelHeight - 50;
+
+                return Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: radarBottom,
+                  child: Center(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 360),
+                      reverseDuration: const Duration(milliseconds: 260),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        final scale = Tween<double>(
+                          begin: 0.94,
+                          end: 1.0,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutBack,
+                          ),
+                        );
+                        return FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale: scale,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: KeyedSubtree(
+                        key: ValueKey<String>(
+                          _isOnline
+                              ? 'radar-online'
+                              : _isGoingOnline
+                              ? 'radar-connecting'
+                              : 'radar-offline',
+                        ),
+                        child: _isOnline
+                            ? _buildTripRadarButton()
+                            : _isGoingOnline
+                            ? _buildGoingOnlineButton()
+                            : _buildGoOnlineButton(),
                       ),
-                    );
-                    return FadeTransition(
-                      opacity: animation,
-                      child: ScaleTransition(
-                        scale: scale,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: KeyedSubtree(
-                    key: ValueKey<String>(
-                      _isOnline
-                          ? 'radar-online'
-                          : _isGoingOnline
-                          ? 'radar-connecting'
-                          : 'radar-offline',
                     ),
-                    child: _isOnline
-                        ? _buildTripRadarButton()
-                        : _isGoingOnline
-                        ? _buildGoingOnlineButton()
-                        : _buildGoOnlineButton(),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           if (!isDestinationPanel)
             Positioned(
@@ -1112,140 +1132,122 @@ class _DriverHomeState extends State<DriverHome>
     const ink = Color(0xFF252E3A);
     const muted = Color(0xFF7B878E);
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFFCFDFD),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-        border: Border(
-          top: BorderSide(
-            color: Color(0xFFE7EBED),
-            width: 1,
-          ),
-        ),
+    return PhysicalShape(
+      clipper: const _RadarSheetClipper(
+        notchWidth: 126,
+        notchDepth: 58,
+        cornerRadius: 24,
       ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: _closeDriverSheet,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
-            child: SizedBox(
-              height: 34,
-              child: Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB5BFC4),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              controller: sc,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(18, 2, 18, 18),
-              children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(2, 4, 2, 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Driver overview",
-                              style: TextStyle(
-                                color: ink,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.35,
+      color: const Color(0xFFFCFDFD),
+      elevation: 8,
+      shadowColor: const Color(0x3311181C),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        color: const Color(0xFFFCFDFD),
+        child: Column(
+          children: [
+            const SizedBox(height: 62),
+            Expanded(
+              child: ListView(
+                controller: sc,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(2, 2, 2, 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Driver overview",
+                                style: TextStyle(
+                                  color: ink,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.35,
+                                ),
                               ),
+                              SizedBox(height: 4),
+                              Text(
+                                "Your shift at a glance",
+                                style: TextStyle(
+                                  color: muted,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 4,
+                              backgroundColor: Color(0xFF2FBE7B),
                             ),
-                            SizedBox(height: 4),
+                            SizedBox(width: 7),
                             Text(
-                              "Your shift at a glance",
+                              "Ready",
                               style: TextStyle(
-                                color: muted,
+                                color: Color(0xFF19865C),
                                 fontSize: 11,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 4,
-                            backgroundColor: Color(0xFF2FBE7B),
-                          ),
-                          SizedBox(width: 7),
-                          Text(
-                            "Ready",
-                            style: TextStyle(
-                              color: Color(0xFF19865C),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                _sheetAlertCard(
-                  icon: Icons.event_available_outlined,
-                  iconColor: const Color(0xFF7E8A93),
-                  title: "Scheduled rides available",
-                  subtitle: "View open requests in your area",
-                ),
-                const SizedBox(height: 10),
-                _driverStatCard(
-                  title: "Star rating",
-                  mainText: "★ 4.88",
-                  mainColor: ink,
-                ),
-              ],
+                  _sheetAlertCard(
+                    icon: Icons.event_available_outlined,
+                    iconColor: const Color(0xFF7E8A93),
+                    title: "Scheduled rides available",
+                    subtitle: "View open requests in your area",
+                  ),
+                  const SizedBox(height: 10),
+                  _driverStatCard(
+                    title: "Star rating",
+                    mainText: "★ 4.88",
+                    mainColor: ink,
+                  ),
+                ],
+              ),
             ),
-          ),
-          if (_isOnline)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton(
-                  onPressed: _goOffline,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF3F454A),
-                    backgroundColor: Colors.white,
-                    side: const BorderSide(
-                      color: Color(0xFFD5DCDF),
-                      width: 1,
+            if (_isOnline)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    onPressed: _goOffline,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF3F454A),
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(
+                        color: Color(0xFFD5DCDF),
+                        width: 1,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    child: TextWidget(
+                      text: "Go offline",
+                      color: const Color(0xFF3F454A),
+                      fontSize: 14,
+                      fontWeight: fwSemiBold,
                     ),
-                  ),
-                  child: TextWidget(
-                    text: "Go offline",
-                    color: const Color(0xFF3F454A),
-                    fontSize: 14,
-                    fontWeight: fwSemiBold,
                   ),
                 ),
               ),
-            ),
-          _emptyBottomNavigation(showQuickActions: true),
-        ],
+            _emptyBottomNavigation(showQuickActions: true),
+          ],
+        ),
       ),
     );
   }
@@ -1388,54 +1390,38 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _buildCollapsedDriverDock() {
     final safeBottom = MediaQuery.paddingOf(context).bottom;
-    final online = _isOnline || _isGoingOnline;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 420),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFD),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-        border: const Border(
-          top: BorderSide(
-            color: Color(0xFFE7EBED),
-            width: 1,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF11181C).withOpacity(online ? 0.10 : 0.15),
-            blurRadius: online ? 20 : 26,
-            offset: const Offset(0, -7),
-          ),
-        ],
+    return PhysicalShape(
+      clipper: const _RadarSheetClipper(
+        notchWidth: 126,
+        notchDepth: 58,
+        cornerRadius: 24,
       ),
-      child: SafeArea(
-        top: false,
+      color: const Color(0xFFFCFDFD),
+      elevation: 8,
+      shadowColor: const Color(0x3311181C),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFFFFFF),
+              Color(0xFFF8FAFA),
+              Color(0xFFF1F4F5),
+            ],
+          ),
+        ),
         child: Padding(
           padding: EdgeInsets.fromLTRB(
-            12,
-            8,
-            12,
-            safeBottom > 0 ? 4 : 8,
+            10,
+            15,
+            10,
+            safeBottom > 0 ? safeBottom + 4 : 9,
           ),
-          child: Column(
+          child: Row(
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeOutCubic,
-                width: online ? 32 : 38,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: online
-                      ? const Color(0xFFB8C3C8)
-                      : const Color(0xFFAEB8BD),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(height: 7),
               Expanded(
                 child: Row(
                   children: [
@@ -1456,6 +1442,13 @@ class _DriverHomeState extends State<DriverHome>
                         );
                       },
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 126),
+              Expanded(
+                child: Row(
+                  children: [
                     _collapsedDockAction(
                       icon: Icons.forum_outlined,
                       tooltip: "Inbox",
@@ -1685,6 +1678,7 @@ class _DriverHomeState extends State<DriverHome>
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
     _radarSweepController.dispose();
+    _panelSlidePosition.dispose();
     _mapController?.dispose();
     super.dispose();
   }
@@ -1744,5 +1738,65 @@ class _DriverHomeState extends State<DriverHome>
         margin: EdgeInsets.all(16),
       ),
     );
+  }
+}
+
+
+class _RadarSheetClipper extends CustomClipper<Path> {
+  final double notchWidth;
+  final double notchDepth;
+  final double cornerRadius;
+
+  const _RadarSheetClipper({
+    required this.notchWidth,
+    required this.notchDepth,
+    required this.cornerRadius,
+  });
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final centerX = size.width / 2;
+    final notchLeft = centerX - (notchWidth / 2);
+    final notchRight = centerX + (notchWidth / 2);
+    final radius = cornerRadius.clamp(0.0, size.width / 2).toDouble();
+
+    path.moveTo(radius, 0);
+    path.lineTo(notchLeft, 0);
+
+    // Smooth concave cradle around the 104px radar.
+    path.cubicTo(
+      notchLeft + 9,
+      0,
+      centerX - 54,
+      notchDepth,
+      centerX,
+      notchDepth,
+    );
+    path.cubicTo(
+      centerX + 54,
+      notchDepth,
+      notchRight - 9,
+      0,
+      notchRight,
+      0,
+    );
+
+    path.lineTo(size.width - radius, 0);
+    path.quadraticBezierTo(size.width, 0, size.width, radius);
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.lineTo(0, radius);
+    path.quadraticBezierTo(0, 0, radius, 0);
+    path.close();
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant _RadarSheetClipper oldClipper) {
+    return oldClipper.notchWidth != notchWidth ||
+        oldClipper.notchDepth != notchDepth ||
+        oldClipper.cornerRadius != cornerRadius;
   }
 }
