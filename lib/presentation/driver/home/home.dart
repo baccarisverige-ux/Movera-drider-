@@ -216,7 +216,7 @@ class _DriverHomeState extends State<DriverHome>
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 122,
+              minHeight: 116,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -1084,7 +1084,7 @@ class _DriverHomeState extends State<DriverHome>
       child: Container(
         decoration: const BoxDecoration(
           color: canvas,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
         child: Column(
           children: [
@@ -1358,50 +1358,35 @@ class _DriverHomeState extends State<DriverHome>
       alignment: Alignment.bottomCenter,
       clipBehavior: Clip.none,
       children: [
-        // Small visible continuation of the full sheet. This stays exposed
-        // while collapsed so the driver immediately understands it can slide up.
+        // Clean straight peek of the larger sheet behind the collapsed dock.
         Positioned(
-          left: 18,
-          right: 18,
+          left: 10,
+          right: 10,
           top: 0,
-          height: 34,
+          height: 18,
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFE3E7E9),
+              color: const Color(0xFFE3E8EA),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(32),
+                top: Radius.circular(22),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF172027).withOpacity(0.13),
-                  blurRadius: 18,
-                  offset: const Offset(0, -5),
+                  color: const Color(0xFF172027).withOpacity(0.10),
+                  blurRadius: 14,
+                  offset: const Offset(0, -4),
                 ),
               ],
             ),
           ),
         ),
-        Positioned(
-          left: 7,
-          right: 7,
-          top: 8,
-          height: 34,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F3F4),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(34),
-              ),
-            ),
-          ),
-        ),
 
-        // Main collapsed dock: fixed visually from extreme left to extreme right.
+        // Main dock stays fixed, full width and visually straight across the top.
         Positioned(
           left: 0,
           right: 0,
           bottom: 0,
-          height: 100 + safeBottom,
+          height: 104 + safeBottom,
           child: Container(
             decoration: BoxDecoration(
               gradient: const LinearGradient(
@@ -1409,66 +1394,40 @@ class _DriverHomeState extends State<DriverHome>
                 end: Alignment.bottomCenter,
                 colors: [
                   Color(0xFFFFFFFF),
-                  Color(0xFFF8F9FA),
-                  Color(0xFFECEF1F2),
+                  Color(0xFFF9FAFA),
+                  Color(0xFFF0F3F4),
                 ],
-                stops: [0, 0.60, 1],
+                stops: [0, 0.62, 1],
               ),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(38),
+                top: Radius.circular(26),
               ),
               border: const Border(
                 top: BorderSide(
-                  color: Color(0xFFFFFFFF),
-                  width: 1.4,
+                  color: Color(0xFFE5E9EB),
+                  width: 1,
                 ),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF10191E).withOpacity(0.18),
-                  blurRadius: 28,
-                  spreadRadius: 1,
-                  offset: const Offset(0, -8),
-                ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.90),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
+                  color: const Color(0xFF10191E).withOpacity(0.14),
+                  blurRadius: 22,
+                  offset: const Offset(0, -6),
                 ),
               ],
             ),
           ),
         ),
 
-        // Curved pull lip connected to the main sheet.
+        // Minimal integrated pull handle: no floating bubble or bulky lip.
         Positioned(
-          top: 8,
+          top: 14,
           child: Container(
-            width: 104,
-            height: 32,
+            width: 36,
+            height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFFFCFDFD),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: const Color(0xFFE4E8EA),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF18242A).withOpacity(0.11),
-                  blurRadius: 14,
-                  offset: const Offset(0, -3),
-                ),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFADB7BC),
-                borderRadius: BorderRadius.circular(8),
-              ),
+              color: const Color(0xFFB6C0C5),
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
         ),
@@ -1476,7 +1435,7 @@ class _DriverHomeState extends State<DriverHome>
         Positioned(
           left: 14,
           right: 14,
-          top: 39,
+          top: 32,
           bottom: safeBottom + 8,
           child: Row(
             children: [
