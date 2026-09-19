@@ -62,7 +62,7 @@ class _DriverHomeState extends State<DriverHome>
   bool _isOnline = false;
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
-  bool _showLastTripPopup = false;
+  bool _showTodaySummaryPopup = false;
   _HomeDirectOffer? _homeDirectOffer;
 
   // ignore: prefer_final_fields
@@ -719,22 +719,18 @@ class _DriverHomeState extends State<DriverHome>
           if (!isDestinationPanel) ...[
             AnimatedPositioned(
               duration: const Duration(milliseconds: 420),
-              curve: _showLastTripPopup
-                  ? Curves.easeOutBack
-                  : Curves.easeInCubic,
-              left: _showLastTripPopup ? -58 : -12,
+              curve: _showTodaySummaryPopup
+                  ? Curves.easeInCubic
+                  : Curves.easeOutBack,
+              left: _showTodaySummaryPopup ? -58 : -12,
               top: MediaQuery.sizeOf(context).height * 0.44,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 220),
-                opacity: _showLastTripPopup ? 0 : 1,
+                opacity: _showTodaySummaryPopup ? 0 : 1,
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _showLastTripPopup = true;
-                      });
-                    },
+                    onTap: _showTodaySummary,
                     borderRadius: const BorderRadius.horizontal(
                       right: Radius.circular(19),
                     ),
@@ -760,7 +756,7 @@ class _DriverHomeState extends State<DriverHome>
                       ),
                       alignment: Alignment.centerRight,
                       child: const Icon(
-                        Icons.history_rounded,
+                        Icons.insights_rounded,
                         color: Color(0xFF315E4D),
                         size: 21,
                       ),
@@ -771,17 +767,17 @@ class _DriverHomeState extends State<DriverHome>
             ),
             AnimatedPositioned(
               duration: const Duration(milliseconds: 460),
-              curve: _showLastTripPopup
+              curve: _showTodaySummaryPopup
                   ? Curves.easeOutCubic
                   : Curves.easeInCubic,
-              left: _showLastTripPopup ? 14 : -330,
-              top: MediaQuery.sizeOf(context).height * 0.32,
+              left: _showTodaySummaryPopup ? 14 : -360,
+              top: MediaQuery.sizeOf(context).height * 0.25,
               child: IgnorePointer(
-                ignoring: !_showLastTripPopup,
+                ignoring: !_showTodaySummaryPopup,
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 260),
-                  opacity: _showLastTripPopup ? 1 : 0,
-                  child: _buildLastTripPopup(),
+                  opacity: _showTodaySummaryPopup ? 1 : 0,
+                  child: _buildTodaySummaryPopup(),
                 ),
               ),
             ),
@@ -816,187 +812,6 @@ class _DriverHomeState extends State<DriverHome>
 
         ],
       ),
-    );
-  }
-
-  Widget _buildLastTripPopup() {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: 310,
-        padding: const EdgeInsets.fromLTRB(16, 14, 14, 15),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFBFCFC),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: const Color(0xFFDDE5E1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF172027).withOpacity(0.16),
-              blurRadius: 26,
-              offset: const Offset(8, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE7F1EC),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: const Icon(
-                    Icons.route_rounded,
-                    color: Color(0xFF315E4D),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 11),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Last trip',
-                        style: TextStyle(
-                          color: Color(0xFF25302A),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Comfort · 21:42',
-                        style: TextStyle(
-                          color: Color(0xFF7D8983),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _showLastTripPopup = false;
-                    });
-                  },
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(
-                    Icons.close_rounded,
-                    color: Color(0xFF7A8580),
-                    size: 19,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              '126 kr',
-              style: TextStyle(
-                color: Color(0xFF25302A),
-                fontSize: 29,
-                height: 1,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.8,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _lastTripLocationRow(
-              color: const Color(0xFF4E886F),
-              title: 'Central Station',
-            ),
-            const SizedBox(height: 9),
-            _lastTripLocationRow(
-              color: const Color(0xFF35413B),
-              title: 'Södermalm',
-            ),
-            const SizedBox(height: 13),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F3),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.schedule_rounded,
-                    color: Color(0xFF708078),
-                    size: 17,
-                  ),
-                  SizedBox(width: 7),
-                  Text(
-                    '18 min',
-                    style: TextStyle(
-                      color: Color(0xFF4C5A53),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(width: 14),
-                  Icon(
-                    Icons.route_outlined,
-                    color: Color(0xFF708078),
-                    size: 17,
-                  ),
-                  SizedBox(width: 7),
-                  Text(
-                    '7.4 km',
-                    style: TextStyle(
-                      color: Color(0xFF4C5A53),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _lastTripLocationRow({
-    required Color color,
-    required String title,
-  }) {
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: color, width: 2.4),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xFF2C3731),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -1247,149 +1062,149 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _showTodaySummary() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: const Color(0xFF172027).withOpacity(0.30),
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          minimum: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-            decoration: BoxDecoration(
-              color: AppColor.white,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF172027).withOpacity(0.12),
-                  blurRadius: 28,
-                  offset: const Offset(0, -8),
+    if (_showTodaySummaryPopup) return;
+    setState(() {
+      _showTodaySummaryPopup = true;
+    });
+  }
+
+  void _hideTodaySummary() {
+    if (!_showTodaySummaryPopup) return;
+    setState(() {
+      _showTodaySummaryPopup = false;
+    });
+  }
+
+  Widget _buildTodaySummaryPopup() {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 330,
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+        decoration: BoxDecoration(
+          color: AppColor.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: const Color(0xFFE2E8E5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF172027).withOpacity(0.16),
+              blurRadius: 28,
+              offset: const Offset(8, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    "Today",
+                    style: TextStyle(
+                      color: Color(0xFF252E3A),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: _hideTodaySummary,
+                  borderRadius: BorderRadius.circular(20),
+                  child: const SizedBox(
+                    height: 36,
+                    width: 36,
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: Color(0xFF7A858B),
+                      size: 20,
+                    ),
+                  ),
                 ),
               ],
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDCE2E5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        "Today",
-                        style: TextStyle(
-                          color: Color(0xFF252E3A),
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                        ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 17),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F7F7),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    height: 42,
+                    width: 42,
+                    decoration: BoxDecoration(
+                      color: AppColor.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFDDE4E1),
                       ),
                     ),
-                    InkWell(
-                      onTap: () => Navigator.pop(sheetContext),
-                      borderRadius: BorderRadius.circular(20),
-                      child: const SizedBox(
-                        height: 36,
-                        width: 36,
-                        child: Icon(
-                          Icons.close_rounded,
-                          color: Color(0xFF7A858B),
-                          size: 20,
-                        ),
-                      ),
+                    child: const Icon(
+                      Icons.account_balance_wallet_outlined,
+                      color: Color(0xFF435149),
+                      size: 21,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 17),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F7F7),
-                    borderRadius: BorderRadius.circular(22),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        height: 42,
-                        width: 42,
-                        decoration: BoxDecoration(
-                          color: AppColor.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFDDE4E1),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "183.25 kr",
+                          style: TextStyle(
+                            color: Color(0xFF20282E),
+                            fontSize: 27,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.7,
                           ),
                         ),
-                        child: const Icon(
-                          Icons.account_balance_wallet_outlined,
-                          color: Color(0xFF435149),
-                          size: 21,
+                        SizedBox(height: 3),
+                        Text(
+                          "Total earnings today",
+                          style: TextStyle(
+                            color: Color(0xFF7B878E),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "183.25 kr",
-                              style: TextStyle(
-                                color: Color(0xFF20282E),
-                                fontSize: 27,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.7,
-                              ),
-                            ),
-                            SizedBox(height: 3),
-                            Text(
-                              "Total earnings today",
-                              style: TextStyle(
-                                color: Color(0xFF7B878E),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        height: 8,
-                        width: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF2FBE7B),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                _premiumActivityRow(
-                  icon: Icons.local_taxi_outlined,
-                  title: "3 rides",
-                  subtitle: "Completed today",
-                ),
-                const Divider(height: 1, color: Color(0xFFE8ECEE)),
-                _premiumActivityRow(
-                  icon: Icons.route_outlined,
-                  title: "Central Station → Södermalm",
-                  subtitle: "Last trip • Comfort • 21:42",
-                  trailing: "126 kr",
-                ),
-              ],
+                  Container(
+                    height: 8,
+                    width: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF2FBE7B),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 8),
+            _premiumActivityRow(
+              icon: Icons.local_taxi_outlined,
+              title: "3 rides",
+              subtitle: "Completed today",
+            ),
+            const Divider(height: 1, color: Color(0xFFE8ECEE)),
+            _premiumActivityRow(
+              icon: Icons.route_outlined,
+              title: "Central Station → Södermalm",
+              subtitle: "Last trip • Comfort • 21:42",
+              trailing: "126 kr",
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1471,7 +1286,7 @@ class _DriverHomeState extends State<DriverHome>
       _isGoingOnline = true;
       _isOnline = false;
       _hasRideOffers = false;
-      _showLastTripPopup = false;
+      _showTodaySummaryPopup = false;
       _homeDirectOffer = null;
     });
     _clearDirectOfferRoute();
