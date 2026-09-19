@@ -16,6 +16,10 @@ class CustomGoogleMap extends StatefulWidget {
   final bool trafficEnabled;
   final bool buildingsEnabled;
   final bool indoorViewEnabled;
+  final bool scrollGesturesEnabled;
+  final bool zoomGesturesEnabled;
+  final bool rotateGesturesEnabled;
+  final bool tiltGesturesEnabled;
   final MapType mapType;
   final void Function(GoogleMapController)? onMapCreated;
   final void Function(LatLng)? onTap;
@@ -40,6 +44,10 @@ class CustomGoogleMap extends StatefulWidget {
     this.trafficEnabled = false,
     this.buildingsEnabled = true,
     this.indoorViewEnabled = false,
+    this.scrollGesturesEnabled = true,
+    this.zoomGesturesEnabled = true,
+    this.rotateGesturesEnabled = true,
+    this.tiltGesturesEnabled = true,
     this.mapType = MapType.normal,
     this.onMapCreated,
     this.onTap,
@@ -172,6 +180,10 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
       trafficEnabled: widget.trafficEnabled,
       buildingsEnabled: widget.buildingsEnabled,
       indoorViewEnabled: widget.indoorViewEnabled,
+      scrollGesturesEnabled: widget.scrollGesturesEnabled,
+      zoomGesturesEnabled: widget.zoomGesturesEnabled,
+      rotateGesturesEnabled: widget.rotateGesturesEnabled,
+      tiltGesturesEnabled: widget.tiltGesturesEnabled,
       mapType: widget.mapType,
       padding: widget.padding,
       style: widget.customMapStyle ?? _defaultMapStyle,
