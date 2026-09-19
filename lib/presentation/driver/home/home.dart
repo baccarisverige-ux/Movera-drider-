@@ -870,23 +870,28 @@ class _DriverHomeState extends State<DriverHome>
                   shape: BoxShape.circle,
                   gradient: const RadialGradient(
                     center: Alignment(-0.24, -0.32),
-                    radius: 0.95,
+                    radius: 0.98,
                     colors: [
-                      Color(0xFF263632),
-                      Color(0xFF17221F),
-                      Color(0xFF0B1110),
+                      Color(0xD98F999C),
+                      Color(0xD9727D80),
+                      Color(0xE05A6468),
                     ],
-                    stops: [0, 0.56, 1],
+                    stops: [0, 0.58, 1],
                   ),
                   border: Border.all(
-                    color: const Color(0xFF899B95),
-                    width: 2.2,
+                    color: const Color(0xD9E7ECEE),
+                    width: 1.6,
                   ),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x66000000),
-                      blurRadius: 12,
-                      offset: Offset(0, 7),
+                      color: Color(0x3D263238),
+                      blurRadius: 11,
+                      offset: Offset(0, 6),
+                    ),
+                    BoxShadow(
+                      color: Color(0x66FFFFFF),
+                      blurRadius: 3,
+                      offset: Offset(-1, -2),
                     ),
                   ],
                 ),
