@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 // ignore_for_file: deprecated_member_use
 
@@ -160,12 +161,39 @@ class _DriverHomeState extends State<DriverHome>
       key: _scaffoldKey,
       drawer: const DriverSideMenu(),
       body: showRideRequests
-          ? RideRequests(
-              onCloseRides: () {
-                setState(() {
-                  showRideRequests = false;
-                });
-              },
+          ? Stack(
+              fit: StackFit.expand,
+              children: [
+                AbsorbPointer(
+                  child: _buildRadarMapBackdrop(),
+                ),
+                ClipRect(
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 9.5, sigmaY: 9.5),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            const Color(0xFF172027).withOpacity(0.46),
+                            const Color(0xFF6F7D80).withOpacity(0.16),
+                            const Color(0xFFF4F7F8).withOpacity(0.24),
+                          ],
+                          stops: const [0.0, 0.45, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                RideRequests(
+                  onCloseRides: () {
+                    setState(() {
+                      showRideRequests = false;
+                    });
+                  },
+                ),
+              ],
             )
           : hideMainPanel
           ? DestinationSetPanel(
@@ -242,6 +270,28 @@ class _DriverHomeState extends State<DriverHome>
                 child: body(),
               ),
             ),
+    );
+  }
+
+  Widget _buildRadarMapBackdrop() {
+    return SizedBox.expand(
+      child: CustomGoogleMap(
+        initialPosition: _initialPosition,
+        markers: _markers,
+        myLocationEnabled: true,
+        myLocationButtonEnabled: false,
+        zoomControlsEnabled: false,
+        mapToolbarEnabled: false,
+        compassEnabled: false,
+        trafficEnabled: false,
+        buildingsEnabled: true,
+        indoorViewEnabled: false,
+        mapType: MapType.normal,
+        onMapCreated: (GoogleMapController controller) {
+          _mapController = controller;
+        },
+        onTap: (LatLng position) {},
+      ),
     );
   }
 
