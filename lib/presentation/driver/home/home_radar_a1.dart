@@ -1,10 +1,10 @@
 part of 'home.dart';
 
-extension _DriverHomeRadarA1 on _DriverHomeState {
+mixin _DriverHomeRadarA1 on _DriverHomeState {
   Widget _buildRadarMapBackdropImpl() {
     return SizedBox.expand(
       child: CustomGoogleMap(
-        initialPosition: _initialPosition,
+        initialPosition: _DriverHomeState._initialPosition,
         markers: _markers,
         myLocationEnabled: true,
         myLocationButtonEnabled: false,
@@ -33,7 +33,7 @@ extension _DriverHomeRadarA1 on _DriverHomeState {
       child: Stack(
         children: [
           CustomGoogleMap(
-            initialPosition: _initialPosition,
+            initialPosition: _DriverHomeState._initialPosition,
             markers: {
               ..._markers,
               ..._directOfferRouteMarkers,
