@@ -1,335 +1,468 @@
-import 'package:dotted_line/dotted_line.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:movera/constants/appassets.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
-import 'package:movera/widgets/custom_btn.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
-import 'package:movera/widgets/navigation_transition.dart';
-import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:movera/constants/appcolors.dart';
+import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
+import 'package:movera/widgets/navigation_transition.dart';
 
 class RideRequests extends StatelessWidget {
   final VoidCallback? onCloseRides;
 
   const RideRequests({super.key, this.onCloseRides});
 
+  static const Color _screen = Color(0xFF1C2124);
+  static const Color _surface = Color(0xFFF7F8F9);
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _muted = Color(0xFF7E8A93);
+  static const Color _line = Color(0xFFE3E7EA);
+  static const Color _mint = Color(0xFF58E5A6);
+
   @override
   Widget build(BuildContext context) {
+    return Material(
+      color: _screen,
+      child: SafeArea(
+        child: Column(
+          children: [
+            _topBar(context),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _requestCard(context),
+            ),
+            const SizedBox(height: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _topBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
+      child: SizedBox(
+        height: 56,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                tooltip: 'Back',
+                onPressed: onCloseRides,
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white,
+                  size: 21,
+                ),
+              ),
+            ),
+            const Text(
+              'Trip radar',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.35,
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.07),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.08),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _LiveDot(),
+                    SizedBox(width: 6),
+                    Text(
+                      'ON',
+                      style: TextStyle(
+                        color: Color(0xFFDDE7E3),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _requestCard(BuildContext context) {
     return Container(
-      // ignore: deprecated_member_use
-      color: Colors.black.withOpacity(0.5),
-      child: SingleChildScrollView(
-        physics: BouncingScrollPhysics(),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-          child: Column(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.24),
+            blurRadius: 34,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              50.height,
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EEF2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.local_taxi_rounded,
+                      size: 16,
+                      color: AppColor.primary,
+                    ),
+                    SizedBox(width: 7),
+                    Text(
+                      'Movera Go',
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF7F1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _LiveDot(size: 7),
+                    SizedBox(width: 6),
+                    Text(
+                      'Ride found',
+                      style: TextStyle(
+                        color: Color(0xFF257658),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            '111,02 kr',
+            style: TextStyle(
+              color: _ink,
+              fontSize: 43,
+              height: 1,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1.6,
+            ),
+          ),
+          const SizedBox(height: 9),
+          Row(
+            children: [
+              _smallChip(
+                icon: Icons.star_rounded,
+                label: '4.95',
+                iconColor: Color(0xFFDEA62E),
+              ),
+              const SizedBox(width: 8),
+              _smallChip(
+                label: 'Net after service fee',
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(height: 1, color: _line),
+          const SizedBox(height: 19),
+          _routeRow(
+            dotColor: AppColor.primary,
+            title: '7 min · 2.1 km away',
+            subtitle: 'Hantverkargatan 4, Stockholm',
+            drawLine: true,
+          ),
+          const SizedBox(height: 5),
+          _routeRow(
+            dotColor: _ink,
+            title: '15 min · 10.5 km trip',
+            subtitle: 'Trollesundsvägen 58B, Bandhagen',
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 13,
+              vertical: 11,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF2F4),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.alt_route_rounded,
+                  size: 18,
+                  color: AppColor.primary,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'On the way',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Spacer(),
+                Icon(
+                  Icons.schedule_rounded,
+                  size: 17,
+                  color: _muted,
+                ),
+                SizedBox(width: 5),
+                Text(
+                  '~15 min trip',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  BottomToTopTransition(const AcceptRide()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: AppColor.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  InkWell(
-                    onTap: onCloseRides,
-                    child: Icon(
-                      Icons.cancel_outlined,
-                      color: AppColor.white,
-                      size: ResSize.h * 22,
+                  Text(
+                    'Match',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.1,
                     ),
                   ),
-                  TextWidget(
-                    text: "10 requests",
-                    color: AppColor.whiteText,
-                    fontSize: 16,
-                    fontWeight: fwNormal,
-                  ),
+                  SizedBox(width: 9),
+                  Icon(Icons.arrow_forward_rounded, size: 20),
                 ],
               ),
-              19.height,
-              ListView.builder(
-                itemCount: 10,
-                shrinkWrap: true,
-                padding: EdgeInsets.all(0),
-                physics: NeverScrollableScrollPhysics(),
-                clipBehavior: Clip.none,
-                itemBuilder: (BuildContext context, int index) {
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      top: index == 0 ? 0 : ResSize.h * 19,
-                    ),
-                    child:
-                        Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: ResSize.w * 14,
-                                vertical: ResSize.h * 22,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: AppColor.white,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: ResSize.w * 120,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: ResSize.w * 7,
-                                      vertical: ResSize.h * 7,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(5),
-                                      color: AppColor.primary,
-                                    ),
-                                    child: Center(
-                                      child: TextWidget(
-                                        text: "Movera Comfort",
-                                        color: AppColor.whiteText,
-                                        fontSize: 12,
-                                        fontWeight: fwMedium,
-                                      ),
-                                    ),
-                                  ),
-                                  8.height,
-                                  TextWidget(
-                                    text: "\$15.50",
-                                    color: AppColor.black,
-                                    fontSize: 24,
-                                    fontWeight: fwNormal,
-                                  ),
-                                  2.height,
-                                  Container(
-                                    width: ResSize.w * 55,
-                                    padding: EdgeInsets.symmetric(
-                                      vertical: ResSize.h * 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(4),
-                                      color: Color(0xffECECEC),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.star_rounded,
-                                          color: Color(0xffFF8D28),
-                                          size: ResSize.h * 18,
-                                        ),
-                                        3.width,
-                                        TextWidget(
-                                          text: "4.9",
-                                          color: AppColor.black,
-                                          fontSize: 12,
-                                          fontWeight: fwNormal,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  16.height,
-                                  TextWidget(
-                                    fontSize: 16,
-                                    fontWeight: fwBold,
-                                    text: "Ride Details",
-                                    color: AppColor.title,
-                                  ),
-                                  12.height,
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                        height:
-                                            ResSize.h *
-                                            87, // more height to fit A & B
-                                        child: Column(
-                                          children: [
-                                            // Pickup Circle
-                                            Container(
-                                              height: ResSize.h * 32,
-                                              width: ResSize.w * 32,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: AppColor.liteBlue,
-                                              ),
-                                              child: Center(
-                                                child: Image.asset(
-                                                  AppAssets.locationFill,
-                                                  height: ResSize.h * 20,
-                                                ),
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: DottedLine(
-                                                dashLength: 3,
-                                                dashGapLength: 3,
-                                                lineThickness: 1.4,
-                                                dashColor: AppColor.black,
-                                                direction: Axis.vertical,
-                                              ),
-                                            ),
-
-                                            Container(
-                                              height: ResSize.h * 32,
-                                              width: ResSize.w * 32,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: AppColor.liteBlue,
-                                              ),
-                                              child: Center(
-                                                child: Image.asset(
-                                                  AppAssets.arrowUp,
-                                                  height: ResSize.h * 16,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      12.width,
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                TextWidget(
-                                                  fontSize: 12,
-                                                  fontWeight: fwSemiBold,
-                                                  text: "1.0 km (4 min)",
-                                                  color: Color(0xffA3A3A3),
-                                                ),
-                                                Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: Text(
-                                                        "1141 central park, Lemonade",
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                              fontSize:
-                                                                  ResSize.setSp(
-                                                                    16,
-                                                                  ),
-                                                              fontWeight:
-                                                                  fwMedium,
-                                                              color: AppColor
-                                                                  .title,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                            18.height,
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                TextWidget(
-                                                  fontSize: 12,
-                                                  fontWeight: fwSemiBold,
-                                                  text: "12.0 km (15 min)",
-                                                  color: Color(0xffA3A3A3),
-                                                ),
-                                                Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: Text(
-                                                        "1141 central park, DHA",
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                              fontSize:
-                                                                  ResSize.setSp(
-                                                                    16,
-                                                                  ),
-                                                              fontWeight:
-                                                                  fwMedium,
-                                                              color: AppColor
-                                                                  .title,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  24.height,
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: CustomButton(
-                                          centerContent: "Reject",
-                                          onPressed: () {},
-                                          height: ResSize.h * 41,
-                                          textColor: AppColor.whiteText,
-                                          btncolor: AppColor.red,
-                                          borderRadius: 8,
-                                        ),
-                                      ),
-                                      15.width,
-                                      Expanded(
-                                        child: CustomButton(
-                                          centerContent: "Accept",
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              BottomToTopTransition(
-                                                const AcceptRide(),
-                                              ),
-                                            );
-                                          },
-                                          height: ResSize.h * 41,
-                                          textColor: AppColor.whiteText,
-                                          btncolor: AppColor.green,
-                                          borderRadius: 8,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            )
-                            .animate()
-                            .fadeIn(
-                              duration: const Duration(milliseconds: 600),
-                              delay: Duration(
-                                milliseconds: index * 200,
-                              ), // Staggered delay
-                              curve: Curves.easeOutCubic,
-                            )
-                            .slideY(
-                              begin: 0.3,
-                              end: 0,
-                              duration: const Duration(milliseconds: 600),
-                              delay: Duration(
-                                milliseconds: index * 200,
-                              ), // Same delay
-                              curve: Curves.easeOutCubic,
-                            ),
-                  );
-                },
+            ),
+          ),
+          const SizedBox(height: 5),
+          Center(
+            child: TextButton(
+              onPressed: onCloseRides,
+              style: TextButton.styleFrom(
+                foregroundColor: _muted,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 9,
+                ),
               ),
-              20.height,
+              child: const Text(
+                'Not now',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    )
+        .animate()
+        .fadeIn(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        )
+        .slideY(
+          begin: 0.08,
+          end: 0,
+          duration: const Duration(milliseconds: 360),
+          curve: Curves.easeOutCubic,
+        );
+  }
+
+  static Widget _smallChip({
+    IconData? icon,
+    required String label,
+    Color iconColor = _muted,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF1F3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 15, color: iconColor),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            label,
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _routeRow({
+    required Color dotColor,
+    required String title,
+    required String subtitle,
+    bool drawLine = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 24,
+          height: 58,
+          child: Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              if (drawLine)
+                Positioned(
+                  top: 12,
+                  bottom: -5,
+                  child: Container(
+                    width: 1.5,
+                    color: const Color(0xFFCCD3D8),
+                  ),
+                ),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: _surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: dotColor,
+                    width: 3,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LiveDot extends StatelessWidget {
+  final double size;
+
+  const _LiveDot({this.size = 8});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: RideRequests._mint,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x8858E5A6),
+            blurRadius: 7,
+            spreadRadius: 1,
+          ),
+        ],
       ),
     );
   }
