@@ -15,7 +15,6 @@ class RideRequests extends StatefulWidget {
 }
 
 class _RideRequestsState extends State<RideRequests> {
-  static const Color _screen = Color(0xFF202529);
   static const Color _surface = Color(0xFFF7F8F9);
   static const Color _ink = Color(0xFF252E3A);
   static const Color _muted = Color(0xFF7D898F);
@@ -179,7 +178,7 @@ class _RideRequestsState extends State<RideRequests> {
     final offers = _visibleOffers;
 
     return Material(
-      color: _screen,
+      color: Colors.transparent,
       child: SafeArea(
         child: Column(
           children: [
