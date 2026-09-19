@@ -216,7 +216,7 @@ class _DriverHomeState extends State<DriverHome>
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 104,
+              minHeight: 122,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -1079,8 +1079,8 @@ class _DriverHomeState extends State<DriverHome>
     const muted = Color(0xFF8A97A8);
 
     return AnimatedOpacity(
-      duration: const Duration(milliseconds: 160),
-      opacity: isPanelOpen ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 120),
+      opacity: 1.0,
       child: Container(
         decoration: const BoxDecoration(
           color: canvas,
@@ -1358,33 +1358,50 @@ class _DriverHomeState extends State<DriverHome>
       alignment: Alignment.bottomCenter,
       clipBehavior: Clip.none,
       children: [
+        // Small visible continuation of the full sheet. This stays exposed
+        // while collapsed so the driver immediately understands it can slide up.
         Positioned(
-          left: 14,
-          right: 14,
-          bottom: 0,
-          height: 84 + safeBottom,
+          left: 18,
+          right: 18,
+          top: 0,
+          height: 34,
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFD9DEE1),
+              color: const Color(0xFFE3E7E9),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(34),
+                top: Radius.circular(32),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF10191E).withOpacity(0.18),
-                  blurRadius: 26,
-                  spreadRadius: 1,
-                  offset: const Offset(0, -7),
+                  color: const Color(0xFF172027).withOpacity(0.13),
+                  blurRadius: 18,
+                  offset: const Offset(0, -5),
                 ),
               ],
             ),
           ),
         ),
         Positioned(
-          left: 8,
-          right: 8,
-          bottom: 4,
-          height: 86 + safeBottom,
+          left: 7,
+          right: 7,
+          top: 8,
+          height: 34,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F3F4),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(34),
+              ),
+            ),
+          ),
+        ),
+
+        // Main collapsed dock: fixed visually from extreme left to extreme right.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 100 + safeBottom,
           child: Container(
             decoration: BoxDecoration(
               gradient: const LinearGradient(
@@ -1392,21 +1409,29 @@ class _DriverHomeState extends State<DriverHome>
                 end: Alignment.bottomCenter,
                 colors: [
                   Color(0xFFFFFFFF),
-                  Color(0xFFF7F8F9),
-                  Color(0xFFE9EDF0),
+                  Color(0xFFF8F9FA),
+                  Color(0xFFECEF1F2),
                 ],
-                stops: [0, 0.56, 1],
+                stops: [0, 0.60, 1],
               ),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(36),
+                top: Radius.circular(38),
               ),
-              border: Border.all(
-                color: Colors.white,
-                width: 1.2,
+              border: const Border(
+                top: BorderSide(
+                  color: Color(0xFFFFFFFF),
+                  width: 1.4,
+                ),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.white.withOpacity(0.88),
+                  color: const Color(0xFF10191E).withOpacity(0.18),
+                  blurRadius: 28,
+                  spreadRadius: 1,
+                  offset: const Offset(0, -8),
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.90),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -1414,52 +1439,45 @@ class _DriverHomeState extends State<DriverHome>
             ),
           ),
         ),
+
+        // Curved pull lip connected to the main sheet.
         Positioned(
-          top: 0,
+          top: 8,
           child: Container(
-            width: 88,
-            height: 31,
+            width: 104,
+            height: 32,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFFFFFFF), Color(0xFFF1F4F5)],
-              ),
+              color: const Color(0xFFFCFDFD),
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.white, width: 1.2),
+              border: Border.all(
+                color: const Color(0xFFE4E8EA),
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF18242A).withOpacity(0.13),
-                  blurRadius: 16,
-                  offset: const Offset(0, -4),
+                  color: const Color(0xFF18242A).withOpacity(0.11),
+                  blurRadius: 14,
+                  offset: const Offset(0, -3),
                 ),
               ],
             ),
             alignment: Alignment.center,
             child: Container(
-              width: 31,
+              width: 36,
               height: 4,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFB8C0C5), Color(0xFFD5DADD)],
-                ),
+                color: const Color(0xFFADB7BC),
                 borderRadius: BorderRadius.circular(8),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.white,
-                    blurRadius: 1,
-                    offset: Offset(0, 1),
-                  ),
-                ],
               ),
             ),
           ),
         ),
+
         Positioned(
-          left: 18,
-          right: 18,
-          top: 28,
-          bottom: safeBottom + 7,
+          left: 14,
+          right: 14,
+          top: 39,
+          bottom: safeBottom + 8,
           child: Row(
             children: [
               _collapsedDockAction(
