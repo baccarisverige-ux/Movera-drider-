@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:movera/constants/appcolors.dart';
 import 'package:movera/presentation/driver/my%20wallet/components/choose_bank.dart';
 
 class WalletScreen extends StatelessWidget {
   const WalletScreen({super.key});
 
-  static const Color _page = Color(0xFF171B1E);
-  static const Color _surface = Color(0xFF22282C);
-  static const Color _surfaceSoft = Color(0xFF1D2226);
-  static const Color _line = Color(0xFF343C41);
-  static const Color _text = Color(0xFFF3F5F6);
-  static const Color _muted = Color(0xFFA7B0B5);
-  static const Color _green = Color(0xFF58E5A6);
+  static const Color _page = Color(0xFFF6F8F7);
+  static const Color _card = Color(0xFFFFFFFF);
+  static const Color _green = Color(0xFF1E5A44);
+  static const Color _greenSoft = Color(0xFFE8F2ED);
+  static const Color _greenMid = Color(0xFF3F8066);
+  static const Color _text = Color(0xFF243029);
+  static const Color _muted = Color(0xFF7B8881);
+  static const Color _line = Color(0xFFE3E9E6);
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +29,7 @@ class WalletScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _balanceCard(context),
-                    const SizedBox(height: 26),
+                    const SizedBox(height: 28),
                     _sectionHeader(
                       title: 'Payout activity',
                       action: 'See all',
@@ -66,7 +66,7 @@ class WalletScreen extends StatelessWidget {
                   child: Icon(
                     Icons.close_rounded,
                     color: _text,
-                    size: 25,
+                    size: 24,
                   ),
                 ),
               ),
@@ -78,7 +78,7 @@ class WalletScreen extends StatelessWidget {
                 style: TextStyle(
                   color: _text,
                   fontSize: 20,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.25,
                 ),
               ),
@@ -98,14 +98,18 @@ class WalletScreen extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(20, 19, 20, 18),
         decoration: BoxDecoration(
-          color: _surface,
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(
-            color: const Color(0xFF30383D),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1C5B43),
+              Color(0xFF2E7558),
+            ],
           ),
+          borderRadius: BorderRadius.circular(26),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.20),
+              color: _green.withOpacity(0.18),
               blurRadius: 24,
               offset: const Offset(0, 12),
             ),
@@ -120,7 +124,7 @@ class WalletScreen extends StatelessWidget {
                   child: Text(
                     'Available balance',
                     style: TextStyle(
-                      color: _muted,
+                      color: Color(0xFFDDEBE5),
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -128,7 +132,7 @@ class WalletScreen extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: Color(0xFF707A80),
+                  color: Color(0xFFDDEBE5),
                   size: 23,
                 ),
               ],
@@ -137,10 +141,10 @@ class WalletScreen extends StatelessWidget {
             const Text(
               '2 994,80 kr',
               style: TextStyle(
-                color: _text,
+                color: Colors.white,
                 fontSize: 36,
                 height: 1,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w900,
                 letterSpacing: -1.1,
               ),
             ),
@@ -151,7 +155,7 @@ class WalletScreen extends StatelessWidget {
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: _green,
+                    color: Color(0xFF9FE4C3),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -160,7 +164,7 @@ class WalletScreen extends StatelessWidget {
                   child: Text(
                     'Next payout · 21 Sep',
                     style: TextStyle(
-                      color: Color(0xFFC8D0D4),
+                      color: Color(0xFFE8F2EE),
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -172,13 +176,16 @@ class WalletScreen extends StatelessWidget {
                     vertical: 7,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColor.primary.withOpacity(0.24),
+                    color: Colors.white.withOpacity(0.13),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.12),
+                    ),
                   ),
                   child: const Text(
                     'Weekly',
                     style: TextStyle(
-                      color: Color(0xFFAFC9DC),
+                      color: Colors.white,
                       fontSize: 10.5,
                       fontWeight: FontWeight.w800,
                     ),
@@ -204,7 +211,7 @@ class WalletScreen extends StatelessWidget {
             style: const TextStyle(
               color: _text,
               fontSize: 20,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
               letterSpacing: -0.35,
             ),
           ),
@@ -212,9 +219,9 @@ class WalletScreen extends StatelessWidget {
         Text(
           action,
           style: const TextStyle(
-            color: Color(0xFFB8C1C5),
+            color: _greenMid,
             fontSize: 12.5,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
@@ -225,19 +232,26 @@ class WalletScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: _surfaceSoft,
+        color: _card,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: _line),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1E5A44).withOpacity(0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Column(
-        children: const [
+      child: const Column(
+        children: [
           _PayoutRow(
             amount: '3 072,88 kr',
             date: 'Initiated · 14 Sep',
           ),
           Divider(
             height: 1,
-            indent: 58,
+            indent: 60,
             endIndent: 16,
             color: _line,
           ),
@@ -254,9 +268,16 @@ class WalletScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: _surfaceSoft,
+        color: _card,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: _line),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1E5A44).withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 7),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -268,7 +289,7 @@ class WalletScreen extends StatelessWidget {
           ),
           const Divider(
             height: 1,
-            indent: 58,
+            indent: 60,
             endIndent: 16,
             color: _line,
           ),
@@ -307,33 +328,27 @@ class _PayoutRow extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFF283037),
+              color: WalletScreen._greenSoft,
               borderRadius: BorderRadius.circular(13),
             ),
             child: const Icon(
               Icons.calendar_month_outlined,
-              color: Color(0xFFC9D1D5),
+              color: WalletScreen._green,
               size: 20,
             ),
           ),
           const SizedBox(width: 12),
           const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Weekly payout',
-                  style: TextStyle(
-                    color: WalletScreen._text,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: 3),
-              ],
+            child: Text(
+              'Weekly payout',
+              style: TextStyle(
+                color: WalletScreen._text,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           Column(
@@ -344,7 +359,7 @@ class _PayoutRow extends StatelessWidget {
                 style: const TextStyle(
                   color: WalletScreen._text,
                   fontSize: 14,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 3),
@@ -353,7 +368,7 @@ class _PayoutRow extends StatelessWidget {
                 style: const TextStyle(
                   color: WalletScreen._muted,
                   fontSize: 10.5,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -388,12 +403,17 @@ class _WalletActionRow extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 15, 14, 15),
           child: Row(
             children: [
-              SizedBox(
-                width: 30,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: WalletScreen._greenSoft,
+                  borderRadius: BorderRadius.circular(13),
+                ),
                 child: Icon(
                   icon,
-                  color: const Color(0xFFC8D0D4),
-                  size: 22,
+                  color: WalletScreen._green,
+                  size: 21,
                 ),
               ),
               const SizedBox(width: 12),
@@ -406,7 +426,7 @@ class _WalletActionRow extends StatelessWidget {
                       style: const TextStyle(
                         color: WalletScreen._text,
                         fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -423,7 +443,7 @@ class _WalletActionRow extends StatelessWidget {
               ),
               const Icon(
                 Icons.chevron_right_rounded,
-                color: Color(0xFF657077),
+                color: Color(0xFF8A9790),
                 size: 22,
               ),
             ],
