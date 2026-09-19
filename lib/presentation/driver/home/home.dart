@@ -216,7 +216,7 @@ class _DriverHomeState extends State<DriverHome>
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 116,
+              minHeight: 108,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
@@ -434,16 +434,51 @@ class _DriverHomeState extends State<DriverHome>
           ),
 
           if (!isDestinationPanel)
-            Positioned(
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 520),
+              curve: Curves.easeOutCubic,
               left: 0,
               right: 0,
-              bottom: 112,
+              bottom: (_isOnline || _isGoingOnline) ? 122 : 58,
               child: Center(
-                child: _isOnline
-                    ? _buildTripRadarButton()
-                    : _isGoingOnline
-                    ? _buildGoingOnlineButton()
-                    : _buildGoOnlineButton(),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 360),
+                  reverseDuration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final scale = Tween<double>(
+                      begin: 0.92,
+                      end: 1.0,
+                    ).animate(
+                      CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutBack,
+                      ),
+                    );
+                    return FadeTransition(
+                      opacity: animation,
+                      child: ScaleTransition(
+                        scale: scale,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey<String>(
+                      _isOnline
+                          ? 'radar-online'
+                          : _isGoingOnline
+                          ? 'radar-connecting'
+                          : 'radar-offline',
+                    ),
+                    child: _isOnline
+                        ? _buildTripRadarButton()
+                        : _isGoingOnline
+                        ? _buildGoingOnlineButton()
+                        : _buildGoOnlineButton(),
+                  ),
+                ),
               ),
             ),
           if (!isDestinationPanel)
@@ -1074,143 +1109,143 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Widget panelColumn(ScrollController sc) {
-    const canvas = Color(0xFFF7F8F9);
     const ink = Color(0xFF252E3A);
-    const muted = Color(0xFF8A97A8);
+    const muted = Color(0xFF7B878E);
 
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 120),
-      opacity: 1.0,
-      child: Container(
-        decoration: const BoxDecoration(
-          color: canvas,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFCFDFD),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
         ),
-        child: Column(
-          children: [
-            InkWell(
-              onTap: _closeDriverSheet,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+        border: Border(
+          top: BorderSide(
+            color: Color(0xFFE7EBED),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: _closeDriverSheet,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
+            child: SizedBox(
+              height: 34,
+              child: Center(
                 child: Container(
-                  width: 42,
-                  height: 5,
+                  width: 38,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDDE2E7),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFFB5BFC4),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
             ),
-            Expanded(
-              child: ListView(
-                controller: sc,
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
-                    child: Row(
-                      children: [
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Driver overview",
-                                style: TextStyle(
-                                  color: Color(0xFF20292F),
-                                  fontSize: 21,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.4,
-                                ),
+          ),
+          Expanded(
+            child: ListView(
+              controller: sc,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(18, 2, 18, 18),
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(2, 4, 2, 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Driver overview",
+                              style: TextStyle(
+                                color: ink,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.35,
                               ),
-                              SizedBox(height: 3),
-                              Text(
-                                "Everything you need for your shift",
-                                style: TextStyle(
-                                  color: Color(0xFF7B878E),
-                                  fontSize: 11,
-                                ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              "Your shift at a glance",
+                              style: TextStyle(
+                                color: muted,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 11,
-                            vertical: 7,
+                      ),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 4,
+                            backgroundColor: Color(0xFF2FBE7B),
                           ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE6F6EE),
-                            borderRadius: BorderRadius.circular(20),
+                          SizedBox(width: 7),
+                          Text(
+                            "Ready",
+                            style: TextStyle(
+                              color: Color(0xFF19865C),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                          child: const Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 4,
-                                backgroundColor: Color(0xFF2FBE7B),
-                              ),
-                              SizedBox(width: 7),
-                              Text(
-                                "Ready",
-                                style: TextStyle(
-                                  color: Color(0xFF16895B),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
-                  _sheetAlertCard(
-                    icon: Icons.event_available_outlined,
-                    iconColor: const Color(0xFF8F9CAF),
-                    title: "Scheduled rides available",
-                    subtitle: "View open requests in your area",
-                  ),
-                  const SizedBox(height: 12),
-                  _driverStatCard(
-                    title: "Star rating",
-                    mainText: "★ 4.88",
-                    mainColor: ink,
-                  ),
-                ],
-              ),
+                ),
+                _sheetAlertCard(
+                  icon: Icons.event_available_outlined,
+                  iconColor: const Color(0xFF7E8A93),
+                  title: "Scheduled rides available",
+                  subtitle: "View open requests in your area",
+                ),
+                const SizedBox(height: 10),
+                _driverStatCard(
+                  title: "Star rating",
+                  mainText: "★ 4.88",
+                  mainColor: ink,
+                ),
+              ],
             ),
-            if (_isOnline)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton(
-                    onPressed: _goOffline,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF3F454A),
-                      backgroundColor: AppColor.white,
-                      side: const BorderSide(
-                        color: Color(0xFFBFC9CF),
-                        width: 1.2,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
-                      ),
+          ),
+          if (_isOnline)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: _goOffline,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF3F454A),
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(
+                      color: Color(0xFFD5DCDF),
+                      width: 1,
                     ),
-                    child: TextWidget(
-                      text: "Go offline",
-                      color: const Color(0xFF3F454A),
-                      fontSize: 15,
-                      fontWeight: fwSemiBold,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
+                  ),
+                  child: TextWidget(
+                    text: "Go offline",
+                    color: const Color(0xFF3F454A),
+                    fontSize: 14,
+                    fontWeight: fwSemiBold,
                   ),
                 ),
               ),
-            _emptyBottomNavigation(showQuickActions: true),
-          ],
-        ),
+            ),
+          _emptyBottomNavigation(showQuickActions: true),
+        ],
       ),
     );
   }
@@ -1226,7 +1261,7 @@ class _DriverHomeState extends State<DriverHome>
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
         color: AppColor.white,
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -1282,7 +1317,7 @@ class _DriverHomeState extends State<DriverHome>
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColor.white,
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1353,135 +1388,105 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _buildCollapsedDriverDock() {
     final safeBottom = MediaQuery.paddingOf(context).bottom;
+    final online = _isOnline || _isGoingOnline;
 
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      clipBehavior: Clip.none,
-      children: [
-        // Clean straight peek of the larger sheet behind the collapsed dock.
-        Positioned(
-          left: 10,
-          right: 10,
-          top: 0,
-          height: 18,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFE3E8EA),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(22),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF172027).withOpacity(0.10),
-                  blurRadius: 14,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCFDFD),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+        border: const Border(
+          top: BorderSide(
+            color: Color(0xFFE7EBED),
+            width: 1,
           ),
         ),
-
-        // Main dock stays fixed, full width and visually straight across the top.
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 104 + safeBottom,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFFFFFFF),
-                  Color(0xFFF9FAFA),
-                  Color(0xFFF0F3F4),
-                ],
-                stops: [0, 0.62, 1],
-              ),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(26),
-              ),
-              border: const Border(
-                top: BorderSide(
-                  color: Color(0xFFE5E9EB),
-                  width: 1,
-                ),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF10191E).withOpacity(0.14),
-                  blurRadius: 22,
-                  offset: const Offset(0, -6),
-                ),
-              ],
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF11181C).withOpacity(online ? 0.10 : 0.15),
+            blurRadius: online ? 20 : 26,
+            offset: const Offset(0, -7),
           ),
-        ),
-
-        // Minimal integrated pull handle: no floating bubble or bulky lip.
-        Positioned(
-          top: 14,
-          child: Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFB6C0C5),
-              borderRadius: BorderRadius.circular(10),
-            ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            12,
+            8,
+            12,
+            safeBottom > 0 ? 4 : 8,
           ),
-        ),
-
-        Positioned(
-          left: 14,
-          right: 14,
-          top: 32,
-          bottom: safeBottom + 8,
-          child: Row(
+          child: Column(
             children: [
-              _collapsedDockAction(
-                icon: Icons.grid_view_rounded,
-                tooltip: "Menu",
-                onTap: () => _scaffoldKey.currentState?.openDrawer(),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutCubic,
+                width: online ? 32 : 38,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: online
+                      ? const Color(0xFFB8C3C8)
+                      : const Color(0xFFAEB8BD),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              _collapsedDockAction(
-                icon: Icons.wallet_outlined,
-                tooltip: "Wallet",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const WalletScreen()),
-                  );
-                },
-              ),
-              _collapsedDockAction(
-                icon: Icons.forum_outlined,
-                tooltip: "Inbox",
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SupportInboxScreen(),
+              const SizedBox(height: 7),
+              Expanded(
+                child: Row(
+                  children: [
+                    _collapsedDockAction(
+                      icon: Icons.grid_view_rounded,
+                      tooltip: "Menu",
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
                     ),
-                  );
-                },
-              ),
-              AnimatedBuilder(
-                animation: _goOnlinePulseController,
-                builder: (context, child) {
-                  return _collapsedDockAction(
-                    icon: Icons.calendar_month_outlined,
-                    tooltip: "Scheduled",
-                    onTap: _openScheduledRides,
-                    hasAlert: _hasScheduledRideOffers,
-                    pulse: _goOnlinePulseController.value,
-                  );
-                },
+                    _collapsedDockAction(
+                      icon: Icons.wallet_outlined,
+                      tooltip: "Wallet",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const WalletScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _collapsedDockAction(
+                      icon: Icons.forum_outlined,
+                      tooltip: "Inbox",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SupportInboxScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    AnimatedBuilder(
+                      animation: _goOnlinePulseController,
+                      builder: (context, child) {
+                        return _collapsedDockAction(
+                          icon: Icons.calendar_month_outlined,
+                          tooltip: "Scheduled",
+                          onTap: _openScheduledRides,
+                          hasAlert: _hasScheduledRideOffers,
+                          pulse: _goOnlinePulseController.value,
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -1492,67 +1497,42 @@ class _DriverHomeState extends State<DriverHome>
     bool hasAlert = false,
     double pulse = 0,
   }) {
-    final alertGlow = hasAlert ? 0.12 + (pulse * 0.16) : 0.0;
-
     return Expanded(
       child: Tooltip(
         message: tooltip,
-        child: Center(
-          child: Container(
-            height: 47,
-            width: 47,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: hasAlert
-                    ? const [Color(0xFFF4FFFA), Color(0xFFDCEFE7)]
-                    : const [Color(0xFFFFFFFF), Color(0xFFE6EAEC)],
-              ),
-              border: Border.all(
-                color: hasAlert
-                    ? const Color(0xFFB8DDCD)
-                    : const Color(0xFFD9DEE1),
-              ),
-              boxShadow: [
-                const BoxShadow(
-                  color: Color(0xFFFFFFFF),
-                  blurRadius: 2,
-                  offset: Offset(-2, -2),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(18),
+            splashColor: const Color(0xFF19865C).withOpacity(0.08),
+            highlightColor: const Color(0xFF19865C).withOpacity(0.04),
+            child: Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOutCubic,
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: hasAlert
+                      ? const Color(0xFFF0F8F4)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                BoxShadow(
-                  color: (hasAlert
-                          ? const Color(0xFF2FBE7B)
-                          : const Color(0xFF172027))
-                      .withOpacity(hasAlert ? alertGlow : 0.16),
-                  blurRadius: hasAlert ? 14 : 8,
-                  offset: const Offset(2, 5),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              shape: const CircleBorder(),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: onTap,
-                customBorder: const CircleBorder(),
-                splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     Icon(
                       icon,
-                      size: 21,
+                      size: 22,
                       color: hasAlert
-                          ? const Color(0xFF16895B)
-                          : const Color(0xFF273238),
+                          ? const Color(0xFF19865C)
+                          : const Color(0xFF303A3F),
                     ),
                     if (hasAlert)
                       Positioned(
-                        top: 6,
-                        right: 6,
+                        top: 7,
+                        right: 7,
                         child: Container(
                           width: 7,
                           height: 7,
@@ -1562,9 +1542,8 @@ class _DriverHomeState extends State<DriverHome>
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(0xFF2FBE7B)
-                                    .withOpacity(0.45 + pulse * 0.4),
-                                blurRadius: 7,
-                                spreadRadius: 1,
+                                    .withOpacity(0.28 + pulse * 0.35),
+                                blurRadius: 6,
                               ),
                             ],
                           ),
