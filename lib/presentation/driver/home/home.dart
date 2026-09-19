@@ -28,8 +28,10 @@ import 'package:movera/widgets/custom_google_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 part 'home_state.dart';
-part 'home_radar_a.dart';
-part 'home_radar_b.dart';
+part 'home_radar_a1.dart';
+part 'home_radar_a2.dart';
+part 'home_radar_b1.dart';
+part 'home_radar_b2.dart';
 part 'home_sheet.dart';
 
 
