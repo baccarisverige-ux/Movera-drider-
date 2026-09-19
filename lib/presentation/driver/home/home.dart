@@ -716,24 +716,26 @@ class _DriverHomeState extends State<DriverHome>
               ),
             ),
           if (!isDestinationPanel)
-            Positioned(
-              left: 18,
-              top: ResSize.h * 55,
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              right: 16,
+              bottom: _homeDirectOffer == null ? 138 : 458,
               child: Material(
                 color: AppColor.white,
-                elevation: 6,
-                shadowColor: const Color(0xFF1D2730).withOpacity(0.20),
+                elevation: 4,
+                shadowColor: const Color(0xFF1D2730).withOpacity(0.16),
                 shape: const CircleBorder(),
                 child: InkWell(
                   onTap: () => showSafetyToolKitSheet(context),
                   customBorder: const CircleBorder(),
                   child: const SizedBox(
-                    height: 52,
-                    width: 52,
+                    height: 42,
+                    width: 42,
                     child: Icon(
                       Icons.shield_outlined,
                       color: Color(0xFF3F4A50),
-                      size: 18.5,
+                      size: 17,
                     ),
                   ),
                 ),
