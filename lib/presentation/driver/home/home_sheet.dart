@@ -1,6 +1,6 @@
 part of 'home.dart';
 
-extension _DriverHomeSheet on _DriverHomeState {
+mixin _DriverHomeSheet on _DriverHomeState {
   Widget panelColumnImpl(ScrollController sc) {
     const ink = Color(0xFF252E3A);
     const muted = Color(0xFF7B878E);
