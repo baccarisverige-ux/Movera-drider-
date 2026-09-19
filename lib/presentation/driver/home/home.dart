@@ -186,6 +186,9 @@ class _DriverHomeState extends State<DriverHome>
                     ),
                   ),
                 ),
+                PointerInterceptor(
+                  child: const SizedBox.expand(),
+                ),
                 RideRequests(
                   onCloseRides: () {
                     setState(() {
@@ -286,6 +289,10 @@ class _DriverHomeState extends State<DriverHome>
         trafficEnabled: false,
         buildingsEnabled: true,
         indoorViewEnabled: false,
+        scrollGesturesEnabled: false,
+        zoomGesturesEnabled: false,
+        rotateGesturesEnabled: false,
+        tiltGesturesEnabled: false,
         mapType: MapType.normal,
         onMapCreated: (GoogleMapController controller) {
           _mapController = controller;
