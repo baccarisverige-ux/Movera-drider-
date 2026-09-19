@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:movera/presentation/driver/my%20wallet/components/choose_bank.dart';
 
 class WalletScreen extends StatelessWidget {
   const WalletScreen({super.key});
@@ -30,9 +29,9 @@ class WalletScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _balanceHero(context),
+                    _balanceHero(),
                     const SizedBox(height: 14),
-                    _quickActions(context),
+                    _payoutInfoStrip(),
                     const SizedBox(height: 28),
                     _sectionHeader(
                       title: 'Recent payouts',
@@ -41,7 +40,7 @@ class WalletScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     _recentPayouts(),
                     const SizedBox(height: 22),
-                    _supportCard(context),
+                    _bankCard(),
                   ],
                 ),
               ),
@@ -95,7 +94,7 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  Widget _balanceHero(BuildContext context) {
+  Widget _balanceHero() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
@@ -146,7 +145,7 @@ class WalletScreen extends StatelessWidget {
                     ),
                     SizedBox(width: 7),
                     Text(
-                      'Available',
+                      'Current balance',
                       style: TextStyle(
                         color: _green,
                         fontSize: 10.5,
@@ -157,21 +156,17 @@ class WalletScreen extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              InkWell(
-                onTap: () => showWithdrawAmountBottomSheet(context),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: _white.withOpacity(0.88),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_outward_rounded,
-                    color: _green,
-                    size: 18,
-                  ),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: _white.withOpacity(0.88),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: _green,
+                  size: 18,
                 ),
               ),
             ],
@@ -189,49 +184,11 @@ class WalletScreen extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Current wallet balance',
+            'Earnings waiting for the next automatic payout',
             style: TextStyle(
               color: _muted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(13, 11, 12, 11),
-            decoration: BoxDecoration(
-              color: _white.withOpacity(0.78),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE0ECE6)),
-            ),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.schedule_rounded,
-                  color: _greenMid,
-                  size: 18,
-                ),
-                SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    'Next payout',
-                    style: TextStyle(
-                      color: _muted,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Text(
-                  '21 Sep',
-                  style: TextStyle(
-                    color: _text,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -239,97 +196,74 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  Widget _quickActions(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _quickAction(
-            icon: Icons.south_west_rounded,
-            title: 'Withdraw',
-            fill: _mint,
-            iconColor: _green,
-            onTap: () => showWithdrawAmountBottomSheet(context),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _quickAction(
-            icon: Icons.account_balance_outlined,
-            title: 'Bank',
-            fill: _blueSoft,
-            iconColor: const Color(0xFF496C86),
-            onTap: () => showWithdrawAmountBottomSheet(context),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _quickAction(
-            icon: Icons.receipt_long_outlined,
-            title: 'History',
-            fill: const Color(0xFFF1F2EC),
-            iconColor: const Color(0xFF6B7257),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Full payout history will connect to backend later.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _quickAction({
-    required IconData icon,
-    required String title,
-    required Color fill,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: _white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
+  Widget _payoutInfoStrip() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+      decoration: BoxDecoration(
+        color: _white,
         borderRadius: BorderRadius.circular(20),
-        child: Container(
-          height: 82,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _line),
+        border: Border.all(color: _line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: _mintStrong,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(
+              Icons.autorenew_rounded,
+              color: _green,
+              size: 20,
+            ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: fill,
-                  borderRadius: BorderRadius.circular(12),
+          const SizedBox(width: 11),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Automatic weekly payout',
+                  style: TextStyle(
+                    color: _text,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 18,
+                SizedBox(height: 3),
+                Text(
+                  'Next payout · 21 Sep',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 7),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: _text,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 7,
+            ),
+            decoration: BoxDecoration(
+              color: _mint,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'Weekly',
+              style: TextStyle(
+                color: _green,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -391,10 +325,10 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  Widget _supportCard(BuildContext context) {
+  Widget _bankCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
       decoration: BoxDecoration(
         color: _white,
         borderRadius: BorderRadius.circular(22),
@@ -406,12 +340,12 @@ class WalletScreen extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: _mintStrong,
+              color: _blueSoft,
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
-              Icons.help_outline_rounded,
-              color: _green,
+              Icons.account_balance_outlined,
+              color: Color(0xFF496C86),
               size: 21,
             ),
           ),
@@ -421,7 +355,7 @@ class WalletScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Wallet support',
+                  'Payout account',
                   style: TextStyle(
                     color: _text,
                     fontSize: 13.5,
@@ -430,7 +364,7 @@ class WalletScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Questions about payouts or your bank account',
+                  'Bank account ·•••• 41',
                   style: TextStyle(
                     color: _muted,
                     fontSize: 10.5,
@@ -440,19 +374,10 @@ class WalletScreen extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Wallet support will connect to support backend later.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            icon: const Icon(
-              Icons.chevron_right_rounded,
-              color: Color(0xFF8A9790),
-            ),
+          const Icon(
+            Icons.verified_rounded,
+            color: _greenMid,
+            size: 20,
           ),
         ],
       ),
@@ -503,7 +428,7 @@ class _PayoutRow extends StatelessWidget {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Sent to bank account',
+                  'Sent automatically',
                   style: TextStyle(
                     color: WalletScreen._muted,
                     fontSize: 10.5,
