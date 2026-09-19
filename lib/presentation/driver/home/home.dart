@@ -662,12 +662,19 @@ class _DriverHomeState extends State<DriverHome>
         });
 
         // Frontend demo: replace this timer with the backend ride-offer stream.
+        // When a ride is detected, surface the request automatically so the
+        // driver does not need a second tap on the radar.
         _offerSimulationTimer = Timer(
           const Duration(milliseconds: 2800),
           () {
             if (!mounted || !_isOnline) return;
             setState(() {
               _hasRideOffers = true;
+            });
+
+            Future.delayed(const Duration(milliseconds: 260), () {
+              if (!mounted || !_isOnline || !_hasRideOffers) return;
+              _openRideOffers();
             });
           },
         );
