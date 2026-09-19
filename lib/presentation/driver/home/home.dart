@@ -62,6 +62,7 @@ class _DriverHomeState extends State<DriverHome>
   bool _isOnline = false;
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
+  bool _showLastTripPopup = false;
   _HomeDirectOffer? _homeDirectOffer;
 
   // ignore: prefer_final_fields
@@ -715,6 +716,76 @@ class _DriverHomeState extends State<DriverHome>
                 ),
               ),
             ),
+          if (!isDestinationPanel) ...[
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 420),
+              curve: _showLastTripPopup
+                  ? Curves.easeOutBack
+                  : Curves.easeInCubic,
+              left: _showLastTripPopup ? -58 : -12,
+              top: MediaQuery.sizeOf(context).height * 0.44,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 220),
+                opacity: _showLastTripPopup ? 0 : 1,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _showLastTripPopup = true;
+                      });
+                    },
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(19),
+                    ),
+                    child: Container(
+                      width: 62,
+                      height: 50,
+                      padding: const EdgeInsets.only(left: 14, right: 9),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9FBFA),
+                        borderRadius: const BorderRadius.horizontal(
+                          right: Radius.circular(19),
+                        ),
+                        border: Border.all(
+                          color: const Color(0xFFDDE5E1),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF172027).withOpacity(0.13),
+                            blurRadius: 16,
+                            offset: const Offset(4, 5),
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.centerRight,
+                      child: const Icon(
+                        Icons.history_rounded,
+                        color: Color(0xFF315E4D),
+                        size: 21,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 460),
+              curve: _showLastTripPopup
+                  ? Curves.easeOutCubic
+                  : Curves.easeInCubic,
+              left: _showLastTripPopup ? 14 : -330,
+              top: MediaQuery.sizeOf(context).height * 0.32,
+              child: IgnorePointer(
+                ignoring: !_showLastTripPopup,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 260),
+                  opacity: _showLastTripPopup ? 1 : 0,
+                  child: _buildLastTripPopup(),
+                ),
+              ),
+            ),
+          ],
           if (!isDestinationPanel)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 320),
@@ -745,6 +816,187 @@ class _DriverHomeState extends State<DriverHome>
 
         ],
       ),
+    );
+  }
+
+  Widget _buildLastTripPopup() {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 310,
+        padding: const EdgeInsets.fromLTRB(16, 14, 14, 15),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFBFCFC),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: const Color(0xFFDDE5E1),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF172027).withOpacity(0.16),
+              blurRadius: 26,
+              offset: const Offset(8, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE7F1EC),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(
+                    Icons.route_rounded,
+                    color: Color(0xFF315E4D),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Last trip',
+                        style: TextStyle(
+                          color: Color(0xFF25302A),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Comfort · 21:42',
+                        style: TextStyle(
+                          color: Color(0xFF7D8983),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showLastTripPopup = false;
+                    });
+                  },
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: Color(0xFF7A8580),
+                    size: 19,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              '126 kr',
+              style: TextStyle(
+                color: Color(0xFF25302A),
+                fontSize: 29,
+                height: 1,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.8,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _lastTripLocationRow(
+              color: const Color(0xFF4E886F),
+              title: 'Central Station',
+            ),
+            const SizedBox(height: 9),
+            _lastTripLocationRow(
+              color: const Color(0xFF35413B),
+              title: 'Södermalm',
+            ),
+            const SizedBox(height: 13),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F3),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.schedule_rounded,
+                    color: Color(0xFF708078),
+                    size: 17,
+                  ),
+                  SizedBox(width: 7),
+                  Text(
+                    '18 min',
+                    style: TextStyle(
+                      color: Color(0xFF4C5A53),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(width: 14),
+                  Icon(
+                    Icons.route_outlined,
+                    color: Color(0xFF708078),
+                    size: 17,
+                  ),
+                  SizedBox(width: 7),
+                  Text(
+                    '7.4 km',
+                    style: TextStyle(
+                      color: Color(0xFF4C5A53),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _lastTripLocationRow({
+    required Color color,
+    required String title,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2.4),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF2C3731),
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1219,6 +1471,7 @@ class _DriverHomeState extends State<DriverHome>
       _isGoingOnline = true;
       _isOnline = false;
       _hasRideOffers = false;
+      _showLastTripPopup = false;
       _homeDirectOffer = null;
     });
     _clearDirectOfferRoute();
