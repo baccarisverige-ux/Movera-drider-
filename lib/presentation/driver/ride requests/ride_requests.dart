@@ -1,14 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 
 class RideRequests extends StatefulWidget {
   final VoidCallback? onCloseRides;
+  final void Function(LatLng pickup, LatLng dropoff)? onPreviewRoute;
+  final VoidCallback? onClearRoute;
 
-  const RideRequests({super.key, this.onCloseRides});
+  const RideRequests({
+    super.key,
+    this.onCloseRides,
+    this.onPreviewRoute,
+    this.onClearRoute,
+  });
 
   @override
   State<RideRequests> createState() => _RideRequestsState();
@@ -24,7 +32,49 @@ class _RideRequestsState extends State<RideRequests> {
 
   Timer? _newTripSignalTimer;
   Timer? _availabilityTimer;
+  Timer? _directOfferTimer;
   bool _hasNewTripSignal = false;
+  _RadarTrip? _directOffer;
+
+  static const _closeDirectOffer = _RadarTrip(
+    id: 'direct-close',
+    category: 'Comfort',
+    fare: '104,80 kr',
+    rating: '4.96',
+    pickupMinutes: 3,
+    pickupKm: 0.9,
+    tripMinutes: 14,
+    tripKm: 7.6,
+    pickup: 'Kungsgatan 42, Stockholm',
+    dropoff: 'Hornstull, Stockholm',
+    isNearby: false,
+    directReason: 'Very close to you',
+    directDetail: 'Outside radar · direct nearby offer',
+    pickupLat: 59.3343,
+    pickupLng: 18.0615,
+    dropoffLat: 59.3157,
+    dropoffLng: 18.0335,
+  );
+
+  static const _expandedDirectOffer = _RadarTrip(
+    id: 'direct-expanded',
+    category: 'Premium',
+    fare: '176,20 kr',
+    rating: '4.98',
+    pickupMinutes: 8,
+    pickupKm: 3.3,
+    tripMinutes: 21,
+    tripKm: 13.8,
+    pickup: 'Odengatan 63, Stockholm',
+    dropoff: 'Solna centrum, Solna',
+    isNearby: false,
+    directReason: 'Expanded after no match',
+    directDetail: 'No radar driver accepted · released wider',
+    pickupLat: 59.3449,
+    pickupLng: 18.0472,
+    dropoffLat: 59.3603,
+    dropoffLng: 18.0009,
+  );
 
   final List<_RadarTrip> _offers = [
     const _RadarTrip(
@@ -65,19 +115,6 @@ class _RideRequestsState extends State<RideRequests> {
       pickup: 'Strandvägen, Stockholm',
       dropoff: 'Solna centrum, Solna',
       isNearby: true,
-    ),
-    const _RadarTrip(
-      id: 'outside-area',
-      category: 'Priority',
-      fare: '210,00 kr',
-      rating: '4.89',
-      pickupMinutes: 34,
-      pickupKm: 31.0,
-      tripMinutes: 17,
-      tripKm: 11.8,
-      pickup: 'Outside local radar area',
-      dropoff: 'Stockholm',
-      isNearby: false,
     ),
   ];
 
@@ -120,6 +157,23 @@ class _RideRequestsState extends State<RideRequests> {
   void initState() {
     super.initState();
 
+    // Frontend-only direct-dispatch simulation.
+    // Backend later decides when an offer qualifies as "very close" or when
+    // radar exhausted without a match. For now we only model the UI/state.
+    _directOffer = _closeDirectOffer;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _previewDirectRoute(_closeDirectOffer);
+    });
+
+    _directOfferTimer = Timer(const Duration(seconds: 11), () {
+      if (!mounted) return;
+      setState(() {
+        _directOffer = _expandedDirectOffer;
+      });
+      _previewDirectRoute(_expandedDirectOffer);
+    });
+
     // Frontend-only signal simulation. A real backend/realtime source should
     // set this flag when new nearby requests arrive. The list itself stays on
     // this screen until the driver explicitly refreshes after that signal.
@@ -133,11 +187,15 @@ class _RideRequestsState extends State<RideRequests> {
     // Frontend-only availability simulation. In production, "claimed by
     // another driver" and "cancelled by rider" events remove the matching
     // offer immediately. Once removed, its Match action no longer exists.
-    _availabilityTimer = Timer(const Duration(seconds: 13), () {
+    _availabilityTimer = Timer(const Duration(seconds: 8), () {
       if (!mounted) return;
       setState(() {
+        if (_directOffer?.id == _closeDirectOffer.id) {
+          _directOffer = null;
+        }
         _offers.removeWhere((offer) => offer.id == 'nearby-3');
       });
+      widget.onClearRoute?.call();
     });
   }
 
@@ -145,7 +203,37 @@ class _RideRequestsState extends State<RideRequests> {
   void dispose() {
     _newTripSignalTimer?.cancel();
     _availabilityTimer?.cancel();
+    _directOfferTimer?.cancel();
     super.dispose();
+  }
+
+  void _previewDirectRoute(_RadarTrip trip) {
+    if (trip.pickupLat == null ||
+        trip.pickupLng == null ||
+        trip.dropoffLat == null ||
+        trip.dropoffLng == null) {
+      return;
+    }
+
+    widget.onPreviewRoute?.call(
+      LatLng(trip.pickupLat!, trip.pickupLng!),
+      LatLng(trip.dropoffLat!, trip.dropoffLng!),
+    );
+  }
+
+  void _dismissDirectOffer() {
+    setState(() {
+      _directOffer = null;
+    });
+    widget.onClearRoute?.call();
+  }
+
+  void _acceptDirectOffer(_RadarTrip trip) {
+    if (_directOffer?.id != trip.id) return;
+    Navigator.push(
+      context,
+      BottomToTopTransition(const AcceptRide()),
+    );
   }
 
   void _refreshFromRadarSignal() {
@@ -184,6 +272,11 @@ class _RideRequestsState extends State<RideRequests> {
           children: [
             _topBar(),
             _radarStatus(offers.length),
+            if (_directOffer != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+                child: _directOfferCard(_directOffer!),
+              ),
             if (_hasNewTripSignal) _newTripsBanner(),
             Expanded(
               child: offers.isEmpty
@@ -369,6 +462,211 @@ class _RideRequestsState extends State<RideRequests> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _directOfferCard(_RadarTrip trip) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _previewDirectRoute(trip),
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFB),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: AppColor.primary.withOpacity(0.42),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.13),
+                blurRadius: 22,
+                offset: const Offset(0, 9),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8EEF2),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Text(
+                      trip.category,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF7F1),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Text(
+                      trip.directReason ?? 'Direct offer',
+                      style: const TextStyle(
+                        color: Color(0xFF257658),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  InkWell(
+                    onTap: _dismissDirectOffer,
+                    borderRadius: BorderRadius.circular(20),
+                    child: const SizedBox(
+                      width: 34,
+                      height: 34,
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: _muted,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                trip.fare,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 31,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.0,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                trip.directDetail ?? 'Direct offer',
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.star_rounded,
+                    color: Color(0xFFD7A02C),
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    trip.rating,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(
+                    Icons.near_me_outlined,
+                    size: 15,
+                    color: AppColor.primary,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    '${trip.pickupMinutes} min · ${trip.pickupKm.toStringAsFixed(1)} km away',
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 13),
+              const Divider(height: 1, color: _line),
+              const SizedBox(height: 13),
+              _locationRow(
+                markerColor: AppColor.primary,
+                title: trip.pickup,
+              ),
+              const SizedBox(height: 10),
+              _locationRow(
+                markerColor: _ink,
+                title: trip.dropoff,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${trip.tripMinutes} min · ${trip.tripKm.toStringAsFixed(1)} km trip',
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _previewDirectRoute(trip),
+                    icon: const Icon(Icons.alt_route_rounded, size: 17),
+                    label: const Text('Route'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColor.primary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  SizedBox(
+                    height: 40,
+                    child: FilledButton(
+                      onPressed: () => _acceptDirectOffer(trip),
+                      style: FilledButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: _ink,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Accept',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -614,6 +912,12 @@ class _RadarTrip {
     required this.pickup,
     required this.dropoff,
     required this.isNearby,
+    this.directReason,
+    this.directDetail,
+    this.pickupLat,
+    this.pickupLng,
+    this.dropoffLat,
+    this.dropoffLng,
   });
 
   final String id;
@@ -627,6 +931,12 @@ class _RadarTrip {
   final String pickup;
   final String dropoff;
   final bool isNearby;
+  final String? directReason;
+  final String? directDetail;
+  final double? pickupLat;
+  final double? pickupLng;
+  final double? dropoffLat;
+  final double? dropoffLng;
 }
 
 class _LiveDot extends StatelessWidget {
