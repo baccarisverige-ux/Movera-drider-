@@ -1,14 +1,8 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:movera/constants/appassets.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
-import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
 import 'package:movera/presentation/driver/side%20menu/side_menu.dart';
 import 'package:movera/widgets/custom_google_map.dart';
@@ -81,8 +75,10 @@ class _DriverHomeState extends State<DriverHome> with TickerProviderStateMixin {
       key: _scaffoldKey,
       drawer: const DriverSideMenu(),
       body: showRideRequests
-          ? const RideRequests()
-          : SlidingUpPanel(
+          ? RideRequests(onCloseRides: () => setState(() => showRideRequests = false))
+          : Stack(
+              children: [
+                SlidingUpPanel(
               color: Colors.transparent,
               controller: _panelController,
               minHeight: 108,
@@ -130,6 +126,73 @@ class _DriverHomeState extends State<DriverHome> with TickerProviderStateMixin {
                   compassEnabled: false,
                 ),
               ),
+            ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 58,
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (_isOnline) {
+                            _isOnline = false;
+                          } else if (!_isGoingOnline) {
+                            _isGoingOnline = true;
+                            Future<void>.delayed(const Duration(milliseconds: 900), () {
+                              if (!mounted) return;
+                              setState(() {
+                                _isGoingOnline = false;
+                                _isOnline = true;
+                              });
+                            });
+                          }
+                        });
+                      },
+                      child: Container(
+                        width: 104,
+                        height: 104,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xCC2A3238),
+                          border: Border.all(
+                            color: _isOnline
+                                ? const Color(0xFF2FBE7B)
+                                : Colors.white24,
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Trip radar',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              _isOnline
+                                  ? 'ONLINE'
+                                  : (_isGoingOnline ? '...' : 'OFFLINE'),
+                              style: TextStyle(
+                                color: _isOnline
+                                    ? const Color(0xFF2FBE7B)
+                                    : Colors.white70,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
     );
   }
