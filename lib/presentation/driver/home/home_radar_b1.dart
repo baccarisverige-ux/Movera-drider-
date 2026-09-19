@@ -1,6 +1,6 @@
 part of 'home.dart';
 
-extension _DriverHomeRadarB1 on _DriverHomeState {
+mixin _DriverHomeRadarB1 on _DriverHomeState {
   Widget _mapControlDividerImpl() {
     return Container(
       height: ResSize.h * 22,
