@@ -9,6 +9,7 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
+import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
@@ -43,6 +44,9 @@ class _DriverHomeState extends State<DriverHome>
   late final AnimationController _radarSweepController;
   Timer? _onlineTransitionTimer;
   Timer? _offerSimulationTimer;
+  Timer? _directOfferTimer;
+  Timer? _directOfferTimeoutTimer;
+  Timer? _expandedDirectOfferTimer;
   GoogleMapController? _mapController;
   bool isPanelOpen = false;
   bool _blockMapGestures = false;
@@ -58,16 +62,51 @@ class _DriverHomeState extends State<DriverHome>
   bool _isOnline = false;
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
+  _HomeDirectOffer? _homeDirectOffer;
 
   // ignore: prefer_final_fields
   Set<Marker> _markers = {};
-  Set<Marker> _radarRouteMarkers = {};
-  Set<Polyline> _radarRoutePolylines = {};
-  bool _isRadarRoutePreview = false;
+  Set<Marker> _directOfferRouteMarkers = {};
+  Set<Polyline> _directOfferRoutePolylines = {};
+  bool _isDirectOfferRoutePreview = false;
 
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(59.3293, 18.0686),
     zoom: 14.0,
+  );
+
+  static const _HomeDirectOffer _veryCloseDirectOffer = _HomeDirectOffer(
+    id: 'home-direct-close',
+    category: 'Comfort',
+    reason: 'Very close to you',
+    detail: 'Direct request outside radar',
+    fare: '104,80 kr',
+    rating: '4.96',
+    pickupMinutes: 3,
+    pickupKm: 0.9,
+    tripMinutes: 14,
+    tripKm: 7.6,
+    pickup: 'Kungsgatan 42, Stockholm',
+    dropoff: 'Hornstull, Stockholm',
+    pickupPosition: LatLng(59.3343, 18.0615),
+    dropoffPosition: LatLng(59.3157, 18.0335),
+  );
+
+  static const _HomeDirectOffer _expandedDirectOffer = _HomeDirectOffer(
+    id: 'home-direct-expanded',
+    category: 'Premium',
+    reason: 'Expanded request',
+    detail: 'No nearby radar driver matched',
+    fare: '176,20 kr',
+    rating: '4.98',
+    pickupMinutes: 8,
+    pickupKm: 3.3,
+    tripMinutes: 21,
+    tripKm: 13.8,
+    pickup: 'Odengatan 63, Stockholm',
+    dropoff: 'Solna centrum, Solna',
+    pickupPosition: LatLng(59.3449, 18.0472),
+    dropoffPosition: LatLng(59.3603, 18.0009),
   );
 
   @override
@@ -95,7 +134,7 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Future<void> _previewRadarRoute(
+  Future<void> _previewDirectOfferRoute(
     LatLng pickup,
     LatLng dropoff,
   ) async {
@@ -113,8 +152,8 @@ class _DriverHomeState extends State<DriverHome>
         : dropoff.longitude;
 
     setState(() {
-      _isRadarRoutePreview = true;
-      _radarRouteMarkers = {
+      _isDirectOfferRoutePreview = true;
+      _directOfferRouteMarkers = {
         Marker(
           markerId: const MarkerId('radar_pickup'),
           position: pickup,
@@ -132,7 +171,7 @@ class _DriverHomeState extends State<DriverHome>
           ),
         ),
       };
-      _radarRoutePolylines = {
+      _directOfferRoutePolylines = {
         Polyline(
           polylineId: const PolylineId('direct_offer_route'),
           points: [pickup, dropoff],
@@ -157,13 +196,67 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  void _clearRadarRoute() {
+  void _clearDirectOfferRoute() {
     if (!mounted) return;
     setState(() {
-      _isRadarRoutePreview = false;
-      _radarRouteMarkers = {};
-      _radarRoutePolylines = {};
+      _isDirectOfferRoutePreview = false;
+      _directOfferRouteMarkers = {};
+      _directOfferRoutePolylines = {};
     });
+  }
+
+  Future<void> _showHomeDirectOffer(
+    _HomeDirectOffer offer,
+  ) async {
+    if (!mounted || !_isOnline || showRideRequests) return;
+
+    await _closeDriverSheet();
+    if (!mounted || !_isOnline || showRideRequests) return;
+
+    setState(() {
+      _homeDirectOffer = offer;
+    });
+
+    await _previewDirectOfferRoute(
+      offer.pickupPosition,
+      offer.dropoffPosition,
+    );
+
+    _directOfferTimeoutTimer?.cancel();
+    _directOfferTimeoutTimer = Timer(
+      const Duration(milliseconds: 8500),
+      () {
+        if (!mounted || _homeDirectOffer?.id != offer.id) return;
+        _dismissHomeDirectOffer();
+      },
+    );
+  }
+
+  void _dismissHomeDirectOffer() {
+    _directOfferTimeoutTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _homeDirectOffer = null;
+    });
+    _clearDirectOfferRoute();
+  }
+
+  void _acceptHomeDirectOffer() {
+    if (_homeDirectOffer == null) return;
+
+    _directOfferTimeoutTimer?.cancel();
+    _expandedDirectOfferTimer?.cancel();
+    _offerSimulationTimer?.cancel();
+
+    setState(() {
+      _homeDirectOffer = null;
+    });
+    _clearDirectOfferRoute();
+
+    Navigator.push(
+      context,
+      BottomToTopTransition(const AcceptRide()),
+    );
   }
 
   void _showAccountActivationDialog() {
@@ -244,25 +337,16 @@ class _DriverHomeState extends State<DriverHome>
                 ),
                 ClipRect(
                   child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(
-                      sigmaX: _isRadarRoutePreview ? 2.6 : 9.5,
-                      sigmaY: _isRadarRoutePreview ? 2.6 : 9.5,
-                    ),
+                    filter: ui.ImageFilter.blur(sigmaX: 9.5, sigmaY: 9.5),
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            const Color(0xFF172027).withOpacity(
-                              _isRadarRoutePreview ? 0.24 : 0.46,
-                            ),
-                            const Color(0xFF6F7D80).withOpacity(
-                              _isRadarRoutePreview ? 0.08 : 0.16,
-                            ),
-                            const Color(0xFFF4F7F8).withOpacity(
-                              _isRadarRoutePreview ? 0.10 : 0.24,
-                            ),
+                            const Color(0xFF172027).withOpacity(0.46),
+                            const Color(0xFF6F7D80).withOpacity(0.16),
+                            const Color(0xFFF4F7F8).withOpacity(0.24),
                           ],
                           stops: const [0.0, 0.45, 1.0],
                         ),
@@ -274,10 +358,7 @@ class _DriverHomeState extends State<DriverHome>
                   child: const SizedBox.expand(),
                 ),
                 RideRequests(
-                  onPreviewRoute: _previewRadarRoute,
-                  onClearRoute: _clearRadarRoute,
                   onCloseRides: () {
-                    _clearRadarRoute();
                     setState(() {
                       showRideRequests = false;
                     });
@@ -370,11 +451,7 @@ class _DriverHomeState extends State<DriverHome>
     return SizedBox.expand(
       child: CustomGoogleMap(
         initialPosition: _initialPosition,
-        markers: {
-          ..._markers,
-          ..._radarRouteMarkers,
-        },
-        polylines: _radarRoutePolylines,
+        markers: _markers,
         myLocationEnabled: true,
         myLocationButtonEnabled: false,
         zoomControlsEnabled: false,
@@ -390,23 +467,6 @@ class _DriverHomeState extends State<DriverHome>
         mapType: MapType.normal,
         onMapCreated: (GoogleMapController controller) {
           _mapController = controller;
-          if (_isRadarRoutePreview &&
-              _radarRouteMarkers.length >= 2) {
-            final pickup = _radarRouteMarkers
-                .firstWhere(
-                  (marker) => marker.markerId.value == 'radar_pickup',
-                )
-                .position;
-            final dropoff = _radarRouteMarkers
-                .firstWhere(
-                  (marker) => marker.markerId.value == 'radar_dropoff',
-                )
-                .position;
-            Future<void>.delayed(
-              const Duration(milliseconds: 120),
-              () => _previewRadarRoute(pickup, dropoff),
-            );
-          }
         },
         onTap: (LatLng position) {},
       ),
@@ -421,7 +481,11 @@ class _DriverHomeState extends State<DriverHome>
         children: [
           CustomGoogleMap(
             initialPosition: _initialPosition,
-            markers: _markers,
+            markers: {
+              ..._markers,
+              ..._directOfferRouteMarkers,
+            },
+            polylines: _directOfferRoutePolylines,
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
@@ -610,6 +674,49 @@ class _DriverHomeState extends State<DriverHome>
             ),
           if (!isDestinationPanel)
             Positioned(
+              left: 14,
+              right: 14,
+              bottom: 178,
+              child: IgnorePointer(
+                ignoring: _homeDirectOffer == null,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 420),
+                  reverseDuration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final slide = Tween<Offset>(
+                      begin: const Offset(0, 0.10),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      ),
+                    );
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: slide,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _homeDirectOffer == null
+                      ? const SizedBox.shrink(
+                          key: ValueKey<String>('no-direct-offer'),
+                        )
+                      : KeyedSubtree(
+                          key: ValueKey<String>(_homeDirectOffer!.id),
+                          child: _buildHomeDirectOfferCard(
+                            _homeDirectOffer!,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          if (!isDestinationPanel)
+            Positioned(
               left: 18,
               top: ResSize.h * 55,
               child: Material(
@@ -636,6 +743,244 @@ class _DriverHomeState extends State<DriverHome>
 
         ],
       ),
+    );
+  }
+
+  Widget _buildHomeDirectOfferCard(_HomeDirectOffer offer) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: AppColor.primary.withOpacity(0.34),
+            width: 1.1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF11181C).withOpacity(0.18),
+              blurRadius: 28,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE9EEF1),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Text(
+                    offer.category,
+                    style: const TextStyle(
+                      color: Color(0xFF252E3A),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE9F6F0),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Text(
+                      offer.reason,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF257658),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                InkWell(
+                  onTap: _dismissHomeDirectOffer,
+                  borderRadius: BorderRadius.circular(20),
+                  child: const SizedBox(
+                    width: 34,
+                    height: 34,
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: Color(0xFF7D898F),
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 11),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  offer.fare,
+                  style: const TextStyle(
+                    color: Color(0xFF252E3A),
+                    fontSize: 30,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.9,
+                  ),
+                ),
+                const Spacer(),
+                const Icon(
+                  Icons.star_rounded,
+                  color: Color(0xFFD7A02C),
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  offer.rating,
+                  style: const TextStyle(
+                    color: Color(0xFF6F7B82),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              offer.detail,
+              style: const TextStyle(
+                color: Color(0xFF7D898F),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFE4E8EA)),
+            const SizedBox(height: 11),
+            _homeDirectLocationRow(
+              color: AppColor.primary,
+              title:
+                  '${offer.pickupMinutes} min · ${offer.pickupKm.toStringAsFixed(1)} km away',
+              subtitle: offer.pickup,
+            ),
+            const SizedBox(height: 9),
+            _homeDirectLocationRow(
+              color: const Color(0xFF252E3A),
+              title:
+                  '${offer.tripMinutes} min · ${offer.tripKm.toStringAsFixed(1)} km trip',
+              subtitle: offer.dropoff,
+            ),
+            const SizedBox(height: 13),
+            Row(
+              children: [
+                TextButton.icon(
+                  onPressed: () => _previewDirectOfferRoute(
+                    offer.pickupPosition,
+                    offer.dropoffPosition,
+                  ),
+                  icon: const Icon(Icons.alt_route_rounded, size: 17),
+                  label: const Text('Route'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColor.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                SizedBox(
+                  height: 42,
+                  child: FilledButton(
+                    onPressed: _acceptHomeDirectOffer,
+                    style: FilledButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: const Color(0xFF252E3A),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 22),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Accept',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _homeDirectLocationRow({
+    required Color color,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          margin: const EdgeInsets.only(top: 3),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2.5),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF252E3A),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF7D898F),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -864,12 +1209,17 @@ class _DriverHomeState extends State<DriverHome>
 
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
+    _directOfferTimer?.cancel();
+    _directOfferTimeoutTimer?.cancel();
+    _expandedDirectOfferTimer?.cancel();
 
     setState(() {
       _isGoingOnline = true;
       _isOnline = false;
       _hasRideOffers = false;
+      _homeDirectOffer = null;
     });
+    _clearDirectOfferRoute();
 
     _onlineTransitionTimer = Timer(
       const Duration(milliseconds: 1400),
@@ -880,19 +1230,46 @@ class _DriverHomeState extends State<DriverHome>
           _isOnline = true;
         });
 
-        // Frontend demo: replace this timer with the backend ride-offer stream.
-        // When a ride is detected, surface the request automatically so the
-        // driver does not need a second tap on the radar.
-        _offerSimulationTimer = Timer(
-          const Duration(milliseconds: 2800),
+        // Frontend demo only: a direct request appears on the normal Home map.
+        _directOfferTimer = Timer(
+          const Duration(milliseconds: 2200),
           () {
             if (!mounted || !_isOnline) return;
+            _showHomeDirectOffer(_veryCloseDirectOffer);
+          },
+        );
+
+        // Demo of the second allowed direct-dispatch condition.
+        _expandedDirectOfferTimer = Timer(
+          const Duration(milliseconds: 13000),
+          () {
+            if (!mounted || !_isOnline || _homeDirectOffer != null) return;
+            _showHomeDirectOffer(_expandedDirectOffer);
+          },
+        );
+
+        // Normal Trip Radar offers remain a separate flow and arrive later.
+        _offerSimulationTimer = Timer(
+          const Duration(milliseconds: 24500),
+          () {
+            if (!mounted ||
+                !_isOnline ||
+                _homeDirectOffer != null ||
+                showRideRequests) {
+              return;
+            }
+
             setState(() {
               _hasRideOffers = true;
             });
 
             Future.delayed(const Duration(milliseconds: 260), () {
-              if (!mounted || !_isOnline || !_hasRideOffers) return;
+              if (!mounted ||
+                  !_isOnline ||
+                  !_hasRideOffers ||
+                  _homeDirectOffer != null) {
+                return;
+              }
               _openRideOffers();
             });
           },
@@ -904,15 +1281,22 @@ class _DriverHomeState extends State<DriverHome>
   Future<void> _goOffline() async {
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
+    _directOfferTimer?.cancel();
+    _directOfferTimeoutTimer?.cancel();
+    _expandedDirectOfferTimer?.cancel();
+
     setState(() {
       _isGoingOnline = false;
       _isOnline = false;
       _hasRideOffers = false;
+      _homeDirectOffer = null;
     });
+    _clearDirectOfferRoute();
     await _closeDriverSheet();
   }
 
   void _openRideOffers() {
+    if (_homeDirectOffer != null) return;
     setState(() {
       showRideRequests = true;
       _hasRideOffers = false;
@@ -1784,6 +2168,9 @@ class _DriverHomeState extends State<DriverHome>
     _goOnlinePulseController.dispose();
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
+    _directOfferTimer?.cancel();
+    _directOfferTimeoutTimer?.cancel();
+    _expandedDirectOfferTimer?.cancel();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
     _mapController?.dispose();
@@ -1846,6 +2233,41 @@ class _DriverHomeState extends State<DriverHome>
       ),
     );
   }
+}
+
+
+class _HomeDirectOffer {
+  final String id;
+  final String category;
+  final String reason;
+  final String detail;
+  final String fare;
+  final String rating;
+  final int pickupMinutes;
+  final double pickupKm;
+  final int tripMinutes;
+  final double tripKm;
+  final String pickup;
+  final String dropoff;
+  final LatLng pickupPosition;
+  final LatLng dropoffPosition;
+
+  const _HomeDirectOffer({
+    required this.id,
+    required this.category,
+    required this.reason,
+    required this.detail,
+    required this.fare,
+    required this.rating,
+    required this.pickupMinutes,
+    required this.pickupKm,
+    required this.tripMinutes,
+    required this.tripKm,
+    required this.pickup,
+    required this.dropoff,
+    required this.pickupPosition,
+    required this.dropoffPosition,
+  });
 }
 
 
