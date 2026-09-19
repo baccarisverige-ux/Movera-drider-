@@ -195,7 +195,7 @@ class _RideRequestsState extends State<RideRequests> {
                       itemCount: offers.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
-                        return _tripCard(offers[index], index);
+                        return _tripCard(offers[index]);
                       },
                     ),
             ),
@@ -376,7 +376,7 @@ class _RideRequestsState extends State<RideRequests> {
     );
   }
 
-  Widget _tripCard(_RadarTrip trip, int index) {
+  Widget _tripCard(_RadarTrip trip) {
     return Container(
       key: ValueKey(trip.id),
       padding: const EdgeInsets.fromLTRB(15, 14, 15, 13),
