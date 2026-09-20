@@ -4117,10 +4117,7 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _lastWaybillCard() {
-    final last = WaybillStore.last;
-    if (last == null) return const SizedBox.shrink();
-
+  Widget _lastWaybillCard(WaybillRecord last) {
     return _sheetAlertCard(
       icon: Icons.receipt_long_outlined,
       iconColor: const Color(0xFF315E4D),
@@ -4213,10 +4210,19 @@ class _DriverHomeState extends State<DriverHome>
                           ],
                         ),
                       ),
-                      if (WaybillStore.last != null) ...[
-                        _lastWaybillCard(),
-                        const SizedBox(height: 10),
-                      ],
+                      ValueListenableBuilder<WaybillRecord?>(
+                        valueListenable: WaybillStore.lastNotifier,
+                        builder: (context, lastWaybill, _) {
+                          if (lastWaybill == null) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _lastWaybillCard(lastWaybill),
+                          );
+                        },
+                      ),
                       if (_adminHomeConfig.scheduledRides.enabled) ...[
                         _sheetAlertCard(
                           icon: Icons.event_available_outlined,
