@@ -749,6 +749,13 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey<String>('ride-001')), findsWidgets);
+
+    await tester.drag(
+      find.byKey(const ValueKey<String>('history-all-rides')),
+      const Offset(0, -900),
+    );
+    await tester.pump(const Duration(milliseconds: 160));
+
     expect(find.byKey(const ValueKey<String>('ride-006')), findsOneWidget);
     _expectNoException(tester);
   });
