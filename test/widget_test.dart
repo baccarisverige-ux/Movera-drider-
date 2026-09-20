@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/main.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
+import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
@@ -9,6 +10,7 @@ import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
+import 'package:movera/widgets/custom_google_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 Future<void> _pumpHome(WidgetTester tester, Size size) async {
@@ -303,6 +305,125 @@ void main() {
     expect(find.byType(RideRequests), findsNothing);
     expect(find.text('Trip found'), findsOneWidget);
     expect(find.text('NEW'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Destination Mode sets one route and auto-starts online', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final openDestination = find.byKey(
+      const ValueKey<String>('destination-mode-open'),
+    );
+    expect(openDestination, findsOneWidget);
+    tester.widget<InkWell>(openDestination).onTap!.call();
+    await tester.pump(const Duration(milliseconds: 360));
+
+    expect(find.byType(DriverDestinationPicker), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('destination-search')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('destination-confirm')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    final confirm = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('destination-confirm')),
+    );
+    confirm.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 420));
+
+    expect(find.byType(DriverHome), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('destination-mode-home-tab')),
+      findsOneWidget,
+    );
+    expect(find.text('STARTING'), findsOneWidget);
+
+    final map = tester.widget<CustomGoogleMap>(
+      find.byType(CustomGoogleMap).first,
+    );
+    expect(
+      map.polylines!.any(
+        (polyline) =>
+            polyline.polylineId.value == 'destination_mode_route' &&
+            polyline.points.length == 2,
+      ),
+      isTrue,
+    );
+    expect(
+      map.markers!.any(
+        (marker) => marker.markerId.value == 'destination_mode_target',
+      ),
+      isTrue,
+    );
+
+    await tester.pump(const Duration(milliseconds: 1550));
+    expect(find.text('LIVE'), findsOneWidget);
+    _expectNoException(tester);
+
+    final endDestination = find.byKey(
+      const ValueKey<String>('destination-mode-end'),
+    );
+    expect(endDestination, findsOneWidget);
+    tester.widget<InkWell>(endDestination).onTap!.call();
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('destination-mode-home-tab')),
+      findsNothing,
+    );
+    expect(find.text('LIVE'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Destination picker remains layout-safe on narrow phone', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    await tester.pumpWidget(
+      const MaterialApp(home: DriverDestinationPicker()),
+    );
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(find.text('Set destination'), findsOneWidget);
+    expect(find.text('Start Destination Mode'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('destination-search')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+  });
+
+  testWidgets('Destination radar only shows same-way frontend offers', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: RideRequests(
+          destinationModeActive: true,
+          destinationAddress: 'Solna Torg, Solna',
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(
+      find.byKey(const ValueKey<String>('radar-destination-filter')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Trips toward Solna Torg'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('nearby-1')), findsNothing);
+    expect(find.byKey(const ValueKey<String>('nearby-2')), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('nearby-3')), findsOneWidget);
     _expectNoException(tester);
   });
 
