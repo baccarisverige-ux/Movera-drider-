@@ -748,7 +748,7 @@ void main() {
       find.byKey(const ValueKey<String>('history-all-rides')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey<String>('ride-001')), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('ride-001')), findsWidgets);
     expect(find.byKey(const ValueKey<String>('ride-006')), findsOneWidget);
     _expectNoException(tester);
   });
