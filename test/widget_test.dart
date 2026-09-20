@@ -127,20 +127,20 @@ void main() {
     final wallet = find.byTooltip('Wallet');
     expect(wallet, findsOneWidget);
     await tester.tap(wallet);
-    await _advanceAnimation(tester, const Duration(milliseconds: 320));
+    await tester.pumpAndSettle();
     expect(find.byType(WalletScreen), findsOneWidget);
     _expectNoException(tester);
     Navigator.of(tester.element(find.byType(WalletScreen))).pop();
-    await _advanceAnimation(tester, const Duration(milliseconds: 320));
+    await tester.pumpAndSettle();
 
     final inbox = find.byTooltip('Inbox');
     expect(inbox, findsOneWidget);
     await tester.tap(inbox);
-    await _advanceAnimation(tester, const Duration(milliseconds: 320));
+    await tester.pumpAndSettle();
     expect(find.byType(SupportInboxScreen), findsOneWidget);
     _expectNoException(tester);
     Navigator.of(tester.element(find.byType(SupportInboxScreen))).pop();
-    await _advanceAnimation(tester, const Duration(milliseconds: 320));
+    await tester.pumpAndSettle();
 
     final scheduled = find.byTooltip('Scheduled');
     expect(scheduled, findsOneWidget);
@@ -152,7 +152,7 @@ void main() {
     final menu = find.byTooltip('Menu');
     expect(menu, findsOneWidget);
     await tester.tap(menu);
-    await _advanceAnimation(tester, const Duration(milliseconds: 320));
+    await tester.pumpAndSettle();
     expect(scaffoldKey.currentState?.isDrawerOpen, isTrue);
     _expectNoException(tester);
   });
