@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:dotted_line/dotted_line.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -25,6 +24,8 @@ class DriverRideCompleted extends StatefulWidget {
 
 class _DriverRideCompletedState extends State<DriverRideCompleted> {
   double _rating = 0.0;
+
+  WaybillRecord? get _record => WaybillStore.last;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
