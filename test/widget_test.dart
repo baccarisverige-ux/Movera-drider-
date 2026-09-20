@@ -432,12 +432,10 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    final launcherIcon = find.byIcon(Icons.insights_rounded);
-    expect(launcherIcon, findsOneWidget);
-    final launcherInk = find.ancestor(
-      of: launcherIcon,
-      matching: find.byType(InkWell),
+    final launcherInk = find.byKey(
+      const ValueKey<String>('last-trip-launcher'),
     );
+    expect(launcherInk, findsOneWidget);
     tester.widget<InkWell>(launcherInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
@@ -461,12 +459,14 @@ void main() {
       find.byKey(const ValueKey<String>('today-summary-pointer')),
     );
     expect(summaryPointer.ignoring, isTrue);
-    expect(find.byIcon(Icons.insights_rounded), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('last-trip-launcher')),
+      findsOneWidget,
+    );
     _expectNoException(tester);
 
-    final launcherAgain = find.ancestor(
-      of: find.byIcon(Icons.insights_rounded),
-      matching: find.byType(InkWell),
+    final launcherAgain = find.byKey(
+      const ValueKey<String>('last-trip-launcher'),
     );
     tester.widget<InkWell>(launcherAgain).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
