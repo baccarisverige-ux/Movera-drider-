@@ -45,7 +45,7 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _onlineTransitionTimer;
   Timer? _offerSimulationTimer;
   Timer? _directOfferTimer;
-  Timer? _directOfferTimeoutTimer;
+  final Map<String, Timer> _directOfferTimeoutTimers = <String, Timer>{};
   Timer? _expandedDirectOfferTimer;
   GoogleMapController? _mapController;
   bool isPanelOpen = false;
@@ -55,7 +55,7 @@ class _DriverHomeState extends State<DriverHome>
   final ValueNotifier<double> _panelSlidePosition = ValueNotifier<double>(0);
 
   static const Duration _sheetMotionDuration = Duration(milliseconds: 420);
-  static const Duration _directOfferLifetime = Duration(milliseconds: 8500);
+  static const Duration _directOfferLifetime = Duration(milliseconds: 22000);
   static const Curve _sheetMotionCurve = Curves.easeOutCubic;
   bool showRideRequests = false;
   bool isAccountActivated = true;
@@ -64,7 +64,7 @@ class _DriverHomeState extends State<DriverHome>
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
   bool _showTodaySummaryPopup = false;
-  _HomeDirectOffer? _homeDirectOffer;
+  final List<_HomeDirectOffer> _homeDirectOffers = <_HomeDirectOffer>[];
   bool _destinationModeActive = false;
   String? _destinationAddress;
   LatLng? _destinationPosition;
@@ -86,8 +86,8 @@ class _DriverHomeState extends State<DriverHome>
   static const _HomeDirectOffer _veryCloseDirectOffer = _HomeDirectOffer(
     id: 'home-direct-close',
     category: 'Comfort',
-    reason: 'Very close to you',
-    detail: 'Direct request outside radar',
+    reason: 'Nearby priority',
+    detail: 'Nearby request matched to your availability',
     fare: '104,80 kr',
     rating: '4.96',
     pickupMinutes: 3,
@@ -103,8 +103,8 @@ class _DriverHomeState extends State<DriverHome>
   static const _HomeDirectOffer _expandedDirectOffer = _HomeDirectOffer(
     id: 'home-direct-expanded',
     category: 'Premium',
-    reason: 'Expanded request',
-    detail: 'No nearby radar driver matched',
+    reason: 'Extended network',
+    detail: 'Matched beyond your current radar radius',
     fare: '176,20 kr',
     rating: '4.98',
     pickupMinutes: 8,
@@ -115,6 +115,23 @@ class _DriverHomeState extends State<DriverHome>
     dropoff: 'Solna centrum, Solna',
     pickupPosition: LatLng(59.3449, 18.0472),
     dropoffPosition: LatLng(59.3603, 18.0009),
+  );
+
+  static const _HomeDirectOffer _radarHomeOffer = _HomeDirectOffer(
+    id: 'home-radar-match',
+    category: 'Comfort',
+    reason: 'Trip Radar match',
+    detail: 'Detected in your live radar coverage',
+    fare: '156,80 kr',
+    rating: '4.77',
+    pickupMinutes: 6,
+    pickupKm: 1.8,
+    tripMinutes: 18,
+    tripKm: 16.4,
+    pickup: 'Kungsgatan 44, Stockholm',
+    dropoff: 'Modulvägen 6B, Kungens Kurva',
+    pickupPosition: LatLng(59.3347, 18.0621),
+    dropoffPosition: LatLng(59.2697, 17.9258),
   );
 
   @override
@@ -359,16 +376,22 @@ class _DriverHomeState extends State<DriverHome>
       return;
     }
 
+    if (_homeDirectOffers.any((item) => item.id == offer.id)) return;
+
     setState(() {
-      _homeDirectOffer = offer;
+      _homeDirectOffers.insert(0, offer);
+      if (_homeDirectOffers.length > 4) {
+        final removed = _homeDirectOffers.removeLast();
+        _directOfferTimeoutTimers.remove(removed.id)?.cancel();
+      }
     });
 
-    _directOfferTimeoutTimer?.cancel();
-    _directOfferTimeoutTimer = Timer(
+    _directOfferTimeoutTimers.remove(offer.id)?.cancel();
+    _directOfferTimeoutTimers[offer.id] = Timer(
       _directOfferLifetime,
       () {
-        if (!mounted || _homeDirectOffer?.id != offer.id) return;
-        _dismissHomeDirectOffer();
+        if (!mounted) return;
+        _dismissHomeDirectOffer(offer);
       },
     );
 
@@ -378,24 +401,36 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  void _dismissHomeDirectOffer() {
-    _directOfferTimeoutTimer?.cancel();
+  void _dismissHomeDirectOffer(_HomeDirectOffer offer) {
+    _directOfferTimeoutTimers.remove(offer.id)?.cancel();
     if (!mounted) return;
+
+    final wasRadarOffer = offer.id == _radarHomeOffer.id;
     setState(() {
-      _homeDirectOffer = null;
+      _homeDirectOffers.removeWhere((item) => item.id == offer.id);
+      if (wasRadarOffer) _hasRideOffers = false;
     });
-    _clearDirectOfferRoute();
+
+    if (_homeDirectOffers.isEmpty) _clearDirectOfferRoute();
   }
 
-  void _acceptHomeDirectOffer() {
-    if (_homeDirectOffer == null) return;
+  void _cancelAllHomeOfferTimers() {
+    for (final timer in _directOfferTimeoutTimers.values) {
+      timer.cancel();
+    }
+    _directOfferTimeoutTimers.clear();
+  }
 
-    _directOfferTimeoutTimer?.cancel();
+  void _acceptHomeDirectOffer(_HomeDirectOffer offer) {
+    if (!_homeDirectOffers.any((item) => item.id == offer.id)) return;
+
+    _cancelAllHomeOfferTimers();
     _expandedDirectOfferTimer?.cancel();
     _offerSimulationTimer?.cancel();
 
     setState(() {
-      _homeDirectOffer = null;
+      _homeDirectOffers.clear();
+      _hasRideOffers = false;
     });
     _clearDirectOfferRoute();
 
@@ -941,7 +976,7 @@ class _DriverHomeState extends State<DriverHome>
               right: 14,
               bottom: 178,
               child: IgnorePointer(
-                ignoring: _homeDirectOffer == null,
+                ignoring: _homeDirectOffers.isEmpty,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 420),
                   reverseDuration: const Duration(milliseconds: 260),
@@ -949,7 +984,7 @@ class _DriverHomeState extends State<DriverHome>
                   switchOutCurve: Curves.easeInCubic,
                   transitionBuilder: (child, animation) {
                     final slide = Tween<Offset>(
-                      begin: const Offset(0, 0.10),
+                      begin: const Offset(0, 0.08),
                       end: Offset.zero,
                     ).animate(
                       CurvedAnimation(
@@ -965,15 +1000,13 @@ class _DriverHomeState extends State<DriverHome>
                       ),
                     );
                   },
-                  child: _homeDirectOffer == null
+                  child: _homeDirectOffers.isEmpty
                       ? const SizedBox.shrink(
-                          key: ValueKey<String>('no-direct-offer'),
+                          key: ValueKey<String>('no-home-offers'),
                         )
                       : KeyedSubtree(
-                          key: ValueKey<String>(_homeDirectOffer!.id),
-                          child: _buildHomeDirectOfferCard(
-                            _homeDirectOffer!,
-                          ),
+                          key: ValueKey<int>(_homeDirectOffers.length),
+                          child: _buildHomeOffersTray(),
                         ),
                 ),
               ),
@@ -1118,6 +1151,116 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  Widget _buildHomeOffersTray() {
+    final offers = List<_HomeDirectOffer>.of(_homeDirectOffers);
+    final trayHeight = math.min(
+      410.0,
+      MediaQuery.of(context).size.height * 0.47,
+    );
+
+    return SizedBox(
+      height: trayHeight,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F9F9).withOpacity(0.97),
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: const Color(0xFFDDE5E2)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF11181C).withOpacity(0.13),
+              blurRadius: 28,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 13, 12, 10),
+              child: Row(
+                children: [
+                  Container(
+                    height: 34,
+                    width: 34,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE9F3EF),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.local_taxi_outlined,
+                      color: Color(0xFF315E4D),
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Trip opportunities',
+                          style: TextStyle(
+                            color: Color(0xFF252E3A),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Radar and nearby matches',
+                          style: TextStyle(
+                            color: Color(0xFF7C888E),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF26343A),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      offers.length.toString() + ' available',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFFE3E8E6)),
+            Expanded(
+              child: Scrollbar(
+                thumbVisibility: offers.length > 1,
+                child: ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+                  itemCount: offers.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    return _buildHomeDirectOfferCard(offers[index]);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildHomeDirectOfferCard(_HomeDirectOffer offer) {
     const alertCoral = Color(0xFFFF765C);
 
@@ -1201,7 +1344,7 @@ class _DriverHomeState extends State<DriverHome>
                     ),
                     const Spacer(),
                     InkWell(
-                      onTap: _dismissHomeDirectOffer,
+                      onTap: () => _dismissHomeDirectOffer(offer),
                       borderRadius: BorderRadius.circular(20),
                       child: const SizedBox(
                         width: 34,
@@ -1276,7 +1419,7 @@ class _DriverHomeState extends State<DriverHome>
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Direct offer · ${seconds}s',
+                              'Offer expires · ${seconds}s',
                               style: const TextStyle(
                                 color: Color(0xFFB84F3D),
                                 fontSize: 10.5,
@@ -1285,7 +1428,7 @@ class _DriverHomeState extends State<DriverHome>
                             ),
                             const Spacer(),
                             const Text(
-                              'Limited time',
+                              'Live request',
                               style: TextStyle(
                                 color: Color(0xFF8A9499),
                                 fontSize: 9.5,
@@ -1347,7 +1490,7 @@ class _DriverHomeState extends State<DriverHome>
                     SizedBox(
                       height: 42,
                       child: FilledButton(
-                        onPressed: _acceptHomeDirectOffer,
+                        onPressed: () => _acceptHomeDirectOffer(offer),
                         style: FilledButton.styleFrom(
                           elevation: 0,
                           backgroundColor: const Color(0xFF252E3A),
@@ -1449,15 +1592,13 @@ class _DriverHomeState extends State<DriverHome>
 
   void _closeHomeFloatingPopupsForSheet() {
     if (!_showTodaySummaryPopup &&
-        _homeDirectOffer == null &&
-        !showRideRequests) {
+        !showRideRequests &&
+        !_isDirectOfferRoutePreview) {
       return;
     }
 
-    _directOfferTimeoutTimer?.cancel();
     setState(() {
       _showTodaySummaryPopup = false;
-      _homeDirectOffer = null;
       showRideRequests = false;
       _isDirectOfferRoutePreview = false;
       _directOfferRouteMarkers = {};
@@ -1721,7 +1862,7 @@ class _DriverHomeState extends State<DriverHome>
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
     _directOfferTimer?.cancel();
-    _directOfferTimeoutTimer?.cancel();
+    _cancelAllHomeOfferTimers();
     _expandedDirectOfferTimer?.cancel();
 
     setState(() {
@@ -1729,7 +1870,7 @@ class _DriverHomeState extends State<DriverHome>
       _isOnline = false;
       _hasRideOffers = false;
       _showTodaySummaryPopup = false;
-      _homeDirectOffer = null;
+      _homeDirectOffers.clear();
     });
     _clearDirectOfferRoute();
 
@@ -1742,7 +1883,8 @@ class _DriverHomeState extends State<DriverHome>
           _isOnline = true;
         });
 
-        // Frontend demo only: a direct request appears on the normal Home map.
+        // Frontend demo only: several opportunities can stay visible on
+        // Home at the same time. Drivers can scroll them without leaving map.
         _directOfferTimer = Timer(
           const Duration(milliseconds: 2200),
           () {
@@ -1751,39 +1893,25 @@ class _DriverHomeState extends State<DriverHome>
           },
         );
 
-        // Demo of the second allowed direct-dispatch condition.
         _expandedDirectOfferTimer = Timer(
-          const Duration(milliseconds: 13000),
+          const Duration(milliseconds: 6200),
           () {
-            if (!mounted || !_isOnline || _homeDirectOffer != null) return;
+            if (!mounted || !_isOnline) return;
             _showHomeDirectOffer(_expandedDirectOffer);
           },
         );
 
-        // Normal Trip Radar offers remain a separate flow and arrive later.
+        // A standard Trip Radar match can also surface directly on Home.
+        // Tapping the radar orb still opens the dedicated Radar flow.
         _offerSimulationTimer = Timer(
-          const Duration(milliseconds: 24500),
+          const Duration(milliseconds: 9800),
           () {
-            if (!mounted ||
-                !_isOnline ||
-                _homeDirectOffer != null ||
-                showRideRequests) {
-              return;
-            }
+            if (!mounted || !_isOnline || showRideRequests) return;
 
             setState(() {
               _hasRideOffers = true;
             });
-
-            Future.delayed(const Duration(milliseconds: 260), () {
-              if (!mounted ||
-                  !_isOnline ||
-                  !_hasRideOffers ||
-                  _homeDirectOffer != null) {
-                return;
-              }
-              _openRideOffers();
-            });
+            _showHomeDirectOffer(_radarHomeOffer);
           },
         );
       },
@@ -1794,14 +1922,14 @@ class _DriverHomeState extends State<DriverHome>
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
     _directOfferTimer?.cancel();
-    _directOfferTimeoutTimer?.cancel();
+    _cancelAllHomeOfferTimers();
     _expandedDirectOfferTimer?.cancel();
 
     setState(() {
       _isGoingOnline = false;
       _isOnline = false;
       _hasRideOffers = false;
-      _homeDirectOffer = null;
+      _homeDirectOffers.clear();
       _destinationModeActive = false;
       _destinationAddress = null;
       _destinationPosition = null;
@@ -1813,9 +1941,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _openRideOffers() {
-    if (_homeDirectOffer != null ||
-        _mainPanelPosition > 0.04 ||
-        isPanelOpen) {
+    if (_mainPanelPosition > 0.04 || isPanelOpen) {
       return;
     }
     setState(() {
@@ -1878,15 +2004,35 @@ class _DriverHomeState extends State<DriverHome>
         _radarSweepController,
       ]),
       builder: (context, child) {
+        final homeOfferCount = _homeDirectOffers.length;
+        final hasAnyOffer = _hasRideOffers || homeOfferCount > 0;
+
         return _buildRadarOrb(
-          title: _hasRideOffers ? "Trip found" : "Radar",
-          status: _hasRideOffers ? "NEW" : "LIVE",
-          subtitle: _hasRideOffers ? "Tap to view" : "Scanning",
+          title: _hasRideOffers
+              ? "Trip found"
+              : homeOfferCount > 0
+              ? (homeOfferCount == 1
+                  ? "1 offer"
+                  : homeOfferCount.toString() + " offers")
+              : "Radar",
+          status: hasAnyOffer ? "NEW" : "LIVE",
+          subtitle: _hasRideOffers
+              ? "Tap for Radar"
+              : homeOfferCount > 0
+              ? "On your map"
+              : "Scanning",
           active: true,
-          offer: _hasRideOffers,
+          offer: hasAnyOffer,
           pulse: _goOnlinePulseController.value,
           sweep: _radarSweepController.value,
-          onTap: _openRideOffers,
+          onTap: _hasRideOffers
+              ? _openRideOffers
+              : homeOfferCount > 0
+              ? () => _previewDirectOfferRoute(
+                    _homeDirectOffers.first.pickupPosition,
+                    _homeDirectOffers.first.dropoffPosition,
+                  )
+              : null,
         );
       },
     );
@@ -2444,7 +2590,7 @@ class _DriverHomeState extends State<DriverHome>
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
     _directOfferTimer?.cancel();
-    _directOfferTimeoutTimer?.cancel();
+    _cancelAllHomeOfferTimers();
     _expandedDirectOfferTimer?.cancel();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
