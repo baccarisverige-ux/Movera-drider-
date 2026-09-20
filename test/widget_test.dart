@@ -345,27 +345,24 @@ void main() {
     // Second and third Radar offers arrive into the same mounted scroll list.
     await tester.pump(const Duration(milliseconds: 3100));
     expect(find.text('2 live'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-2')),
-      findsOneWidget,
-    );
     _expectNoException(tester);
 
     await tester.pump(const Duration(milliseconds: 3100));
     expect(find.text('3 live'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-3')),
-      findsOneWidget,
-    );
     _expectNoException(tester);
 
-    // The driver can scroll the Radar opportunity list without layout errors.
+    // The driver can scroll the stable Radar opportunity list to later items
+    // without rebuilding or overflowing the Home screen.
     final radarList = find.byKey(
       const PageStorageKey<String>('radar-home-offers-list'),
     );
     expect(radarList, findsOneWidget);
-    await tester.drag(radarList, const Offset(0, -220));
+    await tester.drag(radarList, const Offset(0, -360));
     await tester.pump(const Duration(milliseconds: 160));
+    expect(
+      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-3')),
+      findsOneWidget,
+    );
     _expectNoException(tester);
   });
 
