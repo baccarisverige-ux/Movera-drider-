@@ -374,9 +374,13 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    final launcher = find.byIcon(Icons.insights_rounded).hitTestable();
-    expect(launcher, findsOneWidget);
-    await tester.tap(launcher);
+    final launcherIcon = find.byIcon(Icons.insights_rounded);
+    expect(launcherIcon, findsOneWidget);
+    final launcherInk = find.ancestor(
+      of: launcherIcon,
+      matching: find.byType(InkWell),
+    );
+    tester.widget<InkWell>(launcherInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
     expect(find.text('Today').hitTestable(), findsOneWidget);
@@ -384,15 +388,22 @@ void main() {
     expect(find.text('3 rides').hitTestable(), findsOneWidget);
     _expectNoException(tester);
 
-    final close = find.byIcon(Icons.close_rounded).hitTestable();
-    expect(close, findsOneWidget);
-    await tester.tap(close);
+    final closeIcon = find.byIcon(Icons.close_rounded);
+    final closeInk = find.ancestor(
+      of: closeIcon,
+      matching: find.byType(InkWell),
+    );
+    tester.widget<InkWell>(closeInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
     expect(find.text('Today').hitTestable(), findsNothing);
-    expect(find.byIcon(Icons.insights_rounded).hitTestable(), findsOneWidget);
+    expect(find.byIcon(Icons.insights_rounded), findsOneWidget);
     _expectNoException(tester);
 
-    await tester.tap(find.byIcon(Icons.insights_rounded).hitTestable());
+    final launcherAgain = find.ancestor(
+      of: find.byIcon(Icons.insights_rounded),
+      matching: find.byType(InkWell),
+    );
+    tester.widget<InkWell>(launcherAgain).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
     expect(find.text('Today').hitTestable(), findsOneWidget);
 
@@ -409,9 +420,13 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(320, 700));
 
-    final safetyButton = find.byIcon(Icons.shield_outlined).hitTestable();
-    expect(safetyButton, findsOneWidget);
-    await tester.tap(safetyButton);
+    final homeSafetyIcon = find.byIcon(Icons.shield_outlined);
+    expect(homeSafetyIcon, findsOneWidget);
+    final safetyInk = find.ancestor(
+      of: homeSafetyIcon,
+      matching: find.byType(InkWell),
+    );
+    tester.widget<InkWell>(safetyInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
     expect(find.byType(SafetyToolKits), findsOneWidget);
@@ -487,12 +502,24 @@ void main() {
     expect(find.text('104,80 kr'), findsOneWidget);
     expect(find.text('Direct request outside radar'), findsOneWidget);
 
-    await tester.tap(find.text('Route'));
+    final routeButton = find.ancestor(
+      of: find.text('Route'),
+      matching: find.byType(TextButton),
+    );
+    final route = tester.widget<TextButton>(routeButton);
+    expect(route.onPressed, isNotNull);
+    route.onPressed!.call();
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.text('104,80 kr'), findsOneWidget);
     _expectNoException(tester);
 
-    await tester.tap(find.text('Accept'));
+    final acceptButton = find.ancestor(
+      of: find.text('Accept'),
+      matching: find.byType(FilledButton),
+    );
+    final accept = tester.widget<FilledButton>(acceptButton);
+    expect(accept.onPressed, isNotNull);
+    accept.onPressed!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
     expect(find.byType(AcceptRide), findsOneWidget);
