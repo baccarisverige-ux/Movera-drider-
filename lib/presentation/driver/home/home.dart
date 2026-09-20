@@ -10,6 +10,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/routing/road_route_service.dart';
+import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -96,7 +97,9 @@ class _DriverHomeState extends State<DriverHome>
   bool showRideRequests = false;
   bool isAccountActivated = true;
   bool _isGoingOnline = false;
-  bool _isOnline = false;
+  final DriverSessionController _driverSession =
+      DriverSessionController.instance;
+  bool get _isOnline => _driverSession.isOnline;
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
   bool _showTodaySummaryPopup = false;
@@ -210,7 +213,9 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void initState() {
     super.initState();
-    _isOnline = widget.initialOnline;
+    if (widget.initialOnline) {
+      _driverSession.setOnline(true);
+    }
     _adminHomeConfig = const DriverHomeAdminContentService().load();
     _hasScheduledRideOffers =
         _adminHomeConfig.scheduledRides.hasOpenRequests;
@@ -3020,7 +3025,7 @@ class _DriverHomeState extends State<DriverHome>
 
     setState(() {
       _isGoingOnline = true;
-      _isOnline = false;
+      _driverSession.setOnline(false);
       _hasRideOffers = false;
       _showTodaySummaryPopup = false;
       _outsideRadarOffer = null;
@@ -3035,7 +3040,7 @@ class _DriverHomeState extends State<DriverHome>
         if (!mounted) return;
         setState(() {
           _isGoingOnline = false;
-          _isOnline = true;
+          _driverSession.setOnline(true);
         });
 
         // Frontend demo only. Outside-Radar offers remain exclusive and
@@ -3103,7 +3108,7 @@ class _DriverHomeState extends State<DriverHome>
 
     setState(() {
       _isGoingOnline = false;
-      _isOnline = false;
+      _driverSession.setOnline(false);
       _hasRideOffers = false;
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
