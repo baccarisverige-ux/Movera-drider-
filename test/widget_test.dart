@@ -735,11 +735,12 @@ void main() {
     await _pumpHome(tester, const Size(375, 812));
     await _openPanel(tester);
 
-    expect(find.text('Acceptance rate'), findsOneWidget);
+    expect(find.text('Performance'), findsOneWidget);
+    expect(find.text('Acceptance'), findsOneWidget);
     expect(find.text('94%'), findsOneWidget);
-    expect(find.text('Cancellation rate'), findsOneWidget);
+    expect(find.text('Cancellation'), findsOneWidget);
     expect(find.text('2.4%'), findsOneWidget);
-    expect(find.text('Driver events'), findsOneWidget);
+    expect(find.text('What’s happening'), findsOneWidget);
     _expectNoException(tester);
 
     final scheduled = find.text('Scheduled rides available');
@@ -748,6 +749,26 @@ void main() {
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
     expect(find.byType(ScheduledRidesScreen), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Event details show date time and recommended driving window', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+    await _openPanel(tester);
+
+    final event = find.text('Stockholm evening demand');
+    await tester.ensureVisible(event);
+    await tester.tap(event);
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.text('Fri 25 Sep'), findsOneWidget);
+    expect(find.text('18:00–22:30'), findsOneWidget);
+    expect(find.text('Best time to be online'), findsOneWidget);
+    expect(find.text('18:30–22:00'), findsOneWidget);
+    expect(find.text('Higher demand expected'), findsOneWidget);
     _expectNoException(tester);
   });
 
