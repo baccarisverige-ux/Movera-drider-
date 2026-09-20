@@ -473,13 +473,15 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _activateRadarHomeOffer(_HomeDirectOffer offer) {
-    if (!mounted || !_isOnline) return;
+    if (!mounted ||
+        !_isOnline ||
+        _radarHomeOffers.length >= _maxHomeRadarOffers) {
+      return;
+    }
 
     setState(() {
       _hasRideOffers = true;
-      if (_radarHomeOffers.length < _maxHomeRadarOffers) {
-        _radarHomeOffers.add(offer);
-      }
+      _radarHomeOffers.add(offer);
     });
 
     _radarOfferTimeoutTimers.remove(offer.id)?.cancel();
