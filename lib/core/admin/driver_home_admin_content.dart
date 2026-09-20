@@ -3,12 +3,16 @@ class DriverHomeAdminConfig {
     required this.performance,
     required this.scheduledRides,
     required this.update,
+    required this.eventsSectionTitle,
+    required this.eventsSectionSubtitle,
     required this.events,
   });
 
   final DriverPerformanceConfig performance;
   final ScheduledRidesAdminConfig scheduledRides;
   final AppUpdateAdminConfig update;
+  final String eventsSectionTitle;
+  final String eventsSectionSubtitle;
   final List<DriverEventConfig> events;
 }
 
@@ -73,9 +77,12 @@ class DriverEventConfig {
     required this.id,
     required this.title,
     required this.category,
-    required this.whenLabel,
+    required this.dateLabel,
+    required this.timeLabel,
     required this.location,
     required this.description,
+    required this.recommendedWindow,
+    required this.demandLabel,
     required this.driverNote,
     required this.imageUrl,
     required this.imageCredit,
@@ -85,9 +92,12 @@ class DriverEventConfig {
   final String id;
   final String title;
   final String category;
-  final String whenLabel;
+  final String dateLabel;
+  final String timeLabel;
   final String location;
   final String description;
+  final String recommendedWindow;
+  final String demandLabel;
   final String driverNote;
   final String imageUrl;
   final String imageCredit;
@@ -125,17 +135,22 @@ class DriverHomeAdminContentService {
         dismissLabel: 'Later',
         mandatory: false,
       ),
+      eventsSectionTitle: 'What’s happening',
+      eventsSectionSubtitle: 'Plan your shift around busy periods',
       events: [
         DriverEventConfig(
           id: 'stockholm-night-demand',
           title: 'Stockholm evening demand',
-          category: 'CITY EVENT',
-          whenLabel: 'Evening',
+          category: 'Event',
+          dateLabel: 'Fri 25 Sep',
+          timeLabel: '18:00–22:30',
           location: 'Central Stockholm',
           description:
               'Expect concentrated pickup activity around the city centre and waterfront after evening events finish.',
+          recommendedWindow: '18:30–22:00',
+          demandLabel: 'Higher demand expected',
           driverNote:
-              'Stay available near legal pickup zones and expect short bursts of demand.',
+              'Be online before the main departure window and stay close to legal pickup zones.',
           imageUrl:
               'https://images.unsplash.com/photo-1670257876831-7e97238da208?auto=format&fit=crop&q=82&w=1400',
           imageCredit: 'Håkon Grimstad · Unsplash',
@@ -144,13 +159,16 @@ class DriverHomeAdminContentService {
         DriverEventConfig(
           id: 'stockholm-waterfront',
           title: 'Waterfront traffic window',
-          category: 'TRAFFIC',
-          whenLabel: 'Peak window',
+          category: 'Traffic',
+          dateLabel: 'Sat 26 Sep',
+          timeLabel: '16:30–20:00',
           location: 'Stockholm waterfront',
           description:
               'Large visitor movements can create temporary traffic pressure and higher ride demand around waterfront routes.',
+          recommendedWindow: '17:00–19:30',
+          demandLabel: 'Busy pickup window',
           driverNote:
-              'Use the live route before accepting your next pickup and avoid blocked curb areas.',
+              'Go online before the crowd leaves and use live routing to avoid blocked curb areas.',
           imageUrl:
               'https://images.unsplash.com/photo-1781040761543-fc71fcc17eb2?auto=format&fit=crop&q=82&w=1400',
           imageCredit: 'Rafael Peier · Unsplash',
@@ -159,13 +177,16 @@ class DriverHomeAdminContentService {
         DriverEventConfig(
           id: 'stockholm-road-demand',
           title: 'Road demand alert',
-          category: 'DRIVER NOTE',
-          whenLabel: 'Night',
+          category: 'Demand',
+          dateLabel: 'Sat 26 Sep',
+          timeLabel: '22:00–02:00',
           location: 'Greater Stockholm',
           description:
               'Night-time road conditions and event departures can shift demand quickly between central and outer zones.',
+          recommendedWindow: '22:30–01:30',
+          demandLabel: 'Late-night demand',
           driverNote:
-              'Keep Radar active and check destination direction before matching longer trips.',
+              'Stay online through the busiest window and check destination direction before matching longer trips.',
           imageUrl:
               'https://images.unsplash.com/photo-1511443259588-05878425294f?auto=format&fit=crop&q=82&w=1400',
           imageCredit: 'Federico Enni · Unsplash',
