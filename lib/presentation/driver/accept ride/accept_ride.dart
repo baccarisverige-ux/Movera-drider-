@@ -2,7 +2,10 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:movera/core/location/driver_location_service.dart';
+import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
@@ -49,7 +52,7 @@ class _AcceptRideState extends State<AcceptRide> {
   static const Color _line = Color(0xFF30393C);
   static const Color _danger = Color(0xFFE75D65);
 
-  static const LatLng _driverStart = LatLng(59.3262, 18.0595);
+  static const LatLng _fallbackDriverPosition = LatLng(59.3262, 18.0595);
 
   static const String _darkMapStyle = '''
 [
@@ -70,45 +73,52 @@ class _AcceptRideState extends State<AcceptRide> {
 ]
 ''';
 
+  final DriverLocationService _locationService =
+      const DriverLocationService();
+  final RoadRouteService _routeService = RoadRouteService();
+
   GoogleMapController? _mapController;
+  StreamSubscription<Position>? _positionSubscription;
   _RideStage _stage = _RideStage.headingToPickup;
   Timer? _waitTimer;
   int _waitSeconds = 0;
 
+  LatLng _driverPosition = _fallbackDriverPosition;
+  List<LatLng> _roadRoutePoints = <LatLng>[];
+  double? _routeDistanceMeters;
+  double? _routeDurationSeconds;
+  LatLng? _lastRouteOrigin;
+  DateTime? _lastRouteAt;
+  bool _hasLiveLocation = false;
+  bool _routeLoading = false;
+  String? _locationStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _startLiveLocation();
+  }
+
   @override
   void dispose() {
     _waitTimer?.cancel();
+    _positionSubscription?.cancel();
     _mapController = null;
     super.dispose();
   }
 
-  List<LatLng> get _routePoints {
-    switch (_stage) {
-      case _RideStage.headingToPickup:
-      case _RideStage.waitingForRider:
-        return [
-          _driverStart,
-          const LatLng(59.3269, 18.0602),
-          const LatLng(59.3274, 18.0609),
-          widget.pickupPosition,
-        ];
-      case _RideStage.onTrip:
-        return [
-          widget.pickupPosition,
-          const LatLng(59.3292, 18.0624),
-          const LatLng(59.3307, 18.0630),
-          widget.dropoffPosition,
-        ];
-    }
-  }
+  LatLng get _routeTarget =>
+      _stage == _RideStage.onTrip
+          ? widget.dropoffPosition
+          : widget.pickupPosition;
+
+  List<LatLng> get _routePoints => _roadRoutePoints;
 
   Set<Marker> get _markers {
     final markers = <Marker>{
       Marker(
         markerId: const MarkerId('driver'),
-        position: _stage == _RideStage.onTrip
-            ? const LatLng(59.3292, 18.0624)
-            : _driverStart,
+        position: _driverPosition,
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         infoWindow: const InfoWindow(title: 'You'),
       ),
@@ -137,23 +147,152 @@ class _AcceptRideState extends State<AcceptRide> {
     return markers;
   }
 
-  Set<Polyline> get _polylines => {
-        Polyline(
-          polylineId: const PolylineId('active-route'),
-          points: _routePoints,
-          width: 6,
-          color: _green,
-          geodesic: true,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
-        ),
-      };
+  Set<Polyline> get _polylines {
+    if (_roadRoutePoints.length < 2) return <Polyline>{};
+
+    return {
+      Polyline(
+        polylineId: const PolylineId('active-road-route'),
+        points: _roadRoutePoints,
+        width: 6,
+        color: _green,
+        geodesic: false,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+      ),
+    };
+  }
+
+  Future<void> _startLiveLocation() async {
+    try {
+      final position = await _locationService.getCurrentPosition();
+      if (!mounted) return;
+
+      await _applyDriverPosition(position, forceRoute: true);
+
+      _positionSubscription?.cancel();
+      _positionSubscription = _locationService
+          .watchPosition(distanceFilterMeters: 8)
+          .listen(
+        (position) {
+          _applyDriverPosition(position);
+        },
+        onError: (Object error) {
+          if (!mounted) return;
+          setState(() {
+            _locationStatus = 'Live location interrupted';
+          });
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _hasLiveLocation = false;
+        _locationStatus = 'Location unavailable';
+        _roadRoutePoints = <LatLng>[];
+        _routeDistanceMeters = null;
+        _routeDurationSeconds = null;
+      });
+    }
+  }
+
+  Future<void> _applyDriverPosition(
+    Position position, {
+    bool forceRoute = false,
+  }) async {
+    final next = LatLng(position.latitude, position.longitude);
+    if (!mounted) return;
+
+    setState(() {
+      _driverPosition = next;
+      _hasLiveLocation = true;
+      _locationStatus = null;
+    });
+
+    await _refreshRoadRoute(force: forceRoute);
+  }
+
+  Future<void> _refreshRoadRoute({bool force = false}) async {
+    if (!_hasLiveLocation) return;
+
+    final now = DateTime.now();
+    final lastOrigin = _lastRouteOrigin;
+    final lastAt = _lastRouteAt;
+
+    if (!force && lastOrigin != null && lastAt != null) {
+      final movedMeters = Geolocator.distanceBetween(
+        lastOrigin.latitude,
+        lastOrigin.longitude,
+        _driverPosition.latitude,
+        _driverPosition.longitude,
+      );
+
+      if (movedMeters < 20 &&
+          now.difference(lastAt) < const Duration(seconds: 5)) {
+        return;
+      }
+    }
+
+    _lastRouteOrigin = _driverPosition;
+    _lastRouteAt = now;
+
+    if (mounted) {
+      setState(() {
+        _routeLoading = true;
+      });
+    }
+
+    try {
+      final route = await _routeService.drivingRoute(
+        origin: _driverPosition,
+        destination: _routeTarget,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _roadRoutePoints = route.points;
+        _routeDistanceMeters = route.distanceMeters;
+        _routeDurationSeconds = route.durationSeconds;
+        _routeLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        // Never draw a fake straight line when road routing is unavailable.
+        _roadRoutePoints = <LatLng>[];
+        _routeDistanceMeters = null;
+        _routeDurationSeconds = null;
+        _routeLoading = false;
+      });
+    }
+  }
+
+  String get _routeEtaText {
+    final seconds = _routeDurationSeconds;
+    if (seconds == null) return _routeLoading ? 'Routing…' : '—';
+    final minutes = math.max(1, (seconds / 60).ceil());
+    return '$minutes min';
+  }
+
+  String get _routeDistanceText {
+    final meters = _routeDistanceMeters;
+    if (meters == null) return _routeLoading ? 'road route' : '—';
+
+    if (meters < 1000) {
+      return '${meters.round()} m';
+    }
+
+    final km = meters / 1000;
+    return '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
+  }
 
   Future<void> _fitRoute() async {
     final controller = _mapController;
     if (controller == null) return;
 
-    final points = _routePoints;
+    final points = _roadRoutePoints.isNotEmpty
+        ? _roadRoutePoints
+        : <LatLng>[_driverPosition, _routeTarget];
     var minLat = points.first.latitude;
     var maxLat = points.first.latitude;
     var minLng = points.first.longitude;
@@ -200,8 +339,11 @@ class _AcceptRideState extends State<AcceptRide> {
         return;
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _fitRoute();
+    _refreshRoadRoute(force: true).then((_) {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fitRoute();
+      });
     });
   }
 
@@ -403,7 +545,7 @@ class _AcceptRideState extends State<AcceptRide> {
                       ? widget.pickupArea
                       : onTrip
                           ? widget.dropoffAddress
-                          : '${widget.pickupArea} · 3 min',
+                          : '${widget.pickupArea} · $_routeEtaText',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -425,7 +567,9 @@ class _AcceptRideState extends State<AcceptRide> {
             child: Column(
               children: [
                 Text(
-                  waiting ? 'AT PICKUP' : onTrip ? '2 min' : '1.1 km',
+                  waiting
+                      ? 'AT PICKUP'
+                      : _routeEtaText,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -434,7 +578,7 @@ class _AcceptRideState extends State<AcceptRide> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  waiting ? '0 m' : onTrip ? '650 m' : '3 min',
+                  waiting ? '0 m' : _routeDistanceText,
                   style: const TextStyle(
                     color: _muted,
                     fontSize: 8.5,
@@ -562,6 +706,38 @@ class _AcceptRideState extends State<AcceptRide> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: _hasLiveLocation
+                                    ? _green
+                                    : const Color(0xFF8A9498),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                _hasLiveLocation
+                                    ? (_routeLoading
+                                        ? 'Live GPS · finding road route'
+                                        : 'Live GPS · road route active')
+                                    : (_locationStatus ?? 'Locating driver…'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF7F8B8F),
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -585,14 +761,10 @@ class _AcceptRideState extends State<AcceptRide> {
   Widget _buildEtaTile() {
     final main = _stage == _RideStage.waitingForRider
         ? _waitLabel
-        : _stage == _RideStage.onTrip
-            ? '2 min'
-            : '3 min';
+        : _routeEtaText;
     final sub = _stage == _RideStage.waitingForRider
         ? 'WAITING'
-        : _stage == _RideStage.onTrip
-            ? '650 m'
-            : '1.1 km';
+        : _routeDistanceText;
 
     return Container(
       constraints: const BoxConstraints(minWidth: 78),
