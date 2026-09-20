@@ -35,6 +35,7 @@ class AcceptRide extends StatefulWidget {
     this.dropoffPosition = const LatLng(59.3326, 18.0649),
     this.locationRepository,
     this.routeRepository,
+    this.waybillRepository,
   });
 
   final String offerId;
@@ -51,6 +52,7 @@ class AcceptRide extends StatefulWidget {
   final LatLng dropoffPosition;
   final DriverLocationRepository? locationRepository;
   final RouteRepository? routeRepository;
+  final WaybillRepository? waybillRepository;
 
   @override
   State<AcceptRide> createState() => _AcceptRideState();
@@ -211,6 +213,7 @@ class _AcceptRideState extends State<AcceptRide> {
 
   late final DriverLocationRepository _locationService;
   late final RouteRepository _routeService;
+  late final WaybillRepository _waybills;
 
   GoogleMapController? _mapController;
   StreamSubscription<Position>? _positionSubscription;
@@ -244,7 +247,9 @@ class _AcceptRideState extends State<AcceptRide> {
     _locationService =
         widget.locationRepository ?? const DriverLocationService();
     _routeService = widget.routeRepository ?? RoadRouteService();
-    WaybillStore.beginCurrent(_buildCurrentWaybill());
+    _waybills =
+        widget.waybillRepository ?? InMemoryWaybillRepository.instance;
+    _waybills.beginCurrent(_buildCurrentWaybill());
     _startLiveLocation();
   }
 
@@ -567,11 +572,13 @@ class _AcceptRideState extends State<AcceptRide> {
         _nextTripRadarDemoTimer?.cancel();
         _nextTripRadarMatchTimer?.cancel();
         _rideLifecycle.complete();
-        WaybillStore.completeCurrent();
+        _waybills.completeCurrent();
 
         Navigator.pushReplacement(
           context,
-          BottomToTopTransition(const DriverRideCompleted()),
+          BottomToTopTransition(
+            DriverRideCompleted(waybillRepository: _waybills),
+          ),
         );
         return;
     }
@@ -835,7 +842,7 @@ class _AcceptRideState extends State<AcceptRide> {
                                       _onTripRadarState =
                                           _OnTripRadarState.secured;
                                     });
-                                    WaybillStore.secureNext(
+                                    _waybills.secureNext(
                                       _buildNextWaybill(offer),
                                     );
                                     if (sheetContext.mounted) {
@@ -1042,7 +1049,7 @@ class _AcceptRideState extends State<AcceptRide> {
               TextButton.icon(
                 key: const ValueKey<String>('next-trip-waybill'),
                 onPressed: () {
-                  final record = WaybillStore.next;
+                  final record = _waybills.next;
                   if (record != null) {
                     showMoveraWaybillSheet(
                       context,
@@ -1913,7 +1920,7 @@ class _AcceptRideState extends State<AcceptRide> {
 
   Widget _buildCurrentWaybillShortcut() {
     return ValueListenableBuilder<WaybillRecord?>(
-      valueListenable: WaybillStore.currentNotifier,
+      valueListenable: _waybills.currentListenable,
       builder: (context, record, _) {
         if (record == null) return const SizedBox.shrink();
 
@@ -2170,17 +2177,17 @@ class _AcceptRideState extends State<AcceptRide> {
                   },
                 ),
                 if (_onTripRadarState == _OnTripRadarState.secured &&
-                    WaybillStore.next != null)
+                    _waybills.next != null)
                   _optionTile(
                     key: const ValueKey<String>('next-trip-waybill-option'),
                     icon: Icons.radar_rounded,
                     title: 'Next trip waybill',
-                    subtitle: WaybillStore.next!.dropoff,
+                    subtitle: _waybills.next!.dropoff,
                     onTap: () {
                       Navigator.pop(sheetContext);
                       showMoveraWaybillSheet(
                         context,
-                        WaybillStore.next!,
+                        _waybills.next!,
                         title: 'Next trip waybill',
                       );
                     },
@@ -2609,8 +2616,8 @@ class _AcceptRideState extends State<AcceptRide> {
     _nextTripRadarMatchTimer?.cancel();
     _routeRequestToken++;
     _rideLifecycle.cancel();
-    WaybillStore.current = null;
-    WaybillStore.clearNext();
+    _waybills.discardCurrent();
+    _waybills.clearNext();
 
     // Frontend contract: reason.code is ready to be sent with the backend
     // cancellation event once trip persistence is connected.
