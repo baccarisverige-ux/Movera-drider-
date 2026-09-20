@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class WaybillRecord {
   const WaybillRecord({
     required this.tripId,
@@ -54,9 +56,34 @@ class WaybillRecord {
 class WaybillStore {
   WaybillStore._();
 
-  static WaybillRecord? current;
-  static WaybillRecord? next;
-  static WaybillRecord? last;
+  static WaybillRecord? _current;
+  static WaybillRecord? _next;
+  static WaybillRecord? _last;
+
+  static final ValueNotifier<WaybillRecord?> currentNotifier =
+      ValueNotifier<WaybillRecord?>(null);
+  static final ValueNotifier<WaybillRecord?> nextNotifier =
+      ValueNotifier<WaybillRecord?>(null);
+  static final ValueNotifier<WaybillRecord?> lastNotifier =
+      ValueNotifier<WaybillRecord?>(null);
+
+  static WaybillRecord? get current => _current;
+  static set current(WaybillRecord? value) {
+    _current = value;
+    currentNotifier.value = value;
+  }
+
+  static WaybillRecord? get next => _next;
+  static set next(WaybillRecord? value) {
+    _next = value;
+    nextNotifier.value = value;
+  }
+
+  static WaybillRecord? get last => _last;
+  static set last(WaybillRecord? value) {
+    _last = value;
+    lastNotifier.value = value;
+  }
 
   static void beginCurrent(WaybillRecord record) {
     current = record;
