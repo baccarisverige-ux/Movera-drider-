@@ -24,8 +24,16 @@ class DriverRideCompleted extends StatefulWidget {
 
 class _DriverRideCompletedState extends State<DriverRideCompleted> {
   double _rating = 0.0;
+  late final WaybillRepository _waybills;
 
-  WaybillRecord? get _record => WaybillStore.last;
+  WaybillRecord? get _record => _waybills.last;
+
+  @override
+  void initState() {
+    super.initState();
+    _waybills =
+        widget.waybillRepository ?? InMemoryWaybillRepository.instance;
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
