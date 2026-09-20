@@ -53,6 +53,7 @@ class _DriverHomeState extends State<DriverHome>
   final ValueNotifier<double> _panelSlidePosition = ValueNotifier<double>(0);
 
   static const Duration _sheetMotionDuration = Duration(milliseconds: 420);
+  static const Duration _directOfferLifetime = Duration(milliseconds: 8500);
   static const Curve _sheetMotionCurve = Curves.easeOutCubic;
   bool showRideRequests = false;
   bool isAccountActivated = true;
@@ -216,18 +217,18 @@ class _DriverHomeState extends State<DriverHome>
       _homeDirectOffer = offer;
     });
 
-    await _previewDirectOfferRoute(
-      offer.pickupPosition,
-      offer.dropoffPosition,
-    );
-
     _directOfferTimeoutTimer?.cancel();
     _directOfferTimeoutTimer = Timer(
-      const Duration(milliseconds: 8500),
+      _directOfferLifetime,
       () {
         if (!mounted || _homeDirectOffer?.id != offer.id) return;
         _dismissHomeDirectOffer();
       },
+    );
+
+    await _previewDirectOfferRoute(
+      offer.pickupPosition,
+      offer.dropoffPosition,
     );
   }
 
@@ -357,9 +358,10 @@ class _DriverHomeState extends State<DriverHome>
                   child: const SizedBox.expand(),
                 ),
                 RideRequests(
-                  onCloseRides: () {
+                  onCloseRides: (hasOffers) {
                     setState(() {
                       showRideRequests = false;
+                      _hasRideOffers = hasOffers;
                     });
                   },
                 ),
@@ -1467,10 +1469,13 @@ class _DriverHomeState extends State<DriverHome>
     return Semantics(
       button: true,
       label: "$title, $status. $subtitle",
-      child: SizedBox(
-        width: 104,
-        height: 104,
-        child: Stack(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: 104,
+          height: 104,
+          child: Stack(
           alignment: Alignment.center,
           children: [
             Transform.scale(
@@ -1602,7 +1607,7 @@ class _DriverHomeState extends State<DriverHome>
                   ],
                 ),
                 child: InkWell(
-                  onTap: onTap,
+                  onTap: null,
                   customBorder: const CircleBorder(),
                   splashColor: accent.withOpacity(0.14),
                   highlightColor: accent.withOpacity(0.07),
