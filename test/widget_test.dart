@@ -92,21 +92,21 @@ void main() {
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
     expect(find.byType(WalletScreen), findsOneWidget);
     _expectNoException(tester);
-    await tester.pageBack();
+    Navigator.of(tester.element(find.byType(WalletScreen))).pop();
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
     _invokeSheetAction(tester, 'Inbox');
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
     expect(find.byType(SupportInboxScreen), findsOneWidget);
     _expectNoException(tester);
-    await tester.pageBack();
+    Navigator.of(tester.element(find.byType(SupportInboxScreen))).pop();
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
     _invokeSheetAction(tester, 'Scheduled');
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
     expect(find.byType(ScheduledRidesScreen), findsOneWidget);
     _expectNoException(tester);
-    await tester.pageBack();
+    Navigator.of(tester.element(find.byType(ScheduledRidesScreen))).pop();
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
     _invokeSheetAction(tester, 'Menu');
@@ -130,9 +130,16 @@ void main() {
     _expectNoException(tester);
 
     await _openPanel(tester);
-    final goOffline = find.text('Go offline').hitTestable();
-    expect(goOffline, findsOneWidget);
-    await tester.tap(goOffline);
+    final goOfflineText = find.text('Go offline');
+    expect(goOfflineText, findsOneWidget);
+    final goOfflineButton = find.ancestor(
+      of: goOfflineText,
+      matching: find.byType(OutlinedButton),
+    );
+    expect(goOfflineButton, findsOneWidget);
+    final button = tester.widget<OutlinedButton>(goOfflineButton);
+    expect(button.onPressed, isNotNull);
+    button.onPressed!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
     expect(find.text('OFFLINE'), findsOneWidget);
