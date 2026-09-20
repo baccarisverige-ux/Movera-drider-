@@ -275,30 +275,26 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Future<void> _prepareDriverVehicleMarker() async {
-    const logicalSize = 96.0;
-    const pixelRatio = 2.0;
+    // Keep the vehicle deliberately small on every map zoom level.
+    // The previous 192px bitmap rendered far too large on web/iOS.
+    const designSize = 96.0;
+    const outputSize = 48.0;
+
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    final size = logicalSize * pixelRatio;
-
-    canvas.scale(pixelRatio, pixelRatio);
+    canvas.scale(outputSize / designSize);
 
     final shadowPaint = Paint()
-      ..color = const Color(0x33000000)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+      ..color = const Color(0x26000000)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawOval(
-      const Rect.fromLTWH(24, 67, 48, 13),
+      const Rect.fromLTWH(27, 68, 42, 10),
       shadowPaint,
     );
 
-    final haloPaint = Paint()
-      ..color = const Color(0x2219865C)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(48, 48), 31, haloPaint);
-
     final bodyRect = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(29, 14, 38, 64),
-      const Radius.circular(15),
+      const Rect.fromLTWH(31, 13, 34, 66),
+      const Radius.circular(14),
     );
     final bodyPaint = Paint()
       ..shader = const LinearGradient(
@@ -306,51 +302,53 @@ class _DriverHomeState extends State<DriverHome>
         end: Alignment.bottomRight,
         colors: [
           Color(0xFFFFFFFF),
-          Color(0xFFE7ECEA),
-          Color(0xFFBFC8C4),
+          Color(0xFFF1F4F2),
+          Color(0xFFC9D0CD),
         ],
         stops: [0.0, 0.55, 1.0],
       ).createShader(bodyRect.outerRect);
     canvas.drawRRect(bodyRect, bodyPaint);
 
-    final trimPaint = Paint()
-      ..color = const Color(0xFF19865C)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.1;
-    canvas.drawRRect(bodyRect, trimPaint);
-
-    final windshieldPaint = Paint()..color = const Color(0xFF314149);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(34, 25, 28, 18),
-        const Radius.circular(7),
-      ),
-      windshieldPaint,
+      bodyRect,
+      Paint()
+        ..color = const Color(0xFF19865C)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8,
     );
+
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        const Rect.fromLTWH(35, 51, 26, 14),
+        const Rect.fromLTWH(35, 23, 26, 18),
         const Radius.circular(6),
       ),
-      Paint()..color = const Color(0xFF46565D),
+      Paint()..color = const Color(0xFF34464E),
     );
 
-    final highlightPaint = Paint()
-      ..color = const Color(0xAAFFFFFF)
-      ..strokeWidth = 2
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(36, 51, 24, 14),
+        const Radius.circular(5),
+      ),
+      Paint()..color = const Color(0xFF536168),
+    );
+
+    final highlight = Paint()
+      ..color = const Color(0xCCFFFFFF)
+      ..strokeWidth = 1.7
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(
-      const Offset(35, 22),
-      const Offset(35, 59),
-      highlightPaint,
+      const Offset(35, 20),
+      const Offset(35, 61),
+      highlight,
     );
 
-    final wheelPaint = Paint()..color = const Color(0xFF20282C);
+    final wheelPaint = Paint()..color = const Color(0xFF222B2F);
     for (final rect in const [
-      Rect.fromLTWH(25, 27, 6, 15),
-      Rect.fromLTWH(65, 27, 6, 15),
-      Rect.fromLTWH(25, 52, 6, 15),
-      Rect.fromLTWH(65, 52, 6, 15),
+      Rect.fromLTWH(27, 28, 5, 13),
+      Rect.fromLTWH(64, 28, 5, 13),
+      Rect.fromLTWH(27, 53, 5, 13),
+      Rect.fromLTWH(64, 53, 5, 13),
     ]) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, const Radius.circular(3)),
@@ -358,16 +356,18 @@ class _DriverHomeState extends State<DriverHome>
       );
     }
 
-    final nosePaint = Paint()..color = const Color(0xFF19865C);
-    final nose = Path()
-      ..moveTo(48, 7)
-      ..lineTo(43, 15)
-      ..lineTo(53, 15)
-      ..close();
-    canvas.drawPath(nose, nosePaint);
+    // Small direction accent only; no large halo or arrow.
+    canvas.drawCircle(
+      const Offset(48, 10),
+      3.2,
+      Paint()..color = const Color(0xFF19865C),
+    );
 
     final picture = recorder.endRecording();
-    final image = await picture.toImage(size.round(), size.round());
+    final image = await picture.toImage(
+      outputSize.round(),
+      outputSize.round(),
+    );
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     if (data == null || !mounted) return;
 
