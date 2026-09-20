@@ -1170,28 +1170,6 @@ class _AcceptRideState extends State<AcceptRide> {
     }
   }
 
-  String get _actionLabel {
-    switch (_stage) {
-      case _RideStage.headingToPickup:
-        return 'I’m at pickup';
-      case _RideStage.waitingForRider:
-        return 'Start trip';
-      case _RideStage.onTrip:
-        return 'Complete trip';
-    }
-  }
-
-  String get _actionHint {
-    switch (_stage) {
-      case _RideStage.headingToPickup:
-        return 'Use when you reach the pickup point';
-      case _RideStage.waitingForRider:
-        return 'Start when the rider is in the car';
-      case _RideStage.onTrip:
-        return 'Complete only at the drop-off point';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
