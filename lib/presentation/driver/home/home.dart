@@ -60,6 +60,7 @@ class _DriverHomeState extends State<DriverHome>
   static const Duration _sheetMotionDuration = Duration(milliseconds: 420);
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
   static const Duration _radarOfferLifetime = Duration(milliseconds: 30000);
+  static const int _maxHomeRadarOffers = 4;
   static const Curve _sheetMotionCurve = Curves.easeOutCubic;
   bool showRideRequests = false;
   bool isAccountActivated = true;
@@ -460,12 +461,14 @@ class _DriverHomeState extends State<DriverHome>
     }
 
     if (_outsideRadarOffer != null) {
+      if (_pendingRadarHomeOffers.length >= _maxHomeRadarOffers) return;
       setState(() {
         _pendingRadarHomeOffers.add(offer);
       });
       return;
     }
 
+    if (_radarHomeOffers.length >= _maxHomeRadarOffers) return;
     _activateRadarHomeOffer(offer);
   }
 
@@ -474,10 +477,8 @@ class _DriverHomeState extends State<DriverHome>
 
     setState(() {
       _hasRideOffers = true;
-      _radarHomeOffers.add(offer);
-      if (_radarHomeOffers.length > 5) {
-        final removed = _radarHomeOffers.removeAt(0);
-        _radarOfferTimeoutTimers.remove(removed.id)?.cancel();
+      if (_radarHomeOffers.length < _maxHomeRadarOffers) {
+        _radarHomeOffers.add(offer);
       }
     });
 
@@ -505,6 +506,7 @@ class _DriverHomeState extends State<DriverHome>
     });
 
     for (final offer in pending) {
+      if (_radarHomeOffers.length >= _maxHomeRadarOffers) break;
       if (!_radarHomeOffers.any((item) => item.id == offer.id)) {
         _activateRadarHomeOffer(offer);
       }
@@ -546,7 +548,6 @@ class _DriverHomeState extends State<DriverHome>
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
       _pendingRadarHomeOffers.clear();
-      _pendingRadarHomeOffers.clear();
       _hasRideOffers = false;
     });
     _clearDirectOfferRoute();
@@ -569,7 +570,6 @@ class _DriverHomeState extends State<DriverHome>
     setState(() {
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
-      _pendingRadarHomeOffers.clear();
       _pendingRadarHomeOffers.clear();
       _hasRideOffers = false;
     });
