@@ -692,70 +692,73 @@ class _DriverHomeState extends State<DriverHome>
 
           Visibility(
             visible: true,
-            child: PointerInterceptor(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
                 vertical: ResSize.h * 55,
                 horizontal: screenHorizPadding,
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Container(
-                      height: ResSize.h * 38.5,
-                      width: ResSize.w * 83,
-                      decoration: BoxDecoration(
-                        color: AppColor.white,
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: const Color(0xFFF0F2F3),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF172027).withOpacity(0.11),
-                            blurRadius: 18,
-                            spreadRadius: 0,
-                            offset: const Offset(0, 7),
+                    child: PointerInterceptor(
+                      child: Container(
+                        height: ResSize.h * 38.5,
+                        width: ResSize.w * 83,
+                        decoration: BoxDecoration(
+                          color: AppColor.white,
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: const Color(0xFFF0F2F3),
                           ),
-                        ],
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Builder(
-                              builder: (context) => InkWell(
-                                onTap: () {
-                                  Scaffold.of(context).openDrawer();
-                                },
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  const Color(0xFF172027).withOpacity(0.11),
+                              blurRadius: 18,
+                              spreadRadius: 0,
+                              offset: const Offset(0, 7),
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Builder(
+                                builder: (context) => InkWell(
+                                  onTap: () {
+                                    Scaffold.of(context).openDrawer();
+                                  },
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.menu_open_rounded,
+                                      size: ResSize.h * 17,
+                                      color: AppColor.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            _mapControlDivider(),
+                            Expanded(
+                              child: InkWell(
+                                key: const ValueKey<String>(
+                                  'destination-mode-open',
+                                ),
+                                onTap: _openDestinationModePicker,
                                 child: Center(
-                                  child: Icon(
-                                    Icons.menu_open_rounded,
-                                    size: ResSize.h * 17,
+                                  child: Image.asset(
+                                    AppAssets.search,
+                                    height: ResSize.h * 13,
                                     color: AppColor.black,
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          _mapControlDivider(),
-                          Expanded(
-                            child: InkWell(
-                              key: const ValueKey<String>(
-                                'destination-mode-open',
-                              ),
-                              onTap: _openDestinationModePicker,
-                              child: Center(
-                                child: Image.asset(
-                                  AppAssets.search,
-                                  height: ResSize.h * 13,
-                                  color: AppColor.black,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -764,90 +767,93 @@ class _DriverHomeState extends State<DriverHome>
                       padding: EdgeInsets.only(top: ResSize.h * 10),
                       child: Align(
                         alignment: Alignment.centerRight,
-                        child: Material(
-                          color: Colors.white,
-                          elevation: 3,
-                          shadowColor:
-                              const Color(0xFF172027).withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(18),
-                          child: InkWell(
-                            key: const ValueKey<String>(
-                              'destination-mode-home-tab',
-                            ),
-                            onTap: _fitDestinationRoute,
+                        child: PointerInterceptor(
+                          child: Material(
+                            color: Colors.white,
+                            elevation: 3,
+                            shadowColor:
+                                const Color(0xFF172027).withOpacity(0.12),
                             borderRadius: BorderRadius.circular(18),
-                            child: Container(
-                              constraints: BoxConstraints(
-                                maxWidth: ResSize.w * 252,
+                            child: InkWell(
+                              key: const ValueKey<String>(
+                                'destination-mode-home-tab',
                               ),
-                              padding: EdgeInsets.fromLTRB(
-                                ResSize.w * 11,
-                                ResSize.h * 8,
-                                ResSize.w * 8,
-                                ResSize.h * 8,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    height: ResSize.h * 30,
-                                    width: ResSize.h * 30,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF0F5F2),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(
-                                      Icons.near_me_rounded,
-                                      size: 16,
-                                      color: Color(0xFF315E4D),
-                                    ),
-                                  ),
-                                  SizedBox(width: ResSize.w * 8),
-                                  Flexible(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Destination',
-                                          style: TextStyle(
-                                            color: Color(0xFF7D898F),
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        Text(
-                                          _destinationShortLabel,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: Color(0xFF252E3A),
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(width: ResSize.w * 6),
-                                  InkWell(
-                                    key: const ValueKey<String>(
-                                      'destination-mode-end',
-                                    ),
-                                    onTap: _endDestinationMode,
-                                    borderRadius: BorderRadius.circular(15),
-                                    child: const SizedBox(
-                                      height: 28,
-                                      width: 28,
-                                      child: Icon(
-                                        Icons.close_rounded,
-                                        size: 17,
-                                        color: Color(0xFF7D898F),
+                              onTap: _fitDestinationRoute,
+                              borderRadius: BorderRadius.circular(18),
+                              child: Container(
+                                constraints: BoxConstraints(
+                                  maxWidth: ResSize.w * 252,
+                                ),
+                                padding: EdgeInsets.fromLTRB(
+                                  ResSize.w * 11,
+                                  ResSize.h * 8,
+                                  ResSize.w * 8,
+                                  ResSize.h * 8,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      height: ResSize.h * 30,
+                                      width: ResSize.h * 30,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF0F5F2),
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.near_me_rounded,
+                                        size: 16,
+                                        color: Color(0xFF315E4D),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(width: ResSize.w * 8),
+                                    Flexible(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Destination',
+                                            style: TextStyle(
+                                              color: Color(0xFF7D898F),
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          Text(
+                                            _destinationShortLabel,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Color(0xFF252E3A),
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(width: ResSize.w * 6),
+                                    InkWell(
+                                      key: const ValueKey<String>(
+                                        'destination-mode-end',
+                                      ),
+                                      onTap: _endDestinationMode,
+                                      borderRadius: BorderRadius.circular(15),
+                                      child: const SizedBox(
+                                        height: 28,
+                                        width: 28,
+                                        child: Icon(
+                                          Icons.close_rounded,
+                                          size: 17,
+                                          color: Color(0xFF7D898F),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -859,8 +865,7 @@ class _DriverHomeState extends State<DriverHome>
                       padding: EdgeInsets.only(top: ResSize.h * 12),
                       child: InAirportQueue(),
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),

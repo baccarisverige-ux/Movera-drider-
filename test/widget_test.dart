@@ -12,6 +12,7 @@ import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dar
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 Future<void> _pumpHome(WidgetTester tester, Size size) async {
   await tester.binding.setSurfaceSize(size);
@@ -329,16 +330,16 @@ void main() {
       find.byKey(const ValueKey<String>('destination-search')),
       findsOneWidget,
     );
+    expect(find.byType(CustomGoogleMap), findsNothing);
     expect(
-      find.byKey(const ValueKey<String>('destination-confirm')),
+      find.byKey(const ValueKey<String>('destination-result-solna')),
       findsOneWidget,
     );
     _expectNoException(tester);
 
-    final confirm = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('destination-confirm')),
+    await tester.tap(
+      find.byKey(const ValueKey<String>('destination-result-solna')),
     );
-    confirm.onPressed!.call();
     await tester.pump(const Duration(milliseconds: 420));
 
     expect(find.byType(DriverHome), findsOneWidget);
@@ -385,6 +386,29 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Home destination control does not block the map area', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final destinationControl = find.byKey(
+      const ValueKey<String>('destination-mode-open'),
+    );
+    expect(destinationControl, findsOneWidget);
+
+    final interceptor = find.ancestor(
+      of: destinationControl,
+      matching: find.byType(PointerInterceptor),
+    );
+    expect(interceptor, findsOneWidget);
+
+    final interceptorSize = tester.getSize(interceptor);
+    expect(interceptorSize.width, lessThan(180));
+    expect(interceptorSize.height, lessThan(80));
+    _expectNoException(tester);
+  });
+
   testWidgets('Destination picker remains layout-safe on narrow phone', (
     WidgetTester tester,
   ) async {
@@ -395,8 +419,10 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 120));
 
-    expect(find.text('Set destination'), findsOneWidget);
-    expect(find.text('Start Destination Mode'), findsOneWidget);
+    expect(find.text('Destination'), findsOneWidget);
+    expect(find.text('Choose one address'), findsOneWidget);
+    expect(find.text('Suggested addresses'), findsOneWidget);
+    expect(find.byType(CustomGoogleMap), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('destination-search')),
       findsOneWidget,
