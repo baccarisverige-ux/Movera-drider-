@@ -5,6 +5,7 @@ import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
+import 'package:movera/presentation/driver/home/components/radar_edge_dash.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
 import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
@@ -184,6 +185,7 @@ void main() {
                   context: context,
                   scaffoldKey: scaffoldKey,
                   isOnline: false,
+                  hasRideOffers: false,
                   hasScheduledRideOffers: true,
                   goOnlinePulseController: pulseController,
                   onOpenScheduledRides: () {
@@ -275,7 +277,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Closing radar list keeps alert while nearby offers remain', (
+  testWidgets('Outside Radar stays separate and Radar offers survive list open-close', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -285,28 +287,122 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1550));
     expect(find.text('LIVE'), findsOneWidget);
 
-    // First direct offer.
+    // Outside-Radar offer uses its own exclusive surface.
     await tester.pump(const Duration(milliseconds: 2300));
     expect(find.text('104,80 kr'), findsOneWidget);
+    expect(find.text('Outside Radar'), findsOneWidget);
+    expect(find.text('Trip Radar offers'), findsNothing);
+    _expectNoException(tester);
 
-    // Let it expire, then allow the second direct-offer condition to run.
-    await tester.pump(const Duration(milliseconds: 9000));
-    await tester.pump(const Duration(milliseconds: 2100));
-    await tester.pump(const Duration(milliseconds: 9000));
+    // Let the outside offer expire, then allow the first Radar offer to arrive.
+    await tester.pump(const Duration(milliseconds: 8500));
+    await tester.pump(const Duration(milliseconds: 900));
 
-    // Normal radar offer arrives later and opens the radar list.
-    await tester.pump(const Duration(milliseconds: 2600));
-    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Trip Radar offers'), findsOneWidget);
+    expect(find.text('1 live'), findsOneWidget);
+    expect(find.text('Outside Radar'), findsNothing);
+    expect(find.text('Trip found'), findsOneWidget);
+    expect(find.text('NEW'), findsOneWidget);
+    _expectNoException(tester);
 
+    // Radar orb still opens the legacy/full Radar list.
+    await tester.tap(find.text('Trip found'));
+    await tester.pump(const Duration(milliseconds: 160));
     expect(find.byType(RideRequests), findsOneWidget);
     _expectNoException(tester);
 
     await tester.tap(find.byTooltip('Back'));
-    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(const Duration(milliseconds: 160));
 
+    // Returning to Home keeps the Home Radar opportunity alive.
     expect(find.byType(RideRequests), findsNothing);
-    expect(find.text('Trip found'), findsOneWidget);
+    expect(find.text('Trip Radar offers'), findsOneWidget);
     expect(find.text('NEW'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Multiple Home Radar offers append safely without rebuilding the screen', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(320, 700));
+
+    await tester.tap(find.text('OFF'));
+    await tester.pump(const Duration(milliseconds: 1550));
+
+    // Outside offer first, still isolated from Radar.
+    await tester.pump(const Duration(milliseconds: 2300));
+    expect(find.text('104,80 kr'), findsOneWidget);
+    expect(find.text('Trip Radar offers'), findsNothing);
+    _expectNoException(tester);
+
+    // Expire outside offer and receive first Radar offer.
+    await tester.pump(const Duration(milliseconds: 8500));
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(find.text('1 live'), findsOneWidget);
+    _expectNoException(tester);
+
+    // Second and third Radar offers arrive into the same mounted scroll list.
+    await tester.pump(const Duration(milliseconds: 3100));
+    expect(find.text('2 live'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-2')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    await tester.pump(const Duration(milliseconds: 3100));
+    expect(find.text('3 live'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-3')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    // The driver can scroll the Radar opportunity list without layout errors.
+    final radarList = find.byKey(
+      const PageStorageKey<String>('radar-home-offers-list'),
+    );
+    expect(radarList, findsOneWidget);
+    await tester.drag(radarList, const Offset(0, -220));
+    await tester.pump(const Duration(milliseconds: 160));
+    _expectNoException(tester);
+  });
+
+  testWidgets('Radar edge dash ignores outside offers and alerts on Radar offers', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFF'));
+    await tester.pump(const Duration(milliseconds: 1550));
+    await tester.pump(const Duration(milliseconds: 2300));
+
+    // Outside-Radar offer must not turn the Radar dash amber.
+    final outsideDashes = tester.widgetList<RadarEdgeDash>(
+      find.byType(RadarEdgeDash),
+    );
+    expect(outsideDashes, isNotEmpty);
+    expect(
+      outsideDashes.every(
+        (dash) => dash.color == const Color(0xFF2FBE7B),
+      ),
+      isTrue,
+    );
+
+    await tester.pump(const Duration(milliseconds: 8500));
+    await tester.pump(const Duration(milliseconds: 900));
+
+    final radarDashes = tester.widgetList<RadarEdgeDash>(
+      find.byType(RadarEdgeDash),
+    );
+    expect(
+      radarDashes.any(
+        (dash) => dash.color == const Color(0xFFFFA94D),
+      ),
+      isTrue,
+    );
     _expectNoException(tester);
   });
 
@@ -547,7 +643,7 @@ void main() {
     // Advance beyond the first direct-offer timer. Nothing may appear offline.
     await tester.pump(const Duration(milliseconds: 4200));
     expect(find.text('104,80 kr'), findsNothing);
-    expect(find.text('Direct request outside radar'), findsNothing);
+    expect(find.text('Directly matched outside Trip Radar'), findsNothing);
     expect(find.text('OFF'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -572,7 +668,7 @@ void main() {
     }
 
     expect(find.text('104,80 kr'), findsNothing);
-    expect(find.text('Direct request outside radar'), findsNothing);
+    expect(find.text('Directly matched outside Trip Radar'), findsNothing);
     expect(find.text('LIVE'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -675,13 +771,13 @@ void main() {
 
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
-    expect(find.text('Direct request outside radar'), findsOneWidget);
+    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
 
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     panel.controller!.open();
     await _advanceAnimation(tester, const Duration(milliseconds: 820));
 
-    expect(find.text('Direct request outside radar'), findsNothing);
+    expect(find.text('Directly matched outside Trip Radar'), findsNothing);
     expect(find.text('104,80 kr'), findsNothing);
     _expectNoException(tester);
   });
@@ -801,7 +897,7 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Direct request outside radar'), findsOneWidget);
+    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
     expect(safetyPosition().bottom, 138);
     _expectNoException(tester);
   });
@@ -892,7 +988,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Direct request outside radar'), findsOneWidget);
+    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
 
     final routeButton = find.ancestor(
       of: find.text('Route'),
@@ -927,9 +1023,9 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Direct request outside radar'), findsOneWidget);
-    expect(find.textContaining('Direct offer · '), findsOneWidget);
-    expect(find.text('Limited time'), findsOneWidget);
+    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
+    expect(find.textContaining('Exclusive offer · '), findsOneWidget);
+    expect(find.text('Outside Radar'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     _expectNoException(tester);
   });
@@ -944,7 +1040,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Direct request outside radar'), findsOneWidget);
+    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
     _expectNoException(tester);
   });
 }
