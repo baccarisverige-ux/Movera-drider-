@@ -1272,6 +1272,10 @@ class _DriverHomeState extends State<DriverHome>
                 RideRequests(
                   destinationModeActive: _destinationModeActive,
                   destinationAddress: _destinationAddress,
+                  sessionController: _driverSession,
+                  waybillRepository: _waybills,
+                  locationRepository: _driverLocationService,
+                  routeRepository: _roadRouteService,
                   onCloseRides: (hasOffers) {
                     setState(() {
                       showRideRequests = false;
