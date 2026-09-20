@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:movera/core/location/driver_location_repository.dart';
+import 'package:movera/core/routing/route_repository.dart';
+import 'package:movera/core/session/driver_session_controller.dart';
+import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/widgets/navigation_transition.dart';
@@ -10,12 +14,20 @@ class RideRequests extends StatefulWidget {
   final ValueChanged<bool>? onCloseRides;
   final bool destinationModeActive;
   final String? destinationAddress;
+  final DriverSessionController? sessionController;
+  final WaybillRepository? waybillRepository;
+  final DriverLocationRepository? locationRepository;
+  final RouteRepository? routeRepository;
 
   const RideRequests({
     super.key,
     this.onCloseRides,
     this.destinationModeActive = false,
     this.destinationAddress,
+    this.sessionController,
+    this.waybillRepository,
+    this.locationRepository,
+    this.routeRepository,
   });
 
   @override
@@ -285,6 +297,10 @@ class _RideRequestsState extends State<RideRequests> {
               fare: trip.fare,
               category: trip.category,
               matchedVia: 'Movera Radar',
+              sessionController: widget.sessionController,
+              waybillRepository: widget.waybillRepository,
+              locationRepository: widget.locationRepository,
+              routeRepository: widget.routeRepository,
               pickupAddress: trip.pickup,
               pickupArea: trip.pickup.split(',').last.trim(),
               dropoffAddress: trip.dropoff,
