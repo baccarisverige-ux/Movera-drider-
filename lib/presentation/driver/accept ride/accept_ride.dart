@@ -629,6 +629,9 @@ class _AcceptRideState extends State<AcceptRide> {
 
             return Container(
               key: const ValueKey<String>('on-trip-radar-offer-sheet'),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+              ),
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
               decoration: const BoxDecoration(
                 color: Color(0xFFF9FBFA),
@@ -638,7 +641,9 @@ class _AcceptRideState extends State<AcceptRide> {
               ),
               child: SafeArea(
                 top: false,
-                child: Column(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -853,6 +858,7 @@ class _AcceptRideState extends State<AcceptRide> {
                       ),
                     ),
                   ],
+                  ),
                 ),
               ),
             );
