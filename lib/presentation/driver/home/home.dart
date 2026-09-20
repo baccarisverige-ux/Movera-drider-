@@ -729,8 +729,8 @@ class _DriverHomeState extends State<DriverHome>
               curve: _showTodaySummaryPopup
                   ? Curves.easeInCubic
                   : Curves.easeOutBack,
-              left: _showTodaySummaryPopup ? -58 : -12,
-              top: MediaQuery.sizeOf(context).height * 0.44,
+              left: _showTodaySummaryPopup ? -46 : -14,
+              top: MediaQuery.sizeOf(context).height * 0.52,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 220),
                 opacity: _showTodaySummaryPopup ? 0 : 1,
@@ -739,25 +739,25 @@ class _DriverHomeState extends State<DriverHome>
                   child: InkWell(
                     onTap: _showTodaySummary,
                     borderRadius: const BorderRadius.horizontal(
-                      right: Radius.circular(19),
+                      right: Radius.circular(16),
                     ),
                     child: Container(
-                      width: 62,
-                      height: 50,
-                      padding: const EdgeInsets.only(left: 14, right: 9),
+                      width: 48,
+                      height: 42,
+                      padding: const EdgeInsets.only(left: 11, right: 7),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF9FBFA),
                         borderRadius: const BorderRadius.horizontal(
-                          right: Radius.circular(19),
+                          right: Radius.circular(16),
                         ),
                         border: Border.all(
                           color: const Color(0xFFDDE5E1),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF172027).withOpacity(0.13),
-                            blurRadius: 16,
-                            offset: const Offset(4, 5),
+                            color: const Color(0xFF172027).withOpacity(0.10),
+                            blurRadius: 12,
+                            offset: const Offset(3, 4),
                           ),
                         ],
                       ),
@@ -765,7 +765,7 @@ class _DriverHomeState extends State<DriverHome>
                       child: const Icon(
                         Icons.insights_rounded,
                         color: Color(0xFF315E4D),
-                        size: 21,
+                        size: 18,
                       ),
                     ),
                   ),
