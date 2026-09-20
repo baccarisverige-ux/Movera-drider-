@@ -225,6 +225,8 @@ class _AcceptRideState extends State<AcceptRide> {
   DateTime? _lastRouteAt;
   bool _hasLiveLocation = false;
   bool _routeLoading = false;
+  bool _stageTransitioning = false;
+  int _routeRequestToken = 0;
   String? _locationStatus;
 
   @override
@@ -382,11 +384,13 @@ class _AcceptRideState extends State<AcceptRide> {
       _locationStatus = null;
     });
 
-    await _refreshRoadRoute(force: forceRoute);
+    if (_stage != _RideStage.waitingForRider) {
+      await _refreshRoadRoute(force: forceRoute);
+    }
   }
 
   Future<void> _refreshRoadRoute({bool force = false}) async {
-    if (!_hasLiveLocation) return;
+    if (!_hasLiveLocation || _stage == _RideStage.waitingForRider) return;
 
     final now = DateTime.now();
     final lastOrigin = _lastRouteOrigin;
@@ -409,6 +413,11 @@ class _AcceptRideState extends State<AcceptRide> {
     _lastRouteOrigin = _driverPosition;
     _lastRouteAt = now;
 
+    final requestToken = ++_routeRequestToken;
+    final requestStage = _stage;
+    final requestTarget = _routeTarget;
+    final requestOrigin = _driverPosition;
+
     if (mounted) {
       setState(() {
         _routeLoading = true;
@@ -417,11 +426,17 @@ class _AcceptRideState extends State<AcceptRide> {
 
     try {
       final route = await _routeService.drivingRoute(
-        origin: _driverPosition,
-        destination: _routeTarget,
+        origin: requestOrigin,
+        destination: requestTarget,
       );
 
-      if (!mounted) return;
+      if (!mounted ||
+          requestToken != _routeRequestToken ||
+          requestStage != _stage ||
+          requestTarget != _routeTarget) {
+        return;
+      }
+
       setState(() {
         _roadRoutePoints = route.points;
         _routeDistanceMeters = route.distanceMeters;
@@ -429,7 +444,12 @@ class _AcceptRideState extends State<AcceptRide> {
         _routeLoading = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted ||
+          requestToken != _routeRequestToken ||
+          requestStage != _stage) {
+        return;
+      }
+
       setState(() {
         // Never draw a fake straight line when road routing is unavailable.
         _roadRoutePoints = <LatLng>[];
@@ -491,35 +511,76 @@ class _AcceptRideState extends State<AcceptRide> {
     } catch (_) {}
   }
 
-  void _advanceRide() {
-    switch (_stage) {
-      case _RideStage.headingToPickup:
-        setState(() {
-          _stage = _RideStage.waitingForRider;
-          _waitSeconds = 0;
-        });
-        _startWaitTimer();
-        break;
-      case _RideStage.waitingForRider:
-        _waitTimer?.cancel();
-        setState(() => _stage = _RideStage.onTrip);
-        _startOnTripRadar();
-        break;
-      case _RideStage.onTrip:
-        WaybillStore.completeCurrent();
-        Navigator.pushReplacement(
-          context,
-          BottomToTopTransition(const DriverRideCompleted()),
-        );
-        return;
-    }
+  Future<void> _advanceRide() async {
+    if (_stageTransitioning || !mounted) return;
 
-    _refreshRoadRoute(force: true).then((_) {
-      if (!mounted) return;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _fitRoute();
-      });
-    });
+    _stageTransitioning = true;
+    _routeRequestToken++;
+
+    try {
+      switch (_stage) {
+        case _RideStage.headingToPickup:
+          setState(() {
+            _stage = _RideStage.waitingForRider;
+            _waitSeconds = 0;
+            _roadRoutePoints = <LatLng>[];
+            _routeDistanceMeters = null;
+            _routeDurationSeconds = null;
+            _routeLoading = false;
+          });
+          _startWaitTimer();
+          await _focusWaitingPickup();
+          break;
+
+        case _RideStage.waitingForRider:
+          _waitTimer?.cancel();
+          setState(() {
+            _stage = _RideStage.onTrip;
+            _roadRoutePoints = <LatLng>[];
+            _routeDistanceMeters = null;
+            _routeDurationSeconds = null;
+          });
+          _startOnTripRadar();
+          await _refreshRoadRoute(force: true);
+          if (mounted) {
+            await _fitRoute();
+          }
+          break;
+
+        case _RideStage.onTrip:
+          _waitTimer?.cancel();
+          _nextTripRadarDemoTimer?.cancel();
+          _nextTripRadarMatchTimer?.cancel();
+          WaybillStore.completeCurrent();
+
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            BottomToTopTransition(const DriverRideCompleted()),
+          );
+          return;
+      }
+    } finally {
+      if (mounted) {
+        _stageTransitioning = false;
+      }
+    }
+  }
+
+  Future<void> _focusWaitingPickup() async {
+    final controller = _mapController;
+    if (controller == null) return;
+
+    try {
+      await controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: widget.pickupPosition,
+            zoom: 17.2,
+          ),
+        ),
+      );
+    } catch (_) {}
   }
 
   void _startOnTripRadar() {
@@ -1491,12 +1552,13 @@ class _AcceptRideState extends State<AcceptRide> {
               if (_stage == _RideStage.onTrip) ...[
                 const SizedBox(height: 10),
                 _buildOnTripRadarStrip(),
-                _buildSecuredNextTripDetails(),
               ],
               const SizedBox(height: 14),
               _buildRiderRow(),
               const SizedBox(height: 14),
               _buildPrimaryAction(),
+              if (_stage == _RideStage.onTrip)
+                _buildSecuredNextTripDetails(),
             ],
           ),
         ),
@@ -1843,7 +1905,9 @@ class _AcceptRideState extends State<AcceptRide> {
               _RideStage.waitingForRider => Icons.play_arrow_rounded,
               _RideStage.onTrip => Icons.flag_outlined,
             },
-            onConfirmed: _advanceRide,
+            onConfirmed: () {
+              _advanceRide();
+            },
           ),
         ),
       ],
