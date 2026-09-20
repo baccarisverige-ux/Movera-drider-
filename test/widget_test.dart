@@ -224,13 +224,13 @@ void main() {
     final scheduled = find.byTooltip('Scheduled').hitTestable();
     expect(scheduled, findsOneWidget);
     await tester.tap(scheduled);
-    await tester.pumpAndSettle();
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
     expect(find.byType(ScheduledRidesScreen), findsOneWidget);
     _expectNoException(tester);
 
     Navigator.of(tester.element(find.byType(ScheduledRidesScreen))).pop();
-    await tester.pumpAndSettle();
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
     expect(find.byType(DriverHome), findsOneWidget);
     expect(find.text('SCANNING'), findsOneWidget);
