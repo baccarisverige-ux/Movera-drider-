@@ -751,6 +751,19 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Home exposes a dedicated driver location recenter control', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    expect(
+      find.byKey(const ValueKey<String>('driver-location-zoom')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+  });
+
   testWidgets('Online state survives Scheduled Rides navigation and return', (
     WidgetTester tester,
   ) async {
