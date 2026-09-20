@@ -604,13 +604,13 @@ void main() {
     final map = tester.widget<CustomGoogleMap>(
       find.byType(CustomGoogleMap).first,
     );
+    // Routing is real-road only. In widget tests there is no live GPS/provider,
+    // so Destination Mode must not invent a straight two-point route.
     expect(
       map.polylines!.any(
-        (polyline) =>
-            polyline.polylineId.value == 'destination_mode_route' &&
-            polyline.points.length == 2,
+        (polyline) => polyline.polylineId.value == 'destination_mode_route',
       ),
-      isTrue,
+      isFalse,
     );
     expect(
       map.markers!.any(
@@ -750,8 +750,15 @@ void main() {
     expect(find.text('94%'), findsOneWidget);
     expect(find.text('Cancellation'), findsOneWidget);
     expect(find.text('2.4%'), findsOneWidget);
-    expect(find.text('What’s happening'), findsOneWidget);
     _expectNoException(tester);
+
+    final overviewList = find.byKey(
+      const PageStorageKey<String>('driver-overview-list'),
+    );
+    expect(overviewList, findsOneWidget);
+    await tester.drag(overviewList, const Offset(0, -360));
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(find.text('What’s happening'), findsOneWidget);
 
     final scheduled = find.text('Scheduled rides available');
     await tester.ensureVisible(scheduled);
@@ -769,7 +776,15 @@ void main() {
     await _pumpHome(tester, const Size(375, 812));
     await _openPanel(tester);
 
+    final overviewList = find.byKey(
+      const PageStorageKey<String>('driver-overview-list'),
+    );
+    expect(overviewList, findsOneWidget);
+    await tester.drag(overviewList, const Offset(0, -520));
+    await tester.pump(const Duration(milliseconds: 180));
+
     final event = find.text('Stockholm evening demand');
+    expect(event, findsOneWidget);
     await tester.ensureVisible(event);
     await tester.tap(event);
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
