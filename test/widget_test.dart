@@ -726,12 +726,18 @@ void main() {
 
     expect(find.text('Earnings & history'), findsOneWidget);
     expect(find.text('1 482.75 kr'), findsWidgets);
+    _expectNoException(tester);
+
+    await tester.drag(
+      find.byKey(const ValueKey<String>('history-overview')),
+      const Offset(0, -520),
+    );
+    await tester.pump(const Duration(milliseconds: 160));
+
     expect(
       find.byKey(const ValueKey<String>('history-view-all-rides')),
       findsOneWidget,
     );
-    _expectNoException(tester);
-
     await tester.tap(
       find.byKey(const ValueKey<String>('history-view-all-rides')),
     );
