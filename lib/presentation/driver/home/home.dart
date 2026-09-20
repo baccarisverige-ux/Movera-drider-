@@ -36,7 +36,12 @@ import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DriverHome extends StatefulWidget {
-  const DriverHome({super.key});
+  const DriverHome({
+    super.key,
+    this.initialOnline = false,
+  });
+
+  final bool initialOnline;
 
   @override
   State<DriverHome> createState() => _DriverHomeState();
@@ -205,6 +210,7 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void initState() {
     super.initState();
+    _isOnline = widget.initialOnline;
     _adminHomeConfig = const DriverHomeAdminContentService().load();
     _hasScheduledRideOffers =
         _adminHomeConfig.scheduledRides.hasOpenRequests;
