@@ -10,7 +10,7 @@ class ScheduledRidesScreen extends StatefulWidget {
 class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
   int _selectedTab = 0;
 
-  static const _requests = [
+  final List<_ScheduledRide> _requests = [
     _ScheduledRide(
       price: '126.75 kr',
       time: 'Today, 07:40–07:45',
@@ -29,7 +29,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
     ),
   ];
 
-  static const _accepted = [
+  final List<_ScheduledRide> _accepted = [
     _ScheduledRide(
       price: '184.00 kr',
       time: 'Tomorrow, 08:15',
@@ -95,7 +95,11 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
                       ),
                     );
                   }
-                  return _ScheduledRideCard(ride: rides[index - 1]);
+                  final ride = rides[index - 1];
+                  return _ScheduledRideCard(
+                    ride: ride,
+                    onTap: () => _openRideDetails(ride),
+                  );
                 },
               ),
             ),
@@ -103,6 +107,39 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         ),
       ),
     );
+  }
+
+
+  Future<void> _openRideDetails(_ScheduledRide ride) async {
+    final action = await Navigator.of(context).push<_ScheduledRideAction>(
+      MaterialPageRoute(
+        builder: (_) => _ScheduledRideDetailsScreen(ride: ride),
+      ),
+    );
+
+    if (!mounted || action == null) return;
+
+    if (action == _ScheduledRideAction.accepted) {
+      setState(() {
+        _requests.remove(ride);
+        _accepted.insert(0, ride.copyWith(accepted: true));
+        _selectedTab = 1;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reservation accepted'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (action == _ScheduledRideAction.cancelled) {
+      setState(() => _accepted.remove(ride));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reservation cancelled'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -211,9 +248,10 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
 }
 
 class _ScheduledRideCard extends StatelessWidget {
-  const _ScheduledRideCard({required this.ride});
+  const _ScheduledRideCard({required this.ride, required this.onTap});
 
   final _ScheduledRide ride;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -222,7 +260,7 @@ class _ScheduledRideCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {},
+        onTap: onTap,
         child: Column(
           children: [
             Padding(
@@ -544,4 +582,887 @@ class _ScheduledRide {
   final String pickup;
   final String destination;
   final bool accepted;
+
+  _ScheduledRide copyWith({bool? accepted}) {
+    return _ScheduledRide(
+      price: price,
+      time: time,
+      category: category,
+      distance: distance,
+      pickup: pickup,
+      destination: destination,
+      accepted: accepted ?? this.accepted,
+    );
+  }
+}
+
+enum _ScheduledRideAction { accepted, cancelled }
+
+
+class _ScheduledRideDetailsScreen extends StatelessWidget {
+  const _ScheduledRideDetailsScreen({required this.ride});
+
+  final _ScheduledRide ride;
+
+  static const _ink = Color(0xFF252E3A);
+  static const _muted = Color(0xFF7F8A91);
+  static const _surface = Color(0xFFF3F5F6);
+  static const _green = Color(0xFF19865C);
+  static const _red = Color(0xFFC84E58);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _surface,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_rounded),
+          color: _ink,
+        ),
+        titleSpacing: 0,
+        title: Text(
+          ride.accepted ? 'Your reservation' : 'Reservation details',
+          style: const TextStyle(
+            color: _ink,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+                children: [
+                  _buildHero(),
+                  const SizedBox(height: 14),
+                  _buildRouteCard(),
+                  const SizedBox(height: 14),
+                  _buildPlanCard(),
+                  if (ride.accepted) ...[
+                    const SizedBox(height: 14),
+                    _buildCommitmentCard(),
+                  ],
+                ],
+              ),
+            ),
+            _buildBottomAction(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHero() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: ride.accepted
+                                ? const Color(0xFFE9F4EF)
+                                : const Color(0xFFF0F2F3),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                ride.accepted
+                                    ? Icons.check_circle_rounded
+                                    : Icons.schedule_rounded,
+                                size: 15,
+                                color: ride.accepted ? _green : _muted,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                ride.accepted ? 'Confirmed' : 'Available',
+                                style: TextStyle(
+                                  color: ride.accepted ? _green : _muted,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      ride.price,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 31,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      ride.time,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                height: 54,
+                width: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F3),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(
+                  Icons.event_available_rounded,
+                  color: _green,
+                  size: 27,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          const Divider(height: 1, color: Color(0xFFE9ECEE)),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _DetailMetric(
+                  icon: Icons.directions_car_outlined,
+                  label: 'Ride type',
+                  value: ride.category,
+                ),
+              ),
+              Container(
+                height: 34,
+                width: 1,
+                color: const Color(0xFFE5E9EB),
+              ),
+              Expanded(
+                child: _DetailMetric(
+                  icon: Icons.route_rounded,
+                  label: 'Trip',
+                  value: ride.distance,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRouteCard() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Route',
+            style: TextStyle(
+              color: _ink,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 28,
+                child: Column(
+                  children: [
+                    Container(
+                      height: 14,
+                      width: 14,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _green, width: 3),
+                      ),
+                    ),
+                    Container(
+                      width: 2,
+                      height: 58,
+                      margin: const EdgeInsets.symmetric(vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD8DEE1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.location_on_rounded,
+                      size: 19,
+                      color: Color(0xFFDF5A62),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Pickup',
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      ride.pickup,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 27),
+                    const Text(
+                      'Drop-off',
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      ride.destination,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlanCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF26343A),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            ride.accepted ? 'Before this ride' : 'Good to know',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const _PlanRow(
+            icon: Icons.online_prediction_rounded,
+            title: 'Be ready early',
+            body: 'Go online 30 min before pickup so the app can guide you in time.',
+          ),
+          const SizedBox(height: 15),
+          const _PlanRow(
+            icon: Icons.alt_route_rounded,
+            title: 'Trips on the way',
+            body: 'You can still receive suitable rides before the scheduled pickup.',
+          ),
+          const SizedBox(height: 15),
+          const _PlanRow(
+            icon: Icons.event_busy_outlined,
+            title: 'Plans changed?',
+            body: 'Cancel as early as possible. Late cancellations can affect scheduled-ride access.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommitmentCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF1E4CE)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.notifications_active_outlined,
+            color: Color(0xFF9B6B24),
+            size: 22,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Reserved for you',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'We’ll keep this ride in your Accepted list. If you cancel, you’ll be asked for a reason before anything changes.',
+                  style: TextStyle(
+                    color: Color(0xFF6F777C),
+                    fontSize: 12,
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomAction(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: const Color(0xFFE8EBED).withOpacity(0.9)),
+        ),
+      ),
+      child: ride.accepted
+          ? SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: OutlinedButton(
+                onPressed: () => _showCancelReasons(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _red,
+                  side: const BorderSide(color: Color(0xFFE7C6C9)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                ),
+                child: const Text(
+                  'Cancel reservation',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            )
+          : SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: FilledButton(
+                onPressed: () =>
+                    Navigator.pop(context, _ScheduledRideAction.accepted),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _ink,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                ),
+                child: Text(
+                  'Accept  •  ' + ride.price,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  Future<void> _showCancelReasons(BuildContext context) async {
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => const _CancelReasonSheet(),
+    );
+
+    if (reason == null || !context.mounted) return;
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _CancelConfirmationSheet(reason: reason),
+    );
+
+    if (confirmed == true && context.mounted) {
+      Navigator.pop(context, _ScheduledRideAction.cancelled);
+    }
+  }
+}
+
+class _DetailMetric extends StatelessWidget {
+  const _DetailMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          height: 36,
+          width: 36,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, size: 18, color: const Color(0xFF19865C)),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF8A959B),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF252E3A),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlanRow extends StatelessWidget {
+  const _PlanRow({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 38,
+          width: 38,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.09),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                body,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.68),
+                  fontSize: 11,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CancelReasonSheet extends StatefulWidget {
+  const _CancelReasonSheet();
+
+  @override
+  State<_CancelReasonSheet> createState() => _CancelReasonSheetState();
+}
+
+class _CancelReasonSheetState extends State<_CancelReasonSheet> {
+  String? _selected;
+
+  static const _reasons = <String>[
+    'I can no longer make the pickup time',
+    'Vehicle issue',
+    'Personal emergency',
+    'Pickup is too far from me',
+    'Trip details no longer work for me',
+    'Other reason',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.84,
+        ),
+        decoration: const BoxDecoration(
+          color: Color(0xFFF7F8F8),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              height: 4,
+              width: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD3D8DB),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 14, 8),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Why are you cancelling?',
+                          style: TextStyle(
+                            color: Color(0xFF252E3A),
+                            fontSize: 21,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Choose the reason that best matches.',
+                          style: TextStyle(
+                            color: Color(0xFF7D888E),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                    color: const Color(0xFF39444A),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                itemCount: _reasons.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final reason = _reasons[index];
+                  final selected = reason == _selected;
+                  return Material(
+                    color: selected ? Colors.white : const Color(0xFFF0F2F3),
+                    borderRadius: BorderRadius.circular(17),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(17),
+                      onTap: () => setState(() => _selected = reason),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 15,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(17),
+                          border: Border.all(
+                            color: selected
+                                ? const Color(0xFF8AB7A3)
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              height: 22,
+                              width: 22,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: selected
+                                    ? const Color(0xFF19865C)
+                                    : Colors.transparent,
+                                border: Border.all(
+                                  color: selected
+                                      ? const Color(0xFF19865C)
+                                      : const Color(0xFFAFB8BD),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: selected
+                                  ? const Icon(
+                                      Icons.check_rounded,
+                                      color: Colors.white,
+                                      size: 15,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                reason,
+                                style: TextStyle(
+                                  color: const Color(0xFF303B42),
+                                  fontSize: 13,
+                                  fontWeight: selected
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+              color: Colors.white,
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  onPressed: _selected == null
+                      ? null
+                      : () => Navigator.pop(context, _selected),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF252E3A),
+                    disabledBackgroundColor: const Color(0xFFDCE1E3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(17),
+                    ),
+                  ),
+                  child: const Text(
+                    'Continue',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CancelConfirmationSheet extends StatelessWidget {
+  const _CancelConfirmationSheet({required this.reason});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                height: 4,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD3D8DB),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEDEF),
+                borderRadius: BorderRadius.circular(17),
+              ),
+              child: const Icon(
+                Icons.event_busy_rounded,
+                color: Color(0xFFC84E58),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Cancel this reservation?',
+              style: TextStyle(
+                color: Color(0xFF252E3A),
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              reason,
+              style: const TextStyle(
+                color: Color(0xFF59656C),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Cancelling close to pickup can affect your scheduled-ride access. This action cannot be undone in this demo flow.',
+              style: TextStyle(
+                color: Color(0xFF7D888E),
+                fontSize: 12,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF252E3A),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                ),
+                child: const Text(
+                  'Cancel reservation',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 9),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text(
+                  'Keep reservation',
+                  style: TextStyle(
+                    color: Color(0xFF354047),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
