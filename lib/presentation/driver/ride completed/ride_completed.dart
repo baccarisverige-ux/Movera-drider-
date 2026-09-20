@@ -5,6 +5,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
+import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/widgets/custom_btn.dart';
@@ -19,9 +20,11 @@ class DriverRideCompleted extends StatefulWidget {
   const DriverRideCompleted({
     super.key,
     this.waybillRepository,
+    this.sessionController,
   });
 
   final WaybillRepository? waybillRepository;
+  final DriverSessionController? sessionController;
 
   @override
   State<DriverRideCompleted> createState() => _DriverRideCompletedState();
@@ -101,6 +104,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                           DriverHome(
                             initialOnline: true,
                             waybillRepository: _waybills,
+                            sessionController: widget.sessionController,
                           ),
                         ),
                       );
