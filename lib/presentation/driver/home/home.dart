@@ -414,6 +414,7 @@ class _DriverHomeState extends State<DriverHome>
               onPanelOpened: () {
                 _mainPanelPosition = 1;
                 _panelSlidePosition.value = 1;
+                _closeHomeFloatingPopupsForSheet();
                 _setMapGesturesBlocked(true);
               },
               onPanelClosed: () {
