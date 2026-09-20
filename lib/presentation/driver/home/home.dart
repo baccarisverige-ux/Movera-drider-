@@ -4227,6 +4227,7 @@ class _DriverHomeState extends State<DriverHome>
                 const SizedBox(height: 62),
                 Expanded(
                   child: ListView(
+                    key: const PageStorageKey<String>('driver-overview-list'),
                     controller: sc,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
