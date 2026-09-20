@@ -2077,10 +2077,14 @@ class _AcceptRideState extends State<AcceptRide> {
   Future<void> _showRiderProfile() async {
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.35),
       builder: (sheetContext) {
         return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
+          ),
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
           decoration: const BoxDecoration(
             color: Color(0xFFF7F9F8),
@@ -2093,47 +2097,49 @@ class _AcceptRideState extends State<AcceptRide> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                const CircleAvatar(
-                  radius: 34,
-                  backgroundImage: AssetImage(AppAssets.profileImg),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.riderName,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
+                  const CircleAvatar(
+                    radius: 34,
+                    backgroundImage: AssetImage(AppAssets.profileImg),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  '${widget.riderRating.toStringAsFixed(1)} ★ · ${widget.riderTrips} rides',
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 15),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: _line),
-                  ),
-                  child: const Text(
-                    'Rider details from the booking will appear here when the backend profile is connected.',
-                    style: TextStyle(
-                      color: _muted,
-                      fontSize: 11,
-                      height: 1.4,
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.riderName,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 5),
+                  Text(
+                    '${widget.riderRating.toStringAsFixed(1)} ★ · '
+                    '${widget.riderTrips} rides',
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: _line),
+                    ),
+                    child: const Text(
+                      'Rider details from the booking will appear here when the backend profile is connected.',
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 11,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -2159,77 +2165,80 @@ class _AcceptRideState extends State<AcceptRide> {
           ),
           child: SafeArea(
             top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 44,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD7DEDF),
-                    borderRadius: BorderRadius.circular(99),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD7DEDF),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _optionTile(
-                  key: const ValueKey<String>('current-trip-waybill-option'),
-                  icon: Icons.receipt_long_outlined,
-                  title: 'Current waybill',
-                  subtitle: '${widget.pickupAddress} → ${widget.dropoffAddress}',
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    final record = _waybills.current;
-                    if (record != null) {
-                      showMoveraWaybillSheet(
-                        context,
-                        record,
-                        title: 'Current trip waybill',
-                      );
-                    }
-                  },
-                ),
-                if (_onTripRadarState == _OnTripRadarState.secured &&
-                    _waybills.next != null)
+                  const SizedBox(height: 16),
                   _optionTile(
-                    key: const ValueKey<String>('next-trip-waybill-option'),
-                    icon: Icons.radar_rounded,
-                    title: 'Next trip waybill',
-                    subtitle: _waybills.next!.dropoff,
+                    key: const ValueKey<String>('current-trip-waybill-option'),
+                    icon: Icons.receipt_long_outlined,
+                    title: 'Current waybill',
+                    subtitle:
+                        '${widget.pickupAddress} → ${widget.dropoffAddress}',
                     onTap: () {
                       Navigator.pop(sheetContext);
-                      showMoveraWaybillSheet(
-                        context,
-                        _waybills.next!,
-                        title: 'Next trip waybill',
-                      );
+                      final record = _waybills.current;
+                      if (record != null) {
+                        showMoveraWaybillSheet(
+                          context,
+                          record,
+                          title: 'Current trip waybill',
+                        );
+                      }
                     },
                   ),
-                _optionTile(
-                  icon: Icons.shield_outlined,
-                  title: 'Safety toolkit',
-                  subtitle: 'Share trip, record audio or get help',
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    showSafetyToolKitSheet(context);
-                  },
-                ),
-                _optionTile(
-                  key: const ValueKey<String>('active-ride-cancel-option'),
-                  icon: _stage == ActiveRideStage.onTrip
-                      ? Icons.stop_circle_outlined
-                      : Icons.close_rounded,
-                  title: _stage == ActiveRideStage.onTrip
-                      ? 'End trip early'
-                      : 'Cancel trip',
-                  subtitle: _stage == ActiveRideStage.onTrip
-                      ? 'Stop safely first · reason required'
-                      : 'Choose a reason before cancelling',
-                  danger: true,
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _showCancellationReasons();
-                  },
-                ),
+                  if (_onTripRadarState == _OnTripRadarState.secured &&
+                      _waybills.next != null)
+                    _optionTile(
+                      key: const ValueKey<String>('next-trip-waybill-option'),
+                      icon: Icons.radar_rounded,
+                      title: 'Next trip waybill',
+                      subtitle: _waybills.next!.dropoff,
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        showMoveraWaybillSheet(
+                          context,
+                          _waybills.next!,
+                          title: 'Next trip waybill',
+                        );
+                      },
+                    ),
+                  _optionTile(
+                    icon: Icons.shield_outlined,
+                    title: 'Safety toolkit',
+                    subtitle: 'Share trip, record audio or get help',
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      showSafetyToolKitSheet(context);
+                    },
+                  ),
+                  _optionTile(
+                    key: const ValueKey<String>('active-ride-cancel-option'),
+                    icon: _stage == ActiveRideStage.onTrip
+                        ? Icons.stop_circle_outlined
+                        : Icons.close_rounded,
+                    title: _stage == ActiveRideStage.onTrip
+                        ? 'End trip early'
+                        : 'Cancel trip',
+                    subtitle: _stage == ActiveRideStage.onTrip
+                        ? 'Stop safely first · reason required'
+                        : 'Choose a reason before cancelling',
+                    danger: true,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _showCancellationReasons();
+                    },
+                  ),
                 ],
               ),
             ),
