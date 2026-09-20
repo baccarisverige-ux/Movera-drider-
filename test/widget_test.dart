@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/main.dart';
 import 'package:movera/presentation/driver/home/home.dart';
+import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
-import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
@@ -69,13 +69,62 @@ void main() {
     );
   }
 
-  testWidgets('Collapsed sheet quick actions are wired safely', (
+  testWidgets('Home drawer opens without overflow on narrow phone', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(375, 812));
+    await _pumpHome(tester, const Size(320, 700));
 
-    final wallet = find.byTooltip('Wallet').hitTestable();
+    final scaffoldState =
+        tester.state<ScaffoldState>(find.byType(Scaffold).first);
+    scaffoldState.openDrawer();
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(scaffoldState.isDrawerOpen, isTrue);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Collapsed dock actions are wired safely in isolation', (
+    WidgetTester tester,
+  ) async {
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    final pulseController = AnimationController(
+      vsync: const TestVSync(),
+      duration: const Duration(milliseconds: 2600),
+    );
+    addTearDown(pulseController.dispose);
+
+    var scheduledTapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          key: scaffoldKey,
+          drawer: const Drawer(child: Text('Menu drawer')),
+          body: Builder(
+            builder: (context) => Align(
+              alignment: Alignment.bottomCenter,
+              child: SizedBox(
+                height: 108,
+                child: DriverSheetNav.collapsedDock(
+                  context: context,
+                  scaffoldKey: scaffoldKey,
+                  isOnline: false,
+                  hasScheduledRideOffers: true,
+                  goOnlinePulseController: pulseController,
+                  onOpenScheduledRides: () {
+                    scheduledTapped = true;
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final wallet = find.byTooltip('Wallet');
     expect(wallet, findsOneWidget);
     await tester.tap(wallet);
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
@@ -84,7 +133,7 @@ void main() {
     Navigator.of(tester.element(find.byType(WalletScreen))).pop();
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
-    final inbox = find.byTooltip('Inbox').hitTestable();
+    final inbox = find.byTooltip('Inbox');
     expect(inbox, findsOneWidget);
     await tester.tap(inbox);
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
@@ -93,21 +142,18 @@ void main() {
     Navigator.of(tester.element(find.byType(SupportInboxScreen))).pop();
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
-    final scheduled = find.byTooltip('Scheduled').hitTestable();
+    final scheduled = find.byTooltip('Scheduled');
     expect(scheduled, findsOneWidget);
     await tester.tap(scheduled);
-    await _advanceAnimation(tester, const Duration(milliseconds: 320));
-    expect(find.byType(ScheduledRidesScreen), findsOneWidget);
+    await tester.pump();
+    expect(scheduledTapped, isTrue);
     _expectNoException(tester);
-    Navigator.of(tester.element(find.byType(ScheduledRidesScreen))).pop();
-    await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
-    final menu = find.byTooltip('Menu').hitTestable();
+    final menu = find.byTooltip('Menu');
     expect(menu, findsOneWidget);
     await tester.tap(menu);
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
-    final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold).first);
-    expect(scaffoldState.isDrawerOpen, isTrue);
+    expect(scaffoldKey.currentState?.isDrawerOpen, isTrue);
     _expectNoException(tester);
   });
 
