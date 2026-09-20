@@ -9,7 +9,14 @@ import 'package:movera/presentation/driver/settings/settings.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 
 class DriverSideMenu extends StatelessWidget {
-  const DriverSideMenu({super.key});
+  const DriverSideMenu({
+    super.key,
+    this.isOnline = false,
+    this.accountActive = true,
+  });
+
+  final bool isOnline;
+  final bool accountActive;
 
   static const Color _ink = Color(0xFF252E3A);
   static const Color _muted = Color(0xFF7D898F);
@@ -17,8 +24,10 @@ class DriverSideMenu extends StatelessWidget {
   static const Color _canvas = Color(0xFFF3F5F6);
   static const Color _line = Color(0xFFE3E8E6);
 
+  // Deliberately keep the Drawer open under the destination route.
+  // When the driver presses Back, Flutter reveals the menu again instead of
+  // dropping them directly onto the map.
   void _open(BuildContext context, Widget page) {
-    Navigator.of(context).pop();
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => page),
     );
@@ -27,25 +36,34 @@ class DriverSideMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Drawer(
-      width: width * 0.88,
+      key: const ValueKey<String>('driver-side-menu'),
+      width: width * 0.90,
       elevation: 0,
       backgroundColor: _canvas,
       surfaceTintColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.horizontal(right: Radius.circular(30)),
-      ),
-      child: SafeArea(
+      shape: const RoundedRectangleBorder(),
+      child: ColoredBox(
+        color: _canvas,
         child: Column(
           children: [
-            _buildHeader(context),
-            const SizedBox(height: 12),
-            _buildPerformanceStrip(),
-            const SizedBox(height: 14),
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  _buildHeader(context),
+                  const SizedBox(height: 12),
+                  _buildPerformanceStrip(),
+                  const SizedBox(height: 14),
+                ],
+              ),
+            ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
+                key: const PageStorageKey<String>('driver-menu-list'),
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                 physics: const BouncingScrollPhysics(),
                 children: [
                   _sectionLabel('DRIVER'),
@@ -98,7 +116,6 @@ class DriverSideMenu extends StatelessWidget {
                         icon: Icons.support_agent_rounded,
                         title: 'Support',
                         subtitle: 'Messages and support tickets',
-                        badge: '2',
                         onTap: () =>
                             _open(context, const SupportInboxScreen()),
                       ),
@@ -110,10 +127,12 @@ class DriverSideMenu extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  _buildMoveraFooter(),
                 ],
               ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(14, 0, 14, bottomInset + 12),
+              child: _buildMoveraFooter(),
             ),
           ],
         ),
@@ -122,8 +141,13 @@ class DriverSideMenu extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final statusColor = isOnline
+        ? const Color(0xFF2FBE7B)
+        : const Color(0xFF9AA4A9);
+    final statusText = isOnline ? 'ONLINE' : 'OFFLINE';
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 14, 16, 0),
+      padding: const EdgeInsets.fromLTRB(18, 16, 14, 0),
       child: Row(
         children: [
           InkWell(
@@ -155,14 +179,15 @@ class DriverSideMenu extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: InkWell(
+              key: const ValueKey<String>('menu-profile-header'),
               onTap: () => _open(context, const DriverProfile()),
               borderRadius: BorderRadius.circular(14),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 5),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Movera Driver',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -173,14 +198,21 @@ class DriverSideMenu extends StatelessWidget {
                         letterSpacing: -0.35,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
-                        _OnlineDot(),
-                        SizedBox(width: 6),
+                        Container(
+                          height: 7,
+                          width: 7,
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
                         Text(
-                          'Driver profile',
-                          style: TextStyle(
+                          isOnline ? 'Available for trips' : 'Driver profile',
+                          style: const TextStyle(
                             color: _muted,
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -193,14 +225,22 @@ class DriverSideMenu extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            tooltip: 'Close menu',
-            onPressed: () => Navigator.of(context).pop(),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: _ink,
+          Container(
+            key: const ValueKey<String>('menu-live-status'),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(99),
             ),
-            icon: const Icon(Icons.close_rounded, size: 20),
+            child: Text(
+              statusText,
+              style: TextStyle(
+                color: statusColor,
+                fontSize: 8.5,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+              ),
+            ),
           ),
         ],
       ),
@@ -216,10 +256,17 @@ class DriverSideMenu extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: _line),
+          boxShadow: [
+            BoxShadow(
+              color: _ink.withOpacity(0.035),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Expanded(
+            const Expanded(
               child: _MetricTile(
                 icon: Icons.star_rounded,
                 value: '4.88',
@@ -227,16 +274,20 @@ class DriverSideMenu extends StatelessWidget {
                 accent: Color(0xFFD99B24),
               ),
             ),
-            SizedBox(
+            const SizedBox(
               height: 48,
               child: VerticalDivider(width: 1, color: _line),
             ),
             Expanded(
               child: _MetricTile(
-                icon: Icons.check_circle_outline_rounded,
-                value: 'Active',
+                icon: accountActive
+                    ? Icons.verified_outlined
+                    : Icons.pending_outlined,
+                value: accountActive ? 'Active' : 'Pending',
                 label: 'Account',
-                accent: _green,
+                accent: accountActive
+                    ? _green
+                    : const Color(0xFFB9801F),
               ),
             ),
           ],
@@ -264,7 +315,7 @@ class DriverSideMenu extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: _line),
       ),
       clipBehavior: Clip.antiAlias,
@@ -289,7 +340,7 @@ class DriverSideMenu extends StatelessWidget {
       child: InkWell(
         onTap: action.onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(13, 12, 11, 12),
+          padding: const EdgeInsets.fromLTRB(13, 11, 11, 11),
           child: Row(
             children: [
               Container(
@@ -333,27 +384,6 @@ class DriverSideMenu extends StatelessWidget {
                   ],
                 ),
               ),
-              if (action.badge != null) ...[
-                Container(
-                  height: 22,
-                  constraints: const BoxConstraints(minWidth: 22),
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFE9E9),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Text(
-                    action.badge!,
-                    style: const TextStyle(
-                      color: Color(0xFFB94C50),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 7),
-              ],
               const Icon(
                 Icons.chevron_right_rounded,
                 color: Color(0xFFA7B0B4),
@@ -367,21 +397,30 @@ class DriverSideMenu extends StatelessWidget {
   }
 
   Widget _buildMoveraFooter() {
+    final ready = accountActive;
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
       decoration: BoxDecoration(
         color: const Color(0xFF26343A),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(19),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(
-            Icons.local_taxi_rounded,
-            color: Color(0xFF75D7B0),
-            size: 19,
+          Container(
+            height: 32,
+            width: 32,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.07),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.local_taxi_rounded,
+              color: Color(0xFF75D7B0),
+              size: 18,
+            ),
           ),
-          SizedBox(width: 9),
-          Expanded(
+          const SizedBox(width: 9),
+          const Expanded(
             child: Text(
               'Movera Driver',
               style: TextStyle(
@@ -392,9 +431,11 @@ class DriverSideMenu extends StatelessWidget {
             ),
           ),
           Text(
-            'READY',
+            ready ? 'READY' : 'PENDING',
             style: TextStyle(
-              color: Color(0xFF75D7B0),
+              color: ready
+                  ? const Color(0xFF75D7B0)
+                  : const Color(0xFFFFD28A),
               fontSize: 8.5,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.8,
@@ -412,30 +453,12 @@ class _MenuAction {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.badge,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final String? badge;
-}
-
-class _OnlineDot extends StatelessWidget {
-  const _OnlineDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 7,
-      width: 7,
-      decoration: const BoxDecoration(
-        color: Color(0xFF2FBE7B),
-        shape: BoxShape.circle,
-      ),
-    );
-  }
 }
 
 class _MetricTile extends StatelessWidget {
