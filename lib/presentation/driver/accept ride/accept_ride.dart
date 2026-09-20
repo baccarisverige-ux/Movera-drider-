@@ -6,10 +6,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/routing/road_route_service.dart';
+import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
+import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 
@@ -20,6 +22,9 @@ class AcceptRide extends StatefulWidget {
     this.riderName = 'Angelica',
     this.riderRating = 4.9,
     this.riderTrips = 312,
+    this.fare = '—',
+    this.category = 'Movera',
+    this.matchedVia = 'Movera Radar',
     this.pickupAddress = 'Odlarvägen 22',
     this.pickupArea = 'Enhörna',
     this.dropoffAddress = 'T-Centralen, Stockholm',
@@ -31,6 +36,9 @@ class AcceptRide extends StatefulWidget {
   final String riderName;
   final double riderRating;
   final int riderTrips;
+  final String fare;
+  final String category;
+  final String matchedVia;
   final String pickupAddress;
   final String pickupArea;
   final String dropoffAddress;
@@ -53,6 +61,7 @@ class _NextTripRadarOffer {
     required this.rating,
     required this.pickupMinutes,
     required this.tripMinutes,
+    required this.riderName,
     required this.pickup,
     required this.dropoff,
   });
@@ -63,6 +72,7 @@ class _NextTripRadarOffer {
   final double rating;
   final int pickupMinutes;
   final int tripMinutes;
+  final String riderName;
   final String pickup;
   final String dropoff;
 }
@@ -186,6 +196,7 @@ class _AcceptRideState extends State<AcceptRide> {
     rating: 4.94,
     pickupMinutes: 4,
     tripMinutes: 16,
+    riderName: 'Maya',
     pickup: 'Vasagatan 10, Stockholm',
     dropoff: 'Södermalm, Stockholm',
   );
@@ -219,6 +230,7 @@ class _AcceptRideState extends State<AcceptRide> {
   @override
   void initState() {
     super.initState();
+    WaybillStore.beginCurrent(_buildCurrentWaybill());
     _startLiveLocation();
   }
 
@@ -230,6 +242,42 @@ class _AcceptRideState extends State<AcceptRide> {
     _positionSubscription?.cancel();
     _mapController = null;
     super.dispose();
+  }
+
+  WaybillRecord _buildCurrentWaybill() {
+    return WaybillRecord(
+      tripId: widget.offerId,
+      statusLabel: 'Current trip',
+      issuedAt: DateTime.now(),
+      fare: widget.fare,
+      service: widget.category,
+      riderName: widget.riderName,
+      pickup: widget.pickupAddress,
+      dropoff: widget.dropoffAddress,
+      source: widget.matchedVia,
+      driverName: 'Movera Driver',
+      vehicle: 'Movera partner vehicle',
+      licensePlate: 'MVR 418',
+      passengerCapacity: 4,
+    );
+  }
+
+  WaybillRecord _buildNextWaybill(_NextTripRadarOffer offer) {
+    return WaybillRecord(
+      tripId: offer.id,
+      statusLabel: 'Next trip secured',
+      issuedAt: DateTime.now(),
+      fare: offer.fare,
+      service: offer.category,
+      riderName: offer.riderName,
+      pickup: offer.pickup,
+      dropoff: offer.dropoff,
+      source: 'Movera Radar',
+      driverName: 'Movera Driver',
+      vehicle: 'Movera partner vehicle',
+      licensePlate: 'MVR 418',
+      passengerCapacity: 4,
+    );
   }
 
   LatLng get _routeTarget =>
@@ -458,6 +506,7 @@ class _AcceptRideState extends State<AcceptRide> {
         _startOnTripRadar();
         break;
       case _RideStage.onTrip:
+        WaybillStore.completeCurrent();
         Navigator.pushReplacement(
           context,
           BottomToTopTransition(const DriverRideCompleted()),
@@ -545,19 +594,7 @@ class _AcceptRideState extends State<AcceptRide> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: _mint,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.radar_rounded,
-                            color: _green,
-                            size: 21,
-                          ),
-                        ),
+                        _moveraRadarMark(size: 42),
                         const SizedBox(width: 11),
                         const Expanded(
                           child: Column(
@@ -691,9 +728,20 @@ class _AcceptRideState extends State<AcceptRide> {
                                       _onTripRadarState =
                                           _OnTripRadarState.secured;
                                     });
+                                    WaybillStore.secureNext(
+                                      _buildNextWaybill(offer),
+                                    );
                                     if (sheetContext.mounted) {
                                       setSheetState(() {});
                                     }
+                                    Future<void>.delayed(
+                                      const Duration(milliseconds: 550),
+                                      () {
+                                        if (sheetContext.mounted) {
+                                          Navigator.pop(sheetContext);
+                                        }
+                                      },
+                                    );
                                   },
                                 );
                               },
@@ -750,6 +798,172 @@ class _AcceptRideState extends State<AcceptRide> {
           },
         );
       },
+    );
+  }
+
+  Widget _moveraRadarMark({double size = 34}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: _mint,
+        borderRadius: BorderRadius.circular(size * 0.32),
+        border: Border.all(
+          color: const Color(0xFFD3E9DF),
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: size * 0.55,
+            height: size * 0.55,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _green.withOpacity(0.26),
+                width: 1,
+              ),
+            ),
+          ),
+          Container(
+            width: size * 0.31,
+            height: size * 0.31,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _green.withOpacity(0.48),
+                width: 1,
+              ),
+            ),
+          ),
+          Positioned(
+            top: size * 0.20,
+            right: size * 0.22,
+            child: Container(
+              width: size * 0.12,
+              height: size * 0.12,
+              decoration: const BoxDecoration(
+                color: _green,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Text(
+            'M',
+            style: TextStyle(
+              color: _green,
+              fontSize: size * 0.27,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecuredNextTripDetails() {
+    final offer = _nextTripRadarOffer;
+    if (_stage != _RideStage.onTrip ||
+        _onTripRadarState != _OnTripRadarState.secured ||
+        offer == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      key: const ValueKey<String>('secured-next-trip-details'),
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAF9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDDE8E3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _moveraRadarMark(size: 34),
+              const SizedBox(width: 9),
+              const Expanded(
+                child: Text(
+                  'Next trip secured',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                offer.fare,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 11),
+          _nextTripLocationRow(
+            color: _green,
+            label: 'Pickup · ${offer.pickupMinutes} min',
+            address: offer.pickup,
+          ),
+          const SizedBox(height: 9),
+          _nextTripLocationRow(
+            color: _ink,
+            label: 'Drop-off · ${offer.tripMinutes} min trip',
+            address: offer.dropoff,
+          ),
+          const SizedBox(height: 11),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${offer.category} · ${offer.riderName}',
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                key: const ValueKey<String>('next-trip-waybill'),
+                onPressed: () {
+                  final record = WaybillStore.next;
+                  if (record != null) {
+                    showMoveraWaybillSheet(
+                      context,
+                      record,
+                      title: 'Next trip waybill',
+                    );
+                  }
+                },
+                icon: const Icon(
+                  Icons.receipt_long_outlined,
+                  size: 15,
+                ),
+                label: const Text('Waybill'),
+                style: TextButton.styleFrom(
+                  foregroundColor: _green,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -876,11 +1090,7 @@ class _AcceptRideState extends State<AcceptRide> {
                           color: _green,
                         ),
                       )
-                    : const Icon(
-                        Icons.radar_rounded,
-                        color: _green,
-                        size: 18,
-                      ),
+                    : _moveraRadarMark(size: 34),
               ),
               const SizedBox(width: 9),
               Expanded(
@@ -1303,6 +1513,7 @@ class _AcceptRideState extends State<AcceptRide> {
               if (_stage == _RideStage.onTrip) ...[
                 const SizedBox(height: 10),
                 _buildOnTripRadarStrip(),
+                _buildSecuredNextTripDetails(),
               ],
               const SizedBox(height: 14),
               _buildRiderRow(),
@@ -1792,11 +2003,38 @@ class _AcceptRideState extends State<AcceptRide> {
                 ),
                 const SizedBox(height: 16),
                 _optionTile(
+                  key: const ValueKey<String>('current-trip-waybill-option'),
                   icon: Icons.receipt_long_outlined,
-                  title: 'Trip details',
+                  title: 'Current waybill',
                   subtitle: '${widget.pickupAddress} → ${widget.dropoffAddress}',
-                  onTap: () => Navigator.pop(sheetContext),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    final record = WaybillStore.current;
+                    if (record != null) {
+                      showMoveraWaybillSheet(
+                        context,
+                        record,
+                        title: 'Current trip waybill',
+                      );
+                    }
+                  },
                 ),
+                if (_onTripRadarState == _OnTripRadarState.secured &&
+                    WaybillStore.next != null)
+                  _optionTile(
+                    key: const ValueKey<String>('next-trip-waybill-option'),
+                    icon: Icons.radar_rounded,
+                    title: 'Next trip waybill',
+                    subtitle: WaybillStore.next!.dropoff,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      showMoveraWaybillSheet(
+                        context,
+                        WaybillStore.next!,
+                        title: 'Next trip waybill',
+                      );
+                    },
+                  ),
                 _optionTile(
                   icon: Icons.shield_outlined,
                   title: 'Safety toolkit',
