@@ -687,7 +687,7 @@ class _DriverHomeState extends State<DriverHome>
                 );
               },
             ),
-          if (!isDestinationPanel)
+          if (!isDestinationPanel && _mainPanelPosition <= 0.04)
             Positioned(
               left: 14,
               right: 14,
