@@ -1481,9 +1481,94 @@ class _DriverHomeState extends State<DriverHome>
                 ),
               ),
             ),
-
+          if (!isDestinationPanel && _homeRadarMatchNotice != null)
+            Positioned(
+              left: 14,
+              right: 14,
+              top: MediaQuery.paddingOf(context).top + 8,
+              child: _buildHomeRadarMatchNotice(_homeRadarMatchNotice!),
+            ),
 
         ],
+      ),
+    );
+  }
+
+  Widget _buildHomeRadarMatchNotice(_HomeRadarMatchNotice notice) {
+    final isMatching =
+        notice.type == _HomeRadarMatchNoticeType.matching;
+    final isSuccess =
+        notice.type == _HomeRadarMatchNoticeType.success;
+    final accent = isSuccess
+        ? const Color(0xFF2FBE7B)
+        : isMatching
+            ? const Color(0xFFD99B24)
+            : const Color(0xFFC75B62);
+
+    return Material(
+      key: const ValueKey<String>('home-radar-match-notice'),
+      color: const Color(0xFFFCFDFC),
+      elevation: 12,
+      shadowColor: Colors.black.withOpacity(0.18),
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+        child: Row(
+          children: [
+            Container(
+              height: 36,
+              width: 36,
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.11),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: isMatching
+                    ? SizedBox(
+                        height: 17,
+                        width: 17,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: accent,
+                        ),
+                      )
+                    : Icon(
+                        isSuccess
+                            ? Icons.check_rounded
+                            : Icons.person_off_outlined,
+                        color: accent,
+                        size: 19,
+                      ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    notice.title,
+                    style: const TextStyle(
+                      color: Color(0xFF252E3A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    notice.message,
+                    style: const TextStyle(
+                      color: Color(0xFF7D898F),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
