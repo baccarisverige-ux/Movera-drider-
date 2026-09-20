@@ -6,7 +6,7 @@ import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 
 class RideRequests extends StatefulWidget {
-  final VoidCallback? onCloseRides;
+  final ValueChanged<bool>? onCloseRides;
 
   const RideRequests({super.key, this.onCloseRides});
 
@@ -162,6 +162,10 @@ class _RideRequestsState extends State<RideRequests> {
     });
   }
 
+  void _closeRides() {
+    widget.onCloseRides?.call(_visibleOffers.isNotEmpty);
+  }
+
   void _matchTrip(_RadarTrip trip) {
     if (!_offers.any((offer) => offer.id == trip.id && offer.isNearby)) {
       return;
@@ -213,7 +217,7 @@ class _RideRequestsState extends State<RideRequests> {
           children: [
             IconButton(
               tooltip: 'Back',
-              onPressed: widget.onCloseRides,
+              onPressed: _closeRides,
               icon: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: Colors.white,
