@@ -80,4 +80,10 @@ class WaybillStore {
   static void clearNext() {
     next = null;
   }
+
+  static void reset() {
+    current = null;
+    next = null;
+    last = null;
+  }
 }
