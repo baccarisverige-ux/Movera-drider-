@@ -72,6 +72,9 @@ class _DriverHomeState extends State<DriverHome>
   GoogleMapController? _mapController;
   StreamSubscription<Position>? _driverLocationSubscription;
   bool _hasLiveDriverLocation = false;
+  BitmapDescriptor _driverVehicleIcon =
+      BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+  double _driverHeading = 0;
   bool isPanelOpen = false;
   bool _blockMapGestures = false;
   bool _sheetPointerActive = false;
@@ -212,6 +215,7 @@ class _DriverHomeState extends State<DriverHome>
       duration: const Duration(milliseconds: 1600),
     )..repeat();
     _loadMarkers();
+    _prepareDriverVehicleMarker();
     _startDriverLocation();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeShowAppUpdatePrompt();
@@ -244,17 +248,23 @@ class _DriverHomeState extends State<DriverHome>
     if (!mounted) return;
 
     final next = LatLng(position.latitude, position.longitude);
+    final heading = position.heading.isFinite && position.heading >= 0
+        ? position.heading
+        : _driverHeading;
     setState(() {
       _driverPosition = next;
+      _driverHeading = heading;
       _hasLiveDriverLocation = true;
       _markers = {
         Marker(
           markerId: const MarkerId('driver_location'),
           position: next,
           infoWindow: const InfoWindow(title: 'Your live location'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueBlue,
-          ),
+          icon: _driverVehicleIcon,
+          flat: true,
+          anchor: const Offset(0.5, 0.5),
+          rotation: _driverHeading,
+          zIndex: 12,
         ),
       };
     });
@@ -262,6 +272,191 @@ class _DriverHomeState extends State<DriverHome>
     if (_destinationModeActive) {
       _refreshDestinationRoadRoute();
     }
+  }
+
+  Future<void> _prepareDriverVehicleMarker() async {
+    const logicalSize = 96.0;
+    const pixelRatio = 2.0;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final size = logicalSize * pixelRatio;
+
+    canvas.scale(pixelRatio, pixelRatio);
+
+    final shadowPaint = Paint()
+      ..color = const Color(0x33000000)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    canvas.drawOval(
+      const Rect.fromLTWH(24, 67, 48, 13),
+      shadowPaint,
+    );
+
+    final haloPaint = Paint()
+      ..color = const Color(0x2219865C)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(48, 48), 31, haloPaint);
+
+    final bodyRect = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(29, 14, 38, 64),
+      const Radius.circular(15),
+    );
+    final bodyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFFFFFFFF),
+          Color(0xFFE7ECEA),
+          Color(0xFFBFC8C4),
+        ],
+        stops: [0.0, 0.55, 1.0],
+      ).createShader(bodyRect.outerRect);
+    canvas.drawRRect(bodyRect, bodyPaint);
+
+    final trimPaint = Paint()
+      ..color = const Color(0xFF19865C)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.1;
+    canvas.drawRRect(bodyRect, trimPaint);
+
+    final windshieldPaint = Paint()..color = const Color(0xFF314149);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(34, 25, 28, 18),
+        const Radius.circular(7),
+      ),
+      windshieldPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(35, 51, 26, 14),
+        const Radius.circular(6),
+      ),
+      Paint()..color = const Color(0xFF46565D),
+    );
+
+    final highlightPaint = Paint()
+      ..color = const Color(0xAAFFFFFF)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      const Offset(35, 22),
+      const Offset(35, 59),
+      highlightPaint,
+    );
+
+    final wheelPaint = Paint()..color = const Color(0xFF20282C);
+    for (final rect in const [
+      Rect.fromLTWH(25, 27, 6, 15),
+      Rect.fromLTWH(65, 27, 6, 15),
+      Rect.fromLTWH(25, 52, 6, 15),
+      Rect.fromLTWH(65, 52, 6, 15),
+    ]) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(3)),
+        wheelPaint,
+      );
+    }
+
+    final nosePaint = Paint()..color = const Color(0xFF19865C);
+    final nose = Path()
+      ..moveTo(48, 7)
+      ..lineTo(43, 15)
+      ..lineTo(53, 15)
+      ..close();
+    canvas.drawPath(nose, nosePaint);
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(size.round(), size.round());
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (data == null || !mounted) return;
+
+    final icon = BitmapDescriptor.bytes(
+      data.buffer.asUint8List(),
+      width: 48,
+      height: 48,
+      bitmapScaling: MapBitmapScaling.auto,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _driverVehicleIcon = icon;
+      _markers = {
+        Marker(
+          markerId: const MarkerId('driver_location'),
+          position: _driverPosition,
+          infoWindow: const InfoWindow(title: 'Your live location'),
+          icon: _driverVehicleIcon,
+          flat: true,
+          anchor: const Offset(0.5, 0.5),
+          rotation: _driverHeading,
+          zIndex: 12,
+        ),
+      };
+    });
+  }
+
+  Future<void> _zoomToDriverLocation() async {
+    final controller = _mapController;
+    if (controller == null) return;
+
+    await controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: _driverPosition,
+          zoom: 16.8,
+          bearing: _driverHeading,
+          tilt: 35,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDriverLocationButton() {
+    return PointerInterceptor(
+      child: Material(
+        key: const ValueKey<String>('driver-location-zoom'),
+        color: Colors.white,
+        elevation: 4,
+        shadowColor: const Color(0xFF172027).withOpacity(0.16),
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: _zoomToDriverLocation,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 46,
+            height: 46,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  Icons.my_location_rounded,
+                  color: _hasLiveDriverLocation
+                      ? const Color(0xFF19865C)
+                      : const Color(0xFF66737A),
+                  size: 22,
+                ),
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: _hasLiveDriverLocation
+                          ? const Color(0xFF55B38A)
+                          : const Color(0xFFAAB2B6),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _loadMarkers() {
@@ -1406,6 +1601,15 @@ class _DriverHomeState extends State<DriverHome>
               ),
             ),
           ),
+
+          if (!isDestinationPanel)
+            Positioned(
+              right: screenHorizPadding,
+              top: _destinationModeActive
+                  ? ResSize.h * 164
+                  : ResSize.h * 108,
+              child: _buildDriverLocationButton(),
+            ),
 
           if (!isDestinationPanel)
             ValueListenableBuilder<double>(
