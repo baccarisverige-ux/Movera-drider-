@@ -45,8 +45,11 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _onlineTransitionTimer;
   Timer? _offerSimulationTimer;
   Timer? _directOfferTimer;
-  final Map<String, Timer> _directOfferTimeoutTimers = <String, Timer>{};
+  Timer? _outsideOfferTimeoutTimer;
   Timer? _expandedDirectOfferTimer;
+  Timer? _radarOfferTwoTimer;
+  Timer? _radarOfferThreeTimer;
+  final Map<String, Timer> _radarOfferTimeoutTimers = <String, Timer>{};
   GoogleMapController? _mapController;
   bool isPanelOpen = false;
   bool _blockMapGestures = false;
@@ -55,7 +58,8 @@ class _DriverHomeState extends State<DriverHome>
   final ValueNotifier<double> _panelSlidePosition = ValueNotifier<double>(0);
 
   static const Duration _sheetMotionDuration = Duration(milliseconds: 420);
-  static const Duration _directOfferLifetime = Duration(milliseconds: 22000);
+  static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
+  static const Duration _radarOfferLifetime = Duration(milliseconds: 30000);
   static const Curve _sheetMotionCurve = Curves.easeOutCubic;
   bool showRideRequests = false;
   bool isAccountActivated = true;
@@ -64,7 +68,8 @@ class _DriverHomeState extends State<DriverHome>
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
   bool _showTodaySummaryPopup = false;
-  final List<_HomeDirectOffer> _homeDirectOffers = <_HomeDirectOffer>[];
+  _HomeDirectOffer? _outsideRadarOffer;
+  final List<_HomeDirectOffer> _radarHomeOffers = <_HomeDirectOffer>[];
   bool _destinationModeActive = false;
   String? _destinationAddress;
   LatLng? _destinationPosition;
@@ -86,8 +91,8 @@ class _DriverHomeState extends State<DriverHome>
   static const _HomeDirectOffer _veryCloseDirectOffer = _HomeDirectOffer(
     id: 'home-direct-close',
     category: 'Comfort',
-    reason: 'Nearby priority',
-    detail: 'Nearby request matched to your availability',
+    reason: 'Exclusive nearby offer',
+    detail: 'Directly matched outside Trip Radar',
     fare: '104,80 kr',
     rating: '4.96',
     pickupMinutes: 3,
@@ -103,8 +108,8 @@ class _DriverHomeState extends State<DriverHome>
   static const _HomeDirectOffer _expandedDirectOffer = _HomeDirectOffer(
     id: 'home-direct-expanded',
     category: 'Premium',
-    reason: 'Extended network',
-    detail: 'Matched beyond your current radar radius',
+    reason: 'Extended coverage offer',
+    detail: 'Direct match beyond your active radar radius',
     fare: '176,20 kr',
     rating: '4.98',
     pickupMinutes: 8,
@@ -132,6 +137,40 @@ class _DriverHomeState extends State<DriverHome>
     dropoff: 'Modulvägen 6B, Kungens Kurva',
     pickupPosition: LatLng(59.3347, 18.0621),
     dropoffPosition: LatLng(59.2697, 17.9258),
+  );
+
+  static const _HomeDirectOffer _radarHomeOffer2 = _HomeDirectOffer(
+    id: 'home-radar-match-2',
+    category: 'Premium',
+    reason: 'Trip Radar match',
+    detail: 'Live request inside your radar area',
+    fare: '198,40 kr',
+    rating: '4.91',
+    pickupMinutes: 4,
+    pickupKm: 1.1,
+    tripMinutes: 23,
+    tripKm: 14.2,
+    pickup: 'Sveavägen 86, Stockholm',
+    dropoff: 'Mall of Scandinavia, Solna',
+    pickupPosition: LatLng(59.3426, 18.0594),
+    dropoffPosition: LatLng(59.3703, 18.0031),
+  );
+
+  static const _HomeDirectOffer _radarHomeOffer3 = _HomeDirectOffer(
+    id: 'home-radar-match-3',
+    category: 'Comfort',
+    reason: 'Trip Radar match',
+    detail: 'Live request inside your radar area',
+    fare: '132,60 kr',
+    rating: '4.85',
+    pickupMinutes: 7,
+    pickupKm: 2.4,
+    tripMinutes: 16,
+    tripKm: 9.8,
+    pickup: 'Sankt Eriksgatan 52, Stockholm',
+    dropoff: 'Liljeholmen, Stockholm',
+    pickupPosition: LatLng(59.3356, 18.0378),
+    dropoffPosition: LatLng(59.3108, 18.0222),
   );
 
   @override
@@ -364,34 +403,30 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
-  Future<void> _showHomeDirectOffer(
+  Future<void> _showOutsideRadarOffer(
     _HomeDirectOffer offer,
   ) async {
     if (!mounted ||
         !_isOnline ||
         showRideRequests ||
+        _radarHomeOffers.isNotEmpty ||
+        _hasRideOffers ||
         !_directOfferFollowsDestination(offer) ||
         _mainPanelPosition > 0.04 ||
         isPanelOpen) {
       return;
     }
 
-    if (_homeDirectOffers.any((item) => item.id == offer.id)) return;
-
+    _outsideOfferTimeoutTimer?.cancel();
     setState(() {
-      _homeDirectOffers.insert(0, offer);
-      if (_homeDirectOffers.length > 4) {
-        final removed = _homeDirectOffers.removeLast();
-        _directOfferTimeoutTimers.remove(removed.id)?.cancel();
-      }
+      _outsideRadarOffer = offer;
     });
 
-    _directOfferTimeoutTimers.remove(offer.id)?.cancel();
-    _directOfferTimeoutTimers[offer.id] = Timer(
-      _directOfferLifetime,
+    _outsideOfferTimeoutTimer = Timer(
+      _outsideOfferLifetime,
       () {
-        if (!mounted) return;
-        _dismissHomeDirectOffer(offer);
+        if (!mounted || _outsideRadarOffer?.id != offer.id) return;
+        _dismissOutsideRadarOffer();
       },
     );
 
@@ -401,35 +436,104 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  void _dismissHomeDirectOffer(_HomeDirectOffer offer) {
-    _directOfferTimeoutTimers.remove(offer.id)?.cancel();
+  void _dismissOutsideRadarOffer() {
+    _outsideOfferTimeoutTimer?.cancel();
+    _outsideOfferTimeoutTimer = null;
     if (!mounted) return;
 
-    final wasRadarOffer = offer.id == _radarHomeOffer.id;
     setState(() {
-      _homeDirectOffers.removeWhere((item) => item.id == offer.id);
-      if (wasRadarOffer) _hasRideOffers = false;
+      _outsideRadarOffer = null;
+    });
+    _clearDirectOfferRoute();
+  }
+
+  void _showRadarHomeOffer(_HomeDirectOffer offer) {
+    if (!mounted ||
+        !_isOnline ||
+        showRideRequests ||
+        _outsideRadarOffer != null ||
+        !_directOfferFollowsDestination(offer) ||
+        _mainPanelPosition > 0.04 ||
+        isPanelOpen ||
+        _radarHomeOffers.any((item) => item.id == offer.id)) {
+      return;
+    }
+
+    setState(() {
+      _hasRideOffers = true;
+      _radarHomeOffers.add(offer);
+      if (_radarHomeOffers.length > 5) {
+        final removed = _radarHomeOffers.removeAt(0);
+        _radarOfferTimeoutTimers.remove(removed.id)?.cancel();
+      }
     });
 
-    if (_homeDirectOffers.isEmpty) _clearDirectOfferRoute();
+    _radarOfferTimeoutTimers.remove(offer.id)?.cancel();
+    _radarOfferTimeoutTimers[offer.id] = Timer(
+      _radarOfferLifetime,
+      () {
+        if (!mounted) return;
+        _dismissRadarHomeOffer(offer);
+      },
+    );
   }
 
-  void _cancelAllHomeOfferTimers() {
-    for (final timer in _directOfferTimeoutTimers.values) {
-      timer.cancel();
-    }
-    _directOfferTimeoutTimers.clear();
-  }
-
-  void _acceptHomeDirectOffer(_HomeDirectOffer offer) {
-    if (!_homeDirectOffers.any((item) => item.id == offer.id)) return;
-
-    _cancelAllHomeOfferTimers();
-    _expandedDirectOfferTimer?.cancel();
-    _offerSimulationTimer?.cancel();
+  void _dismissRadarHomeOffer(_HomeDirectOffer offer) {
+    _radarOfferTimeoutTimers.remove(offer.id)?.cancel();
+    if (!mounted) return;
 
     setState(() {
-      _homeDirectOffers.clear();
+      _radarHomeOffers.removeWhere((item) => item.id == offer.id);
+      if (_radarHomeOffers.isEmpty) {
+        _hasRideOffers = false;
+      }
+    });
+  }
+
+  void _cancelAllOfferTimers() {
+    _outsideOfferTimeoutTimer?.cancel();
+    _outsideOfferTimeoutTimer = null;
+    for (final timer in _radarOfferTimeoutTimers.values) {
+      timer.cancel();
+    }
+    _radarOfferTimeoutTimers.clear();
+  }
+
+  void _acceptOutsideRadarOffer() {
+    final offer = _outsideRadarOffer;
+    if (offer == null) return;
+
+    _cancelAllOfferTimers();
+    _expandedDirectOfferTimer?.cancel();
+    _offerSimulationTimer?.cancel();
+    _radarOfferTwoTimer?.cancel();
+    _radarOfferThreeTimer?.cancel();
+
+    setState(() {
+      _outsideRadarOffer = null;
+      _radarHomeOffers.clear();
+      _hasRideOffers = false;
+    });
+    _clearDirectOfferRoute();
+
+    Navigator.push(
+      context,
+      BottomToTopTransition(const AcceptRide()),
+    );
+  }
+
+  void _acceptRadarHomeOffer(_HomeDirectOffer offer) {
+    if (!_radarHomeOffers.any((item) => item.id == offer.id)) return;
+
+    _cancelAllOfferTimers();
+    _expandedDirectOfferTimer?.cancel();
+    _offerSimulationTimer?.cancel();
+    _radarOfferTwoTimer?.cancel();
+    _radarOfferThreeTimer?.cancel();
+
+    setState(() {
+      _outsideRadarOffer = null;
+      _radarHomeOffers.clear();
       _hasRideOffers = false;
     });
     _clearDirectOfferRoute();
@@ -619,7 +723,7 @@ class _DriverHomeState extends State<DriverHome>
                     scaffoldKey: _scaffoldKey,
                     isOnline: _isOnline,
                     hasRideOffers:
-                        _hasRideOffers || _homeDirectOffers.isNotEmpty,
+                        _hasRideOffers || _radarHomeOffers.isNotEmpty,
                     hasScheduledRideOffers: _hasScheduledRideOffers,
                     goOnlinePulseController: _goOnlinePulseController,
                     onOpenScheduledRides: _openScheduledRides,
@@ -972,46 +1076,25 @@ class _DriverHomeState extends State<DriverHome>
                 );
               },
             ),
-          if (!isDestinationPanel && _mainPanelPosition <= 0.04)
+          if (!isDestinationPanel &&
+              _mainPanelPosition <= 0.04 &&
+              _outsideRadarOffer != null &&
+              _radarHomeOffers.isEmpty)
             Positioned(
               left: 14,
               right: 14,
               bottom: 178,
-              child: IgnorePointer(
-                ignoring: _homeDirectOffers.isEmpty,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 420),
-                  reverseDuration: const Duration(milliseconds: 260),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    final slide = Tween<Offset>(
-                      begin: const Offset(0, 0.08),
-                      end: Offset.zero,
-                    ).animate(
-                      CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      ),
-                    );
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: slide,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: _homeDirectOffers.isEmpty
-                      ? const SizedBox.shrink(
-                          key: ValueKey<String>('no-home-offers'),
-                        )
-                      : KeyedSubtree(
-                          key: ValueKey<int>(_homeDirectOffers.length),
-                          child: _buildHomeOffersTray(),
-                        ),
-                ),
-              ),
+              child: _buildOutsideRadarOfferCard(_outsideRadarOffer!),
+            ),
+          if (!isDestinationPanel &&
+              _mainPanelPosition <= 0.04 &&
+              _outsideRadarOffer == null &&
+              _radarHomeOffers.isNotEmpty)
+            Positioned(
+              left: 14,
+              right: 14,
+              bottom: 178,
+              child: _buildRadarOffersTray(),
             ),
           if (!isDestinationPanel) ...[
             AnimatedPositioned(
@@ -1153,117 +1236,277 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _buildHomeOffersTray() {
-    final offers = List<_HomeDirectOffer>.of(_homeDirectOffers);
+  Widget _buildRadarOffersTray() {
+    final offers = List<_HomeDirectOffer>.unmodifiable(_radarHomeOffers);
     final trayHeight = math.min(
-      410.0,
-      MediaQuery.of(context).size.height * 0.47,
+      390.0,
+      MediaQuery.of(context).size.height * 0.45,
     );
 
-    return SizedBox(
-      height: trayHeight,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF7F9F9).withOpacity(0.97),
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: const Color(0xFFDDE5E2)),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF11181C).withOpacity(0.13),
-              blurRadius: 28,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 13, 12, 10),
-              child: Row(
-                children: [
-                  Container(
-                    height: 34,
-                    width: 34,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE9F3EF),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.local_taxi_outlined,
-                      color: Color(0xFF315E4D),
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Trip opportunities',
-                          style: TextStyle(
-                            color: Color(0xFF252E3A),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Radar and nearby matches',
-                          style: TextStyle(
-                            color: Color(0xFF7C888E),
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF26343A),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      offers.length.toString() + ' available',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
+    return RepaintBoundary(
+      child: SizedBox(
+        height: trayHeight,
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F9F9).withOpacity(0.98),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: const Color(0xFFDDE5E2)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF11181C).withOpacity(0.12),
+                blurRadius: 26,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(15, 13, 12, 10),
+                child: Row(
+                  children: [
+                    Container(
+                      height: 34,
+                      width: 34,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3DE),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.radar_rounded,
+                        color: Color(0xFFD28A19),
+                        size: 18,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Trip Radar offers',
+                            style: TextStyle(
+                              color: Color(0xFF252E3A),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Live matches inside your radar coverage',
+                            style: TextStyle(
+                              color: Color(0xFF7C888E),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF26343A),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        offers.length.toString() + ' live',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Divider(height: 1, color: Color(0xFFE3E8E6)),
-            Expanded(
-              child: Scrollbar(
-                thumbVisibility: offers.length > 1,
+              const Divider(height: 1, color: Color(0xFFE3E8E6)),
+              Expanded(
                 child: ListView.separated(
+                  key: const PageStorageKey<String>('radar-home-offers-list'),
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
                   itemCount: offers.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    return _buildHomeDirectOfferCard(offers[index]);
+                    final offer = offers[index];
+                    return RepaintBoundary(
+                      key: ValueKey<String>('radar-offer-' + offer.id),
+                      child: _buildRadarOpportunityCard(offer),
+                    );
                   },
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHomeDirectOfferCard(_HomeDirectOffer offer) {
+  Widget _buildRadarOpportunityCard(_HomeDirectOffer offer) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _previewDirectOfferRoute(
+          offer.pickupPosition,
+          offer.dropoffPosition,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3DE),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'RADAR',
+                      style: TextStyle(
+                        color: Color(0xFFB87512),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    offer.category,
+                    style: const TextStyle(
+                      color: Color(0xFF657178),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  InkWell(
+                    onTap: () => _dismissRadarHomeOffer(offer),
+                    borderRadius: BorderRadius.circular(16),
+                    child: const SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF89949A),
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    offer.fare,
+                    style: const TextStyle(
+                      color: Color(0xFF252E3A),
+                      fontSize: 25,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.7,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(
+                    Icons.star_rounded,
+                    color: Color(0xFFD7A02C),
+                    size: 15,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    offer.rating,
+                    style: const TextStyle(
+                      color: Color(0xFF69757B),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _homeDirectLocationRow(
+                color: const Color(0xFF2FBE7B),
+                title:
+                    '${offer.pickupMinutes} min · ${offer.pickupKm.toStringAsFixed(1)} km away',
+                subtitle: offer.pickup,
+              ),
+              const SizedBox(height: 8),
+              _homeDirectLocationRow(
+                color: const Color(0xFF252E3A),
+                title:
+                    '${offer.tripMinutes} min · ${offer.tripKm.toStringAsFixed(1)} km trip',
+                subtitle: offer.dropoff,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: () => _previewDirectOfferRoute(
+                      offer.pickupPosition,
+                      offer.dropoffPosition,
+                    ),
+                    icon: const Icon(Icons.alt_route_rounded, size: 16),
+                    label: const Text('Route'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF315E4D),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    height: 40,
+                    child: FilledButton(
+                      onPressed: () => _acceptRadarHomeOffer(offer),
+                      style: FilledButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: const Color(0xFF252E3A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                      ),
+                      child: const Text(
+                        'Accept',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOutsideRadarOfferCard(_HomeDirectOffer offer) {
     const alertCoral = Color(0xFFFF765C);
 
     return AnimatedBuilder(
@@ -1346,7 +1589,7 @@ class _DriverHomeState extends State<DriverHome>
                     ),
                     const Spacer(),
                     InkWell(
-                      onTap: () => _dismissHomeDirectOffer(offer),
+                      onTap: _dismissOutsideRadarOffer,
                       borderRadius: BorderRadius.circular(20),
                       child: const SizedBox(
                         width: 34,
@@ -1404,10 +1647,10 @@ class _DriverHomeState extends State<DriverHome>
                 TweenAnimationBuilder<double>(
                   key: ValueKey<String>('direct-offer-countdown-${offer.id}'),
                   tween: Tween<double>(begin: 1, end: 0),
-                  duration: _directOfferLifetime,
+                  duration: _outsideOfferLifetime,
                   builder: (context, remaining, child) {
                     final seconds = (remaining *
-                            (_directOfferLifetime.inMilliseconds / 1000))
+                            (_outsideOfferLifetime.inMilliseconds / 1000))
                         .ceil();
 
                     return Column(
@@ -1421,7 +1664,7 @@ class _DriverHomeState extends State<DriverHome>
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Offer expires · ${seconds}s',
+                              'Exclusive offer · ${seconds}s',
                               style: const TextStyle(
                                 color: Color(0xFFB84F3D),
                                 fontSize: 10.5,
@@ -1430,7 +1673,7 @@ class _DriverHomeState extends State<DriverHome>
                             ),
                             const Spacer(),
                             const Text(
-                              'Live request',
+                              'Outside Radar',
                               style: TextStyle(
                                 color: Color(0xFF8A9499),
                                 fontSize: 9.5,
@@ -1492,7 +1735,7 @@ class _DriverHomeState extends State<DriverHome>
                     SizedBox(
                       height: 42,
                       child: FilledButton(
-                        onPressed: () => _acceptHomeDirectOffer(offer),
+                        onPressed: _acceptOutsideRadarOffer,
                         style: FilledButton.styleFrom(
                           elevation: 0,
                           backgroundColor: const Color(0xFF252E3A),
@@ -1864,15 +2107,18 @@ class _DriverHomeState extends State<DriverHome>
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
     _directOfferTimer?.cancel();
-    _cancelAllHomeOfferTimers();
+    _cancelAllOfferTimers();
     _expandedDirectOfferTimer?.cancel();
+    _radarOfferTwoTimer?.cancel();
+    _radarOfferThreeTimer?.cancel();
 
     setState(() {
       _isGoingOnline = true;
       _isOnline = false;
       _hasRideOffers = false;
       _showTodaySummaryPopup = false;
-      _homeDirectOffers.clear();
+      _outsideRadarOffer = null;
+      _radarHomeOffers.clear();
     });
     _clearDirectOfferRoute();
 
@@ -1885,35 +2131,54 @@ class _DriverHomeState extends State<DriverHome>
           _isOnline = true;
         });
 
-        // Frontend demo only: several opportunities can stay visible on
-        // Home at the same time. Drivers can scroll them without leaving map.
+        // Frontend demo only. Outside-Radar offers remain exclusive and
+        // never enter the Trip Radar list.
         _directOfferTimer = Timer(
           const Duration(milliseconds: 2200),
           () {
             if (!mounted || !_isOnline) return;
-            _showHomeDirectOffer(_veryCloseDirectOffer);
+            _showOutsideRadarOffer(_veryCloseDirectOffer);
           },
         );
 
-        _expandedDirectOfferTimer = Timer(
-          const Duration(milliseconds: 6200),
-          () {
-            if (!mounted || !_isOnline) return;
-            _showHomeDirectOffer(_expandedDirectOffer);
-          },
-        );
-
-        // A standard Trip Radar match can also surface directly on Home.
-        // Tapping the radar orb still opens the dedicated Radar flow.
+        // Radar offers start only after the exclusive outside-Radar offer
+        // has had its own presentation window.
         _offerSimulationTimer = Timer(
-          const Duration(milliseconds: 9800),
+          const Duration(milliseconds: 11500),
           () {
             if (!mounted || !_isOnline || showRideRequests) return;
+            _showRadarHomeOffer(_radarHomeOffer);
+          },
+        );
 
-            setState(() {
-              _hasRideOffers = true;
-            });
-            _showHomeDirectOffer(_radarHomeOffer);
+        _radarOfferTwoTimer = Timer(
+          const Duration(milliseconds: 14500),
+          () {
+            if (!mounted || !_isOnline || showRideRequests) return;
+            _showRadarHomeOffer(_radarHomeOffer2);
+          },
+        );
+
+        _radarOfferThreeTimer = Timer(
+          const Duration(milliseconds: 17500),
+          () {
+            if (!mounted || !_isOnline || showRideRequests) return;
+            _showRadarHomeOffer(_radarHomeOffer3);
+          },
+        );
+
+        // Keep a second outside-Radar example available later, but never
+        // show it while Radar offers are active.
+        _expandedDirectOfferTimer = Timer(
+          const Duration(milliseconds: 50000),
+          () {
+            if (!mounted ||
+                !_isOnline ||
+                _radarHomeOffers.isNotEmpty ||
+                _hasRideOffers) {
+              return;
+            }
+            _showOutsideRadarOffer(_expandedDirectOffer);
           },
         );
       },
@@ -1924,14 +2189,17 @@ class _DriverHomeState extends State<DriverHome>
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
     _directOfferTimer?.cancel();
-    _cancelAllHomeOfferTimers();
+    _cancelAllOfferTimers();
     _expandedDirectOfferTimer?.cancel();
+    _radarOfferTwoTimer?.cancel();
+    _radarOfferThreeTimer?.cancel();
 
     setState(() {
       _isGoingOnline = false;
       _isOnline = false;
       _hasRideOffers = false;
-      _homeDirectOffers.clear();
+      _outsideRadarOffer = null;
+      _radarHomeOffers.clear();
       _destinationModeActive = false;
       _destinationAddress = null;
       _destinationPosition = null;
@@ -2006,35 +2274,22 @@ class _DriverHomeState extends State<DriverHome>
         _radarSweepController,
       ]),
       builder: (context, child) {
-        final homeOfferCount = _homeDirectOffers.length;
-        final hasAnyOffer = _hasRideOffers || homeOfferCount > 0;
+        final radarOfferCount = _radarHomeOffers.length;
+        final hasRadarOffer = _hasRideOffers || radarOfferCount > 0;
 
         return _buildRadarOrb(
-          title: _hasRideOffers
+          title: radarOfferCount > 1
+              ? radarOfferCount.toString() + " offers"
+              : hasRadarOffer
               ? "Trip found"
-              : homeOfferCount > 0
-              ? (homeOfferCount == 1
-                  ? "1 offer"
-                  : homeOfferCount.toString() + " offers")
               : "Radar",
-          status: hasAnyOffer ? "NEW" : "LIVE",
-          subtitle: _hasRideOffers
-              ? "Tap for Radar"
-              : homeOfferCount > 0
-              ? "On your map"
-              : "Scanning",
+          status: hasRadarOffer ? "NEW" : "LIVE",
+          subtitle: hasRadarOffer ? "Tap for Radar" : "Scanning",
           active: true,
-          offer: hasAnyOffer,
+          offer: hasRadarOffer,
           pulse: _goOnlinePulseController.value,
           sweep: _radarSweepController.value,
-          onTap: _hasRideOffers
-              ? _openRideOffers
-              : homeOfferCount > 0
-              ? () => _previewDirectOfferRoute(
-                    _homeDirectOffers.first.pickupPosition,
-                    _homeDirectOffers.first.dropoffPosition,
-                  )
-              : null,
+          onTap: hasRadarOffer ? _openRideOffers : null,
         );
       },
     );
@@ -2447,7 +2702,7 @@ class _DriverHomeState extends State<DriverHome>
         ),
         DriverSheetNav.onlineEdgeDashOverlay(
           isOnline: _isOnline,
-          hasRideOffers: _hasRideOffers || _homeDirectOffers.isNotEmpty,
+          hasRideOffers: _hasRideOffers || _radarHomeOffers.isNotEmpty,
         ),
       ],
     );
@@ -2595,8 +2850,11 @@ class _DriverHomeState extends State<DriverHome>
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
     _directOfferTimer?.cancel();
-    _cancelAllHomeOfferTimers();
+    _cancelAllOfferTimers();
     _expandedDirectOfferTimer?.cancel();
+    _radarOfferTwoTimer?.cancel();
+    _radarOfferThreeTimer?.cancel();
+    _cancelAllOfferTimers();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
     _mapController?.dispose();
