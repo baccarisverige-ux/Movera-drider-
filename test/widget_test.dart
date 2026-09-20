@@ -70,6 +70,59 @@ void main() {
     );
   }
 
+  for (final size in phoneSizes) {
+    testWidgets(
+      'Scheduled Rides is layout-safe at ${size.width.toInt()}x${size.height.toInt()}',
+      (WidgetTester tester) async {
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.binding.setSurfaceSize(size);
+        await tester.pumpWidget(
+          const MaterialApp(home: ScheduledRidesScreen()),
+        );
+        await tester.pump(const Duration(milliseconds: 120));
+
+        expect(find.text('Scheduled rides'), findsOneWidget);
+        expect(find.text('Requests'), findsOneWidget);
+        _expectNoException(tester);
+
+        await tester.tap(find.text('Accepted'));
+        await tester.pump(const Duration(milliseconds: 120));
+
+        expect(find.text('Upcoming'), findsOneWidget);
+        _expectNoException(tester);
+      },
+    );
+  }
+
+  testWidgets('Home sheet survives rapid open-close-open without stale map blocking', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(320, 700));
+
+    final panel =
+        tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    panel.controller!.open();
+    await tester.pump(const Duration(milliseconds: 140));
+    panel.controller!.close();
+    await tester.pump(const Duration(milliseconds: 140));
+    panel.controller!.open();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+
+    var latestPanel =
+        tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect((latestPanel.body! as AbsorbPointer).absorbing, isTrue);
+    expect(find.text('Driver overview').hitTestable(), findsOneWidget);
+    _expectNoException(tester);
+
+    latestPanel.controller!.close();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+
+    latestPanel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect((latestPanel.body! as AbsorbPointer).absorbing, isFalse);
+    _expectNoException(tester);
+  });
+
   testWidgets('Home drawer opens without overflow on narrow phone', (
     WidgetTester tester,
   ) async {
