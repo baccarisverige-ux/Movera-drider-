@@ -1,20 +1,11 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:movera/constants/appassets.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/home/home.dart';
-import 'package:movera/widgets/custom_btn.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
+import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/navigation_transition.dart';
-import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
-
-// Project utilities and widgets (following existing import style in the repo)
 
 class DriverRideCompleted extends StatefulWidget {
   const DriverRideCompleted({
@@ -31,7 +22,12 @@ class DriverRideCompleted extends StatefulWidget {
 }
 
 class _DriverRideCompletedState extends State<DriverRideCompleted> {
-  double _rating = 0.0;
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _muted = Color(0xFF66737A);
+  static const Color _green = Color(0xFF19865C);
+  static const Color _line = Color(0xFFE7ECEA);
+
+  double _rating = 0;
   late final WaybillRepository _waybills;
 
   WaybillRecord? get _record => _waybills.last;
@@ -42,76 +38,90 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
     _waybills =
         widget.waybillRepository ?? InMemoryWaybillRepository.instance;
   }
+
+  void _finish() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      BottomToTopTransition(
+        DriverHome(
+          initialOnline: true,
+          waybillRepository: _waybills,
+          sessionController: widget.sessionController,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final record = _record;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
+      backgroundColor: const Color(0xFFF8FAF9),
+      body: SafeArea(
+        bottom: false,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            50.height,
-            _buildHeader(),
-            24.height,
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-              child: _buildRiderStrip(context),
+            Expanded(
+              child: SingleChildScrollView(
+                key: const PageStorageKey<String>('ride-completed-scroll'),
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 18),
+                    _buildRiderCard(record),
+                    const SizedBox(height: 12),
+                    _buildRouteCard(record),
+                    const SizedBox(height: 12),
+                    _buildTripSummary(record),
+                    const SizedBox(height: 12),
+                    _buildMetaCard(record),
+                  ],
+                ),
+              ),
             ),
-            16.height,
-
-            _buildTripDetailsTitle(),
-            16.height,
-
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-              child: _buildPickupDropSection(),
-            ),
-            16.height,
             Container(
-              height: ResSize.h * 4,
-              width: double.infinity,
-              color: Color(0xffF9F9F9),
-            ),
-            16.height,
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-              child: _buildSummaryRows(context),
-            ),
-            16.height,
-            Container(
-              height: ResSize.h * 4,
-              width: double.infinity,
-              color: Color(0xffF9F9F9),
-            ),
-            16.height,
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-              child: Column(
-                children: [
-                  _buildMetaRows(),
-                  24.height,
-                  CustomButton(
-                    centerContent: 'Done',
-                    onPressed: () {
-                      if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                        return;
-                      }
-
-                      Navigator.pushReplacement(
-                        context,
-                        BottomToTopTransition(
-                          DriverHome(
-                            initialOnline: true,
-                            waybillRepository: _waybills,
-                            sessionController: widget.sessionController,
-                          ),
-                        ),
-                      );
-                    },
+              padding: EdgeInsets.fromLTRB(
+                16,
+                10,
+                16,
+                MediaQuery.paddingOf(context).bottom + 12,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: Color(0xFFEFF2F1)),
+                ),
+              ),
+              child: SizedBox(
+                height: 52,
+                child: FilledButton(
+                  key: const ValueKey<String>('ride-completed-done'),
+                  onPressed: _finish,
+                  style: FilledButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: _ink,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  30.height,
-                ],
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -122,126 +132,109 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
 
   Widget _buildHeader() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        SizedBox(height: 12 * ResSize.h),
-        Center(child: Image.asset(AppAssets.sucess, height: ResSize.h * 75)),
-        16.height,
-        Center(
-          child: TextWidget(
-            text: 'Ride Completed',
-            color: AppColor.black,
-            fontSize: 20,
-            fontWeight: fwBold,
+        Container(
+          width: 74,
+          height: 74,
+          padding: const EdgeInsets.all(11),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF6F0),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFD7EBE1)),
+          ),
+          child: Image.asset(
+            AppAssets.sucess,
+            fit: BoxFit.contain,
           ),
         ),
-        12.height,
-        Center(
-          child: TextWidget(
-            text: 'Rate your experience',
-            color: AppColor.black,
-            fontSize: 14,
-            fontWeight: fwBold,
+        const SizedBox(height: 12),
+        const Text(
+          'Ride completed',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _ink,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
           ),
         ),
-        16.height,
-        Center(
-          child: RatingBar.builder(
-            initialRating: _rating,
-            minRating: 1,
-            glow: false,
-            direction: Axis.horizontal,
-            allowHalfRating: true,
-            unratedColor: Color(0xff909090),
-            itemCount: 5,
-            itemSize: ResSize.h * 37,
-            itemPadding: EdgeInsets.symmetric(horizontal: ResSize.w * 6),
-            itemBuilder: (context, _) =>
-                Icon(Icons.star_rounded, color: Color(0xffF99417)),
-            onRatingUpdate: (rating) {
-              setState(() {
-                _rating = rating;
-              });
-            },
-            updateOnDrag: true,
+        const SizedBox(height: 4),
+        const Text(
+          'Rate your experience',
+          style: TextStyle(
+            color: _muted,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        12.height,
+        const SizedBox(height: 10),
+        RatingBar.builder(
+          initialRating: _rating,
+          minRating: 1,
+          glow: false,
+          allowHalfRating: true,
+          itemCount: 5,
+          itemSize: 30,
+          itemPadding: const EdgeInsets.symmetric(horizontal: 3),
+          unratedColor: const Color(0xFFD5DADC),
+          itemBuilder: (_, __) => const Icon(
+            Icons.star_rounded,
+            color: Color(0xFFF2A12E),
+          ),
+          onRatingUpdate: (rating) => setState(() => _rating = rating),
+          updateOnDrag: true,
+        ),
       ],
     );
   }
 
-  Widget _buildRiderStrip(BuildContext context) {
-    final record = _record;
-    return Row(
-      children: [
-        Container(
-          height: 52,
-          width: 52,
-          decoration: BoxDecoration(
+  Widget _buildRiderCard(WaybillRecord? record) {
+    return _card(
+      child: Row(
+        children: [
+          ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            image: DecorationImage(
-              image: AssetImage(AppAssets.profileImg),
+            child: Image.asset(
+              AppAssets.profileImg,
+              width: 50,
+              height: 50,
               fit: BoxFit.cover,
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            record?.riderName ?? 'Rider',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF252E3A),
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  record?.riderName ?? 'Rider',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  record?.service ?? 'Movera',
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEAF5EF),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
+          const SizedBox(width: 8),
+          Text(
             record?.fare ?? 'Completed',
             style: const TextStyle(
-              color: Color(0xFF19865C),
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTripDetailsTitle() {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFFF7F9F8),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      child: const Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Trip details',
-              style: TextStyle(
-                color: Color(0xFF66737A),
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          Text(
-            'Completed',
-            style: TextStyle(
-              color: Color(0xFF19865C),
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
+              color: _green,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -249,20 +242,13 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
     );
   }
 
-  Widget _buildPickupDropSection() {
-    final record = _record;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAF9),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE7ECEA)),
-      ),
+  Widget _buildRouteCard(WaybillRecord? record) {
+    return _card(
+      title: 'Route',
       child: Column(
         children: [
-          _completedRouteRow(
-            color: const Color(0xFF19865C),
+          _routeRow(
+            color: _green,
             label: 'Pickup',
             value: record?.pickup ?? 'Pickup',
           ),
@@ -276,8 +262,8 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
               ),
             ),
           ),
-          _completedRouteRow(
-            color: const Color(0xFF252E3A),
+          _routeRow(
+            color: _ink,
             label: 'Drop-off',
             value: record?.dropoff ?? 'Drop-off',
           ),
@@ -286,7 +272,103 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
     );
   }
 
-  Widget _completedRouteRow({
+  Widget _buildTripSummary(WaybillRecord? record) {
+    return _card(
+      title: 'Trip details',
+      child: Column(
+        children: [
+          _summaryRow('Ride cost', record?.fare ?? '—'),
+          const SizedBox(height: 12),
+          _summaryRow('Service', record?.service ?? 'Movera'),
+          const SizedBox(height: 12),
+          _summaryRow('Matched via', record?.source ?? 'Movera'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetaCard(WaybillRecord? record) {
+    final issued = record?.issuedAt;
+    final completedAt = issued == null
+        ? 'Just now'
+        : '${issued.year}-${issued.month.toString().padLeft(2, '0')}-'
+            '${issued.day.toString().padLeft(2, '0')} · '
+            '${issued.hour.toString().padLeft(2, '0')}:'
+            '${issued.minute.toString().padLeft(2, '0')}';
+
+    return _card(
+      title: 'Waybill',
+      trailing: record == null
+          ? null
+          : TextButton.icon(
+              onPressed: () {
+                showMoveraWaybillSheet(
+                  context,
+                  record,
+                  title: 'Last waybill',
+                );
+              },
+              icon: const Icon(Icons.receipt_long_outlined, size: 16),
+              label: const Text('Open'),
+              style: TextButton.styleFrom(
+                foregroundColor: _green,
+                textStyle: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+      child: Column(
+        children: [
+          _summaryRow('Trip ID', record?.tripId ?? '—'),
+          const SizedBox(height: 12),
+          _summaryRow('Completed', completedAt),
+        ],
+      ),
+    );
+  }
+
+  Widget _card({
+    String? title,
+    Widget? trailing,
+    required Widget child,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: _line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title != null) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                if (trailing != null) trailing,
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _routeRow({
     required Color color,
     required String label,
     required String value,
@@ -322,7 +404,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Color(0xFF252E3A),
+                  color: _ink,
                   fontSize: 12,
                   height: 1.35,
                   fontWeight: FontWeight.w800,
@@ -335,32 +417,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
     );
   }
 
-  Widget _buildSummaryRows(BuildContext context) {
-    final record = _record;
-    return Column(
-      children: [
-        _summaryRow(
-          label: 'Ride cost',
-          value: record?.fare ?? '—',
-        ),
-        const SizedBox(height: 14),
-        _summaryRow(
-          label: 'Service',
-          value: record?.service ?? 'Movera',
-        ),
-        const SizedBox(height: 14),
-        _summaryRow(
-          label: 'Matched via',
-          value: record?.source ?? 'Movera',
-        ),
-      ],
-    );
-  }
-
-  Widget _summaryRow({
-    required String label,
-    required String value,
-  }) {
+  Widget _summaryRow(String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -368,9 +425,9 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
           child: Text(
             label,
             style: const TextStyle(
-              color: Color(0xFF66737A),
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+              color: _muted,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -382,8 +439,8 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Color(0xFF252E3A),
-              fontSize: 13,
+              color: _ink,
+              fontSize: 11.5,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -391,30 +448,4 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
       ],
     );
   }
-
-  Widget _buildMetaRows() {
-    final record = _record;
-    final issued = record?.issuedAt;
-    final completedAt = issued == null
-        ? 'Just now'
-        : '${issued.year}-${issued.month.toString().padLeft(2, '0')}-'
-            '${issued.day.toString().padLeft(2, '0')} · '
-            '${issued.hour.toString().padLeft(2, '0')}:'
-            '${issued.minute.toString().padLeft(2, '0')}';
-
-    return Column(
-      children: [
-        _summaryRow(
-          label: 'Trip ID',
-          value: record?.tripId ?? '—',
-        ),
-        const SizedBox(height: 14),
-        _summaryRow(
-          label: 'Completed',
-          value: completedAt,
-        ),
-      ],
-    );
-  }
-
 }
