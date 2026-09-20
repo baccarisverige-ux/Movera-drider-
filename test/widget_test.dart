@@ -111,6 +111,28 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Sheet open and close correctly blocks and releases map input', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    SlidingUpPanel panel =
+        tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect(panel.body, isA<AbsorbPointer>());
+    expect((panel.body! as AbsorbPointer).absorbing, isFalse);
+
+    await _openPanel(tester);
+    panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect((panel.body! as AbsorbPointer).absorbing, isTrue);
+    _expectNoException(tester);
+
+    await _closePanel(tester);
+    panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect((panel.body! as AbsorbPointer).absorbing, isFalse);
+    _expectNoException(tester);
+  });
+
   testWidgets('Trip radar online and Go offline sheet flow is safe', (
     WidgetTester tester,
   ) async {
