@@ -203,17 +203,23 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Future<void> _openDestinationModePicker() async {
+  void _openDestinationModePicker() {
     _closeHomeFloatingPopupsForSheet();
     if (_mainPanelPosition > 0.001 || isPanelOpen) {
       _panelController.close();
     }
     if (!mounted) return;
 
-    final result = await DriverDestinationPicker.open(context);
-    if (!mounted || result == null) return;
-
-    await _activateDestinationMode(result);
+    Navigator.of(context)
+        .push<DriverDestinationResult>(
+          MaterialPageRoute(
+            builder: (_) => const DriverDestinationPicker(),
+          ),
+        )
+        .then((result) {
+          if (!mounted || result == null) return;
+          _activateDestinationMode(result);
+        });
   }
 
   Future<void> _activateDestinationMode(
