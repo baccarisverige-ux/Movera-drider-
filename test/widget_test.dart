@@ -427,6 +427,31 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Safety button stays fixed when direct offer appears', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    AnimatedPositioned safetyPosition() {
+      return tester.widget<AnimatedPositioned>(
+        find.ancestor(
+          of: find.byIcon(Icons.shield_outlined),
+          matching: find.byType(AnimatedPositioned),
+        ),
+      );
+    }
+
+    expect(safetyPosition().bottom, 138);
+
+    await tester.tap(find.text('OFFLINE'));
+    await tester.pump(const Duration(milliseconds: 3800));
+
+    expect(find.text('Direct request outside radar'), findsOneWidget);
+    expect(safetyPosition().bottom, 138);
+    _expectNoException(tester);
+  });
+
   testWidgets('Safety tools open from Home and basic actions remain usable', (
     WidgetTester tester,
   ) async {
