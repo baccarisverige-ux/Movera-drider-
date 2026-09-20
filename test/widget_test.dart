@@ -287,11 +287,12 @@ void main() {
     expect(find.text('104,80 kr'), findsOneWidget);
     expect(find.text('SCANNING'), findsOneWidget);
 
-    // Let the 80 ms route-preview continuation install the timeout timer.
-    await tester.pump(const Duration(milliseconds: 100));
-
-    // The direct offer auto-dismisses 8.5s after preview setup completes.
-    await tester.pump(const Duration(milliseconds: 8700));
+    // Advance in small frames so the async route-preview continuation can
+    // install and then fire the 8.5s timeout timer.
+    for (var i = 0; i < 20; i++) {
+      if (find.text('104,80 kr').evaluate().isEmpty) break;
+      await tester.pump(const Duration(milliseconds: 500));
+    }
 
     expect(find.text('104,80 kr'), findsNothing);
     expect(find.text('Direct request outside radar'), findsNothing);
