@@ -485,6 +485,56 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Today summary uses compact card and closes when Home sheet expands', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final launcher = find.byKey(
+      const ValueKey<String>('last-trip-launcher'),
+    );
+    tester.widget<InkWell>(launcher).onTap!.call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+
+    final card = find.byKey(
+      const ValueKey<String>('today-summary-card'),
+    );
+    expect(card, findsOneWidget);
+    expect(tester.getSize(card).width, 278);
+    expect(find.text('Today'), findsOneWidget);
+    _expectNoException(tester);
+
+    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    panel.controller!.open();
+    await tester.pump(const Duration(milliseconds: 180));
+
+    final summaryPointer = tester.widget<IgnorePointer>(
+      find.byKey(const ValueKey<String>('today-summary-pointer')),
+    );
+    expect(summaryPointer.ignoring, isTrue);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Outside-radar offer closes when Home sheet expands', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFF'));
+    await tester.pump(const Duration(milliseconds: 3800));
+    expect(find.text('Direct request outside radar'), findsOneWidget);
+
+    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    panel.controller!.open();
+    await tester.pump(const Duration(milliseconds: 180));
+
+    expect(find.text('Direct request outside radar'), findsNothing);
+    expect(find.text('104,80 kr'), findsNothing);
+    _expectNoException(tester);
+  });
+
   testWidgets('Safety button stays fixed when direct offer appears', (
     WidgetTester tester,
   ) async {
