@@ -728,6 +728,29 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Driver overview shows performance rates and scheduled card opens', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+    await _openPanel(tester);
+
+    expect(find.text('Acceptance rate'), findsOneWidget);
+    expect(find.text('94%'), findsOneWidget);
+    expect(find.text('Cancellation rate'), findsOneWidget);
+    expect(find.text('2.4%'), findsOneWidget);
+    expect(find.text('Driver events'), findsOneWidget);
+    _expectNoException(tester);
+
+    final scheduled = find.text('Scheduled rides available');
+    await tester.ensureVisible(scheduled);
+    await tester.tap(scheduled);
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.byType(ScheduledRidesScreen), findsOneWidget);
+    _expectNoException(tester);
+  });
+
   testWidgets('Online state survives Scheduled Rides navigation and return', (
     WidgetTester tester,
   ) async {
