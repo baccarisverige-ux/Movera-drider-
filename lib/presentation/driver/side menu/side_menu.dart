@@ -146,104 +146,127 @@ class DriverSideMenu extends StatelessWidget {
         : const Color(0xFF9AA4A9);
     final statusText = isOnline ? 'ONLINE' : 'OFFLINE';
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 16, 14, 0),
-      child: Row(
-        children: [
-          InkWell(
-            key: const ValueKey<String>('menu-profile-avatar'),
-            onTap: () => _open(context, const DriverProfile()),
-            borderRadius: BorderRadius.circular(30),
-            child: Container(
-              height: 58,
-              width: 58,
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFDCE4E0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: _ink.withOpacity(0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const CircleAvatar(
-                backgroundImage: AssetImage(AppAssets.profileImg),
-                backgroundColor: Color(0xFFE9EEEC),
-              ),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 310;
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            compact ? 14 : 18,
+            16,
+            compact ? 10 : 14,
+            0,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: InkWell(
-              key: const ValueKey<String>('menu-profile-header'),
-              onTap: () => _open(context, const DriverProfile()),
-              borderRadius: BorderRadius.circular(14),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Movera Driver',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: _ink,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.35,
+          child: Row(
+            children: [
+              InkWell(
+                key: const ValueKey<String>('menu-profile-avatar'),
+                onTap: () => _open(context, const DriverProfile()),
+                borderRadius: BorderRadius.circular(30),
+                child: Container(
+                  height: compact ? 50 : 58,
+                  width: compact ? 50 : 58,
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFDCE4E0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _ink.withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                    ],
+                  ),
+                  child: const CircleAvatar(
+                    backgroundImage: AssetImage(AppAssets.profileImg),
+                    backgroundColor: Color(0xFFE9EEEC),
+                  ),
+                ),
+              ),
+              SizedBox(width: compact ? 8 : 12),
+              Expanded(
+                child: InkWell(
+                  key: const ValueKey<String>('menu-profile-header'),
+                  onTap: () => _open(context, const DriverProfile()),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          height: 7,
-                          width: 7,
-                          decoration: BoxDecoration(
-                            color: statusColor,
-                            shape: BoxShape.circle,
+                        Text(
+                          'Movera Driver',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _ink,
+                            fontSize: compact ? 16 : 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.35,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          isOnline ? 'Available for trips' : 'Driver profile',
-                          style: const TextStyle(
-                            color: _muted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              height: 7,
+                              width: 7,
+                              decoration: BoxDecoration(
+                                color: statusColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                isOnline
+                                    ? 'Available for trips'
+                                    : 'Driver profile',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _muted,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          Container(
-            key: const ValueKey<String>('menu-live-status'),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(99),
-            ),
-            child: Text(
-              statusText,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 8.5,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
+              SizedBox(width: compact ? 6 : 8),
+              Container(
+                key: const ValueKey<String>('menu-live-status'),
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 7 : 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  compact
+                      ? (isOnline ? 'ON' : 'OFF')
+                      : statusText,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: compact ? 0.35 : 0.8,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
