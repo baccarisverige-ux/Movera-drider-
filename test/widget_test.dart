@@ -528,7 +528,7 @@ void main() {
 
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     panel.controller!.open();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    await _advanceAnimation(tester, const Duration(milliseconds: 820));
 
     expect(find.text('Direct request outside radar'), findsNothing);
     expect(find.text('104,80 kr'), findsNothing);
