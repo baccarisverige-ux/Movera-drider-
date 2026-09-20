@@ -45,12 +45,14 @@ class DriverHome extends StatefulWidget {
     this.locationRepository,
     this.routeRepository,
     this.waybillRepository,
+    this.sessionController,
   });
 
   final bool initialOnline;
   final DriverLocationRepository? locationRepository;
   final RouteRepository? routeRepository;
   final WaybillRepository? waybillRepository;
+  final DriverSessionController? sessionController;
 
   @override
   State<DriverHome> createState() => _DriverHomeState();
@@ -105,8 +107,8 @@ class _DriverHomeState extends State<DriverHome>
   bool showRideRequests = false;
   bool isAccountActivated = true;
   bool _isGoingOnline = false;
-  final DriverSessionController _driverSession =
-      DriverSessionController.instance;
+  late final DriverSessionController _driverSession;
+  late final bool _ownsDriverSession;
   bool get _isOnline => _driverSession.isOnline;
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
@@ -221,12 +223,15 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void initState() {
     super.initState();
+    _ownsDriverSession = widget.sessionController == null;
+    _driverSession = widget.sessionController ??
+        DriverSessionController(initialOnline: widget.initialOnline);
     _driverLocationService =
         widget.locationRepository ?? const DriverLocationService();
     _roadRouteService = widget.routeRepository ?? RoadRouteService();
     _waybills =
         widget.waybillRepository ?? InMemoryWaybillRepository.instance;
-    if (widget.initialOnline) {
+    if (widget.sessionController != null && widget.initialOnline) {
       _driverSession.setOnline(true);
     }
     _adminHomeConfig = const DriverHomeAdminContentService().load();
@@ -1115,6 +1120,7 @@ class _DriverHomeState extends State<DriverHome>
           category: offer.category,
           matchedVia: 'Movera direct match',
           waybillRepository: _waybills,
+          sessionController: _driverSession,
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -1151,6 +1157,7 @@ class _DriverHomeState extends State<DriverHome>
           category: offer.category,
           matchedVia: 'Movera Radar',
           waybillRepository: _waybills,
+          sessionController: _driverSession,
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -4517,6 +4524,9 @@ class _DriverHomeState extends State<DriverHome>
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
     _mapController?.dispose();
+    if (_ownsDriverSession) {
+      _driverSession.dispose();
+    }
     super.dispose();
   }
 
