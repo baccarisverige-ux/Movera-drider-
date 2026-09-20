@@ -22,7 +22,7 @@ Future<void> _pumpHome(WidgetTester tester, Size size) async {
   await tester.binding.setSurfaceSize(size);
   await tester.pumpWidget(const MoveraApp());
 
-  // ScreenUtilInit with ensureScreenSize initializes on the next frame.
+  // Allow responsive layout and map placeholders to settle.
   await tester.pump(const Duration(milliseconds: 120));
   expect(find.byType(DriverHome), findsOneWidget);
 
