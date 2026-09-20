@@ -70,6 +70,7 @@ class _DriverHomeState extends State<DriverHome>
   bool _showTodaySummaryPopup = false;
   _HomeDirectOffer? _outsideRadarOffer;
   final List<_HomeDirectOffer> _radarHomeOffers = <_HomeDirectOffer>[];
+  final List<_HomeDirectOffer> _pendingRadarHomeOffers = <_HomeDirectOffer>[];
   bool _destinationModeActive = false;
   String? _destinationAddress;
   LatLng? _destinationPosition;
@@ -410,6 +411,7 @@ class _DriverHomeState extends State<DriverHome>
         !_isOnline ||
         showRideRequests ||
         _radarHomeOffers.isNotEmpty ||
+        _pendingRadarHomeOffers.isNotEmpty ||
         _hasRideOffers ||
         !_directOfferFollowsDestination(offer) ||
         _mainPanelPosition > 0.04 ||
@@ -445,19 +447,30 @@ class _DriverHomeState extends State<DriverHome>
       _outsideRadarOffer = null;
     });
     _clearDirectOfferRoute();
+    _releasePendingRadarOffers();
   }
 
   void _showRadarHomeOffer(_HomeDirectOffer offer) {
     if (!mounted ||
         !_isOnline ||
-        showRideRequests ||
-        _outsideRadarOffer != null ||
         !_directOfferFollowsDestination(offer) ||
-        _mainPanelPosition > 0.04 ||
-        isPanelOpen ||
-        _radarHomeOffers.any((item) => item.id == offer.id)) {
+        _radarHomeOffers.any((item) => item.id == offer.id) ||
+        _pendingRadarHomeOffers.any((item) => item.id == offer.id)) {
       return;
     }
+
+    if (_outsideRadarOffer != null) {
+      setState(() {
+        _pendingRadarHomeOffers.add(offer);
+      });
+      return;
+    }
+
+    _activateRadarHomeOffer(offer);
+  }
+
+  void _activateRadarHomeOffer(_HomeDirectOffer offer) {
+    if (!mounted || !_isOnline) return;
 
     setState(() {
       _hasRideOffers = true;
@@ -476,6 +489,26 @@ class _DriverHomeState extends State<DriverHome>
         _dismissRadarHomeOffer(offer);
       },
     );
+  }
+
+  void _releasePendingRadarOffers() {
+    if (!mounted ||
+        !_isOnline ||
+        _outsideRadarOffer != null ||
+        _pendingRadarHomeOffers.isEmpty) {
+      return;
+    }
+
+    final pending = List<_HomeDirectOffer>.of(_pendingRadarHomeOffers);
+    setState(() {
+      _pendingRadarHomeOffers.clear();
+    });
+
+    for (final offer in pending) {
+      if (!_radarHomeOffers.any((item) => item.id == offer.id)) {
+        _activateRadarHomeOffer(offer);
+      }
+    }
   }
 
   void _dismissRadarHomeOffer(_HomeDirectOffer offer) {
@@ -512,6 +545,8 @@ class _DriverHomeState extends State<DriverHome>
     setState(() {
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
+      _pendingRadarHomeOffers.clear();
+      _pendingRadarHomeOffers.clear();
       _hasRideOffers = false;
     });
     _clearDirectOfferRoute();
@@ -534,6 +569,8 @@ class _DriverHomeState extends State<DriverHome>
     setState(() {
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
+      _pendingRadarHomeOffers.clear();
+      _pendingRadarHomeOffers.clear();
       _hasRideOffers = false;
     });
     _clearDirectOfferRoute();
@@ -648,7 +685,8 @@ class _DriverHomeState extends State<DriverHome>
                   onCloseRides: (hasOffers) {
                     setState(() {
                       showRideRequests = false;
-                      _hasRideOffers = hasOffers;
+                      _hasRideOffers =
+                          hasOffers || _radarHomeOffers.isNotEmpty;
                     });
                   },
                 ),
@@ -2119,6 +2157,7 @@ class _DriverHomeState extends State<DriverHome>
       _showTodaySummaryPopup = false;
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
+      _pendingRadarHomeOffers.clear();
     });
     _clearDirectOfferRoute();
 
@@ -2200,6 +2239,7 @@ class _DriverHomeState extends State<DriverHome>
       _hasRideOffers = false;
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
+      _pendingRadarHomeOffers.clear();
       _destinationModeActive = false;
       _destinationAddress = null;
       _destinationPosition = null;
@@ -2216,7 +2256,7 @@ class _DriverHomeState extends State<DriverHome>
     }
     setState(() {
       showRideRequests = true;
-      _hasRideOffers = false;
+      _hasRideOffers = _radarHomeOffers.isNotEmpty;
     });
   }
 
@@ -2854,7 +2894,6 @@ class _DriverHomeState extends State<DriverHome>
     _expandedDirectOfferTimer?.cancel();
     _radarOfferTwoTimer?.cancel();
     _radarOfferThreeTimer?.cancel();
-    _cancelAllOfferTimers();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
     _mapController?.dispose();
