@@ -9,6 +9,7 @@ import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/routing/route_repository.dart';
+import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
@@ -36,6 +37,7 @@ class AcceptRide extends StatefulWidget {
     this.locationRepository,
     this.routeRepository,
     this.waybillRepository,
+    this.sessionController,
   });
 
   final String offerId;
@@ -53,6 +55,7 @@ class AcceptRide extends StatefulWidget {
   final DriverLocationRepository? locationRepository;
   final RouteRepository? routeRepository;
   final WaybillRepository? waybillRepository;
+  final DriverSessionController? sessionController;
 
   @override
   State<AcceptRide> createState() => _AcceptRideState();
@@ -577,7 +580,10 @@ class _AcceptRideState extends State<AcceptRide> {
         Navigator.pushReplacement(
           context,
           BottomToTopTransition(
-            DriverRideCompleted(waybillRepository: _waybills),
+            DriverRideCompleted(
+              waybillRepository: _waybills,
+              sessionController: widget.sessionController,
+            ),
           ),
         );
         return;
