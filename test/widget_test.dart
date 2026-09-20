@@ -507,7 +507,7 @@ void main() {
 
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     panel.controller!.open();
-    await tester.pump(const Duration(milliseconds: 180));
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
     final summaryPointer = tester.widget<IgnorePointer>(
       find.byKey(const ValueKey<String>('today-summary-pointer')),
@@ -528,7 +528,7 @@ void main() {
 
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     panel.controller!.open();
-    await tester.pump(const Duration(milliseconds: 180));
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
     expect(find.text('Direct request outside radar'), findsNothing);
     expect(find.text('104,80 kr'), findsNothing);
