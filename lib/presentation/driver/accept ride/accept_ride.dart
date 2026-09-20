@@ -1851,60 +1851,21 @@ class _AcceptRideState extends State<AcceptRide> {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: SizedBox(
-            height: 54,
-            child: FilledButton(
-              key: const ValueKey<String>('active-ride-primary-action'),
-              onPressed: _advanceRide,
-              style: FilledButton.styleFrom(
-                elevation: 0,
-                backgroundColor: _ink,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _stage == _RideStage.onTrip
-                        ? Icons.flag_outlined
-                        : _stage == _RideStage.waitingForRider
-                            ? Icons.play_arrow_rounded
-                            : Icons.location_on_outlined,
-                    size: 19,
-                  ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _actionLabel,
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 1),
-                        Text(
-                          _actionHint,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFFBFC7CA),
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right_rounded, size: 20),
-                ],
-              ),
-            ),
+          child: _SlideRideAction(
+            key: ValueKey<String>('active-ride-primary-action-${_stage.name}'),
+            semanticsKey:
+                const ValueKey<String>('active-ride-primary-action'),
+            label: switch (_stage) {
+              _RideStage.headingToPickup => 'Slide to confirm pickup',
+              _RideStage.waitingForRider => 'Slide to start trip',
+              _RideStage.onTrip => 'Slide to complete trip',
+            },
+            icon: switch (_stage) {
+              _RideStage.headingToPickup => Icons.location_on_outlined,
+              _RideStage.waitingForRider => Icons.play_arrow_rounded,
+              _RideStage.onTrip => Icons.flag_outlined,
+            },
+            onConfirmed: _advanceRide,
           ),
         ),
       ],
@@ -2477,3 +2438,166 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
 }
+
+class _SlideRideAction extends StatefulWidget {
+  const _SlideRideAction({
+    super.key,
+    required this.semanticsKey,
+    required this.label,
+    required this.icon,
+    required this.onConfirmed,
+  });
+
+  final Key semanticsKey;
+  final String label;
+  final IconData icon;
+  final VoidCallback onConfirmed;
+
+  @override
+  State<_SlideRideAction> createState() => _SlideRideActionState();
+}
+
+class _SlideRideActionState extends State<_SlideRideAction> {
+  static const double _height = 54;
+  static const double _thumb = 46;
+  static const double _trigger = 0.78;
+
+  double _fraction = 0;
+  bool _dragging = false;
+  bool _confirmed = false;
+
+  void _update(double delta, double maxTravel) {
+    if (_confirmed || maxTravel <= 0) return;
+    setState(() {
+      _dragging = true;
+      _fraction = (_fraction + (delta / maxTravel)).clamp(0.0, 1.0);
+    });
+  }
+
+  void _finish() {
+    if (_confirmed) return;
+
+    if (_fraction >= _trigger) {
+      setState(() {
+        _confirmed = true;
+        _dragging = false;
+        _fraction = 1;
+      });
+      Future<void>.delayed(const Duration(milliseconds: 120), () {
+        if (mounted) widget.onConfirmed();
+      });
+    } else {
+      setState(() {
+        _dragging = false;
+        _fraction = 0;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: widget.semanticsKey,
+      height: _height,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxTravel = math.max(0.0, constraints.maxWidth - _thumb - 8);
+
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragUpdate: (details) =>
+                _update(details.delta.dx, maxTravel),
+            onHorizontalDragEnd: (_) => _finish(),
+            onHorizontalDragCancel: _finish,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xFF252E3A),
+                borderRadius: BorderRadius.circular(17),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(17),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: AnimatedContainer(
+                          duration: _dragging
+                              ? Duration.zero
+                              : const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          width: constraints.maxWidth *
+                              math.min(1.0, _fraction + 0.08),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF19865C).withOpacity(0.28),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 54),
+                    child: Text(
+                      _confirmed ? 'Confirmed' : widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.15,
+                      ),
+                    ),
+                  ),
+                  AnimatedPositioned(
+                    duration: _dragging
+                        ? Duration.zero
+                        : const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    left: 4 + (maxTravel * _fraction),
+                    top: 4,
+                    child: Container(
+                      width: _thumb,
+                      height: _thumb,
+                      decoration: BoxDecoration(
+                        color: _confirmed
+                            ? const Color(0xFF74D6A8)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _confirmed ? Icons.check_rounded : widget.icon,
+                        color: const Color(0xFF252E3A),
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  if (!_confirmed)
+                    const Positioned(
+                      right: 12,
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF96A0A5),
+                        size: 20,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+
