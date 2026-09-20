@@ -879,7 +879,16 @@ class _DriverHomeState extends State<DriverHome>
 
     Navigator.push(
       context,
-      BottomToTopTransition(const AcceptRide()),
+      BottomToTopTransition(
+        AcceptRide(
+          offerId: offer.id,
+          pickupAddress: offer.pickup,
+          pickupArea: offer.pickup.split(',').last.trim(),
+          dropoffAddress: offer.dropoff,
+          pickupPosition: offer.pickupPosition,
+          dropoffPosition: offer.dropoffPosition,
+        ),
+      ),
     );
   }
 
@@ -902,7 +911,16 @@ class _DriverHomeState extends State<DriverHome>
 
     Navigator.push(
       context,
-      BottomToTopTransition(const AcceptRide()),
+      BottomToTopTransition(
+        AcceptRide(
+          offerId: offer.id,
+          pickupAddress: offer.pickup,
+          pickupArea: offer.pickup.split(',').last.trim(),
+          dropoffAddress: offer.dropoff,
+          pickupPosition: offer.pickupPosition,
+          dropoffPosition: offer.dropoffPosition,
+        ),
+      ),
     );
   }
 
