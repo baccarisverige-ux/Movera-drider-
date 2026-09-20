@@ -43,6 +43,20 @@ class AcceptRide extends StatefulWidget {
 
 enum _RideStage { headingToPickup, waitingForRider, onTrip }
 
+class _TripCancellationReason {
+  const _TripCancellationReason({
+    required this.code,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String code;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+}
+
 class _AcceptRideState extends State<AcceptRide> {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _panel = Color(0xFFFFFFFF);
@@ -53,6 +67,90 @@ class _AcceptRideState extends State<AcceptRide> {
   static const Color _mint = Color(0xFFE6F5EE);
   static const Color _line = Color(0xFFE5E9EB);
   static const Color _danger = Color(0xFFE75D65);
+
+  static const List<_TripCancellationReason> _preTripCancellationReasons = [
+    _TripCancellationReason(
+      code: 'rider_requested_cancel',
+      title: 'Rider requested cancellation',
+      subtitle: 'The rider asked not to continue with this pickup',
+      icon: Icons.person_off_outlined,
+    ),
+    _TripCancellationReason(
+      code: 'rider_not_at_pickup',
+      title: 'Rider not at pickup',
+      subtitle: 'You arrived but could not find or reach the rider',
+      icon: Icons.location_off_outlined,
+    ),
+    _TripCancellationReason(
+      code: 'unsafe_pickup',
+      title: 'Pickup is unsafe or inaccessible',
+      subtitle: 'You cannot stop or complete the pickup safely',
+      icon: Icons.warning_amber_rounded,
+    ),
+    _TripCancellationReason(
+      code: 'vehicle_issue_before_start',
+      title: 'Vehicle problem',
+      subtitle: 'A vehicle issue prevents the trip from starting',
+      icon: Icons.car_repair_outlined,
+    ),
+    _TripCancellationReason(
+      code: 'driver_emergency_before_start',
+      title: 'Personal emergency',
+      subtitle: 'An urgent situation prevents you from continuing',
+      icon: Icons.emergency_outlined,
+    ),
+    _TripCancellationReason(
+      code: 'other_before_start',
+      title: 'Other reason',
+      subtitle: 'Another issue prevents this pickup',
+      icon: Icons.more_horiz_rounded,
+    ),
+  ];
+
+  static const List<_TripCancellationReason> _onTripCancellationReasons = [
+    _TripCancellationReason(
+      code: 'rider_requested_early_end',
+      title: 'Rider asked to end the trip',
+      subtitle: 'The rider wants to leave before the destination',
+      icon: Icons.person_outline_rounded,
+    ),
+    _TripCancellationReason(
+      code: 'safety_concern_on_trip',
+      title: 'Safety concern',
+      subtitle: 'Continuing the trip may be unsafe',
+      icon: Icons.shield_outlined,
+    ),
+    _TripCancellationReason(
+      code: 'vehicle_issue_on_trip',
+      title: 'Vehicle problem',
+      subtitle: 'A vehicle issue makes it unsafe to continue',
+      icon: Icons.car_repair_outlined,
+    ),
+    _TripCancellationReason(
+      code: 'accident_or_road_emergency',
+      title: 'Accident or road emergency',
+      subtitle: 'An incident or emergency prevents continuing',
+      icon: Icons.report_gmailerrorred_rounded,
+    ),
+    _TripCancellationReason(
+      code: 'rider_behavior',
+      title: 'Rider behavior',
+      subtitle: 'The rider’s behavior requires the trip to end',
+      icon: Icons.record_voice_over_outlined,
+    ),
+    _TripCancellationReason(
+      code: 'trip_or_destination_issue',
+      title: 'Trip or destination issue',
+      subtitle: 'A trip detail or destination problem prevents continuing',
+      icon: Icons.alt_route_rounded,
+    ),
+    _TripCancellationReason(
+      code: 'other_on_trip',
+      title: 'Other reason',
+      subtitle: 'Another issue requires the trip to end early',
+      icon: Icons.more_horiz_rounded,
+    ),
+  ];
 
   static const LatLng _fallbackDriverPosition = LatLng(59.3262, 18.0595);
 
@@ -1025,6 +1123,7 @@ class _AcceptRideState extends State<AcceptRide> {
     return Row(
       children: [
         Material(
+          key: const ValueKey<String>('active-ride-trip-options'),
           color: const Color(0xFFF0F3F2),
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
@@ -1209,17 +1308,23 @@ class _AcceptRideState extends State<AcceptRide> {
                     showSafetyToolKitSheet(context);
                   },
                 ),
-                if (_stage != _RideStage.onTrip)
-                  _optionTile(
-                    icon: Icons.close_rounded,
-                    title: 'Cancel trip',
-                    subtitle: 'Only cancel when you cannot continue',
-                    danger: true,
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      _confirmCancelTrip();
-                    },
-                  ),
+                _optionTile(
+                  key: const ValueKey<String>('active-ride-cancel-option'),
+                  icon: _stage == _RideStage.onTrip
+                      ? Icons.stop_circle_outlined
+                      : Icons.close_rounded,
+                  title: _stage == _RideStage.onTrip
+                      ? 'End trip early'
+                      : 'Cancel trip',
+                  subtitle: _stage == _RideStage.onTrip
+                      ? 'Stop safely first · reason required'
+                      : 'Choose a reason before cancelling',
+                  danger: true,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showCancellationReasons();
+                  },
+                ),
               ],
             ),
           ),
@@ -1229,6 +1334,7 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Widget _optionTile({
+    Key? key,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -1236,6 +1342,7 @@ class _AcceptRideState extends State<AcceptRide> {
     bool danger = false,
   }) {
     return Material(
+      key: key,
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
@@ -1297,35 +1404,340 @@ class _AcceptRideState extends State<AcceptRide> {
     );
   }
 
-  Future<void> _confirmCancelTrip() async {
-    final cancel = await showDialog<bool>(
+  Future<void> _showCancellationReasons() async {
+    final isOnTrip = _stage == _RideStage.onTrip;
+    final reasons =
+        isOnTrip ? _onTripCancellationReasons : _preTripCancellationReasons;
+
+    final reason = await showModalBottomSheet<_TripCancellationReason>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-          title: const Text('Cancel this trip?'),
-          content: const Text(
-            'The trip will be released and you’ll return to the previous driver screen.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Keep trip'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: FilledButton.styleFrom(backgroundColor: _danger),
-              child: const Text('Cancel trip'),
-            ),
-          ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.32),
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: isOnTrip ? 0.72 : 0.66,
+          minChildSize: 0.48,
+          maxChildSize: 0.88,
+          expand: false,
+          builder: (context, controller) {
+            return Container(
+              key: const ValueKey<String>('trip-cancellation-reasons-sheet'),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAF9),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD7DEDB),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isOnTrip
+                                ? 'Why are you ending the trip?'
+                                : 'Why are you cancelling?',
+                            style: const TextStyle(
+                              color: _ink,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            isOnTrip
+                                ? 'Stop the vehicle in a safe place before ending an active trip.'
+                                : 'Choose the reason that best explains the cancellation.',
+                            style: const TextStyle(
+                              color: _muted,
+                              fontSize: 11,
+                              height: 1.4,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.separated(
+                        controller: controller,
+                        padding: const EdgeInsets.fromLTRB(14, 2, 14, 20),
+                        itemCount: reasons.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 7),
+                        itemBuilder: (context, index) {
+                          final reason = reasons[index];
+                          return Material(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(17),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              key: ValueKey<String>(
+                                'trip-cancel-reason-${reason.code}',
+                              ),
+                              onTap: () =>
+                                  Navigator.pop(sheetContext, reason),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  11,
+                                  10,
+                                  11,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 39,
+                                      height: 39,
+                                      decoration: BoxDecoration(
+                                        color: isOnTrip
+                                            ? const Color(0xFFFFEEF0)
+                                            : const Color(0xFFF0F3F2),
+                                        borderRadius:
+                                            BorderRadius.circular(13),
+                                      ),
+                                      child: Icon(
+                                        reason.icon,
+                                        color: isOnTrip
+                                            ? _danger
+                                            : const Color(0xFF58656C),
+                                        size: 19,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 11),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            reason.title,
+                                            style: const TextStyle(
+                                              color: _ink,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            reason.subtitle,
+                                            style: const TextStyle(
+                                              color: _muted,
+                                              fontSize: 9.5,
+                                              height: 1.3,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: Color(0xFFA5AFB4),
+                                      size: 20,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
 
-    if (cancel == true && mounted) {
-      Navigator.pop(context);
-    }
+    if (!mounted || reason == null) return;
+    await _confirmCancellationReason(reason);
   }
+
+  Future<void> _confirmCancellationReason(
+    _TripCancellationReason reason,
+  ) async {
+    final isOnTrip = _stage == _RideStage.onTrip;
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.34),
+      builder: (sheetContext) {
+        return Container(
+          key: const ValueKey<String>('trip-cancellation-confirmation'),
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF8FAF9),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD7DEDB),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+                const SizedBox(height: 17),
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFECEE),
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                  child: Icon(
+                    isOnTrip
+                        ? Icons.stop_circle_outlined
+                        : Icons.close_rounded,
+                    color: _danger,
+                    size: 25,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isOnTrip ? 'End this trip early?' : 'Cancel this trip?',
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  reason.title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (isOnTrip) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF5E8),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Color(0xFFB87512),
+                          size: 18,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Only end the trip after you have stopped in a safe place and the rider can exit safely.',
+                            style: TextStyle(
+                              color: Color(0xFF8B641F),
+                              fontSize: 10,
+                              height: 1.35,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 17),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton(
+                    key: const ValueKey<String>(
+                      'confirm-trip-cancellation',
+                    ),
+                    onPressed: () => Navigator.pop(sheetContext, true),
+                    style: FilledButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: _danger,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      isOnTrip ? 'End trip early' : 'Cancel trip',
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 7),
+                TextButton(
+                  onPressed: () => Navigator.pop(sheetContext, false),
+                  child: const Text(
+                    'Keep trip',
+                    style: TextStyle(
+                      color: _ink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+    _submitTripCancellation(reason);
+  }
+
+  void _submitTripCancellation(_TripCancellationReason reason) {
+    _waitTimer?.cancel();
+
+    // Frontend contract: reason.code is ready to be sent with the backend
+    // cancellation event once trip persistence is connected.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _stage == _RideStage.onTrip
+              ? 'Trip ended early · ${reason.title}'
+              : 'Trip cancelled · ${reason.title}',
+        ),
+        backgroundColor: _ink,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    );
+
+    Navigator.pop(context);
+  }
+
 }
