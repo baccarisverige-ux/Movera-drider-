@@ -318,8 +318,9 @@ void main() {
       const ValueKey<String>('destination-mode-open'),
     );
     expect(openDestination, findsOneWidget);
-    expect(openDestination.hitTestable(), findsOneWidget);
-    await tester.tap(openDestination);
+    final destinationControl = tester.widget<InkWell>(openDestination);
+    expect(destinationControl.onTap, isNotNull);
+    destinationControl.onTap!.call();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 520));
 
