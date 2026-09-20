@@ -2056,6 +2056,134 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  Widget _buildRadarTrayHeader(List<_HomeDirectOffer> offers) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 360;
+
+        final title = Row(
+          children: [
+            Container(
+              height: 34,
+              width: 34,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3DE),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.radar_rounded,
+                color: Color(0xFFD28A19),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Trip Radar offers',
+                    style: TextStyle(
+                      color: Color(0xFF252E3A),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Stable list · refresh when new trips arrive',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(0xFF7C888E),
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_pendingRadarHomeOffers.isEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF26343A),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${offers.length} live',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+
+        final refresh = TextButton.icon(
+          key: const ValueKey<String>('radar-home-refresh'),
+          onPressed: _refreshRadarHomeOffers,
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF9A650F),
+            backgroundColor: const Color(0xFFFFF3DE),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 9,
+              vertical: 7,
+            ),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(11),
+            ),
+          ),
+          icon: const Icon(Icons.refresh_rounded, size: 15),
+          label: Text(
+            'Refresh · ${_pendingRadarHomeOffers.length} new',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        );
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(15, 13, 12, 10),
+          child: _pendingRadarHomeOffers.isEmpty
+              ? title
+              : compact
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        title,
+                        const SizedBox(height: 9),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: refresh,
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(child: title),
+                        const SizedBox(width: 8),
+                        refresh,
+                      ],
+                    ),
+        );
+      },
+    );
+  }
+
   Widget _buildRadarOffersTray() {
     final offers = List<_HomeDirectOffer>.unmodifiable(_radarHomeOffers);
     final trayHeight = math.min(
@@ -2082,99 +2210,7 @@ class _DriverHomeState extends State<DriverHome>
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(15, 13, 12, 10),
-                child: Row(
-                  children: [
-                    Container(
-                      height: 34,
-                      width: 34,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3DE),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.radar_rounded,
-                        color: Color(0xFFD28A19),
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Trip Radar offers',
-                            style: TextStyle(
-                              color: Color(0xFF252E3A),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Stable list · refresh when new trips arrive',
-                            style: TextStyle(
-                              color: Color(0xFF7C888E),
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_pendingRadarHomeOffers.isNotEmpty)
-                      TextButton.icon(
-                        key: const ValueKey<String>('radar-home-refresh'),
-                        onPressed: _refreshRadarHomeOffers,
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF9A650F),
-                          backgroundColor: const Color(0xFFFFF3DE),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 7,
-                          ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(11),
-                          ),
-                        ),
-                        icon: const Icon(Icons.refresh_rounded, size: 15),
-                        label: Text(
-                          'Refresh · ' +
-                              _pendingRadarHomeOffers.length.toString() +
-                              ' new',
-                          style: const TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF26343A),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          offers.length.toString() + ' live',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              _buildRadarTrayHeader(offers),
               const Divider(height: 1, color: Color(0xFFE3E8E6)),
               Expanded(
                 child: ListView.separated(
