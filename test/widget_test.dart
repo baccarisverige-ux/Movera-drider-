@@ -24,32 +24,6 @@ void _expectNoException(WidgetTester tester) {
   expect(exception, isNull, reason: exception?.toString());
 }
 
-Offset _dockPoint(Size size, int index) {
-  const horizontalPadding = 10.0;
-  const notchWidth = 126.0;
-  final sideWidth = (size.width - (horizontalPadding * 2) - notchWidth) / 2;
-  final y = size.height - 51;
-
-  switch (index) {
-    case 0:
-      return Offset(horizontalPadding + (sideWidth * 0.25), y);
-    case 1:
-      return Offset(horizontalPadding + (sideWidth * 0.75), y);
-    case 2:
-      return Offset(
-        horizontalPadding + sideWidth + notchWidth + (sideWidth * 0.25),
-        y,
-      );
-    case 3:
-      return Offset(
-        horizontalPadding + sideWidth + notchWidth + (sideWidth * 0.75),
-        y,
-      );
-    default:
-      throw ArgumentError.value(index, 'index');
-  }
-}
-
 Future<void> _advanceAnimation(
   WidgetTester tester,
   Duration duration,
@@ -101,29 +75,36 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    const size = Size(375, 812);
-    await tester.tapAt(_dockPoint(size, 1));
+    final wallet = find.byTooltip('Wallet').hitTestable();
+    expect(wallet, findsOneWidget);
+    await tester.tap(wallet);
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
     expect(find.byType(WalletScreen), findsOneWidget);
     _expectNoException(tester);
     Navigator.of(tester.element(find.byType(WalletScreen))).pop();
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
-    await tester.tapAt(_dockPoint(size, 2));
+    final inbox = find.byTooltip('Inbox').hitTestable();
+    expect(inbox, findsOneWidget);
+    await tester.tap(inbox);
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
     expect(find.byType(SupportInboxScreen), findsOneWidget);
     _expectNoException(tester);
     Navigator.of(tester.element(find.byType(SupportInboxScreen))).pop();
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
-    await tester.tapAt(_dockPoint(size, 3));
+    final scheduled = find.byTooltip('Scheduled').hitTestable();
+    expect(scheduled, findsOneWidget);
+    await tester.tap(scheduled);
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
     expect(find.byType(ScheduledRidesScreen), findsOneWidget);
     _expectNoException(tester);
     Navigator.of(tester.element(find.byType(ScheduledRidesScreen))).pop();
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
-    await tester.tapAt(_dockPoint(size, 0));
+    final menu = find.byTooltip('Menu').hitTestable();
+    expect(menu, findsOneWidget);
+    await tester.tap(menu);
     await _advanceAnimation(tester, const Duration(milliseconds: 320));
     final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold).first);
     expect(scaffoldState.isDrawerOpen, isTrue);
