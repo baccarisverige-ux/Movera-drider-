@@ -208,10 +208,13 @@ class _DriverHomeState extends State<DriverHome>
   Future<void> _showHomeDirectOffer(
     _HomeDirectOffer offer,
   ) async {
-    if (!mounted || !_isOnline || showRideRequests) return;
-
-    await _closeDriverSheet();
-    if (!mounted || !_isOnline || showRideRequests) return;
+    if (!mounted ||
+        !_isOnline ||
+        showRideRequests ||
+        _mainPanelPosition > 0.04 ||
+        isPanelOpen) {
+      return;
+    }
 
     setState(() {
       _homeDirectOffer = offer;
@@ -395,6 +398,9 @@ class _DriverHomeState extends State<DriverHome>
               onPanelSlide: (double pos) {
                 _mainPanelPosition = pos;
                 _panelSlidePosition.value = pos;
+                if (pos > 0.04) {
+                  _closeHomeFloatingPopupsForSheet();
+                }
                 final nextPanelOpen = pos > 0.3;
                 final nextBlockMap = _sheetPointerActive || pos > 0.001;
                 if (isPanelOpen != nextPanelOpen ||
@@ -809,8 +815,8 @@ class _DriverHomeState extends State<DriverHome>
               curve: _showTodaySummaryPopup
                   ? Curves.easeOutCubic
                   : Curves.easeInCubic,
-              left: _showTodaySummaryPopup ? 14 : -360,
-              top: MediaQuery.sizeOf(context).height * 0.25,
+              left: _showTodaySummaryPopup ? 14 : -310,
+              top: ResSize.h * 106,
               child: IgnorePointer(
                 key: const ValueKey<String>('today-summary-pointer'),
                 ignoring: !_showTodaySummaryPopup,
@@ -1184,23 +1190,41 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
+  void _closeHomeFloatingPopupsForSheet() {
+    if (!_showTodaySummaryPopup &&
+        _homeDirectOffer == null &&
+        !showRideRequests) {
+      return;
+    }
+
+    _directOfferTimeoutTimer?.cancel();
+    setState(() {
+      _showTodaySummaryPopup = false;
+      _homeDirectOffer = null;
+      showRideRequests = false;
+      _isDirectOfferRoutePreview = false;
+      _directOfferRouteMarkers = {};
+      _directOfferRoutePolylines = {};
+    });
+  }
+
   Widget _buildTodaySummaryPopup() {
     return Material(
       color: Colors.transparent,
       child: Container(
-        width: 330,
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+        width: 278,
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
         decoration: BoxDecoration(
           color: AppColor.white,
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: const Color(0xFFE2E8E5),
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF172027).withOpacity(0.16),
-              blurRadius: 28,
-              offset: const Offset(8, 10),
+              color: const Color(0xFF172027).withOpacity(0.12),
+              blurRadius: 20,
+              offset: const Offset(5, 7),
             ),
           ],
         ),
@@ -1214,40 +1238,40 @@ class _DriverHomeState extends State<DriverHome>
                     "Today",
                     style: TextStyle(
                       color: Color(0xFF252E3A),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
                     ),
                   ),
                 ),
                 InkWell(
                   onTap: _hideTodaySummary,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   child: const SizedBox(
-                    height: 36,
-                    width: 36,
+                    height: 28,
+                    width: 28,
                     child: Icon(
                       Icons.close_rounded,
                       color: Color(0xFF7A858B),
-                      size: 20,
+                      size: 17,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 17),
+              padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
               decoration: BoxDecoration(
                 color: const Color(0xFFF5F7F7),
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(17),
               ),
               child: Row(
                 children: [
                   Container(
-                    height: 42,
-                    width: 42,
+                    height: 34,
+                    width: 34,
                     decoration: BoxDecoration(
                       color: AppColor.white,
                       shape: BoxShape.circle,
@@ -1258,10 +1282,10 @@ class _DriverHomeState extends State<DriverHome>
                     child: const Icon(
                       Icons.account_balance_wallet_outlined,
                       color: Color(0xFF435149),
-                      size: 21,
+                      size: 17,
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 10),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1270,17 +1294,18 @@ class _DriverHomeState extends State<DriverHome>
                           "183.25 kr",
                           style: TextStyle(
                             color: Color(0xFF20282E),
-                            fontSize: 27,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.7,
+                            fontSize: 22,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        SizedBox(height: 3),
+                        SizedBox(height: 4),
                         Text(
-                          "Total earnings today",
+                          "Earnings today",
                           style: TextStyle(
                             color: Color(0xFF7B878E),
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1288,8 +1313,8 @@ class _DriverHomeState extends State<DriverHome>
                     ),
                   ),
                   Container(
-                    height: 8,
-                    width: 8,
+                    height: 7,
+                    width: 7,
                     decoration: const BoxDecoration(
                       color: Color(0xFF2FBE7B),
                       shape: BoxShape.circle,
@@ -1298,7 +1323,7 @@ class _DriverHomeState extends State<DriverHome>
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 3),
             _premiumActivityRow(
               icon: Icons.local_taxi_outlined,
               title: "3 rides",
@@ -1324,19 +1349,19 @@ class _DriverHomeState extends State<DriverHome>
     String? trailing,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
         children: [
           SizedBox(
-            height: 34,
-            width: 34,
+            height: 28,
+            width: 28,
             child: Icon(
               icon,
               color: const Color(0xFF69757B),
-              size: 21,
+              size: 18,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1347,16 +1372,18 @@ class _DriverHomeState extends State<DriverHome>
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF252E3A),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF8A959B),
-                    fontSize: 11,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1364,12 +1391,12 @@ class _DriverHomeState extends State<DriverHome>
             ),
           ),
           if (trailing != null) ...[
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(
               trailing,
               style: const TextStyle(
                 color: Color(0xFF252E3A),
-                fontSize: 14,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1475,7 +1502,11 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _openRideOffers() {
-    if (_homeDirectOffer != null) return;
+    if (_homeDirectOffer != null ||
+        _mainPanelPosition > 0.04 ||
+        isPanelOpen) {
+      return;
+    }
     setState(() {
       showRideRequests = true;
       _hasRideOffers = false;
