@@ -1236,6 +1236,76 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('On-trip options allow safe early cancellation with reasons', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+
+    var action = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+    );
+    action.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    action = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+    );
+    action.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(find.textContaining('Dropping off'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('active-ride-trip-options')),
+    );
+    await tester.pump(const Duration(milliseconds: 220));
+
+    expect(find.text('End trip early'), findsOneWidget);
+    expect(find.text('Stop safely first · reason required'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('active-ride-cancel-option')),
+    );
+    await tester.pump(const Duration(milliseconds: 260));
+
+    expect(
+      find.byKey(const ValueKey<String>('trip-cancellation-reasons-sheet')),
+      findsOneWidget,
+    );
+    expect(find.text('Rider asked to end the trip'), findsOneWidget);
+    expect(find.text('Safety concern'), findsOneWidget);
+    expect(find.text('Vehicle problem'), findsOneWidget);
+    expect(find.text('Accident or road emergency'), findsOneWidget);
+    expect(find.text('Rider behavior'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('trip-cancel-reason-rider_requested_early_end'),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 260));
+
+    expect(
+      find.byKey(const ValueKey<String>('trip-cancellation-confirmation')),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Only end the trip after you have stopped in a safe place and the rider can exit safely.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Keep trip'));
+    await tester.pump(const Duration(milliseconds: 220));
+
+    expect(find.textContaining('Dropping off'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
   testWidgets('Direct offer shows a visible expiry countdown', (
     WidgetTester tester,
   ) async {
