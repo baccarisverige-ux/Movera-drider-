@@ -32,7 +32,14 @@ class _RideRequestsState extends State<RideRequests> {
 
   Timer? _newTripSignalTimer;
   Timer? _availabilityTimer;
+  Timer? _matchResolutionTimer;
+  Timer? _matchNoticeTimer;
+  final Map<String, Timer> _claimedRemovalTimers = <String, Timer>{};
+  final Map<String, _RadarOfferState> _offerStates =
+      <String, _RadarOfferState>{};
   bool _hasNewTripSignal = false;
+  String? _matchingOfferId;
+  _RadarMatchNotice? _matchNotice;
 
   final List<_RadarTrip> _offers = [
     const _RadarTrip(
@@ -148,14 +155,17 @@ class _RideRequestsState extends State<RideRequests> {
       });
     });
 
-    // Frontend-only availability simulation. In production, "claimed by
-    // another driver" and "cancelled by rider" events remove the matching
-    // offer immediately. Once removed, its Match action no longer exists.
+    // Frontend demo: this request is claimed by another driver without this
+    // driver tapping it. Production receives this from the dispatch backend.
     _availabilityTimer = Timer(const Duration(seconds: 13), () {
       if (!mounted) return;
-      setState(() {
-        _offers.removeWhere((offer) => offer.id == 'nearby-3');
-      });
+      final trip = _offers.cast<_RadarTrip?>().firstWhere(
+            (offer) => offer?.id == 'nearby-3',
+            orElse: () => null,
+          );
+      if (trip != null && _stateFor(trip.id) == _RadarOfferState.available) {
+        _markClaimedElsewhere(trip, showNotice: false);
+      }
     });
   }
 
@@ -163,6 +173,11 @@ class _RideRequestsState extends State<RideRequests> {
   void dispose() {
     _newTripSignalTimer?.cancel();
     _availabilityTimer?.cancel();
+    _matchResolutionTimer?.cancel();
+    _matchNoticeTimer?.cancel();
+    for (final timer in _claimedRemovalTimers.values) {
+      timer.cancel();
+    }
     super.dispose();
   }
 
@@ -184,18 +199,137 @@ class _RideRequestsState extends State<RideRequests> {
     widget.onCloseRides?.call(_visibleOffers.isNotEmpty);
   }
 
-  void _matchTrip(_RadarTrip trip) {
-    if (!_offers.any((offer) {
+  _RadarOfferState _stateFor(String id) =>
+      _offerStates[id] ?? _RadarOfferState.available;
+
+  bool _isOfferStillVisible(_RadarTrip trip) {
+    return _offers.any((offer) {
       if (offer.id != trip.id || !offer.isNearby) return false;
       if (!widget.destinationModeActive) return true;
       return offer.followsDestination;
-    })) {
+    });
+  }
+
+  void _matchTrip(_RadarTrip trip) {
+    if (!_isOfferStillVisible(trip) ||
+        _stateFor(trip.id) != _RadarOfferState.available ||
+        _matchingOfferId != null) {
       return;
     }
 
-    Navigator.push(
-      context,
-      BottomToTopTransition(const AcceptRide()),
+    setState(() {
+      _matchingOfferId = trip.id;
+      _offerStates[trip.id] = _RadarOfferState.resolving;
+      _matchNotice = const _RadarMatchNotice(
+        type: _RadarMatchNoticeType.matching,
+        title: 'Matching trip',
+        message: 'Confirming this request in real time…',
+      );
+    });
+
+    _matchResolutionTimer?.cancel();
+    _matchResolutionTimer = Timer(
+      const Duration(milliseconds: 1450),
+      () {
+        if (!mounted || _matchingOfferId != trip.id) return;
+
+        // Frontend demo outcomes:
+        // nearby-2 simulates two drivers claiming at virtually the same time.
+        // Other offers simulate this driver winning the atomic backend claim.
+        if (trip.id == 'nearby-2') {
+          _resolveMatchLost(trip);
+        } else {
+          _resolveMatchWon(trip);
+        }
+      },
+    );
+  }
+
+  void _resolveMatchWon(_RadarTrip trip) {
+    _matchNoticeTimer?.cancel();
+
+    setState(() {
+      _matchingOfferId = null;
+      _offers.removeWhere((offer) => offer.id == trip.id);
+      _offerStates.remove(trip.id);
+      _matchNotice = const _RadarMatchNotice(
+        type: _RadarMatchNoticeType.success,
+        title: 'Trip matched',
+        message: 'You’re assigned to this request. Opening trip…',
+      );
+    });
+
+    _matchNoticeTimer = Timer(
+      const Duration(milliseconds: 850),
+      () {
+        if (!mounted) return;
+        setState(() => _matchNotice = null);
+        Navigator.push(
+          context,
+          BottomToTopTransition(const AcceptRide()),
+        );
+      },
+    );
+  }
+
+  void _resolveMatchLost(_RadarTrip trip) {
+    setState(() {
+      _matchingOfferId = null;
+      _offerStates[trip.id] = _RadarOfferState.claimedElsewhere;
+      _matchNotice = const _RadarMatchNotice(
+        type: _RadarMatchNoticeType.taken,
+        title: 'Request taken',
+        message: 'Another driver was matched first. Choose another trip.',
+      );
+    });
+
+    _scheduleClaimedRemoval(trip.id);
+
+    _matchNoticeTimer?.cancel();
+    _matchNoticeTimer = Timer(
+      const Duration(milliseconds: 2600),
+      () {
+        if (!mounted) return;
+        setState(() => _matchNotice = null);
+      },
+    );
+  }
+
+  void _markClaimedElsewhere(
+    _RadarTrip trip, {
+    bool showNotice = true,
+  }) {
+    if (!_isOfferStillVisible(trip) ||
+        _stateFor(trip.id) != _RadarOfferState.available) {
+      return;
+    }
+
+    setState(() {
+      _offerStates[trip.id] = _RadarOfferState.claimedElsewhere;
+      if (showNotice) {
+        _matchNotice = const _RadarMatchNotice(
+          type: _RadarMatchNoticeType.taken,
+          title: 'Request taken',
+          message: 'This trip was matched with another driver.',
+        );
+      }
+    });
+
+    _scheduleClaimedRemoval(trip.id);
+  }
+
+  void _scheduleClaimedRemoval(String id) {
+    _claimedRemovalTimers.remove(id)?.cancel();
+    _claimedRemovalTimers[id] = Timer(
+      const Duration(milliseconds: 2800),
+      () {
+        if (!mounted) return;
+        setState(() {
+          _offers.removeWhere((offer) => offer.id == id);
+          _offerStates.remove(id);
+        });
+        _claimedRemovalTimers.remove(id);
+      },
     );
   }
 
@@ -205,28 +339,41 @@ class _RideRequestsState extends State<RideRequests> {
 
     return Material(
       color: Colors.transparent,
-      child: SafeArea(
-        child: Column(
-          children: [
-            _topBar(),
-            _radarStatus(offers.length),
-            if (widget.destinationModeActive) _destinationModeBanner(),
-            if (_hasNewTripSignal) _newTripsBanner(),
-            Expanded(
-              child: offers.isEmpty
-                  ? _emptyState()
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: offers.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        return _tripCard(offers[index]);
-                      },
-                    ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                _topBar(),
+                _radarStatus(offers.length),
+                if (widget.destinationModeActive) _destinationModeBanner(),
+                if (_hasNewTripSignal) _newTripsBanner(),
+                Expanded(
+                  child: offers.isEmpty
+                      ? _emptyState()
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: offers.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            return _tripCard(offers[index]);
+                          },
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          if (_matchNotice != null)
+            Positioned(
+              left: 14,
+              right: 14,
+              top: MediaQuery.paddingOf(context).top + 8,
+              child: _buildMatchNotice(_matchNotice!),
+            ),
+        ],
       ),
     );
   }
@@ -454,7 +601,16 @@ class _RideRequestsState extends State<RideRequests> {
   }
 
   Widget _tripCard(_RadarTrip trip) {
-    return Container(
+    final state = _stateFor(trip.id);
+    final claimed = state == _RadarOfferState.claimedElsewhere;
+    final resolving = state == _RadarOfferState.resolving;
+    final blockOtherOffers =
+        _matchingOfferId != null && _matchingOfferId != trip.id;
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 180),
+      opacity: claimed ? 0.68 : 1,
+      child: Container(
       key: ValueKey(trip.id),
       padding: const EdgeInsets.fromLTRB(15, 14, 15, 13),
       decoration: BoxDecoration(
@@ -568,6 +724,45 @@ class _RideRequestsState extends State<RideRequests> {
             title: trip.dropoff,
           ),
           const SizedBox(height: 13),
+          if (claimed || resolving) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: claimed
+                    ? const Color(0xFFF0F2F3)
+                    : const Color(0xFFFFF3DE),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    claimed
+                        ? Icons.lock_outline_rounded
+                        : Icons.sync_rounded,
+                    size: 15,
+                    color: claimed
+                        ? const Color(0xFF7D898F)
+                        : const Color(0xFFB87512),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    claimed
+                        ? 'Matched by another driver'
+                        : 'Confirming availability',
+                    style: TextStyle(
+                      color: claimed
+                          ? const Color(0xFF68747A)
+                          : const Color(0xFF9A650F),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Expanded(
@@ -583,28 +778,55 @@ class _RideRequestsState extends State<RideRequests> {
               SizedBox(
                 height: 38,
                 child: FilledButton(
-                  onPressed: () => _matchTrip(trip),
+                  onPressed: claimed || resolving || blockOtherOffers
+                      ? null
+                      : () => _matchTrip(trip),
                   style: FilledButton.styleFrom(
                     elevation: 0,
                     backgroundColor: _ink,
+                    disabledBackgroundColor: const Color(0xFFD9DEDF),
                     foregroundColor: Colors.white,
+                    disabledForegroundColor: const Color(0xFF727E83),
                     padding: const EdgeInsets.symmetric(horizontal: 17),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'Match',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: resolving
+                      ? const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 13,
+                              height: 13,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF727E83),
+                              ),
+                            ),
+                            SizedBox(width: 7),
+                            Text(
+                              'Matching…',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          claimed ? 'Matched' : 'Match',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                 ),
               ),
             ],
           ),
         ],
+      ),
       ),
     );
   }
@@ -639,6 +861,83 @@ class _RideRequestsState extends State<RideRequests> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMatchNotice(_RadarMatchNotice notice) {
+    final isMatching = notice.type == _RadarMatchNoticeType.matching;
+    final isSuccess = notice.type == _RadarMatchNoticeType.success;
+    final accent = isSuccess
+        ? const Color(0xFF2FBE7B)
+        : isMatching
+            ? const Color(0xFFD99B24)
+            : const Color(0xFFC75B62);
+
+    return Material(
+      key: const ValueKey<String>('radar-match-notice'),
+      color: const Color(0xFFFCFDFC),
+      elevation: 12,
+      shadowColor: Colors.black.withOpacity(0.18),
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+        child: Row(
+          children: [
+            Container(
+              height: 36,
+              width: 36,
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.11),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: isMatching
+                    ? SizedBox(
+                        height: 17,
+                        width: 17,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: accent,
+                        ),
+                      )
+                    : Icon(
+                        isSuccess
+                            ? Icons.check_rounded
+                            : Icons.person_off_outlined,
+                        color: accent,
+                        size: 19,
+                      ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    notice.title,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    notice.message,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -688,6 +987,22 @@ class _RideRequestsState extends State<RideRequests> {
       ),
     );
   }
+}
+
+enum _RadarOfferState { available, resolving, claimedElsewhere }
+
+enum _RadarMatchNoticeType { matching, success, taken }
+
+class _RadarMatchNotice {
+  const _RadarMatchNotice({
+    required this.type,
+    required this.title,
+    required this.message,
+  });
+
+  final _RadarMatchNoticeType type;
+  final String title;
+  final String message;
 }
 
 class _RadarTrip {
