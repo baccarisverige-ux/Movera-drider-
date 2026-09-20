@@ -1413,8 +1413,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Widget body({bool isDestinationPanel = false}) {
-    final view = View.of(context);
-    final viewportWidth = view.physicalSize.width / view.devicePixelRatio;
+    final viewportWidth = MediaQuery.sizeOf(context).width;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height,
