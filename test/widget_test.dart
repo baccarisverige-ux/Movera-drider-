@@ -6,6 +6,7 @@ import 'package:movera/presentation/driver/destination%20mode/destination_picker
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
+import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
@@ -682,6 +683,85 @@ void main() {
 
     expect(find.text('Direct request outside radar'), findsNothing);
     expect(find.text('104,80 kr'), findsNothing);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Today summary History action opens Movera history', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final launcher = find.byKey(
+      const ValueKey<String>('last-trip-launcher'),
+    );
+    tester.widget<InkWell>(launcher).onTap!.call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    final historyButton = find.byKey(
+      const ValueKey<String>('today-history-button'),
+    );
+    expect(historyButton, findsOneWidget);
+    tester.widget<InkWell>(historyButton).onTap!.call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 360));
+
+    expect(find.byType(DriverRideHistory), findsOneWidget);
+    expect(find.text('Earnings & history'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('history-overview')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+  });
+
+  testWidgets('History exposes overview and full rides list on narrow phone', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    await tester.pumpWidget(
+      const MaterialApp(home: DriverRideHistory()),
+    );
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(find.text('Earnings & history'), findsOneWidget);
+    expect(find.text('1 482.75 kr'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey<String>('history-view-all-rides')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('history-view-all-rides')),
+    );
+    await tester.pump(const Duration(milliseconds: 320));
+
+    expect(find.text('All rides'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('history-all-rides')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey<String>('ride-001')), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('ride-006')), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('History Today period aligns with Home daily summary', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(
+      const MaterialApp(home: DriverRideHistory()),
+    );
+    await tester.pump(const Duration(milliseconds: 120));
+
+    await tester.tap(find.text('Today'));
+    await tester.pump(const Duration(milliseconds: 260));
+
+    expect(find.text('183.25 kr'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
     _expectNoException(tester);
   });
 
