@@ -205,7 +205,9 @@ class _DriverHomeState extends State<DriverHome>
 
   Future<void> _openDestinationModePicker() async {
     _closeHomeFloatingPopupsForSheet();
-    await _closeDriverSheet();
+    if (_mainPanelPosition > 0.001 || isPanelOpen) {
+      await _closeDriverSheet();
+    }
     if (!mounted) return;
 
     final result = await DriverDestinationPicker.open(context);
