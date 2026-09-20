@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/main.dart';
+import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
 import 'package:movera/presentation/driver/home/home.dart';
@@ -772,6 +773,48 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Home sheet exposes the last completed waybill', (
+    WidgetTester tester,
+  ) async {
+    WaybillStore.reset();
+    WaybillStore.last = WaybillRecord(
+      tripId: 'last-waybill-test',
+      statusLabel: 'Completed',
+      issuedAt: DateTime(2026, 9, 20, 20, 2),
+      fare: '259,00 kr',
+      service: 'Movera',
+      riderName: 'Nicole',
+      pickup: 'Hägersten, Stockholm',
+      dropoff: 'Södertälje, Stockholm',
+      source: 'Movera Radar',
+      driverName: 'Movera Driver',
+      vehicle: 'Movera partner vehicle',
+      licensePlate: 'MVR 418',
+      passengerCapacity: 4,
+    );
+    addTearDown(() {
+      WaybillStore.reset();
+      tester.binding.setSurfaceSize(null);
+    });
+
+    await _pumpHome(tester, const Size(375, 812));
+    await _openPanel(tester);
+
+    final lastWaybill = find.text('Last waybill');
+    await tester.ensureVisible(lastWaybill);
+    expect(lastWaybill, findsOneWidget);
+
+    await tester.tap(lastWaybill);
+    await tester.pump(const Duration(milliseconds: 320));
+
+    expect(
+      find.byKey(const ValueKey<String>('waybill-last-waybill-test')),
+      findsOneWidget,
+    );
+    expect(find.text('259,00 kr'), findsWidgets);
+    _expectNoException(tester);
+  });
+
   testWidgets('Home exposes a dedicated driver location recenter control', (
     WidgetTester tester,
   ) async {
@@ -1339,6 +1382,117 @@ void main() {
 
     expect(find.text('Next trip secured'), findsWidgets);
     expect(find.textContaining('Dropping off'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Secured next trip stays inside current ride panel and exposes waybill', (
+    WidgetTester tester,
+  ) async {
+    WaybillStore.reset();
+    addTearDown(() {
+      WaybillStore.reset();
+      tester.binding.setSurfaceSize(null);
+    });
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AcceptRide(
+          fare: '156,80 kr',
+          category: 'Comfort',
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 160));
+
+    var action = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+    );
+    action.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    action = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+    );
+    action.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    await tester.pump(const Duration(milliseconds: 4300));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('on-trip-radar-strip')),
+    );
+    await tester.pump(const Duration(milliseconds: 260));
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('on-trip-radar-match-next')),
+    );
+    await tester.pump(const Duration(milliseconds: 1600));
+
+    expect(
+      find.byKey(const ValueKey<String>('secured-next-trip-details')),
+      findsOneWidget,
+    );
+    expect(find.text('Next trip secured'), findsWidgets);
+    expect(find.text('Vasagatan 10, Stockholm'), findsOneWidget);
+    expect(find.text('Södermalm, Stockholm'), findsOneWidget);
+    expect(WaybillStore.next, isNotNull);
+    _expectNoException(tester);
+
+    final waybillButton =
+        find.byKey(const ValueKey<String>('next-trip-waybill'));
+    await tester.ensureVisible(waybillButton);
+    await tester.tap(waybillButton);
+    await tester.pump(const Duration(milliseconds: 320));
+
+    expect(
+      find.byKey(
+        ValueKey<String>('waybill-${WaybillStore.next!.tripId}'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Next trip waybill'), findsOneWidget);
+    expect(find.text('Movera Radar'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Current trip waybill is available from active ride options', (
+    WidgetTester tester,
+  ) async {
+    WaybillStore.reset();
+    addTearDown(() {
+      WaybillStore.reset();
+      tester.binding.setSurfaceSize(null);
+    });
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AcceptRide(
+          offerId: 'waybill-current-test',
+          fare: '111,02 kr',
+          category: 'Comfort',
+          matchedVia: 'Movera Radar',
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 160));
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('active-ride-trip-options')),
+    );
+    await tester.pump(const Duration(milliseconds: 220));
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('current-trip-waybill-option')),
+    );
+    await tester.pump(const Duration(milliseconds: 320));
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('waybill-waybill-current-test'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Current trip waybill'), findsOneWidget);
+    expect(find.text('111,02 kr'), findsWidgets);
     _expectNoException(tester);
   });
 
