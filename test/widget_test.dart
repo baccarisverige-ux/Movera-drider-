@@ -254,11 +254,11 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    expect(find.text('OFFLINE'), findsOneWidget);
-    await tester.tap(find.text('OFFLINE'));
+    expect(find.text('OFF'), findsOneWidget);
+    await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 1550));
 
-    expect(find.text('SCANNING'), findsOneWidget);
+    expect(find.text('LIVE'), findsOneWidget);
     _expectNoException(tester);
 
     await _openPanel(tester);
@@ -274,7 +274,7 @@ void main() {
     button.onPressed!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text('OFF'), findsOneWidget);
     _expectNoException(tester);
   });
 
@@ -284,9 +284,9 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    await tester.tap(find.text('OFFLINE'));
+    await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 1550));
-    expect(find.text('SCANNING'), findsOneWidget);
+    expect(find.text('LIVE'), findsOneWidget);
 
     await _openPanel(tester);
     final scheduledTooltips = find.byTooltip('Scheduled');
@@ -308,7 +308,7 @@ void main() {
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
     expect(find.byType(DriverHome), findsOneWidget);
-    expect(find.text('SCANNING'), findsOneWidget);
+    expect(find.text('LIVE'), findsOneWidget);
     expect(find.text('Go offline'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -319,9 +319,9 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    await tester.tap(find.text('OFFLINE'));
+    await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 1550));
-    expect(find.text('SCANNING'), findsOneWidget);
+    expect(find.text('LIVE'), findsOneWidget);
 
     await _openPanel(tester);
     final goOfflineText = find.text('Go offline');
@@ -333,13 +333,13 @@ void main() {
     button.onPressed!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text('OFF'), findsOneWidget);
 
     // Advance beyond the first direct-offer timer. Nothing may appear offline.
     await tester.pump(const Duration(milliseconds: 4200));
     expect(find.text('104,80 kr'), findsNothing);
     expect(find.text('Direct request outside radar'), findsNothing);
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text('OFF'), findsOneWidget);
     _expectNoException(tester);
   });
 
@@ -349,11 +349,11 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    await tester.tap(find.text('OFFLINE'));
+    await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('SCANNING'), findsOneWidget);
+    expect(find.text('LIVE'), findsOneWidget);
 
     // Advance in small frames so the async route-preview continuation can
     // install and then fire the 8.5s timeout timer.
@@ -364,7 +364,7 @@ void main() {
 
     expect(find.text('104,80 kr'), findsNothing);
     expect(find.text('Direct request outside radar'), findsNothing);
-    expect(find.text('SCANNING'), findsOneWidget);
+    expect(find.text('LIVE'), findsOneWidget);
     _expectNoException(tester);
   });
 
@@ -417,9 +417,9 @@ void main() {
     );
     expect(summaryPointer.ignoring, isFalse);
 
-    await tester.tap(find.text('OFFLINE'));
+    await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 1550));
-    expect(find.text('SCANNING'), findsOneWidget);
+    expect(find.text('LIVE'), findsOneWidget);
     summaryPointer = tester.widget<IgnorePointer>(
       find.byKey(const ValueKey<String>('today-summary-pointer')),
     );
@@ -444,7 +444,7 @@ void main() {
 
     expect(safetyPosition().bottom, 138);
 
-    await tester.tap(find.text('OFFLINE'));
+    await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('Direct request outside radar'), findsOneWidget);
@@ -534,7 +534,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    await tester.tap(find.text('OFFLINE'));
+    await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
@@ -570,7 +570,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    await tester.tap(find.text('OFFLINE'));
+    await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
