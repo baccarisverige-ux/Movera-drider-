@@ -2166,7 +2166,7 @@ class _AcceptRideState extends State<AcceptRide> {
                   subtitle: '${widget.pickupAddress} → ${widget.dropoffAddress}',
                   onTap: () {
                     Navigator.pop(sheetContext);
-                    final record = WaybillStore.current;
+                    final record = _waybills.current;
                     if (record != null) {
                       showMoveraWaybillSheet(
                         context,
