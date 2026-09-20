@@ -793,7 +793,7 @@ class _DriverHomeState extends State<DriverHome>
               duration: const Duration(milliseconds: 320),
               curve: Curves.easeOutCubic,
               right: 16,
-              bottom: _homeDirectOffer == null ? 138 : 458,
+              bottom: 138,
               child: Material(
                 color: AppColor.white,
                 elevation: 4,
