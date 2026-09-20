@@ -8,13 +8,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
+import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
-import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
-import 'package:movera/presentation/driver/promotions/promotions.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
@@ -427,7 +425,14 @@ class _DriverHomeState extends State<DriverHome>
                   onPointerDown: _onSheetPointerDown,
                   onPointerUp: _onSheetPointerEnd,
                   onPointerCancel: _onSheetPointerEnd,
-                  child: _buildCollapsedDriverDock(),
+                  child: DriverSheetNav.collapsedDock(
+                    context: context,
+                    scaffoldKey: _scaffoldKey,
+                    isOnline: _isOnline,
+                    hasScheduledRideOffers: _hasScheduledRideOffers,
+                    goOnlinePulseController: _goOnlinePulseController,
+                    onOpenScheduledRides: _openScheduledRides,
+                  ),
                 ),
               ),
 
@@ -1693,123 +1698,135 @@ class _DriverHomeState extends State<DriverHome>
     const ink = Color(0xFF252E3A);
     const muted = Color(0xFF7B878E);
 
-    return PhysicalShape(
-      clipper: const _RadarSheetClipper(
-        notchWidth: 126,
-        notchDepth: 58,
-        cornerRadius: 24,
-      ),
-      color: const Color(0xFFFCFDFD),
-      elevation: 8,
-      shadowColor: const Color(0x3311181C),
-      clipBehavior: Clip.antiAlias,
-      child: Container(
-        color: const Color(0xFFFCFDFD),
-        child: Column(
-          children: [
-            const SizedBox(height: 62),
-            Expanded(
-              child: ListView(
-                controller: sc,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(2, 2, 2, 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Driver overview",
-                                style: TextStyle(
-                                  color: ink,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.35,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                "Your shift at a glance",
-                                style: TextStyle(
-                                  color: muted,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        PhysicalShape(
+          clipper: const RadarSheetClipper(
+            notchWidth: 126,
+            notchDepth: 58,
+            cornerRadius: 24,
+          ),
+          color: const Color(0xFFFCFDFD),
+          elevation: 8,
+          shadowColor: const Color(0x3311181C),
+          clipBehavior: Clip.antiAlias,
+          child: Container(
+            color: const Color(0xFFFCFDFD),
+            child: Column(
+              children: [
+                const SizedBox(height: 62),
+                Expanded(
+                  child: ListView(
+                    controller: sc,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(2, 2, 2, 16),
+                        child: Row(
                           children: [
-                            CircleAvatar(
-                              radius: 4,
-                              backgroundColor: Color(0xFF2FBE7B),
-                            ),
-                            SizedBox(width: 7),
-                            Text(
-                              "Ready",
-                              style: TextStyle(
-                                color: Color(0xFF19865C),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Driver overview",
+                                    style: TextStyle(
+                                      color: ink,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.35,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    "Your shift at a glance",
+                                    style: TextStyle(
+                                      color: muted,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                               ),
+                            ),
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 4,
+                                  backgroundColor: Color(0xFF2FBE7B),
+                                ),
+                                SizedBox(width: 7),
+                                Text(
+                                  "Ready",
+                                  style: TextStyle(
+                                    color: Color(0xFF19865C),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                  _sheetAlertCard(
-                    icon: Icons.event_available_outlined,
-                    iconColor: const Color(0xFF7E8A93),
-                    title: "Scheduled rides available",
-                    subtitle: "View open requests in your area",
-                  ),
-                  const SizedBox(height: 10),
-                  _driverStatCard(
-                    title: "Star rating",
-                    mainText: "★ 4.88",
-                    mainColor: ink,
-                  ),
-                ],
-              ),
-            ),
-            if (_isOnline)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton(
-                    onPressed: _goOffline,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF3F454A),
-                      backgroundColor: Colors.white,
-                      side: const BorderSide(
-                        color: Color(0xFFD5DCDF),
-                        width: 1,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                      _sheetAlertCard(
+                        icon: Icons.event_available_outlined,
+                        iconColor: const Color(0xFF7E8A93),
+                        title: "Scheduled rides available",
+                        subtitle: "View open requests in your area",
                       ),
-                    ),
-                    child: TextWidget(
-                      text: "Go offline",
-                      color: const Color(0xFF3F454A),
-                      fontSize: 14,
-                      fontWeight: fwSemiBold,
-                    ),
+                      const SizedBox(height: 10),
+                      _driverStatCard(
+                        title: "Star rating",
+                        mainText: "★ 4.88",
+                        mainColor: ink,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            _emptyBottomNavigation(showQuickActions: true),
-          ],
+                if (_isOnline)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: _goOffline,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF3F454A),
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(
+                            color: Color(0xFFD5DCDF),
+                            width: 1,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: TextWidget(
+                          text: "Go offline",
+                          color: const Color(0xFF3F454A),
+                          fontSize: 14,
+                          fontWeight: fwSemiBold,
+                        ),
+                      ),
+                    ),
+                  ),
+                DriverSheetNav.sheetQuickActionsBar(
+                  context: context,
+                  scaffoldKey: _scaffoldKey,
+                  hasScheduledRideOffers: _hasScheduledRideOffers,
+                  goOnlinePulseController: _goOnlinePulseController,
+                  onOpenScheduledRides: _openScheduledRides,
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+        DriverSheetNav.onlineEdgeDashOverlay(isOnline: _isOnline),
+      ],
     );
   }
 
@@ -1949,290 +1966,6 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _buildCollapsedDriverDock() {
-    final safeBottom = MediaQuery.paddingOf(context).bottom;
-
-    return PhysicalShape(
-      clipper: const _RadarSheetClipper(
-        notchWidth: 126,
-        notchDepth: 58,
-        cornerRadius: 24,
-      ),
-      color: const Color(0xFFFCFDFD),
-      elevation: 8,
-      shadowColor: const Color(0x3311181C),
-      clipBehavior: Clip.antiAlias,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFFFFF),
-              Color(0xFFF8FAFA),
-              Color(0xFFF1F4F5),
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            10,
-            15,
-            10,
-            safeBottom > 0 ? safeBottom + 4 : 9,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    _collapsedDockAction(
-                      icon: Icons.grid_view_rounded,
-                      tooltip: "Menu",
-                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                    ),
-                    _collapsedDockAction(
-                      icon: Icons.wallet_outlined,
-                      tooltip: "Wallet",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const WalletScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 126),
-              Expanded(
-                child: Row(
-                  children: [
-                    _collapsedDockAction(
-                      icon: Icons.forum_outlined,
-                      tooltip: "Inbox",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SupportInboxScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    AnimatedBuilder(
-                      animation: _goOnlinePulseController,
-                      builder: (context, child) {
-                        return _collapsedDockAction(
-                          icon: Icons.calendar_month_outlined,
-                          tooltip: "Scheduled",
-                          onTap: _openScheduledRides,
-                          hasAlert: _hasScheduledRideOffers,
-                          pulse: _goOnlinePulseController.value,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _collapsedDockAction({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onTap,
-    bool hasAlert = false,
-    double pulse = 0,
-  }) {
-    return Expanded(
-      child: Tooltip(
-        message: tooltip,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(18),
-            splashColor: const Color(0xFF19865C).withOpacity(0.08),
-            highlightColor: const Color(0xFF19865C).withOpacity(0.04),
-            child: Center(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: hasAlert
-                      ? const Color(0xFFF0F8F4)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      icon,
-                      size: 22,
-                      color: hasAlert
-                          ? const Color(0xFF19865C)
-                          : const Color(0xFF303A3F),
-                    ),
-                    if (hasAlert)
-                      Positioned(
-                        top: 7,
-                        right: 7,
-                        child: Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2FBE7B),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF2FBE7B)
-                                    .withOpacity(0.28 + pulse * 0.35),
-                                blurRadius: 6,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _emptyBottomNavigation({bool showQuickActions = false}) {
-    if (!showQuickActions) return const SizedBox.shrink();
-
-    return Container(
-      height: MediaQuery.paddingOf(context).bottom + 66,
-      padding: EdgeInsets.fromLTRB(
-        18,
-        4,
-        18,
-        MediaQuery.paddingOf(context).bottom + 5,
-      ),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFCFCFD),
-      ),
-      child: Row(
-        children: [
-          _sheetQuickAction(
-            icon: Icons.grid_view_rounded,
-            tooltip: "Menu",
-            onTap: () => _scaffoldKey.currentState?.openDrawer(),
-          ),
-          _sheetQuickAction(
-            icon: Icons.wallet_outlined,
-            tooltip: "Wallet",
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const WalletScreen()),
-              );
-            },
-          ),
-          _sheetQuickAction(
-            icon: Icons.forum_outlined,
-            tooltip: "Inbox",
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SupportInboxScreen()),
-              );
-            },
-          ),
-          AnimatedBuilder(
-            animation: _goOnlinePulseController,
-            builder: (context, child) {
-              return _sheetQuickAction(
-                icon: Icons.calendar_month_outlined,
-                tooltip: "Scheduled",
-                onTap: _openScheduledRides,
-                hasAlert: _hasScheduledRideOffers,
-                pulse: _goOnlinePulseController.value,
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sheetQuickAction({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onTap,
-    bool hasAlert = false,
-    double pulse = 0,
-  }) {
-    final alertStrength = hasAlert ? (0.55 + (pulse * 0.45)) : 0.0;
-
-    return Expanded(
-      child: Tooltip(
-        message: tooltip,
-        child: Center(
-          child: Material(
-            color: hasAlert
-                ? const Color(0xFFE9F7F1)
-                : const Color(0xFFF1F3F4),
-            shape: const CircleBorder(),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onTap,
-              customBorder: const CircleBorder(),
-              splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
-              child: SizedBox(
-                height: 43,
-                width: 43,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      icon,
-                      color: hasAlert
-                          ? const Color(0xFF16895B)
-                          : const Color(0xFF354047),
-                      size: 22,
-                    ),
-                    if (hasAlert)
-                      Positioned(
-                        top: 5,
-                        right: 5,
-                        child: Opacity(
-                          opacity: alertStrength,
-                          child: Container(
-                            height: 7,
-                            width: 7,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF2FBE7B),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _goOnlinePulseController.dispose();
@@ -2338,64 +2071,4 @@ class _HomeDirectOffer {
     required this.pickupPosition,
     required this.dropoffPosition,
   });
-}
-
-
-class _RadarSheetClipper extends CustomClipper<Path> {
-  final double notchWidth;
-  final double notchDepth;
-  final double cornerRadius;
-
-  const _RadarSheetClipper({
-    required this.notchWidth,
-    required this.notchDepth,
-    required this.cornerRadius,
-  });
-
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    final centerX = size.width / 2;
-    final notchLeft = centerX - (notchWidth / 2);
-    final notchRight = centerX + (notchWidth / 2);
-    final radius = cornerRadius.clamp(0.0, size.width / 2).toDouble();
-
-    path.moveTo(radius, 0);
-    path.lineTo(notchLeft, 0);
-
-    // Smooth concave cradle around the 104px radar.
-    path.cubicTo(
-      notchLeft + 9,
-      0,
-      centerX - 54,
-      notchDepth,
-      centerX,
-      notchDepth,
-    );
-    path.cubicTo(
-      centerX + 54,
-      notchDepth,
-      notchRight - 9,
-      0,
-      notchRight,
-      0,
-    );
-
-    path.lineTo(size.width - radius, 0);
-    path.quadraticBezierTo(size.width, 0, size.width, radius);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.lineTo(0, radius);
-    path.quadraticBezierTo(0, 0, radius, 0);
-    path.close();
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant _RadarSheetClipper oldClipper) {
-    return oldClipper.notchWidth != notchWidth ||
-        oldClipper.notchDepth != notchDepth ||
-        oldClipper.cornerRadius != cornerRadius;
-  }
 }

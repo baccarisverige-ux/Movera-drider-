@@ -45,6 +45,11 @@ class AppAssets {
   static const String model = 'assets/icons/model.png';
   static const String preference = 'assets/icons/preference.png';
   static const String menu = 'assets/icons/menu.png';
+  // Lucide (ISC) bottom-sheet nav icons — see assets/icons/NAV_ICONS_LICENSE.txt
+  static const String navLayoutGrid = 'assets/icons/nav_layout_grid.svg';
+  static const String navCreditCard = 'assets/icons/nav_credit_card.svg';
+  static const String navMessagesSquare = 'assets/icons/nav_messages_square.svg';
+  static const String navCalendarDays = 'assets/icons/nav_calendar_days.svg';
   static const String search = 'assets/icons/search.png';
   static const String info = 'assets/icons/info.png';
   static const String arrowUp = 'assets/icons/arrow_up.png';
