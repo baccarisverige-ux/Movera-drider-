@@ -1410,7 +1410,10 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _buildGoingOnlineButton() {
     return AnimatedBuilder(
-      animation: _radarSweepController,
+      animation: Listenable.merge([
+        _goOnlinePulseController,
+        _radarSweepController,
+      ]),
       builder: (context, child) {
         return _buildRadarOrb(
           title: "Radar",
@@ -1418,6 +1421,7 @@ class _DriverHomeState extends State<DriverHome>
           subtitle: "Going live",
           active: true,
           loading: true,
+          pulse: _goOnlinePulseController.value,
           sweep: _radarSweepController.value,
         );
       },
@@ -1714,6 +1718,7 @@ class _DriverHomeState extends State<DriverHome>
           ],
         ),
       ),
+    ),
     );
   }
 
