@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/main.dart';
+import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
+import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
@@ -43,6 +45,19 @@ Future<void> _closePanel(WidgetTester tester) async {
   final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
   panel.controller!.close();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
+}
+
+void _invokeTooltipAction(WidgetTester tester, String tooltip) {
+  final tooltips = find.byTooltip(tooltip);
+  expect(tooltips, findsWidgets);
+  final taps = find.descendant(
+    of: tooltips,
+    matching: find.byType(InkWell),
+  );
+  final action = tester
+      .widgetList<InkWell>(taps)
+      .firstWhere((widget) => widget.onTap != null);
+  action.onTap!.call();
 }
 
 void main() {
@@ -350,6 +365,137 @@ void main() {
     expect(find.text('104,80 kr'), findsNothing);
     expect(find.text('Direct request outside radar'), findsNothing);
     expect(find.text('SCANNING'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Today summary opens, closes, and resets when radar starts', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final launcher = find.byIcon(Icons.insights_rounded).hitTestable();
+    expect(launcher, findsOneWidget);
+    await tester.tap(launcher);
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+
+    expect(find.text('Today').hitTestable(), findsOneWidget);
+    expect(find.text('183.25 kr').hitTestable(), findsOneWidget);
+    expect(find.text('3 rides').hitTestable(), findsOneWidget);
+    _expectNoException(tester);
+
+    final close = find.byIcon(Icons.close_rounded).hitTestable();
+    expect(close, findsOneWidget);
+    await tester.tap(close);
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('Today').hitTestable(), findsNothing);
+    expect(find.byIcon(Icons.insights_rounded).hitTestable(), findsOneWidget);
+    _expectNoException(tester);
+
+    await tester.tap(find.byIcon(Icons.insights_rounded).hitTestable());
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('Today').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.text('OFFLINE'));
+    await tester.pump(const Duration(milliseconds: 1550));
+    expect(find.text('SCANNING'), findsOneWidget);
+    expect(find.text('Today').hitTestable(), findsNothing);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Safety tools open from Home and basic actions remain usable', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(320, 700));
+
+    final safetyButton = find.byIcon(Icons.shield_outlined).hitTestable();
+    expect(safetyButton, findsOneWidget);
+    await tester.tap(safetyButton);
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.byType(SafetyToolKits), findsOneWidget);
+    expect(find.text('Safety tools'), findsOneWidget);
+    _expectNoException(tester);
+
+    await tester.tap(find.text('Record audio'));
+    await tester.pump();
+    expect(find.text('Stop audio'), findsOneWidget);
+    expect(
+      find.text('Audio recording started. The file stays on this device.'),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    await tester.tap(find.text('Share trip'));
+    await tester.pump();
+    expect(
+      find.text('Trip sharing is ready for your trusted contacts.'),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    await tester.tap(find.byTooltip('Close'));
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    expect(find.byType(SafetyToolKits), findsNothing);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Expanded Home quick actions navigate and return safely', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+    await _openPanel(tester);
+
+    _invokeTooltipAction(tester, 'Wallet');
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    expect(find.byType(WalletScreen), findsOneWidget);
+    _expectNoException(tester);
+    Navigator.of(tester.element(find.byType(WalletScreen))).pop();
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.byType(DriverHome), findsOneWidget);
+    _invokeTooltipAction(tester, 'Inbox');
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    expect(find.byType(SupportInboxScreen), findsOneWidget);
+    _expectNoException(tester);
+    Navigator.of(tester.element(find.byType(SupportInboxScreen))).pop();
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.byType(DriverHome), findsOneWidget);
+    _invokeTooltipAction(tester, 'Scheduled');
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    expect(find.byType(ScheduledRidesScreen), findsOneWidget);
+    _expectNoException(tester);
+    Navigator.of(tester.element(find.byType(ScheduledRidesScreen))).pop();
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.byType(DriverHome), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Direct Home offer Route and Accept path reaches active ride safely', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFFLINE'));
+    await tester.pump(const Duration(milliseconds: 3800));
+
+    expect(find.text('104,80 kr'), findsOneWidget);
+    expect(find.text('Direct request outside radar'), findsOneWidget);
+
+    await tester.tap(find.text('Route'));
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(find.text('104,80 kr'), findsOneWidget);
+    _expectNoException(tester);
+
+    await tester.tap(find.text('Accept'));
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+
+    expect(find.byType(AcceptRide), findsOneWidget);
     _expectNoException(tester);
   });
 
