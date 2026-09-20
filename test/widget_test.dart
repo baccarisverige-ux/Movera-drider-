@@ -1310,6 +1310,44 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Completing a trip returns to the same online Home session', (
+    WidgetTester tester,
+  ) async {
+    WaybillStore.reset();
+    addTearDown(() {
+      WaybillStore.reset();
+      tester.binding.setSurfaceSize(null);
+    });
+
+    await _pumpHome(tester, const Size(375, 812));
+    await tester.tap(find.text('OFF'));
+    await tester.pump(const Duration(milliseconds: 3800));
+
+    final acceptButton = find.ancestor(
+      of: find.text('Accept'),
+      matching: find.byType(FilledButton),
+    );
+    final accept = tester.widget<FilledButton>(acceptButton);
+    accept.onPressed!.call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+
+    expect(find.byType(AcceptRide), findsOneWidget);
+
+    await _slideActiveRideAction(tester);
+    await _slideActiveRideAction(tester);
+    await _slideActiveRideAction(tester);
+    await tester.pump(const Duration(milliseconds: 520));
+
+    expect(find.byType(DriverRideCompleted), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pump(const Duration(milliseconds: 420));
+
+    expect(find.byType(DriverHome), findsOneWidget);
+    await _openPanel(tester);
+    expect(find.text('Go offline'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
   testWidgets('On-trip Radar stays quiet and offers a next trip without interrupting navigation', (
     WidgetTester tester,
   ) async {
