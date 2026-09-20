@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:movera/core/admin/driver_home_admin_content.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/constants/appassets.dart';
@@ -30,6 +31,7 @@ import 'package:movera/widgets/sizedbox_extention.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DriverHome extends StatefulWidget {
   const DriverHome({super.key});
@@ -63,6 +65,9 @@ class _DriverHomeState extends State<DriverHome>
   final DriverLocationService _driverLocationService =
       const DriverLocationService();
   final RoadRouteService _roadRouteService = RoadRouteService();
+  late final DriverHomeAdminConfig _adminHomeConfig;
+  static const String _currentAppVersion = '1.0.0';
+  bool _updatePromptShown = false;
 
   GoogleMapController? _mapController;
   StreamSubscription<Position>? _driverLocationSubscription;
@@ -195,6 +200,9 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void initState() {
     super.initState();
+    _adminHomeConfig = const DriverHomeAdminContentService().load();
+    _hasScheduledRideOffers =
+        _adminHomeConfig.scheduledRides.hasOpenRequests;
     _goOnlinePulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2600),
@@ -205,6 +213,9 @@ class _DriverHomeState extends State<DriverHome>
     )..repeat();
     _loadMarkers();
     _startDriverLocation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeShowAppUpdatePrompt();
+    });
   }
 
   Future<void> _startDriverLocation() async {
@@ -3255,6 +3266,492 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  bool _isVersionNewer(String candidate, String current) {
+    List<int> parse(String value) {
+      return value
+          .split('.')
+          .map((part) => int.tryParse(part) ?? 0)
+          .toList(growable: true);
+    }
+
+    final a = parse(candidate);
+    final b = parse(current);
+    final length = math.max(a.length, b.length);
+
+    while (a.length < length) {
+      a.add(0);
+    }
+    while (b.length < length) {
+      b.add(0);
+    }
+
+    for (var index = 0; index < length; index++) {
+      if (a[index] > b[index]) return true;
+      if (a[index] < b[index]) return false;
+    }
+
+    return false;
+  }
+
+  Future<void> _maybeShowAppUpdatePrompt() async {
+    if (_updatePromptShown || !mounted) return;
+
+    final update = _adminHomeConfig.update;
+    if (!update.enabled ||
+        !_isVersionNewer(update.latestVersion, _currentAppVersion)) {
+      return;
+    }
+
+    _updatePromptShown = true;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isDismissible: !update.mandatory,
+      enableDrag: !update.mandatory,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF9FBFA),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD7DEDB),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F5EE),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(
+                  Icons.system_update_alt_rounded,
+                  color: Color(0xFF19865C),
+                  size: 27,
+                ),
+              ),
+              const SizedBox(height: 13),
+              Text(
+                update.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF252E3A),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.35,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                update.message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF7D898F),
+                  fontSize: 11.5,
+                  height: 1.45,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Version ${update.latestVersion}',
+                style: const TextStyle(
+                  color: Color(0xFF19865C),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton(
+                  onPressed: () async {
+                    final rawUrl = update.updateUrl;
+                    if (rawUrl == null || rawUrl.isEmpty) {
+                      if (sheetContext.mounted) {
+                        Navigator.pop(sheetContext);
+                      }
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Update destination will be supplied by Movera admin.',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
+
+                    final uri = Uri.tryParse(rawUrl);
+                    if (uri != null) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                  style: FilledButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: const Color(0xFF252E3A),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    update.actionLabel,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+              if (!update.mandatory) ...[
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(sheetContext),
+                  child: Text(
+                    update.dismissLabel,
+                    style: const TextStyle(
+                      color: Color(0xFF66737A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openDriverEvent(DriverEventConfig event) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.28),
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.68,
+          minChildSize: 0.48,
+          maxChildSize: 0.90,
+          expand: false,
+          builder: (context, controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF9FBFA),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: ListView(
+                controller: controller,
+                padding: EdgeInsets.zero,
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(28)),
+                    child: AspectRatio(
+                      aspectRatio: 1.8,
+                      child: Image.network(
+                        event.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: const Color(0xFFE8EFEC),
+                          child: const Icon(
+                            Icons.event_outlined,
+                            color: Color(0xFF19865C),
+                            size: 34,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _eventChip(event.category),
+                            _eventChip(event.whenLabel),
+                          ],
+                        ),
+                        const SizedBox(height: 13),
+                        Text(
+                          event.title,
+                          style: const TextStyle(
+                            color: Color(0xFF252E3A),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.place_outlined,
+                              size: 17,
+                              color: Color(0xFF19865C),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                event.location,
+                                style: const TextStyle(
+                                  color: Color(0xFF657178),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          event.description,
+                          style: const TextStyle(
+                            color: Color(0xFF58656C),
+                            fontSize: 12,
+                            height: 1.55,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAF5EF),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: const Color(0xFFD4E9DF),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.local_taxi_outlined,
+                                color: Color(0xFF19865C),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  event.driverNote,
+                                  style: const TextStyle(
+                                    color: Color(0xFF315E4D),
+                                    fontSize: 11,
+                                    height: 1.4,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Photo · ${event.imageCredit}',
+                          style: const TextStyle(
+                            color: Color(0xFF9AA4A9),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _eventChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF5EF),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Color(0xFF19865C),
+          fontSize: 8.5,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.6,
+        ),
+      ),
+    );
+  }
+
+  Widget _driverEventCard(DriverEventConfig event) {
+    return SizedBox(
+      width: 246,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _openDriverEvent(event),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 104,
+                width: double.infinity,
+                child: Image.network(
+                  event.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: const Color(0xFFE8EFEC),
+                    child: const Icon(
+                      Icons.event_outlined,
+                      color: Color(0xFF19865C),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.category,
+                      style: const TextStyle(
+                        color: Color(0xFF19865C),
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      event.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF252E3A),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${event.whenLabel} · ${event.location}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF7D898F),
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _performanceMetricCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color accent,
+    required String footer,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: accent, size: 16),
+              ),
+              const Spacer(),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFFA5AFB4),
+                size: 18,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF252E3A),
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF66737A),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            footer,
+            style: const TextStyle(
+              color: Color(0xFF9AA4A9),
+              fontSize: 8.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget panelColumn(ScrollController sc) {
     const ink = Color(0xFF252E3A);
     const muted = Color(0xFF7B878E);
@@ -3332,18 +3829,108 @@ class _DriverHomeState extends State<DriverHome>
                           ],
                         ),
                       ),
-                      _sheetAlertCard(
-                        icon: Icons.event_available_outlined,
-                        iconColor: const Color(0xFF7E8A93),
-                        title: "Scheduled rides available",
-                        subtitle: "View open requests in your area",
+                      if (_adminHomeConfig.scheduledRides.enabled) ...[
+                        _sheetAlertCard(
+                          icon: Icons.event_available_outlined,
+                          iconColor: const Color(0xFF7E8A93),
+                          title: _adminHomeConfig.scheduledRides.title,
+                          subtitle: _adminHomeConfig.scheduledRides.subtitle,
+                          onTap: _openScheduledRides,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      if (_adminHomeConfig.performance.showRating) ...[
+                        _driverStatCard(
+                          title: "Star rating",
+                          mainText:
+                              "★ ${_adminHomeConfig.performance.rating.toStringAsFixed(2)}",
+                          mainColor: ink,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      Row(
+                        children: [
+                          if (_adminHomeConfig
+                              .performance.showAcceptanceRate)
+                            Expanded(
+                              child: _performanceMetricCard(
+                                title: 'Acceptance rate',
+                                value:
+                                    '${_adminHomeConfig.performance.acceptanceRate.toStringAsFixed(0)}%',
+                                icon: Icons.check_circle_outline_rounded,
+                                accent: const Color(0xFF19865C),
+                                footer: 'Accepted trip requests',
+                              ),
+                            ),
+                          if (_adminHomeConfig
+                                  .performance.showAcceptanceRate &&
+                              _adminHomeConfig
+                                  .performance.showCancellationRate)
+                            const SizedBox(width: 10),
+                          if (_adminHomeConfig
+                              .performance.showCancellationRate)
+                            Expanded(
+                              child: _performanceMetricCard(
+                                title: 'Cancellation rate',
+                                value:
+                                    '${_adminHomeConfig.performance.cancellationRate.toStringAsFixed(1)}%',
+                                icon: Icons.cancel_outlined,
+                                accent: const Color(0xFFC66A5C),
+                                footer: 'Trips cancelled after match',
+                              ),
+                            ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      _driverStatCard(
-                        title: "Star rating",
-                        mainText: "★ 4.88",
-                        mainColor: ink,
-                      ),
+                      if (_adminHomeConfig.events
+                          .where((event) => event.enabled)
+                          .isNotEmpty) ...[
+                        const SizedBox(height: 22),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 2),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Driver events',
+                                  style: TextStyle(
+                                    color: ink,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.25,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'Admin managed',
+                                style: TextStyle(
+                                  color: Color(0xFF19865C),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 178,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: _adminHomeConfig.events
+                                .where((event) => event.enabled)
+                                .length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 10),
+                            itemBuilder: (context, index) {
+                              final events = _adminHomeConfig.events
+                                  .where((event) => event.enabled)
+                                  .toList(growable: false);
+                              return _driverEventCard(events[index]);
+                            },
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -3399,49 +3986,59 @@ class _DriverHomeState extends State<DriverHome>
     required Color iconColor,
     required String title,
     String? subtitle,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        color: AppColor.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 44,
-            width: 44,
-            decoration: BoxDecoration(
-              color: iconColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: AppColor.white, size: 24),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextWidget(
-                  text: title,
-                  color: const Color(0xFF252E3A),
-                  fontSize: 15,
-                  fontWeight: fwSemiBold,
+    return Material(
+      color: AppColor.white,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: Row(
+            children: [
+              Container(
+                height: 44,
+                width: 44,
+                decoration: BoxDecoration(
+                  color: iconColor,
+                  shape: BoxShape.circle,
                 ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 3),
-                  TextWidget(
-                    text: subtitle,
-                    color: const Color(0xFF667483),
-                    fontSize: 11,
-                    fontWeight: fwNormal,
-                  ),
-                ],
-              ],
-            ),
+                child: Icon(icon, color: AppColor.white, size: 24),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextWidget(
+                      text: title,
+                      color: const Color(0xFF252E3A),
+                      fontSize: 15,
+                      fontWeight: fwSemiBold,
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 3),
+                      TextWidget(
+                        text: subtitle,
+                        color: const Color(0xFF667483),
+                        fontSize: 11,
+                        fontWeight: fwNormal,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (onTap != null)
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFFA5AFB4),
+                  size: 20,
+                ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
