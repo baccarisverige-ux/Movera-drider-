@@ -702,8 +702,9 @@ class _DriverHomeState extends State<DriverHome>
                 children: [
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Container(
-                      height: ResSize.h * 38.5,
+                    child: PointerInterceptor(
+                      child: Container(
+                        height: ResSize.h * 38.5,
                       width: ResSize.w * 83,
                       decoration: BoxDecoration(
                         color: AppColor.white,
@@ -755,7 +756,8 @@ class _DriverHomeState extends State<DriverHome>
                               ),
                             ),
                           ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -764,8 +766,9 @@ class _DriverHomeState extends State<DriverHome>
                       padding: EdgeInsets.only(top: ResSize.h * 10),
                       child: Align(
                         alignment: Alignment.centerRight,
-                        child: Material(
-                          color: Colors.white,
+                        child: PointerInterceptor(
+                          child: Material(
+                            color: Colors.white,
                           elevation: 3,
                           shadowColor:
                               const Color(0xFF172027).withOpacity(0.12),
@@ -849,18 +852,19 @@ class _DriverHomeState extends State<DriverHome>
                                   ),
                                 ],
                               ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    )
+                    ),
+                  )
                   else if (isDestinationPanel)
                     Padding(
                       padding: EdgeInsets.only(top: ResSize.h * 12),
                       child: InAirportQueue(),
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),
