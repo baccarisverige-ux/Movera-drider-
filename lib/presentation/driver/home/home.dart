@@ -730,7 +730,7 @@ class _DriverHomeState extends State<DriverHome>
                   ? Curves.easeInCubic
                   : Curves.easeOutBack,
               left: _showTodaySummaryPopup ? -48 : -10,
-              top: MediaQuery.sizeOf(context).height * 0.56,
+              top: ResSize.h * 55,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 220),
                 opacity: _showTodaySummaryPopup ? 0 : 1,
