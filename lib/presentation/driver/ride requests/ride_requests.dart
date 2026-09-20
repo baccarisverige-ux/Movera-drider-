@@ -6,7 +6,7 @@ import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 
 class RideRequests extends StatefulWidget {
-  final VoidCallback? onCloseRides;
+  final ValueChanged<bool>? onCloseRides;
 
   const RideRequests({super.key, this.onCloseRides});
 
@@ -162,6 +162,10 @@ class _RideRequestsState extends State<RideRequests> {
     });
   }
 
+  void _closeRides() {
+    widget.onCloseRides?.call(_visibleOffers.isNotEmpty);
+  }
+
   void _matchTrip(_RadarTrip trip) {
     if (!_offers.any((offer) => offer.id == trip.id && offer.isNearby)) {
       return;
@@ -213,7 +217,7 @@ class _RideRequestsState extends State<RideRequests> {
           children: [
             IconButton(
               tooltip: 'Back',
-              onPressed: widget.onCloseRides,
+              onPressed: _closeRides,
               icon: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: Colors.white,
@@ -267,30 +271,36 @@ class _RideRequestsState extends State<RideRequests> {
       padding: const EdgeInsets.fromLTRB(18, 7, 18, 10),
       child: Row(
         children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nearby trips',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Nearby trips',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-              SizedBox(height: 3),
-              Text(
-                'Only requests around your current area',
-                style: TextStyle(
-                  color: Color(0xFFAEB8BD),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                SizedBox(height: 3),
+                Text(
+                  'Only requests around your current area',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Color(0xFFAEB8BD),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 12),
           Container(
             constraints: const BoxConstraints(minWidth: 34),
             height: 34,
@@ -396,33 +406,40 @@ class _RideRequestsState extends State<RideRequests> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9EEF1),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Text(
-                  trip.category,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE9EEF1),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Text(
+                    trip.category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
-              const Spacer(),
-              Text(
-                trip.fare,
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 25,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.7,
+              const SizedBox(width: 10),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  trip.fare,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 25,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.7,
+                  ),
                 ),
               ),
             ],
@@ -456,12 +473,16 @@ class _RideRequestsState extends State<RideRequests> {
                 color: AppColor.primary,
               ),
               const SizedBox(width: 5),
-              Text(
-                '${trip.pickupMinutes} min · ${trip.pickupKm.toStringAsFixed(1)} km away',
-                style: const TextStyle(
-                  color: _muted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  '${trip.pickupMinutes} min · ${trip.pickupKm.toStringAsFixed(1)} km away',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
