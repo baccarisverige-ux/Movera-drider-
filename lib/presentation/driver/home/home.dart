@@ -729,43 +729,75 @@ class _DriverHomeState extends State<DriverHome>
               curve: _showTodaySummaryPopup
                   ? Curves.easeInCubic
                   : Curves.easeOutBack,
-              left: _showTodaySummaryPopup ? -46 : -14,
-              top: MediaQuery.sizeOf(context).height * 0.52,
+              left: _showTodaySummaryPopup ? -48 : -10,
+              top: MediaQuery.sizeOf(context).height * 0.56,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 220),
                 opacity: _showTodaySummaryPopup ? 0 : 1,
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
+                    key: const ValueKey<String>('last-trip-launcher'),
                     onTap: _showTodaySummary,
                     borderRadius: const BorderRadius.horizontal(
-                      right: Radius.circular(16),
+                      right: Radius.circular(22),
                     ),
                     child: Container(
-                      width: 48,
-                      height: 42,
-                      padding: const EdgeInsets.only(left: 11, right: 7),
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF9FBFA),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFFFFFFFF),
+                            Color(0xFFF4F7F6),
+                          ],
+                        ),
                         borderRadius: const BorderRadius.horizontal(
-                          right: Radius.circular(16),
+                          right: Radius.circular(22),
                         ),
                         border: Border.all(
-                          color: const Color(0xFFDDE5E1),
+                          color: const Color(0xFFD9E2DE),
+                          width: 1,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF172027).withOpacity(0.10),
-                            blurRadius: 12,
-                            offset: const Offset(3, 4),
+                            color: const Color(0xFF172027).withOpacity(0.09),
+                            blurRadius: 14,
+                            offset: const Offset(3, 5),
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.72),
+                            blurRadius: 4,
+                            offset: const Offset(-1, -1),
                           ),
                         ],
                       ),
-                      alignment: Alignment.centerRight,
-                      child: const Icon(
-                        Icons.insights_rounded,
-                        color: Color(0xFF315E4D),
-                        size: 18,
+                      child: Stack(
+                        alignment: Alignment.centerRight,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Icon(
+                              Icons.history_rounded,
+                              color: Color(0xFF344A41),
+                              size: 18,
+                            ),
+                          ),
+                          Positioned(
+                            right: 7,
+                            top: 8,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF58E5A6),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
