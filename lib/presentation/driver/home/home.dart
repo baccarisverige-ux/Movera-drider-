@@ -3589,7 +3589,7 @@ class _DriverHomeState extends State<DriverHome>
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Update destination will be supplied by Movera admin.',
+                            'Update link is unavailable right now. Try again later.',
                           ),
                           behavior: SnackBarBehavior.floating,
                         ),
@@ -3651,9 +3651,9 @@ class _DriverHomeState extends State<DriverHome>
       barrierColor: Colors.black.withOpacity(0.28),
       builder: (sheetContext) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.68,
-          minChildSize: 0.48,
-          maxChildSize: 0.90,
+          initialChildSize: 0.76,
+          minChildSize: 0.52,
+          maxChildSize: 0.92,
           expand: false,
           builder: (context, controller) {
             return Container(
@@ -3665,39 +3665,40 @@ class _DriverHomeState extends State<DriverHome>
                 controller: controller,
                 padding: EdgeInsets.zero,
                 children: [
-                  ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(28)),
-                    child: AspectRatio(
-                      aspectRatio: 1.8,
-                      child: Image.network(
-                        event.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFFE8EFEC),
-                          child: const Icon(
-                            Icons.event_outlined,
-                            color: Color(0xFF19865C),
-                            size: 34,
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(28),
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: 1.72,
+                          child: Image.network(
+                            event.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: const Color(0xFFE8EFEC),
+                              child: const Icon(
+                                Icons.event_outlined,
+                                color: Color(0xFF19865C),
+                                size: 34,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      Positioned(
+                        left: 14,
+                        top: 14,
+                        child: _eventChip(event.category),
+                      ),
+                    ],
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _eventChip(event.category),
-                            _eventChip(event.whenLabel),
-                          ],
-                        ),
-                        const SizedBox(height: 13),
                         Text(
                           event.title,
                           style: const TextStyle(
@@ -3707,26 +3708,17 @@ class _DriverHomeState extends State<DriverHome>
                             letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 7),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.place_outlined,
-                              size: 17,
-                              color: Color(0xFF19865C),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                event.location,
-                                style: const TextStyle(
-                                  color: Color(0xFF657178),
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 14),
+                        _eventDetailRow(
+                          icon: Icons.calendar_today_outlined,
+                          title: event.dateLabel,
+                          subtitle: event.timeLabel,
+                        ),
+                        const SizedBox(height: 10),
+                        _eventDetailRow(
+                          icon: Icons.place_outlined,
+                          title: event.location,
+                          subtitle: 'Area',
                         ),
                         const SizedBox(height: 18),
                         Text(
@@ -3738,35 +3730,62 @@ class _DriverHomeState extends State<DriverHome>
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 18),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEAF5EF),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: const Color(0xFFD4E9DF),
-                            ),
+                            color: const Color(0xFF252E3A),
+                            borderRadius: BorderRadius.circular(19),
                           ),
-                          child: Row(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(
-                                Icons.local_taxi_outlined,
-                                color: Color(0xFF19865C),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  event.driverNote,
-                                  style: const TextStyle(
-                                    color: Color(0xFF315E4D),
-                                    fontSize: 11,
-                                    height: 1.4,
-                                    fontWeight: FontWeight.w700,
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.bolt_rounded,
+                                    color: Color(0xFF74D6A8),
+                                    size: 19,
                                   ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Best time to be online',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                event.recommendedWindow,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                event.demandLabel,
+                                style: const TextStyle(
+                                  color: Color(0xFF9ED9BD),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                event.driverNote,
+                                style: const TextStyle(
+                                  color: Color(0xFFD5DDDA),
+                                  fontSize: 10.5,
+                                  height: 1.42,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -3793,6 +3812,55 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  Widget _eventDetailRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 37,
+          height: 37,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF5EF),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFF19865C),
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF252E3A),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Color(0xFF7D898F),
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _eventChip(String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
@@ -3814,7 +3882,7 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _driverEventCard(DriverEventConfig event) {
     return SizedBox(
-      width: 246,
+      width: 252,
       child: Material(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -3824,36 +3892,35 @@ class _DriverHomeState extends State<DriverHome>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                height: 104,
-                width: double.infinity,
-                child: Image.network(
-                  event.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: const Color(0xFFE8EFEC),
-                    child: const Icon(
-                      Icons.event_outlined,
-                      color: Color(0xFF19865C),
+              Stack(
+                children: [
+                  SizedBox(
+                    height: 104,
+                    width: double.infinity,
+                    child: Image.network(
+                      event.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: const Color(0xFFE8EFEC),
+                        child: const Icon(
+                          Icons.event_outlined,
+                          color: Color(0xFF19865C),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  Positioned(
+                    left: 10,
+                    top: 10,
+                    child: _eventChip(event.category),
+                  ),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      event.category,
-                      style: const TextStyle(
-                        color: Color(0xFF19865C),
-                        fontSize: 8,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.7,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
                     Text(
                       event.title,
                       maxLines: 1,
@@ -3864,16 +3931,51 @@ class _DriverHomeState extends State<DriverHome>
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${event.whenLabel} · ${event.location}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF7D898F),
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    const SizedBox(height: 7),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 13,
+                          color: Color(0xFF19865C),
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            '${event.dateLabel} · ${event.timeLabel}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF66737A),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.place_outlined,
+                          size: 13,
+                          color: Color(0xFF8D989D),
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            event.location,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF8D989D),
+                              fontSize: 9.2,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -3885,71 +3987,119 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _performanceMetricCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color accent,
-    required String footer,
-  }) {
+  Widget _performanceSummaryCard() {
+    final performance = _adminHomeConfig.performance;
+    final metrics = <({String label, String value, IconData icon})>[
+      if (performance.showRating)
+        (
+          label: 'Rating',
+          value: performance.rating.toStringAsFixed(2),
+          icon: Icons.star_rounded,
+        ),
+      if (performance.showAcceptanceRate)
+        (
+          label: 'Acceptance',
+          value: '${performance.acceptanceRate.toStringAsFixed(0)}%',
+          icon: Icons.check_rounded,
+        ),
+      if (performance.showCancellationRate)
+        (
+          label: 'Cancellation',
+          value: '${performance.cancellationRate.toStringAsFixed(1)}%',
+          icon: Icons.close_rounded,
+        ),
+    ];
+
+    if (metrics.isEmpty) return const SizedBox.shrink();
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: const Color(0xFFF0F2F3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: accent, size: 16),
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFFA5AFB4),
-                size: 18,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
+          const Text(
+            'Performance',
+            style: TextStyle(
               color: Color(0xFF252E3A),
-              fontSize: 22,
+              fontSize: 13,
               fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 3),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xFF66737A),
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            footer,
-            style: const TextStyle(
-              color: Color(0xFF9AA4A9),
-              fontSize: 8.5,
+          const Text(
+            'Your recent activity',
+            style: TextStyle(
+              color: Color(0xFF8A959A),
+              fontSize: 9.5,
               fontWeight: FontWeight.w600,
             ),
           ),
+          const SizedBox(height: 13),
+          Row(
+            children: [
+              for (var index = 0; index < metrics.length; index++) ...[
+                Expanded(
+                  child: _performanceCell(
+                    label: metrics[index].label,
+                    value: metrics[index].value,
+                    icon: metrics[index].icon,
+                  ),
+                ),
+                if (index != metrics.length - 1)
+                  Container(
+                    width: 1,
+                    height: 48,
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    color: const Color(0xFFEBEFF0),
+                  ),
+              ],
+            ],
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _performanceCell({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 15,
+          color: const Color(0xFF6B777C),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Color(0xFF252E3A),
+            fontSize: 19,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.35,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFF7D898F),
+            fontSize: 9.2,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 
@@ -4040,73 +4190,32 @@ class _DriverHomeState extends State<DriverHome>
                         ),
                         const SizedBox(height: 10),
                       ],
-                      if (_adminHomeConfig.performance.showRating) ...[
-                        _driverStatCard(
-                          title: "Star rating",
-                          mainText:
-                              "★ ${_adminHomeConfig.performance.rating.toStringAsFixed(2)}",
-                          mainColor: ink,
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                      Row(
-                        children: [
-                          if (_adminHomeConfig
-                              .performance.showAcceptanceRate)
-                            Expanded(
-                              child: _performanceMetricCard(
-                                title: 'Acceptance rate',
-                                value:
-                                    '${_adminHomeConfig.performance.acceptanceRate.toStringAsFixed(0)}%',
-                                icon: Icons.check_circle_outline_rounded,
-                                accent: const Color(0xFF19865C),
-                                footer: 'Accepted trip requests',
-                              ),
-                            ),
-                          if (_adminHomeConfig
-                                  .performance.showAcceptanceRate &&
-                              _adminHomeConfig
-                                  .performance.showCancellationRate)
-                            const SizedBox(width: 10),
-                          if (_adminHomeConfig
-                              .performance.showCancellationRate)
-                            Expanded(
-                              child: _performanceMetricCard(
-                                title: 'Cancellation rate',
-                                value:
-                                    '${_adminHomeConfig.performance.cancellationRate.toStringAsFixed(1)}%',
-                                icon: Icons.cancel_outlined,
-                                accent: const Color(0xFFC66A5C),
-                                footer: 'Trips cancelled after match',
-                              ),
-                            ),
-                        ],
-                      ),
+                      _performanceSummaryCard(),
                       if (_adminHomeConfig.events
                           .where((event) => event.enabled)
                           .isNotEmpty) ...[
                         const SizedBox(height: 22),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 2),
-                          child: Row(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  'Driver events',
-                                  style: TextStyle(
-                                    color: ink,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.25,
-                                  ),
+                              Text(
+                                _adminHomeConfig.eventsSectionTitle,
+                                style: const TextStyle(
+                                  color: ink,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.25,
                                 ),
                               ),
+                              const SizedBox(height: 3),
                               Text(
-                                'Admin managed',
-                                style: TextStyle(
-                                  color: Color(0xFF19865C),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
+                                _adminHomeConfig.eventsSectionSubtitle,
+                                style: const TextStyle(
+                                  color: Color(0xFF8A959A),
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -4114,7 +4223,7 @@ class _DriverHomeState extends State<DriverHome>
                         ),
                         const SizedBox(height: 10),
                         SizedBox(
-                          height: 178,
+                          height: 208,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             physics: const BouncingScrollPhysics(),
