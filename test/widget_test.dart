@@ -321,7 +321,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Multiple Home Radar offers append safely without rebuilding the screen', (
+  testWidgets('Home Radar keeps a stable snapshot until driver refreshes', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -336,23 +336,40 @@ void main() {
     expect(find.text('Trip Radar offers'), findsNothing);
     _expectNoException(tester);
 
-    // Expire outside offer and receive first Radar offer.
+    // Expire outside offer and receive the first Radar offer.
     await tester.pump(const Duration(milliseconds: 8500));
     await tester.pump(const Duration(milliseconds: 900));
     expect(find.text('1 live'), findsOneWidget);
     _expectNoException(tester);
 
-    // Second and third Radar offers arrive into the same mounted scroll list.
+    // A second Radar match must NOT mutate the visible list.
     await tester.pump(const Duration(milliseconds: 3100));
-    expect(find.text('2 live'), findsOneWidget);
+    expect(find.text('Refresh · 1 new'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-2')),
+      findsNothing,
+    );
     _expectNoException(tester);
 
+    // A third match also waits behind the refresh action.
     await tester.pump(const Duration(milliseconds: 3100));
+    expect(find.text('Refresh · 2 new'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-3')),
+      findsNothing,
+    );
+    _expectNoException(tester);
+
+    // One explicit refresh updates the snapshot atomically.
+    await tester.tap(
+      find.byKey(const ValueKey<String>('radar-home-refresh')),
+    );
+    await tester.pump(const Duration(milliseconds: 160));
+
     expect(find.text('3 live'), findsOneWidget);
+    expect(find.textContaining('Refresh · '), findsNothing);
     _expectNoException(tester);
 
-    // The driver can scroll the stable Radar opportunity list to later items
-    // without rebuilding or overflowing the Home screen.
     final radarList = find.byKey(
       const PageStorageKey<String>('radar-home-offers-list'),
     );
