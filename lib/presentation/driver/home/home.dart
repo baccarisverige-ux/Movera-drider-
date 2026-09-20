@@ -44,11 +44,13 @@ class DriverHome extends StatefulWidget {
     this.initialOnline = false,
     this.locationRepository,
     this.routeRepository,
+    this.waybillRepository,
   });
 
   final bool initialOnline;
   final DriverLocationRepository? locationRepository;
   final RouteRepository? routeRepository;
+  final WaybillRepository? waybillRepository;
 
   @override
   State<DriverHome> createState() => _DriverHomeState();
@@ -78,6 +80,7 @@ class _DriverHomeState extends State<DriverHome>
   _HomeRadarMatchNotice? _homeRadarMatchNotice;
   late final DriverLocationRepository _driverLocationService;
   late final RouteRepository _roadRouteService;
+  late final WaybillRepository _waybills;
   late final DriverHomeAdminConfig _adminHomeConfig;
   static const String _currentAppVersion = '1.0.0';
   bool _updatePromptShown = false;
@@ -221,6 +224,8 @@ class _DriverHomeState extends State<DriverHome>
     _driverLocationService =
         widget.locationRepository ?? const DriverLocationService();
     _roadRouteService = widget.routeRepository ?? RoadRouteService();
+    _waybills =
+        widget.waybillRepository ?? InMemoryWaybillRepository.instance;
     if (widget.initialOnline) {
       _driverSession.setOnline(true);
     }
@@ -1109,6 +1114,7 @@ class _DriverHomeState extends State<DriverHome>
           fare: offer.fare,
           category: offer.category,
           matchedVia: 'Movera direct match',
+          waybillRepository: _waybills,
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -1144,6 +1150,7 @@ class _DriverHomeState extends State<DriverHome>
           fare: offer.fare,
           category: offer.category,
           matchedVia: 'Movera Radar',
+          waybillRepository: _waybills,
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -4224,7 +4231,7 @@ class _DriverHomeState extends State<DriverHome>
                         ),
                       ),
                       ValueListenableBuilder<WaybillRecord?>(
-                        valueListenable: WaybillStore.lastNotifier,
+                        valueListenable: _waybills.lastListenable,
                         builder: (context, lastWaybill, _) {
                           if (lastWaybill == null) {
                             return const SizedBox.shrink();
