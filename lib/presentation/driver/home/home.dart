@@ -824,191 +824,260 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Widget _buildHomeDirectOfferCard(_HomeDirectOffer offer) {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: AppColor.primary.withOpacity(0.34),
-            width: 1.1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF11181C).withOpacity(0.18),
-              blurRadius: 28,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE9EEF1),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Text(
-                    offer.category,
-                    style: const TextStyle(
-                      color: Color(0xFF252E3A),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 7),
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE9F6F0),
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: Text(
-                      offer.reason,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF257658),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                InkWell(
-                  onTap: _dismissHomeDirectOffer,
-                  borderRadius: BorderRadius.circular(20),
-                  child: const SizedBox(
-                    width: 34,
-                    height: 34,
-                    child: Icon(
-                      Icons.close_rounded,
-                      color: Color(0xFF7D898F),
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 11),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  offer.fare,
-                  style: const TextStyle(
-                    color: Color(0xFF252E3A),
-                    fontSize: 30,
-                    height: 1,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.9,
-                  ),
-                ),
-                const Spacer(),
-                const Icon(
-                  Icons.star_rounded,
-                  color: Color(0xFFD7A02C),
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  offer.rating,
-                  style: const TextStyle(
-                    color: Color(0xFF6F7B82),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Text(
-              offer.detail,
-              style: const TextStyle(
-                color: Color(0xFF7D898F),
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
+    const alertCoral = Color(0xFFFF765C);
+
+    return AnimatedBuilder(
+      animation: _goOnlinePulseController,
+      builder: (context, child) {
+        final pulse = _goOnlinePulseController.value;
+
+        return Material(
+          color: Colors.transparent,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: alertCoral.withOpacity(0.38 + (pulse * 0.28)),
+                width: 1.2,
               ),
-            ),
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: Color(0xFFE4E8EA)),
-            const SizedBox(height: 11),
-            _homeDirectLocationRow(
-              color: AppColor.primary,
-              title:
-                  '${offer.pickupMinutes} min · ${offer.pickupKm.toStringAsFixed(1)} km away',
-              subtitle: offer.pickup,
-            ),
-            const SizedBox(height: 9),
-            _homeDirectLocationRow(
-              color: const Color(0xFF252E3A),
-              title:
-                  '${offer.tripMinutes} min · ${offer.tripKm.toStringAsFixed(1)} km trip',
-              subtitle: offer.dropoff,
-            ),
-            const SizedBox(height: 13),
-            Row(
-              children: [
-                TextButton.icon(
-                  onPressed: () => _previewDirectOfferRoute(
-                    offer.pickupPosition,
-                    offer.dropoffPosition,
-                  ),
-                  icon: const Icon(Icons.alt_route_rounded, size: 17),
-                  label: const Text('Route'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColor.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: alertCoral.withOpacity(0.08 + (pulse * 0.07)),
+                  blurRadius: 20 + (pulse * 8),
+                  spreadRadius: pulse * 1.8,
+                  offset: const Offset(0, 5),
                 ),
-                const Spacer(),
-                SizedBox(
-                  height: 42,
-                  child: FilledButton(
-                    onPressed: _acceptHomeDirectOffer,
-                    style: FilledButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: const Color(0xFF252E3A),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 22),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text(
-                      'Accept',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+                BoxShadow(
+                  color: const Color(0xFF11181C).withOpacity(0.14),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE9EEF1),
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: Text(
+                        offer.category,
+                        style: const TextStyle(
+                          color: Color(0xFF252E3A),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: alertCoral.withOpacity(0.10),
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: Text(
+                          offer.reason,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFB84F3D),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    InkWell(
+                      onTap: _dismissHomeDirectOffer,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const SizedBox(
+                        width: 34,
+                        height: 34,
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: Color(0xFF7D898F),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 11),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      offer.fare,
+                      style: const TextStyle(
+                        color: Color(0xFF252E3A),
+                        fontSize: 30,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.9,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.star_rounded,
+                      color: Color(0xFFD7A02C),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      offer.rating,
+                      style: const TextStyle(
+                        color: Color(0xFF6F7B82),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  offer.detail,
+                  style: const TextStyle(
+                    color: Color(0xFF7D898F),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TweenAnimationBuilder<double>(
+                  key: ValueKey<String>('direct-offer-countdown-${offer.id}'),
+                  tween: Tween<double>(begin: 1, end: 0),
+                  duration: _directOfferLifetime,
+                  builder: (context, remaining, child) {
+                    final seconds = (remaining *
+                            (_directOfferLifetime.inMilliseconds / 1000))
+                        .ceil();
+
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.timer_outlined,
+                              color: alertCoral,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Direct offer · ${seconds}s',
+                              style: const TextStyle(
+                                color: Color(0xFFB84F3D),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const Spacer(),
+                            const Text(
+                              'Limited time',
+                              style: TextStyle(
+                                color: Color(0xFF8A9499),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(99),
+                          child: LinearProgressIndicator(
+                            minHeight: 3,
+                            value: remaining,
+                            backgroundColor: const Color(0xFFF0E8E5),
+                            valueColor:
+                                const AlwaysStoppedAnimation<Color>(alertCoral),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: Color(0xFFE4E8EA)),
+                const SizedBox(height: 11),
+                _homeDirectLocationRow(
+                  color: AppColor.primary,
+                  title:
+                      '${offer.pickupMinutes} min · ${offer.pickupKm.toStringAsFixed(1)} km away',
+                  subtitle: offer.pickup,
+                ),
+                const SizedBox(height: 9),
+                _homeDirectLocationRow(
+                  color: const Color(0xFF252E3A),
+                  title:
+                      '${offer.tripMinutes} min · ${offer.tripKm.toStringAsFixed(1)} km trip',
+                  subtitle: offer.dropoff,
+                ),
+                const SizedBox(height: 13),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _previewDirectOfferRoute(
+                        offer.pickupPosition,
+                        offer.dropoffPosition,
+                      ),
+                      icon: const Icon(Icons.alt_route_rounded, size: 17),
+                      label: const Text('Route'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColor.primary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    SizedBox(
+                      height: 42,
+                      child: FilledButton(
+                        onPressed: _acceptHomeDirectOffer,
+                        style: FilledButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: const Color(0xFF252E3A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 22),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          'Accept',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
