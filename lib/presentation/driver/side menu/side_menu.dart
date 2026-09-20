@@ -35,7 +35,8 @@ class DriverSideMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
+    final view = View.of(context);
+    final width = view.physicalSize.width / view.devicePixelRatio;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Drawer(
