@@ -696,7 +696,10 @@ class _DriverHomeState extends State<DriverHome>
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      drawer: const DriverSideMenu(),
+      drawer: DriverSideMenu(
+        isOnline: _isOnline,
+        accountActive: isAccountActivated,
+      ),
       body: showRideRequests
           ? Stack(
               fit: StackFit.expand,
