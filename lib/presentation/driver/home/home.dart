@@ -689,18 +689,19 @@ class _DriverHomeState extends State<DriverHome>
       return;
     }
 
+    final matchedOffer = offer;
     _homeRadarExternalClaimTimer = Timer(
       const Duration(milliseconds: 4200),
       () {
         if (!mounted ||
-            !_radarHomeOffers.any((item) => item.id == offer!.id) ||
-            _homeRadarStateFor(offer.id) !=
+            !_radarHomeOffers.any((item) => item.id == matchedOffer.id) ||
+            _homeRadarStateFor(matchedOffer.id) !=
                 _HomeRadarMatchState.available) {
           return;
         }
 
         setState(() {
-          _homeRadarMatchStates[offer!.id] =
+          _homeRadarMatchStates[matchedOffer.id] =
               _HomeRadarMatchState.claimedElsewhere;
         });
 
@@ -708,11 +709,11 @@ class _DriverHomeState extends State<DriverHome>
           const Duration(milliseconds: 2800),
           () {
             if (!mounted ||
-                _homeRadarStateFor(offer!.id) !=
+                _homeRadarStateFor(matchedOffer.id) !=
                     _HomeRadarMatchState.claimedElsewhere) {
               return;
             }
-            _dismissRadarHomeOffer(offer!);
+            _dismissRadarHomeOffer(matchedOffer);
           },
         );
       },
