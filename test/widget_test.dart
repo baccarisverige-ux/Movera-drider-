@@ -43,6 +43,15 @@ Future<void> _advanceAnimation(
   await tester.pump(duration);
 }
 
+Future<void> _slideActiveRideAction(WidgetTester tester) async {
+  final action =
+      find.byKey(const ValueKey<String>('active-ride-primary-action'));
+  expect(action, findsOneWidget);
+  await tester.ensureVisible(action);
+  await tester.drag(action, const Offset(320, 0));
+  await tester.pump(const Duration(milliseconds: 240));
+}
+
 Future<void> _openPanel(WidgetTester tester) async {
   final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
   panel.controller!.open();
@@ -1268,46 +1277,34 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
 
     expect(find.text('Heading to pickup'), findsOneWidget);
-    expect(find.text('I’m at pickup'), findsOneWidget);
+    expect(find.text('Slide to confirm pickup'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('active-ride-panel-headingToPickup')),
       findsOneWidget,
     );
     _expectNoException(tester);
 
-    var action = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-    );
-    action.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 160));
+    await _slideActiveRideAction(tester);
 
     expect(find.text('Waiting for rider'), findsOneWidget);
-    expect(find.text('Start trip'), findsOneWidget);
+    expect(find.text('Slide to start trip'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('active-ride-panel-waitingForRider')),
       findsOneWidget,
     );
     _expectNoException(tester);
 
-    action = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-    );
-    action.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 160));
+    await _slideActiveRideAction(tester);
 
     expect(find.textContaining('Dropping off'), findsOneWidget);
-    expect(find.text('Complete trip'), findsOneWidget);
+    expect(find.text('Slide to complete trip'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('active-ride-panel-onTrip')),
       findsOneWidget,
     );
     _expectNoException(tester);
 
-    action = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-    );
-    action.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 520));
+    await _slideActiveRideAction(tester);
 
     expect(find.byType(DriverRideCompleted), findsOneWidget);
     _expectNoException(tester);
@@ -1321,17 +1318,9 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
 
-    var action = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-    );
-    action.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 120));
+    await _slideActiveRideAction(tester);
 
-    action = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-    );
-    action.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 120));
+    await _slideActiveRideAction(tester);
 
     expect(find.textContaining('Dropping off'), findsOneWidget);
     expect(
@@ -1404,17 +1393,9 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 160));
 
-    var action = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-    );
-    action.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 120));
+    await _slideActiveRideAction(tester);
 
-    action = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-    );
-    action.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 120));
+    await _slideActiveRideAction(tester);
 
     await tester.pump(const Duration(milliseconds: 4300));
     await tester.tap(
@@ -1504,17 +1485,9 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
 
-    var action = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-    );
-    action.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 120));
+    await _slideActiveRideAction(tester);
 
-    action = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-    );
-    action.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 120));
+    await _slideActiveRideAction(tester);
 
     expect(find.textContaining('Dropping off'), findsOneWidget);
 
