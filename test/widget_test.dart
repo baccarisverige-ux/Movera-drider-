@@ -318,8 +318,10 @@ void main() {
       const ValueKey<String>('destination-mode-open'),
     );
     expect(openDestination, findsOneWidget);
-    tester.widget<InkWell>(openDestination).onTap!.call();
-    await tester.pump(const Duration(milliseconds: 360));
+    expect(openDestination.hitTestable(), findsOneWidget);
+    await tester.tap(openDestination);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 520));
 
     expect(find.byType(DriverDestinationPicker), findsOneWidget);
     expect(
