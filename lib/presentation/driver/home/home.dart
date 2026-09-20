@@ -550,12 +550,10 @@ class _DriverHomeState extends State<DriverHome>
       return;
     }
 
-    // If no Radar snapshot is visible yet, reveal one trip so the Home Radar
-    // panel can appear. Additional trips remain pending until Refresh.
-    if (_radarHomeOffers.isEmpty) {
-      final first = _pendingRadarHomeOffers.first;
-      _activateRadarHomeOffer(first);
-    }
+    // Keep detected trips pending until the driver explicitly refreshes.
+    setState(() {
+      _hasRideOffers = true;
+    });
   }
 
   void _dismissRadarHomeOffer(_HomeDirectOffer offer) {
@@ -1176,6 +1174,17 @@ class _DriverHomeState extends State<DriverHome>
           if (!isDestinationPanel &&
               _mainPanelPosition <= 0.04 &&
               _outsideRadarOffer == null &&
+              _radarHomeOffers.isEmpty &&
+              _pendingRadarHomeOffers.isNotEmpty)
+            Positioned(
+              left: 14,
+              right: 14,
+              bottom: 178,
+              child: _buildRadarRefreshPrompt(),
+            ),
+          if (!isDestinationPanel &&
+              _mainPanelPosition <= 0.04 &&
+              _outsideRadarOffer == null &&
               _radarHomeOffers.isNotEmpty)
             Positioned(
               left: 14,
@@ -1319,6 +1328,93 @@ class _DriverHomeState extends State<DriverHome>
 
 
         ],
+      ),
+    );
+  }
+
+  Widget _buildRadarRefreshPrompt() {
+    final count = _pendingRadarHomeOffers.length;
+
+    return RepaintBoundary(
+      child: Material(
+        color: const Color(0xFFF7F9F9).withOpacity(0.98),
+        elevation: 8,
+        shadowColor: const Color(0x3311181C),
+        borderRadius: BorderRadius.circular(22),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          child: Row(
+            children: [
+              Container(
+                height: 38,
+                width: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3DE),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.radar_rounded,
+                  color: Color(0xFFD28A19),
+                  size: 19,
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'New Radar trips',
+                      style: TextStyle(
+                        color: Color(0xFF252E3A),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      count.toString() +
+                          (count == 1
+                              ? ' new offer ready'
+                              : ' new offers ready'),
+                      style: const TextStyle(
+                        color: Color(0xFF7C888E),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                key: const ValueKey<String>('radar-home-refresh-empty'),
+                onPressed: _refreshRadarHomeOffers,
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF9A650F),
+                  backgroundColor: const Color(0xFFFFF3DE),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+                icon: const Icon(Icons.refresh_rounded, size: 15),
+                label: const Text(
+                  'Refresh',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
