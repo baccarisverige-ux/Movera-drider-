@@ -9,6 +9,7 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
+import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
 import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
@@ -63,15 +64,21 @@ class _DriverHomeState extends State<DriverHome>
   bool _hasScheduledRideOffers = true;
   bool _showTodaySummaryPopup = false;
   _HomeDirectOffer? _homeDirectOffer;
+  bool _destinationModeActive = false;
+  String? _destinationAddress;
+  LatLng? _destinationPosition;
 
   // ignore: prefer_final_fields
   Set<Marker> _markers = {};
   Set<Marker> _directOfferRouteMarkers = {};
   Set<Polyline> _directOfferRoutePolylines = {};
+  Set<Marker> _destinationRouteMarkers = {};
+  Set<Polyline> _destinationRoutePolylines = {};
   bool _isDirectOfferRoutePreview = false;
 
+  static const LatLng _driverPosition = LatLng(59.3293, 18.0686);
   static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(59.3293, 18.0686),
+    target: _driverPosition,
     zoom: 14.0,
   );
 
@@ -127,7 +134,7 @@ class _DriverHomeState extends State<DriverHome>
     _markers.add(
       Marker(
         markerId: MarkerId('driver_location'),
-        position: LatLng(59.3293, 18.0686),
+        position: _driverPosition,
         infoWindow: InfoWindow(title: 'Your Location'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ),
@@ -194,6 +201,115 @@ class _DriverHomeState extends State<DriverHome>
         82,
       ),
     );
+  }
+
+  Future<void> _openDestinationModePicker() async {
+    _closeHomeFloatingPopupsForSheet();
+    await _closeDriverSheet();
+    if (!mounted) return;
+
+    final result = await DriverDestinationPicker.open(context);
+    if (!mounted || result == null) return;
+
+    await _activateDestinationMode(result);
+  }
+
+  Future<void> _activateDestinationMode(
+    DriverDestinationResult result,
+  ) async {
+    final destination = result.position;
+    setState(() {
+      _destinationModeActive = true;
+      _destinationAddress = result.address;
+      _destinationPosition = destination;
+      _destinationRouteMarkers = {
+        Marker(
+          markerId: const MarkerId('destination_mode_target'),
+          position: destination,
+          infoWindow: InfoWindow(title: result.address),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueGreen,
+          ),
+        ),
+      };
+      _destinationRoutePolylines = {
+        Polyline(
+          polylineId: const PolylineId('destination_mode_route'),
+          points: const [_driverPosition],
+          color: AppColor.primary,
+          width: 6,
+          geodesic: true,
+        ),
+      };
+    });
+
+    setState(() {
+      _destinationRoutePolylines = {
+        Polyline(
+          polylineId: const PolylineId('destination_mode_route'),
+          points: [_driverPosition, destination],
+          color: AppColor.primary,
+          width: 6,
+          geodesic: true,
+        ),
+      };
+    });
+
+    await _fitDestinationRoute();
+
+    if (!_isOnline && !_isGoingOnline) {
+      _goOnline();
+    }
+  }
+
+  Future<void> _fitDestinationRoute() async {
+    final destination = _destinationPosition;
+    if (destination == null || _mapController == null) return;
+
+    final south = _driverPosition.latitude < destination.latitude
+        ? _driverPosition.latitude
+        : destination.latitude;
+    final north = _driverPosition.latitude > destination.latitude
+        ? _driverPosition.latitude
+        : destination.latitude;
+    final west = _driverPosition.longitude < destination.longitude
+        ? _driverPosition.longitude
+        : destination.longitude;
+    final east = _driverPosition.longitude > destination.longitude
+        ? _driverPosition.longitude
+        : destination.longitude;
+
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    if (!mounted || _mapController == null) return;
+
+    await _mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(south, west),
+          northeast: LatLng(north, east),
+        ),
+        74,
+      ),
+    );
+  }
+
+  void _endDestinationMode() {
+    if (!_destinationModeActive) return;
+    setState(() {
+      _destinationModeActive = false;
+      _destinationAddress = null;
+      _destinationPosition = null;
+      _destinationRouteMarkers = {};
+      _destinationRoutePolylines = {};
+    });
+  }
+
+  String get _destinationShortLabel {
+    final address = _destinationAddress?.trim();
+    if (address == null || address.isEmpty) return 'Destination';
+    final firstPart = address.split(',').first.trim();
+    if (firstPart.length <= 24) return firstPart;
+    return '${firstPart.substring(0, 21)}…';
   }
 
   void _clearDirectOfferRoute() {
@@ -361,6 +477,8 @@ class _DriverHomeState extends State<DriverHome>
                   child: const SizedBox.expand(),
                 ),
                 RideRequests(
+                  destinationModeActive: _destinationModeActive,
+                  destinationAddress: _destinationAddress,
                   onCloseRides: (hasOffers) {
                     setState(() {
                       showRideRequests = false;
@@ -498,9 +616,13 @@ class _DriverHomeState extends State<DriverHome>
             initialPosition: _initialPosition,
             markers: {
               ..._markers,
+              ..._destinationRouteMarkers,
               ..._directOfferRouteMarkers,
             },
-            polylines: _directOfferRoutePolylines,
+            polylines: {
+              ..._destinationRoutePolylines,
+              ..._directOfferRoutePolylines,
+            },
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
@@ -593,12 +715,7 @@ class _DriverHomeState extends State<DriverHome>
                           _mapControlDivider(),
                           Expanded(
                             child: InkWell(
-                              onTap: () {
-                                showDriverSearchPickupLocationSheet(
-                                  context,
-                                  openDestinationPanel,
-                                );
-                              },
+                              onTap: _openDestinationModePicker,
                               child: Center(
                                 child: Image.asset(
                                   AppAssets.search,
@@ -612,12 +729,106 @@ class _DriverHomeState extends State<DriverHome>
                       ),
                     ),
                   ),
-                  isDestinationPanel
-                      ? Padding(
-                          padding: EdgeInsets.only(top: ResSize.h * 12),
-                          child: InAirportQueue(),
-                        )
-                      : SizedBox(),
+                  if (_destinationModeActive && !isDestinationPanel)
+                    Padding(
+                      padding: EdgeInsets.only(top: ResSize.h * 10),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Material(
+                          color: Colors.white,
+                          elevation: 3,
+                          shadowColor:
+                              const Color(0xFF172027).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(18),
+                          child: InkWell(
+                            key: const ValueKey<String>(
+                              'destination-mode-home-tab',
+                            ),
+                            onTap: _fitDestinationRoute,
+                            borderRadius: BorderRadius.circular(18),
+                            child: Container(
+                              constraints: BoxConstraints(
+                                maxWidth: ResSize.w * 252,
+                              ),
+                              padding: EdgeInsets.fromLTRB(
+                                ResSize.w * 11,
+                                ResSize.h * 8,
+                                ResSize.w * 8,
+                                ResSize.h * 8,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    height: ResSize.h * 30,
+                                    width: ResSize.h * 30,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF0F5F2),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.near_me_rounded,
+                                      size: 16,
+                                      color: Color(0xFF315E4D),
+                                    ),
+                                  ),
+                                  SizedBox(width: ResSize.w * 8),
+                                  Flexible(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Destination',
+                                          style: TextStyle(
+                                            color: Color(0xFF7D898F),
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        Text(
+                                          _destinationShortLabel,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Color(0xFF252E3A),
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(width: ResSize.w * 6),
+                                  InkWell(
+                                    key: const ValueKey<String>(
+                                      'destination-mode-end',
+                                    ),
+                                    onTap: _endDestinationMode,
+                                    borderRadius: BorderRadius.circular(15),
+                                    child: const SizedBox(
+                                      height: 28,
+                                      width: 28,
+                                      child: Icon(
+                                        Icons.close_rounded,
+                                        size: 17,
+                                        color: Color(0xFF7D898F),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (isDestinationPanel)
+                    Padding(
+                      padding: EdgeInsets.only(top: ResSize.h * 12),
+                      child: InAirportQueue(),
+                    ),
                 ],
               ),
             ),
@@ -1498,6 +1709,11 @@ class _DriverHomeState extends State<DriverHome>
       _isOnline = false;
       _hasRideOffers = false;
       _homeDirectOffer = null;
+      _destinationModeActive = false;
+      _destinationAddress = null;
+      _destinationPosition = null;
+      _destinationRouteMarkers = {};
+      _destinationRoutePolylines = {};
     });
     _clearDirectOfferRoute();
     await _closeDriverSheet();
