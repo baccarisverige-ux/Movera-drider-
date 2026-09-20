@@ -2713,9 +2713,7 @@ class _SlideRideActionState extends State<_SlideRideAction> {
         _dragging = false;
         _fraction = 1;
       });
-      Future<void>.delayed(const Duration(milliseconds: 120), () {
-        if (mounted) widget.onConfirmed();
-      });
+      widget.onConfirmed();
     } else {
       setState(() {
         _dragging = false;
