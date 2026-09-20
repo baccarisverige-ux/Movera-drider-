@@ -3,8 +3,7 @@ import 'package:movera/core/session/driver_session_controller.dart';
 
 void main() {
   test('driver session keeps one authoritative online state', () {
-    final session = DriverSessionController.instance;
-    session.reset();
+    final session = DriverSessionController();
 
     expect(session.isOnline, isFalse);
 
