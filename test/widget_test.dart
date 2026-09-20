@@ -39,16 +39,14 @@ void _invokeSheetAction(WidgetTester tester, String tooltip) {
 
 Future<void> _openPanel(WidgetTester tester) async {
   final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-  final openFuture = panel.controller!.open();
+  panel.controller!.open();
   await tester.pump(const Duration(milliseconds: 520));
-  await openFuture;
 }
 
 Future<void> _closePanel(WidgetTester tester) async {
   final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-  final closeFuture = panel.controller!.close();
+  panel.controller!.close();
   await tester.pump(const Duration(milliseconds: 520));
-  await closeFuture;
 }
 
 void main() {
