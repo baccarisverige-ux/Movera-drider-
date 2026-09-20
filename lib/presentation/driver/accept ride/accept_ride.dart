@@ -44,34 +44,19 @@ class AcceptRide extends StatefulWidget {
 enum _RideStage { headingToPickup, waitingForRider, onTrip }
 
 class _AcceptRideState extends State<AcceptRide> {
-  static const Color _ink = Color(0xFF101416);
-  static const Color _panel = Color(0xFF111719);
-  static const Color _panel2 = Color(0xFF1A2225);
-  static const Color _muted = Color(0xFF9AA5A9);
-  static const Color _green = Color(0xFF45C987);
-  static const Color _line = Color(0xFF30393C);
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _panel = Color(0xFFFFFFFF);
+  static const Color _panel2 = Color(0xFFF1F5F3);
+  static const Color _canvas = Color(0xFFF4F6F7);
+  static const Color _muted = Color(0xFF7D898F);
+  static const Color _green = Color(0xFF19865C);
+  static const Color _mint = Color(0xFFE6F5EE);
+  static const Color _line = Color(0xFFE5E9EB);
   static const Color _danger = Color(0xFFE75D65);
 
   static const LatLng _fallbackDriverPosition = LatLng(59.3262, 18.0595);
 
-  static const String _darkMapStyle = '''
-[
-  {"elementType":"geometry","stylers":[{"color":"#202830"}]},
-  {"elementType":"labels.icon","stylers":[{"visibility":"off"}]},
-  {"elementType":"labels.text.fill","stylers":[{"color":"#a9b3ba"}]},
-  {"elementType":"labels.text.stroke","stylers":[{"color":"#202830"},{"weight":2}]},
-  {"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"color":"#39434b"}]},
-  {"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#202830"}]},
-  {"featureType":"poi","elementType":"geometry","stylers":[{"color":"#222b32"}]},
-  {"featureType":"road","elementType":"geometry","stylers":[{"color":"#39434b"}]},
-  {"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#171d22"}]},
-  {"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#414c55"}]},
-  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#48545d"}]},
-  {"featureType":"transit","elementType":"geometry","stylers":[{"color":"#2a333a"}]},
-  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#102b3e"}]},
-  {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#5f93bf"}]}
-]
-''';
+
 
   final DriverLocationService _locationService =
       const DriverLocationService();
@@ -408,18 +393,18 @@ class _AcceptRideState extends State<AcceptRide> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _ink,
+      backgroundColor: _canvas,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final panelHeight = math.min(430.0, constraints.maxHeight * 0.49);
+          final panelHeight = math.min(420.0, constraints.maxHeight * 0.47);
           final safeTop = MediaQuery.paddingOf(context).top;
 
           return Stack(
             fit: StackFit.expand,
             children: [
               CustomGoogleMap(
-                initialPosition: const CameraPosition(
-                  target: LatLng(59.3272, 18.0610),
+                initialPosition: CameraPosition(
+                  target: _driverPosition,
                   zoom: 15.8,
                 ),
                 markers: _markers,
@@ -432,8 +417,8 @@ class _AcceptRideState extends State<AcceptRide> {
                 trafficEnabled: false,
                 buildingsEnabled: true,
                 indoorViewEnabled: false,
-                customMapStyle: _darkMapStyle,
-                padding: EdgeInsets.only(bottom: panelHeight - 18),
+                mapType: MapType.normal,
+                padding: EdgeInsets.only(bottom: panelHeight - 12),
                 onMapCreated: (controller) {
                   _mapController = controller;
                   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -449,7 +434,7 @@ class _AcceptRideState extends State<AcceptRide> {
               ),
               Positioned(
                 right: 14,
-                bottom: panelHeight + 18,
+                bottom: panelHeight + 16,
                 child: _buildMapControls(),
               ),
               Positioned(
@@ -469,74 +454,75 @@ class _AcceptRideState extends State<AcceptRide> {
   Widget _buildNavigationCard() {
     final onTrip = _stage == _RideStage.onTrip;
     final waiting = _stage == _RideStage.waitingForRider;
+    final eyebrow = waiting
+        ? 'PICKUP'
+        : onTrip
+            ? 'DROP-OFF'
+            : 'TO PICKUP';
+    final headline = waiting
+        ? widget.pickupAddress
+        : onTrip
+            ? widget.dropoffAddress
+            : widget.pickupAddress;
 
     return Container(
       key: const ValueKey<String>('active-ride-navigation-card'),
-      padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
+      padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
       decoration: BoxDecoration(
-        color: const Color(0xEF090D0F),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(0.10)),
+        border: Border.all(color: _line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: const Color(0xFF172027).withOpacity(0.12),
             blurRadius: 22,
-            offset: const Offset(0, 10),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            height: 52,
-            width: 52,
+            height: 48,
+            width: 48,
             decoration: BoxDecoration(
-              color: (waiting ? const Color(0xFF4B5960) : _green)
-                  .withOpacity(waiting ? 0.20 : 0.13),
-              borderRadius: BorderRadius.circular(17),
+              color: waiting ? const Color(0xFFF1F3F4) : _mint,
+              borderRadius: BorderRadius.circular(15),
             ),
             child: Icon(
               waiting
-                  ? Icons.location_on_rounded
+                  ? Icons.location_on_outlined
                   : onTrip
-                      ? Icons.turn_right_rounded
-                      : Icons.navigation_rounded,
-              color: waiting ? Colors.white : _green,
-              size: 28,
+                      ? Icons.flag_outlined
+                      : Icons.near_me_outlined,
+              color: waiting ? _ink : _green,
+              size: 23,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  waiting
-                      ? 'PICKUP'
-                      : onTrip
-                          ? 'IN 350 M'
-                          : 'TO PICKUP',
-                  style: const TextStyle(
-                    color: _muted,
+                  eyebrow,
+                  style: TextStyle(
+                    color: waiting ? _muted : _green,
                     fontSize: 9,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.1,
+                    letterSpacing: 1.0,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
-                  waiting
-                      ? widget.pickupAddress
-                      : onTrip
-                          ? 'Turn right'
-                          : widget.pickupAddress,
+                  headline,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
+                    color: _ink,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: -0.4,
+                    letterSpacing: -0.35,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -544,44 +530,43 @@ class _AcceptRideState extends State<AcceptRide> {
                   waiting
                       ? widget.pickupArea
                       : onTrip
-                          ? widget.dropoffAddress
+                          ? 'Live route to destination'
                           : '${widget.pickupArea} · $_routeEtaText',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFFB9C2C5),
-                    fontSize: 11,
+                    color: _muted,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 9),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            constraints: const BoxConstraints(minWidth: 62),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
+              color: waiting ? const Color(0xFFF3F5F6) : _mint,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Column(
               children: [
                 Text(
-                  waiting
-                      ? 'AT PICKUP'
-                      : _routeEtaText,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
+                  waiting ? _waitLabel : _routeEtaText,
+                  style: TextStyle(
+                    color: waiting ? _ink : _green,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  waiting ? '0 m' : _routeDistanceText,
+                  waiting ? 'WAIT' : _routeDistanceText,
                   style: const TextStyle(
                     color: _muted,
-                    fontSize: 8.5,
+                    fontSize: 8,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -600,20 +585,24 @@ class _AcceptRideState extends State<AcceptRide> {
           icon: Icons.my_location_rounded,
           onTap: _fitRoute,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 9),
         _mapCircleButton(
           icon: Icons.shield_outlined,
           accent: _green,
           onTap: () => showSafetyToolKitSheet(context),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 9),
         _mapCircleButton(
           icon: Icons.layers_outlined,
           onTap: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Map layers will be connected to map settings.'),
+              SnackBar(
+                content: const Text('Map layers will be connected to settings.'),
+                backgroundColor: _ink,
                 behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             );
           },
@@ -625,20 +614,20 @@ class _AcceptRideState extends State<AcceptRide> {
   Widget _mapCircleButton({
     required IconData icon,
     required VoidCallback onTap,
-    Color accent = Colors.white,
+    Color accent = _ink,
   }) {
     return Material(
-      color: const Color(0xE914191B),
+      color: Colors.white,
       shape: const CircleBorder(),
       elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.24),
+      shadowColor: const Color(0xFF172027).withOpacity(0.16),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
         child: SizedBox(
-          height: 46,
-          width: 46,
-          child: Icon(icon, color: accent, size: 21),
+          height: 44,
+          width: 44,
+          child: Icon(icon, color: accent, size: 20),
         ),
       ),
     );
@@ -649,13 +638,13 @@ class _AcceptRideState extends State<AcceptRide> {
       key: ValueKey<String>('active-ride-panel-${_stage.name}'),
       decoration: BoxDecoration(
         color: _panel,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        border: Border(top: BorderSide(color: _line)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.34),
+            color: const Color(0xFF172027).withOpacity(0.12),
             blurRadius: 28,
-            offset: const Offset(0, -10),
+            offset: const Offset(0, -8),
           ),
         ],
       ),
@@ -669,10 +658,10 @@ class _AcceptRideState extends State<AcceptRide> {
             children: [
               Center(
                 child: Container(
-                  width: 46,
-                  height: 5,
+                  width: 42,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4C565A),
+                    color: const Color(0xFFD8DEDF),
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
@@ -685,11 +674,13 @@ class _AcceptRideState extends State<AcceptRide> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _stagePill(),
+                        const SizedBox(height: 8),
                         Text(
                           _title,
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 23,
+                            color: _ink,
+                            fontSize: 22,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.55,
                           ),
@@ -701,43 +692,13 @@ class _AcceptRideState extends State<AcceptRide> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: _muted,
-                            fontSize: 11,
+                            fontSize: 10.5,
                             height: 1.35,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Container(
-                              width: 7,
-                              height: 7,
-                              decoration: BoxDecoration(
-                                color: _hasLiveLocation
-                                    ? _green
-                                    : const Color(0xFF8A9498),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                _hasLiveLocation
-                                    ? (_routeLoading
-                                        ? 'Live GPS · finding road route'
-                                        : 'Live GPS · road route active')
-                                    : (_locationStatus ?? 'Locating driver…'),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFF7F8B8F),
-                                  fontSize: 8.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        const SizedBox(height: 7),
+                        _liveStatus(),
                       ],
                     ),
                   ),
@@ -745,16 +706,75 @@ class _AcceptRideState extends State<AcceptRide> {
                   _buildEtaTile(),
                 ],
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 14),
               _buildProgress(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               _buildRiderRow(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               _buildPrimaryAction(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _stagePill() {
+    final label = switch (_stage) {
+      _RideStage.headingToPickup => 'PICKUP',
+      _RideStage.waitingForRider => 'WAITING',
+      _RideStage.onTrip => 'ON TRIP',
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: _mint,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: _green,
+          fontSize: 8.5,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.7,
+        ),
+      ),
+    );
+  }
+
+  Widget _liveStatus() {
+    final text = _hasLiveLocation
+        ? (_routeLoading
+            ? 'Live GPS · updating road route'
+            : 'Live GPS · road route active')
+        : (_locationStatus ?? 'Locating driver…');
+
+    return Row(
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(
+            color: _hasLiveLocation ? _green : const Color(0xFF9AA4A9),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 8.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -767,20 +787,20 @@ class _AcceptRideState extends State<AcceptRide> {
         : _routeDistanceText;
 
     return Container(
-      constraints: const BoxConstraints(minWidth: 78),
+      constraints: const BoxConstraints(minWidth: 76),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: _panel2,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: const Color(0xFFDDE7E2)),
       ),
       child: Column(
         children: [
           Text(
             main,
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
+              color: _ink,
+              fontSize: 15,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -791,7 +811,7 @@ class _AcceptRideState extends State<AcceptRide> {
               color: _muted,
               fontSize: 8,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.6,
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -800,160 +820,181 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Widget _buildProgress() {
-    final activeIndex = switch (_stage) {
+    final current = switch (_stage) {
       _RideStage.headingToPickup => 1,
-      _RideStage.waitingForRider => 1,
-      _RideStage.onTrip => 2,
+      _RideStage.waitingForRider => 2,
+      _RideStage.onTrip => 3,
     };
 
-    final labels = _stage == _RideStage.waitingForRider
-        ? const ['Matched', 'Waiting', 'On trip', 'Done']
-        : const ['Matched', 'Pickup', 'On trip', 'Done'];
+    final items = const [
+      ('Matched', Icons.check_rounded),
+      ('Pickup', Icons.location_on_outlined),
+      ('Rider', Icons.person_outline_rounded),
+      ('Trip', Icons.route_outlined),
+    ];
 
-    return Row(
-      children: List.generate(labels.length, (index) {
-        final completed = index < activeIndex;
-        final active = index == activeIndex;
-        return Expanded(
-          child: Row(
-            children: [
-              Column(
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    width: active ? 20 : 16,
-                    height: active ? 20 : 16,
-                    decoration: BoxDecoration(
-                      color: completed
-                          ? _green
-                          : active
-                              ? _panel
-                              : const Color(0xFF4A5458),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: active ? _green : Colors.transparent,
-                        width: active ? 3 : 0,
-                      ),
-                    ),
-                    child: completed
-                        ? const Icon(
-                            Icons.check_rounded,
-                            color: _ink,
-                            size: 11,
-                          )
-                        : null,
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    labels[index],
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: active || completed
-                          ? Colors.white
-                          : const Color(0xFF727C80),
-                      fontSize: 8.5,
-                      fontWeight:
-                          active ? FontWeight.w800 : FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              if (index != labels.length - 1)
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAF9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _line),
+      ),
+      child: Row(
+        children: List.generate(items.length, (index) {
+          final done = index < current;
+          final active = index == current;
+          final color = done || active ? _green : const Color(0xFFA6B0B4);
+
+          return Expanded(
+            child: Row(
+              children: [
                 Expanded(
-                  child: Container(
-                    height: 2,
-                    margin: const EdgeInsets.fromLTRB(5, 0, 5, 18),
-                    color: completed ? _green : _line,
+                  child: Column(
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: active ? 26 : 22,
+                        height: active ? 26 : 22,
+                        decoration: BoxDecoration(
+                          color: done
+                              ? _green
+                              : active
+                                  ? _mint
+                                  : const Color(0xFFEEF1F2),
+                          shape: BoxShape.circle,
+                          border: active
+                              ? Border.all(color: _green, width: 1.5)
+                              : null,
+                        ),
+                        child: Icon(
+                          items[index].$2,
+                          size: 13,
+                          color: done ? Colors.white : color,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        items[index].$1,
+                        style: TextStyle(
+                          color: done || active ? _ink : _muted,
+                          fontSize: 8,
+                          fontWeight:
+                              active ? FontWeight.w800 : FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
-        );
-      }),
+                if (index != items.length - 1)
+                  Container(
+                    width: 8,
+                    height: 2,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    color: done ? _green : const Color(0xFFDDE3E4),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ),
     );
   }
 
   Widget _buildRiderRow() {
-    return Row(
-      children: [
-        Container(
-          width: 46,
-          height: 46,
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.12)),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAF9),
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: _line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFD9E4DF)),
+            ),
+            child: const CircleAvatar(
+              backgroundImage: AssetImage(AppAssets.profileImg),
+              backgroundColor: Color(0xFFE9EEEC),
+            ),
           ),
-          child: const CircleAvatar(
-            backgroundImage: AssetImage(AppAssets.profileImg),
-            backgroundColor: Color(0xFF263034),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: InkWell(
-            onTap: _showRiderProfile,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.riderName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
+          const SizedBox(width: 10),
+          Expanded(
+            child: InkWell(
+              onTap: _showRiderProfile,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.riderName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${widget.riderRating.toStringAsFixed(1)} ★  ·  ${widget.riderTrips} rides',
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(height: 3),
+                    Text(
+                      '${widget.riderRating.toStringAsFixed(1)} ★ · ${widget.riderTrips} rides',
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        _riderAction(
-          tooltip: 'Call rider',
-          icon: Icons.call_outlined,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Calling will use the device phone integration.'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
-        ),
-        const SizedBox(width: 6),
-        _riderAction(
-          tooltip: 'Message rider',
-          icon: Icons.chat_bubble_outline_rounded,
-          onTap: () {
-            Navigator.push(
-              context,
-              BottomToTopTransition(const Chat()),
-            );
-          },
-        ),
-        const SizedBox(width: 6),
-        _riderAction(
-          tooltip: 'Rider profile',
-          icon: Icons.person_outline_rounded,
-          onTap: _showRiderProfile,
-        ),
-      ],
+          const SizedBox(width: 7),
+          _riderAction(
+            tooltip: 'Call rider',
+            icon: Icons.call_outlined,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Phone integration will call the rider.'),
+                  backgroundColor: _ink,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 6),
+          _riderAction(
+            tooltip: 'Message rider',
+            icon: Icons.chat_bubble_outline_rounded,
+            onTap: () {
+              Navigator.push(
+                context,
+                BottomToTopTransition(const Chat()),
+              );
+            },
+          ),
+          const SizedBox(width: 6),
+          _riderAction(
+            tooltip: 'Rider profile',
+            icon: Icons.person_outline_rounded,
+            onTap: _showRiderProfile,
+          ),
+        ],
+      ),
     );
   }
 
@@ -965,15 +1006,15 @@ class _AcceptRideState extends State<AcceptRide> {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: _panel2,
-        borderRadius: BorderRadius.circular(14),
+        color: _mint,
+        borderRadius: BorderRadius.circular(13),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(13),
           child: SizedBox(
-            width: 39,
-            height: 39,
-            child: Icon(icon, color: Colors.white, size: 18),
+            width: 37,
+            height: 37,
+            child: Icon(icon, color: _green, size: 18),
           ),
         ),
       ),
@@ -981,22 +1022,20 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Widget _buildPrimaryAction() {
-    final danger = _stage == _RideStage.onTrip;
-
     return Row(
       children: [
         Material(
-          color: _panel2,
-          borderRadius: BorderRadius.circular(17),
+          color: const Color(0xFFF0F3F2),
+          borderRadius: BorderRadius.circular(16),
           child: InkWell(
             onTap: _showTripOptions,
-            borderRadius: BorderRadius.circular(17),
+            borderRadius: BorderRadius.circular(16),
             child: const SizedBox(
-              height: 56,
-              width: 56,
+              height: 54,
+              width: 54,
               child: Icon(
                 Icons.tune_rounded,
-                color: Colors.white,
+                color: _ink,
                 size: 20,
               ),
             ),
@@ -1005,29 +1044,27 @@ class _AcceptRideState extends State<AcceptRide> {
         const SizedBox(width: 10),
         Expanded(
           child: SizedBox(
-            height: 56,
+            height: 54,
             child: FilledButton(
               key: const ValueKey<String>('active-ride-primary-action'),
               onPressed: _advanceRide,
               style: FilledButton.styleFrom(
                 elevation: 0,
-                backgroundColor: danger
-                    ? const Color(0xFF2A3438)
-                    : _green,
-                foregroundColor: danger ? Colors.white : _ink,
+                backgroundColor: _ink,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(17),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    danger
+                    _stage == _RideStage.onTrip
                         ? Icons.flag_outlined
                         : _stage == _RideStage.waitingForRider
                             ? Icons.play_arrow_rounded
-                            : Icons.near_me_rounded,
-                    size: 20,
+                            : Icons.location_on_outlined,
+                    size: 19,
                   ),
                   const SizedBox(width: 9),
                   Expanded(
@@ -1038,7 +1075,7 @@ class _AcceptRideState extends State<AcceptRide> {
                         Text(
                           _actionLabel,
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
@@ -1047,10 +1084,8 @@ class _AcceptRideState extends State<AcceptRide> {
                           _actionHint,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: danger
-                                ? const Color(0xFFABB5B9)
-                                : _ink.withOpacity(0.72),
+                          style: const TextStyle(
+                            color: Color(0xFFBFC7CA),
                             fontSize: 8.5,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1058,7 +1093,7 @@ class _AcceptRideState extends State<AcceptRide> {
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded, size: 21),
+                  const Icon(Icons.chevron_right_rounded, size: 20),
                 ],
               ),
             ),
@@ -1077,7 +1112,7 @@ class _AcceptRideState extends State<AcceptRide> {
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
           decoration: const BoxDecoration(
-            color: Color(0xFF151B1E),
+            color: Color(0xFFF7F9F8),
             borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
           ),
           child: SafeArea(
@@ -1093,7 +1128,7 @@ class _AcceptRideState extends State<AcceptRide> {
                 Text(
                   widget.riderName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: _ink,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1112,13 +1147,14 @@ class _AcceptRideState extends State<AcceptRide> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: _panel2,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: _line),
                   ),
                   child: const Text(
                     'Rider details from the booking will appear here when the backend profile is connected.',
                     style: TextStyle(
-                      color: Color(0xFFC2C9CC),
+                      color: _muted,
                       fontSize: 11,
                       height: 1.4,
                     ),
