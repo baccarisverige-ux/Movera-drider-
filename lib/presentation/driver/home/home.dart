@@ -2185,7 +2185,7 @@ class _DriverHomeState extends State<DriverHome>
         _offerSimulationTimer = Timer(
           const Duration(milliseconds: 11500),
           () {
-            if (!mounted || !_isOnline || showRideRequests) return;
+            if (!mounted || !_isOnline) return;
             _showRadarHomeOffer(_radarHomeOffer);
           },
         );
@@ -2193,7 +2193,7 @@ class _DriverHomeState extends State<DriverHome>
         _radarOfferTwoTimer = Timer(
           const Duration(milliseconds: 14500),
           () {
-            if (!mounted || !_isOnline || showRideRequests) return;
+            if (!mounted || !_isOnline) return;
             _showRadarHomeOffer(_radarHomeOffer2);
           },
         );
@@ -2201,7 +2201,7 @@ class _DriverHomeState extends State<DriverHome>
         _radarOfferThreeTimer = Timer(
           const Duration(milliseconds: 17500),
           () {
-            if (!mounted || !_isOnline || showRideRequests) return;
+            if (!mounted || !_isOnline) return;
             _showRadarHomeOffer(_radarHomeOffer3);
           },
         );
