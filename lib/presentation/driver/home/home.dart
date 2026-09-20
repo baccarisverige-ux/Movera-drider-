@@ -18,7 +18,6 @@ import 'package:movera/presentation/driver/my%20queue%20position/components/in_a
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
-import 'package:movera/presentation/driver/search%20location/pickup_location.dart';
 import 'package:movera/presentation/driver/side%20menu/side_menu.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
