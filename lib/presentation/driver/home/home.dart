@@ -226,6 +226,7 @@ class _DriverHomeState extends State<DriverHome>
     _ownsDriverSession = widget.sessionController == null;
     _driverSession = widget.sessionController ??
         DriverSessionController(initialOnline: widget.initialOnline);
+    _driverSession.addListener(_onDriverSessionChanged);
     _driverLocationService =
         widget.locationRepository ?? const DriverLocationService();
     _roadRouteService = widget.routeRepository ?? RoadRouteService();
@@ -251,6 +252,11 @@ class _DriverHomeState extends State<DriverHome>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeShowAppUpdatePrompt();
     });
+  }
+
+  void _onDriverSessionChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   Future<void> _startDriverLocation() async {
@@ -4568,6 +4574,7 @@ class _DriverHomeState extends State<DriverHome>
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
     _mapController?.dispose();
+    _driverSession.removeListener(_onDriverSessionChanged);
     if (_ownsDriverSession) {
       _driverSession.dispose();
     }
