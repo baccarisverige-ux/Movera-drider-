@@ -9,6 +9,7 @@ import 'package:movera/presentation/driver/home/components/radar_edge_dash.dart'
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
 import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
+import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
@@ -1155,6 +1156,60 @@ void main() {
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
     expect(find.byType(AcceptRide), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Matched ride flow moves safely through pickup, waiting and trip', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+
+    expect(find.text('Heading to pickup'), findsOneWidget);
+    expect(find.text('I’m at pickup'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-panel-headingToPickup')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    var action = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+    );
+    action.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 160));
+
+    expect(find.text('Waiting for rider'), findsOneWidget);
+    expect(find.text('Start trip'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-panel-waitingForRider')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    action = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+    );
+    action.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 160));
+
+    expect(find.textContaining('Dropping off'), findsOneWidget);
+    expect(find.text('Complete trip'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-panel-onTrip')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    action = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+    );
+    action.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 520));
+
+    expect(find.byType(DriverRideCompleted), findsOneWidget);
     _expectNoException(tester);
   });
 
