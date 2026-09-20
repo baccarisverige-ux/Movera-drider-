@@ -1348,7 +1348,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('On-trip Radar stays quiet and offers a next trip without interrupting navigation', (
+  testWidgets('On-trip Radar stays hidden until a near-dropoff offer exists', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1357,26 +1357,25 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
 
     await _slideActiveRideAction(tester);
-
     await _slideActiveRideAction(tester);
 
     expect(find.textContaining('Dropping off'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('on-trip-radar-strip')),
-      findsOneWidget,
+      find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
+      findsNothing,
     );
-    expect(find.text('Next trip Radar'), findsOneWidget);
-    expect(find.text('Scanning quietly while you drive'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('on-trip-radar-offer-sheet')),
       findsNothing,
     );
     _expectNoException(tester);
 
-    await tester.pump(const Duration(milliseconds: 4300));
+    await tester.pump(const Duration(milliseconds: 2400));
 
-    expect(find.text('Next trip available'), findsOneWidget);
-    expect(find.textContaining('128,40 kr'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
+      findsOneWidget,
+    );
     expect(find.textContaining('Dropping off'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('on-trip-radar-offer-sheet')),
@@ -1385,7 +1384,7 @@ void main() {
     _expectNoException(tester);
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('on-trip-radar-strip')),
+      find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
     );
     await tester.pump(const Duration(milliseconds: 260));
 
@@ -1400,15 +1399,6 @@ void main() {
       ),
       findsOneWidget,
     );
-    _expectNoException(tester);
-
-    await tester.tap(
-      find.byKey(const ValueKey<String>('on-trip-radar-match-next')),
-    );
-    await tester.pump(const Duration(milliseconds: 950));
-
-    expect(find.text('Next trip secured'), findsWidgets);
-    expect(find.textContaining('Dropping off'), findsOneWidget);
     _expectNoException(tester);
   });
 
@@ -1435,15 +1425,16 @@ void main() {
 
     await _slideActiveRideAction(tester);
 
-    await tester.pump(const Duration(milliseconds: 4300));
+    await tester.pump(const Duration(milliseconds: 2400));
     await tester.tap(
-      find.byKey(const ValueKey<String>('on-trip-radar-strip')),
+      find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
     );
     await tester.pump(const Duration(milliseconds: 260));
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('on-trip-radar-match-next')),
-    );
+    final matchNext =
+        find.byKey(const ValueKey<String>('on-trip-radar-match-next'));
+    await tester.ensureVisible(matchNext);
+    await tester.tap(matchNext);
     await tester.pump(const Duration(milliseconds: 1600));
 
     expect(
@@ -1473,7 +1464,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Current trip waybill is available from active ride options', (
+  testWidgets('Current trip waybill is directly visible in the active ride sheet', (
     WidgetTester tester,
   ) async {
     WaybillStore.reset();
@@ -1494,14 +1485,12 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 160));
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('active-ride-trip-options')),
-    );
-    await tester.pump(const Duration(milliseconds: 220));
+    final shortcut =
+        find.byKey(const ValueKey<String>('current-waybill-shortcut'));
+    await tester.ensureVisible(shortcut);
+    expect(shortcut, findsOneWidget);
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('current-trip-waybill-option')),
-    );
+    await tester.tap(shortcut);
     await tester.pump(const Duration(milliseconds: 320));
 
     expect(
