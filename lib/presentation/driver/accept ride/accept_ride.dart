@@ -167,30 +167,38 @@ class _AcceptRideState extends State<AcceptRide> {
                       8.height,
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TextWidget(
-                                text: "1141 central park",
-                                fontSize: 16,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TextWidget(
+                                  text: "1141 central park",
+                                  fontSize: 16,
+                                  fontWeight: fwSemiBold,
+                                  color: AppColor.title,
+                                ),
+                                TextWidget(
+                                  text: "2 km  - arrival time 19:35 ",
+                                  fontSize: 12,
+                                  fontWeight: fwNormal,
+                                  color: AppColor.title,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.topRight,
+                              child: TextWidget(
+                                text: "5 mins",
+                                fontSize: 24,
                                 fontWeight: fwSemiBold,
                                 color: AppColor.title,
                               ),
-                              TextWidget(
-                                text: "2 km  - arrival time 19:35 ",
-                                fontSize: 12,
-                                fontWeight: fwNormal,
-                                color: AppColor.title,
-                              ),
-                            ],
-                          ),
-                          TextWidget(
-                            text: "5 mins",
-                            fontSize: 24,
-                            fontWeight: fwSemiBold,
-                            color: AppColor.title,
+                            ),
                           ),
                         ],
                       ),

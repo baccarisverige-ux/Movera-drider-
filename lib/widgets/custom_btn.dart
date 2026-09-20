@@ -68,11 +68,16 @@ class CustomButton extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     icon,
-                    TextWidget(
-                      fontSize: ResSize.setSp(fontSize),
-                      text: centerContent,
-                      color: textColor,
-                      fontWeight: fwSemiBold,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: TextWidget(
+                          fontSize: ResSize.setSp(fontSize),
+                          text: centerContent,
+                          color: textColor,
+                          fontWeight: fwSemiBold,
+                        ),
+                      ),
                     ),
                   ],
                 ),

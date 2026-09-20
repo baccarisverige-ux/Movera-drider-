@@ -42,30 +42,34 @@ class DriverSideMenu extends StatelessWidget {
                         );
                       },
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: ResSize.w * 60,
-                                height: ResSize.h * 60,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  image: DecorationImage(
-                                    image: AssetImage(AppAssets.profileImg),
-                                    fit: BoxFit.cover,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: ResSize.w * 60,
+                                  height: ResSize.h * 60,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    image: DecorationImage(
+                                      image: AssetImage(AppAssets.profileImg),
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              12.width,
-                              TextWidget(
-                                text: "Marta Parker",
-                                color: AppColor.black,
-                                fontSize: 16,
-                                fontWeight: fwMedium,
-                              ),
-                            ],
+                                12.width,
+                                Expanded(
+                                  child: TextWidget(
+                                    text: "Marta Parker",
+                                    color: AppColor.black,
+                                    fontSize: 16,
+                                    fontWeight: fwMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          8.width,
                           Icon(
                             Icons.arrow_forward_ios_rounded,
                             size: ResSize.h * 14,
@@ -202,11 +206,13 @@ class DriverSideMenu extends StatelessWidget {
               ),
             ),
             16.width,
-            TextWidget(
-              text: title,
-              color: AppColor.black,
-              fontSize: 16,
-              fontWeight: fwMedium,
+            Expanded(
+              child: TextWidget(
+                text: title,
+                color: AppColor.black,
+                fontSize: 16,
+                fontWeight: fwMedium,
+              ),
             ),
           ],
         ),

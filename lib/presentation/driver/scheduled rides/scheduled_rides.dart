@@ -258,20 +258,28 @@ class _ScheduledRideCard extends StatelessWidget {
                         size: 17,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        ride.time,
-                        style: const TextStyle(
-                          color: Color(0xFF4E5A61),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                      Expanded(
+                        child: Text(
+                          ride.time,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF4E5A61),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                      const Spacer(),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  Row(
+                    children: [
                       _RideMeta(
                         icon: Icons.directions_car_outlined,
                         label: ride.category,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       _RideMeta(
                         icon: Icons.route_outlined,
                         label: ride.distance,
