@@ -12,6 +12,7 @@ import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dar
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 Future<void> _pumpHome(WidgetTester tester, Size size) async {
   await tester.binding.setSurfaceSize(size);
