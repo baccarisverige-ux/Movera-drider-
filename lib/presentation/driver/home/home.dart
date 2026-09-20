@@ -371,11 +371,8 @@ class _DriverHomeState extends State<DriverHome>
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     if (data == null || !mounted) return;
 
-    final icon = BitmapDescriptor.bytes(
+    final icon = BitmapDescriptor.fromBytes(
       data.buffer.asUint8List(),
-      width: 48,
-      height: 48,
-      bitmapScaling: MapBitmapScaling.auto,
     );
 
     if (!mounted) return;
