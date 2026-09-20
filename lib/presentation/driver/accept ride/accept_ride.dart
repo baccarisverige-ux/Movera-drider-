@@ -1497,13 +1497,11 @@ class _AcceptRideState extends State<AcceptRide> {
       ),
       child: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: Center(
                 child: Container(
                   width: 42,
                   height: 4,
@@ -1513,60 +1511,79 @@ class _AcceptRideState extends State<AcceptRide> {
                   ),
                 ),
               ),
-              const SizedBox(height: 13),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                key: const PageStorageKey<String>('active-ride-scroll'),
+                padding: const EdgeInsets.fromLTRB(16, 13, 16, 10),
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _stagePill(),
-                        const SizedBox(height: 8),
-                        Text(
-                          _title,
-                          style: const TextStyle(
-                            color: _ink,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.55,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _stagePill(),
+                              const SizedBox(height: 8),
+                              Text(
+                                _title,
+                                style: const TextStyle(
+                                  color: _ink,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.55,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _subtitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _muted,
+                                  fontSize: 10.5,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              _liveStatus(),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _muted,
-                            fontSize: 10.5,
-                            height: 1.35,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 7),
-                        _liveStatus(),
+                        const SizedBox(width: 10),
+                        _buildEtaTile(),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  _buildEtaTile(),
-                ],
+                    const SizedBox(height: 14),
+                    _buildProgress(),
+                    if (_stage == _RideStage.onTrip) ...[
+                      const SizedBox(height: 10),
+                      _buildOnTripRadarStrip(),
+                    ],
+                    const SizedBox(height: 14),
+                    _buildRiderRow(),
+                    if (_stage == _RideStage.onTrip)
+                      _buildSecuredNextTripDetails(),
+                  ],
+                ),
               ),
-              const SizedBox(height: 14),
-              _buildProgress(),
-              if (_stage == _RideStage.onTrip) ...[
-                const SizedBox(height: 10),
-                _buildOnTripRadarStrip(),
-              ],
-              const SizedBox(height: 14),
-              _buildRiderRow(),
-              const SizedBox(height: 14),
-              _buildPrimaryAction(),
-              if (_stage == _RideStage.onTrip)
-                _buildSecuredNextTripDetails(),
-            ],
-          ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: Color(0xFFF0F2F3)),
+                ),
+              ),
+              child: _buildPrimaryAction(),
+            ),
+          ],
         ),
       ),
     );
