@@ -686,8 +686,9 @@ class _DriverHomeState extends State<DriverHome>
 
           Visibility(
             visible: true,
-            child: Padding(
-              padding: EdgeInsets.symmetric(
+            child: PointerInterceptor(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
                 vertical: ResSize.h * 55,
                 horizontal: screenHorizPadding,
               ),
@@ -852,7 +853,8 @@ class _DriverHomeState extends State<DriverHome>
                       padding: EdgeInsets.only(top: ResSize.h * 12),
                       child: InAirportQueue(),
                     ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
