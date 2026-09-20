@@ -282,6 +282,9 @@ class _RideRequestsState extends State<RideRequests> {
           BottomToTopTransition(
             AcceptRide(
               offerId: trip.id,
+              fare: trip.fare,
+              category: trip.category,
+              matchedVia: 'Movera Radar',
               pickupAddress: trip.pickup,
               pickupArea: trip.pickup.split(',').last.trim(),
               dropoffAddress: trip.dropoff,
