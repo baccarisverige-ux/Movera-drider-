@@ -4,6 +4,7 @@ import 'package:movera/main.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
+import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
@@ -206,6 +207,85 @@ void main() {
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
     expect(find.text('OFFLINE'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Online state survives Scheduled Rides navigation and return', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFFLINE'));
+    await tester.pump(const Duration(milliseconds: 1550));
+    expect(find.text('SCANNING'), findsOneWidget);
+
+    await _openPanel(tester);
+    final scheduled = find.byTooltip('Scheduled').hitTestable();
+    expect(scheduled, findsOneWidget);
+    await tester.tap(scheduled);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ScheduledRidesScreen), findsOneWidget);
+    _expectNoException(tester);
+
+    Navigator.of(tester.element(find.byType(ScheduledRidesScreen))).pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DriverHome), findsOneWidget);
+    expect(find.text('SCANNING'), findsOneWidget);
+    expect(find.text('Go offline'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Going offline cancels pending direct-offer state', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFFLINE'));
+    await tester.pump(const Duration(milliseconds: 1550));
+    expect(find.text('SCANNING'), findsOneWidget);
+
+    await _openPanel(tester);
+    final goOfflineText = find.text('Go offline');
+    final goOfflineButton = find.ancestor(
+      of: goOfflineText,
+      matching: find.byType(OutlinedButton),
+    );
+    final button = tester.widget<OutlinedButton>(goOfflineButton);
+    button.onPressed!.call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+
+    expect(find.text('OFFLINE'), findsOneWidget);
+
+    // Advance beyond the first direct-offer timer. Nothing may appear offline.
+    await tester.pump(const Duration(milliseconds: 4200));
+    expect(find.text('104,80 kr'), findsNothing);
+    expect(find.text('Direct request outside radar'), findsNothing);
+    expect(find.text('OFFLINE'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Direct offer timeout returns Home to scanning state', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFFLINE'));
+    await tester.pump(const Duration(milliseconds: 3800));
+
+    expect(find.text('104,80 kr'), findsOneWidget);
+    expect(find.text('SCANNING'), findsOneWidget);
+
+    // The direct offer auto-dismisses 8.5s after it appears.
+    await tester.pump(const Duration(milliseconds: 8700));
+
+    expect(find.text('104,80 kr'), findsNothing);
+    expect(find.text('Direct request outside radar'), findsNothing);
+    expect(find.text('SCANNING'), findsOneWidget);
     _expectNoException(tester);
   });
 
