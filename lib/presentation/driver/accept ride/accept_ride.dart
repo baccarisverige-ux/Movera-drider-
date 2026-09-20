@@ -684,9 +684,7 @@ class _AcceptRideState extends State<AcceptRide> {
             return Container(
               key: const ValueKey<String>('on-trip-radar-offer-sheet'),
               constraints: BoxConstraints(
-                maxHeight: (View.of(context).physicalSize.height /
-                View.of(context).devicePixelRatio) *
-            0.82,
+                maxHeight: MediaQuery.sizeOf(context).height * 0.82,
               ),
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
               decoration: const BoxDecoration(
@@ -2085,9 +2083,7 @@ class _AcceptRideState extends State<AcceptRide> {
       builder: (sheetContext) {
         return Container(
           constraints: BoxConstraints(
-            maxHeight: (View.of(sheetContext).physicalSize.height /
-                View.of(sheetContext).devicePixelRatio) *
-            0.72,
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
           ),
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
           decoration: const BoxDecoration(
@@ -2160,9 +2156,7 @@ class _AcceptRideState extends State<AcceptRide> {
       builder: (sheetContext) {
         return Container(
           constraints: BoxConstraints(
-            maxHeight: (View.of(sheetContext).physicalSize.height /
-                View.of(sheetContext).devicePixelRatio) *
-            0.78,
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.78,
           ),
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
           decoration: const BoxDecoration(
