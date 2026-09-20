@@ -15,6 +15,7 @@ import 'package:movera/presentation/driver/home/components/account_activation_di
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
+import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
@@ -1068,10 +1069,18 @@ class _DriverHomeState extends State<DriverHome>
               child: IgnorePointer(
                 key: const ValueKey<String>('today-summary-pointer'),
                 ignoring: !_showTodaySummaryPopup,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 260),
-                  opacity: _showTodaySummaryPopup ? 1 : 0,
-                  child: _buildTodaySummaryPopup(),
+                child: AnimatedScale(
+                  scale: _showTodaySummaryPopup ? 1 : 0.94,
+                  duration: const Duration(milliseconds: 300),
+                  curve: _showTodaySummaryPopup
+                      ? Curves.easeOutBack
+                      : Curves.easeInCubic,
+                  alignment: Alignment.topLeft,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 220),
+                    opacity: _showTodaySummaryPopup ? 1 : 0,
+                    child: _buildTodaySummaryPopup(),
+                  ),
                 ),
               ),
             ),
@@ -1488,11 +1497,49 @@ class _DriverHomeState extends State<DriverHome>
                     style: TextStyle(
                       color: Color(0xFF252E3A),
                       fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
                     ),
                   ),
                 ),
+                InkWell(
+                  key: const ValueKey<String>('today-history-button'),
+                  onTap: () {
+                    _hideTodaySummary();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const DriverRideHistory(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'History',
+                          style: TextStyle(
+                            color: Color(0xFF315E4D),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(width: 3),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Color(0xFF315E4D),
+                          size: 10,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
                 InkWell(
                   onTap: _hideTodaySummary,
                   borderRadius: BorderRadius.circular(16),
@@ -1513,8 +1560,18 @@ class _DriverHomeState extends State<DriverHome>
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F7F7),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFF6F8F7),
+                    Color(0xFFF1F5F3),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(17),
+                border: Border.all(
+                  color: const Color(0xFFE5EBE8),
+                ),
               ),
               child: Row(
                 children: [
