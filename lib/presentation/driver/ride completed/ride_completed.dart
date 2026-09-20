@@ -16,7 +16,12 @@ import 'package:movera/widgets/sizedbox_extention.dart';
 // Project utilities and widgets (following existing import style in the repo)
 
 class DriverRideCompleted extends StatefulWidget {
-  const DriverRideCompleted({super.key});
+  const DriverRideCompleted({
+    super.key,
+    this.waybillRepository,
+  });
+
+  final WaybillRepository? waybillRepository;
 
   @override
   State<DriverRideCompleted> createState() => _DriverRideCompletedState();
