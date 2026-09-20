@@ -2481,6 +2481,11 @@ class _AcceptRideState extends State<AcceptRide> {
 
   void _submitTripCancellation(_TripCancellationReason reason) {
     _waitTimer?.cancel();
+    _nextTripRadarDemoTimer?.cancel();
+    _nextTripRadarMatchTimer?.cancel();
+    _routeRequestToken++;
+    WaybillStore.current = null;
+    WaybillStore.clearNext();
 
     // Frontend contract: reason.code is ready to be sent with the backend
     // cancellation event once trip persistence is connected.
