@@ -5,6 +5,7 @@ import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
+import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
@@ -245,6 +246,63 @@ void main() {
     await _closePanel(tester);
     panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     expect((panel.body! as AbsorbPointer).absorbing, isFalse);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Full radar orb responds near its outer edge', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final target = find.byKey(
+      const ValueKey<String>('trip-radar-touch-target'),
+    );
+    expect(target, findsOneWidget);
+    expect(tester.getSize(target), const Size(104, 104));
+
+    final rect = tester.getRect(target);
+    await tester.tapAt(Offset(rect.right - 4, rect.center.dy));
+    await tester.pump();
+
+    expect(find.text('STARTING'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1550));
+    expect(find.text('LIVE'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Closing radar list keeps alert while nearby offers remain', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFF'));
+    await tester.pump(const Duration(milliseconds: 1550));
+    expect(find.text('LIVE'), findsOneWidget);
+
+    // First direct offer.
+    await tester.pump(const Duration(milliseconds: 2300));
+    expect(find.text('104,80 kr'), findsOneWidget);
+
+    // Let it expire, then allow the second direct-offer condition to run.
+    await tester.pump(const Duration(milliseconds: 9000));
+    await tester.pump(const Duration(milliseconds: 2100));
+    await tester.pump(const Duration(milliseconds: 9000));
+
+    // Normal radar offer arrives later and opens the radar list.
+    await tester.pump(const Duration(milliseconds: 2600));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(RideRequests), findsOneWidget);
+    _expectNoException(tester);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(find.byType(RideRequests), findsNothing);
+    expect(find.text('Trip found'), findsOneWidget);
+    expect(find.text('NEW'), findsOneWidget);
     _expectNoException(tester);
   });
 
@@ -561,6 +619,22 @@ void main() {
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
     expect(find.byType(AcceptRide), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Direct offer shows a visible expiry countdown', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFF'));
+    await tester.pump(const Duration(milliseconds: 3800));
+
+    expect(find.text('Direct request outside radar'), findsOneWidget);
+    expect(find.textContaining('Direct offer · '), findsOneWidget);
+    expect(find.text('Limited time'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
     _expectNoException(tester);
   });
 
