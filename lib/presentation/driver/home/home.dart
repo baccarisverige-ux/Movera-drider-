@@ -1407,6 +1407,9 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Widget body({bool isDestinationPanel = false}) {
+    final view = View.of(context);
+    final viewportWidth = view.physicalSize.width / view.devicePixelRatio;
+
     return SizedBox(
       height: MediaQuery.of(context).size.height,
       width: double.infinity,
@@ -1734,7 +1737,7 @@ class _DriverHomeState extends State<DriverHome>
               _pendingRadarHomeOffers.isNotEmpty)
             Positioned(
               left: 14,
-              right: 14,
+              width: math.max(0, viewportWidth - 28),
               bottom: 178,
               child: _buildRadarRefreshPrompt(),
             ),
@@ -1744,7 +1747,7 @@ class _DriverHomeState extends State<DriverHome>
               _radarHomeOffers.isNotEmpty)
             Positioned(
               left: 14,
-              right: 14,
+              width: math.max(0, viewportWidth - 28),
               bottom: 178,
               child: _buildRadarOffersTray(),
             ),
