@@ -285,7 +285,7 @@ class _RideRequestsState extends State<RideRequests> {
     });
 
     _matchNoticeTimer = Timer(
-      const Duration(milliseconds: 850),
+      const Duration(milliseconds: 500),
       () {
         if (!mounted) return;
         setState(() => _matchNotice = null);
