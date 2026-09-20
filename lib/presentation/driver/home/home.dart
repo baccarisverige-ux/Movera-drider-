@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 // ignore_for_file: deprecated_member_use
@@ -235,18 +236,6 @@ class _DriverHomeState extends State<DriverHome>
       _destinationRoutePolylines = {
         Polyline(
           polylineId: const PolylineId('destination_mode_route'),
-          points: const [_driverPosition],
-          color: AppColor.primary,
-          width: 6,
-          geodesic: true,
-        ),
-      };
-    });
-
-    setState(() {
-      _destinationRoutePolylines = {
-        Polyline(
-          polylineId: const PolylineId('destination_mode_route'),
           points: [_driverPosition, destination],
           color: AppColor.primary,
           width: 6,
@@ -312,6 +301,35 @@ class _DriverHomeState extends State<DriverHome>
     return '${firstPart.substring(0, 21)}…';
   }
 
+  bool _directOfferFollowsDestination(_HomeDirectOffer offer) {
+    if (!_destinationModeActive) return true;
+    final destination = _destinationPosition;
+    if (destination == null) return true;
+
+    final latitudeRadians = _driverPosition.latitude * math.pi / 180;
+    final longitudeScale = math.cos(latitudeRadians);
+
+    final destinationX =
+        (destination.longitude - _driverPosition.longitude) * longitudeScale;
+    final destinationY = destination.latitude - _driverPosition.latitude;
+    final offerX =
+        (offer.dropoffPosition.longitude - _driverPosition.longitude) *
+        longitudeScale;
+    final offerY =
+        offer.dropoffPosition.latitude - _driverPosition.latitude;
+
+    final destinationLength = math.sqrt(
+      destinationX * destinationX + destinationY * destinationY,
+    );
+    final offerLength = math.sqrt(offerX * offerX + offerY * offerY);
+    if (destinationLength == 0 || offerLength == 0) return true;
+
+    final cosine =
+        (destinationX * offerX + destinationY * offerY) /
+        (destinationLength * offerLength);
+    return cosine >= 0.45;
+  }
+
   void _clearDirectOfferRoute() {
     if (!mounted) return;
     setState(() {
@@ -327,6 +345,7 @@ class _DriverHomeState extends State<DriverHome>
     if (!mounted ||
         !_isOnline ||
         showRideRequests ||
+        !_directOfferFollowsDestination(offer) ||
         _mainPanelPosition > 0.04 ||
         isPanelOpen) {
       return;
@@ -715,6 +734,9 @@ class _DriverHomeState extends State<DriverHome>
                           _mapControlDivider(),
                           Expanded(
                             child: InkWell(
+                              key: const ValueKey<String>(
+                                'destination-mode-open',
+                              ),
                               onTap: _openDestinationModePicker,
                               child: Center(
                                 child: Image.asset(
