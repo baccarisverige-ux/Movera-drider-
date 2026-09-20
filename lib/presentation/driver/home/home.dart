@@ -1396,11 +1396,9 @@ class _DriverHomeState extends State<DriverHome>
       animation: _goOnlinePulseController,
       builder: (context, child) {
         return _buildRadarOrb(
-          title: isAccountActivated ? "Trip radar" : "Account pending",
-          status: isAccountActivated ? "OFFLINE" : "UNAVAILABLE",
-          subtitle: isAccountActivated
-              ? "Tap to start\nscanning"
-              : "Activation required",
+          title: isAccountActivated ? "Radar" : "Pending",
+          status: isAccountActivated ? "OFF" : "LOCKED",
+          subtitle: isAccountActivated ? "Tap to scan" : "Activation required",
           onTap: _goOnline,
           pulse: _goOnlinePulseController.value,
         );
@@ -1413,9 +1411,9 @@ class _DriverHomeState extends State<DriverHome>
       animation: _radarSweepController,
       builder: (context, child) {
         return _buildRadarOrb(
-          title: "Trip radar",
-          status: "CONNECTING",
-          subtitle: "Starting nearby\nride scanning",
+          title: "Radar",
+          status: "STARTING",
+          subtitle: "Going live",
           active: true,
           loading: true,
           sweep: _radarSweepController.value,
@@ -1432,11 +1430,9 @@ class _DriverHomeState extends State<DriverHome>
       ]),
       builder: (context, child) {
         return _buildRadarOrb(
-          title: _hasRideOffers ? "New ride" : "Finding new trips",
-          status: _hasRideOffers ? "RIDE AVAILABLE" : "SCANNING",
-          subtitle: _hasRideOffers
-              ? "Tap to view\nthe offer"
-              : "Searching nearby\nrequests",
+          title: _hasRideOffers ? "Trip found" : "Radar",
+          status: _hasRideOffers ? "NEW" : "LIVE",
+          subtitle: _hasRideOffers ? "Tap to view" : "Scanning",
           active: true,
           offer: _hasRideOffers,
           pulse: _goOnlinePulseController.value,
@@ -1459,8 +1455,14 @@ class _DriverHomeState extends State<DriverHome>
     double sweep = 0,
   }) {
     const mint = Color(0xFF58E5A6);
-    final glowStrength = active ? 0.12 + (pulse * 0.28) : 0.08;
-    final ringScale = active ? 0.76 + (pulse * 0.40) : 1.0;
+    const detectedGold = Color(0xFFFFD166);
+    const detectedAmber = Color(0xFFFFA94D);
+    final accent = offer
+        ? Color.lerp(detectedGold, detectedAmber, pulse) ?? detectedGold
+        : mint;
+    final glowStrength = active ? 0.14 + (pulse * 0.30) : 0.08;
+    final ringScale = active ? 0.74 + (pulse * 0.38) : 1.0;
+    final secondWaveScale = active ? 0.84 + ((1 - pulse) * 0.24) : 1.0;
 
     return Semantics(
       button: true,
@@ -1478,20 +1480,36 @@ class _DriverHomeState extends State<DriverHome>
                 height: 102,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: mint.withOpacity(active ? 0.035 : 0.025),
+                  color: accent.withOpacity(active ? 0.04 : 0.025),
                   border: Border.all(
-                    color: mint.withOpacity(active ? 0.22 : 0.15),
+                    color: accent.withOpacity(active ? 0.30 : 0.15),
                     width: 1.2,
                   ),
                 ),
               ),
             ),
+            if (active)
+              Transform.scale(
+                scale: secondWaveScale,
+                child: Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent.withOpacity(offer ? 0.045 : 0.025),
+                    border: Border.all(
+                      color: accent.withOpacity(offer ? 0.42 : 0.20),
+                      width: offer ? 1.35 : 1.0,
+                    ),
+                  ),
+                ),
+              ),
             Container(
               width: 90,
               height: 90,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: mint.withOpacity(active ? 0.045 : 0.03),
+                color: accent.withOpacity(active ? 0.045 : 0.03),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.72),
                   width: 1.2,
@@ -1505,12 +1523,12 @@ class _DriverHomeState extends State<DriverHome>
                 shape: BoxShape.circle,
                 color: const Color(0xFFBFD9CF).withOpacity(0.12),
                 border: Border.all(
-                  color: mint.withOpacity(active ? 0.30 : 0.19),
+                  color: accent.withOpacity(active ? 0.38 : 0.19),
                   width: 1.1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: mint.withOpacity(glowStrength),
+                    color: accent.withOpacity(glowStrength),
                     blurRadius: active ? 19 : 11,
                     spreadRadius: active ? 5 : 2,
                   ),
@@ -1534,8 +1552,8 @@ class _DriverHomeState extends State<DriverHome>
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            mint.withOpacity(0),
-                            mint.withOpacity(0.72),
+                            accent.withOpacity(0),
+                            accent.withOpacity(offer ? 0.95 : 0.78),
                           ],
                         ),
                       ),
@@ -1565,8 +1583,10 @@ class _DriverHomeState extends State<DriverHome>
                     stops: [0, 0.58, 1],
                   ),
                   border: Border.all(
-                    color: const Color(0xD9E7ECEE),
-                    width: 1.6,
+                    color: offer
+                        ? accent.withOpacity(0.82)
+                        : const Color(0xD9E7ECEE),
+                    width: offer ? 1.9 : 1.6,
                   ),
                   boxShadow: const [
                     BoxShadow(
@@ -1584,8 +1604,8 @@ class _DriverHomeState extends State<DriverHome>
                 child: InkWell(
                   onTap: onTap,
                   customBorder: const CircleBorder(),
-                  splashColor: mint.withOpacity(0.12),
-                  highlightColor: mint.withOpacity(0.06),
+                  splashColor: accent.withOpacity(0.14),
+                  highlightColor: accent.withOpacity(0.07),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -1605,14 +1625,11 @@ class _DriverHomeState extends State<DriverHome>
                           width: offer ? 7 : 5,
                           height: offer ? 7 : 5,
                           decoration: BoxDecoration(
-                            color: offer ? const Color(0xFFFFD166) : mint,
+                            color: accent,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: (offer
-                                        ? const Color(0xFFFFD166)
-                                        : mint)
-                                    .withOpacity(0.82),
+                                color: accent.withOpacity(0.86),
                                 blurRadius: offer ? 11 : 7,
                                 spreadRadius: offer ? 2.5 : 1,
                               ),
@@ -1644,12 +1661,12 @@ class _DriverHomeState extends State<DriverHome>
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: offer
-                                    ? const Color(0xFFFFD166)
-                                    : const Color(0xFFD8E1DE),
-                                fontSize: 5.4,
+                                    ? accent
+                                    : const Color(0xFFE2E9E6),
+                                fontSize: 6.1,
                                 height: 1,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.0,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.9,
                               ),
                             ),
                             const SizedBox(height: 3),
@@ -1680,7 +1697,7 @@ class _DriverHomeState extends State<DriverHome>
                             height: 8,
                             child: CircularProgressIndicator(
                               strokeWidth: 1.1,
-                              color: mint.withOpacity(0.85),
+                              color: accent.withOpacity(0.90),
                             ),
                           ),
                         ),
