@@ -4,34 +4,32 @@ enum ActiveRideStage {
   headingToPickup,
   waitingForRider,
   onTrip,
-  completed,
-  cancelled,
 }
 
-/// Owns the authoritative lifecycle state for one active ride.
+/// Single source of truth for the lifecycle stage of one active ride.
 ///
-/// UI widgets can render this state, but they should not invent independent
-/// ride stages. Backend persistence/recovery can later be attached here.
+/// Terminal outcomes are tracked separately so presentation switches only need
+/// to render the three live stages. Backend persistence/recovery can attach to
+/// this controller without moving lifecycle rules back into widgets.
 class ActiveRideController extends ChangeNotifier {
   ActiveRideStage _stage = ActiveRideStage.headingToPickup;
+  bool _completed = false;
+  bool _cancelled = false;
 
   ActiveRideStage get stage => _stage;
+  bool get completed => _completed;
+  bool get cancelled => _cancelled;
+  bool get terminal => _completed || _cancelled;
 
   bool transitionTo(ActiveRideStage next) {
+    if (terminal) return false;
     if (next == _stage) return true;
 
     final allowed = switch (_stage) {
       ActiveRideStage.headingToPickup =>
-        next == ActiveRideStage.waitingForRider ||
-            next == ActiveRideStage.cancelled,
-      ActiveRideStage.waitingForRider =>
-        next == ActiveRideStage.onTrip ||
-            next == ActiveRideStage.cancelled,
-      ActiveRideStage.onTrip =>
-        next == ActiveRideStage.completed ||
-            next == ActiveRideStage.cancelled,
-      ActiveRideStage.completed => false,
-      ActiveRideStage.cancelled => false,
+        next == ActiveRideStage.waitingForRider,
+      ActiveRideStage.waitingForRider => next == ActiveRideStage.onTrip,
+      ActiveRideStage.onTrip => false,
     };
 
     if (!allowed) return false;
@@ -41,7 +39,17 @@ class ActiveRideController extends ChangeNotifier {
     return true;
   }
 
-  bool complete() => transitionTo(ActiveRideStage.completed);
+  bool complete() {
+    if (terminal || _stage != ActiveRideStage.onTrip) return false;
+    _completed = true;
+    notifyListeners();
+    return true;
+  }
 
-  bool cancel() => transitionTo(ActiveRideStage.cancelled);
+  bool cancel() {
+    if (terminal) return false;
+    _cancelled = true;
+    notifyListeners();
+    return true;
+  }
 }
