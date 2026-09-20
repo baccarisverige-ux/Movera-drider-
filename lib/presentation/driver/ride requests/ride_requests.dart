@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/widgets/navigation_transition.dart';
@@ -53,6 +54,8 @@ class _RideRequestsState extends State<RideRequests> {
       tripKm: 10.5,
       pickup: 'Hantverkargatan 4, Stockholm',
       dropoff: 'Trollesundsvägen 58B, Bandhagen',
+      pickupPosition: LatLng(59.3295, 18.0475),
+      dropoffPosition: LatLng(59.2705, 18.0515),
       isNearby: true,
       followsDestination: false,
     ),
@@ -67,6 +70,8 @@ class _RideRequestsState extends State<RideRequests> {
       tripKm: 8.7,
       pickup: 'Klarabergsgatan, Stockholm',
       dropoff: 'Ringvägen, Södermalm',
+      pickupPosition: LatLng(59.3316, 18.0592),
+      dropoffPosition: LatLng(59.3125, 18.0750),
       isNearby: true,
       followsDestination: true,
     ),
@@ -81,6 +86,8 @@ class _RideRequestsState extends State<RideRequests> {
       tripKm: 14.2,
       pickup: 'Strandvägen, Stockholm',
       dropoff: 'Solna centrum, Solna',
+      pickupPosition: LatLng(59.3332, 18.0916),
+      dropoffPosition: LatLng(59.3599, 18.0002),
       isNearby: true,
       followsDestination: true,
     ),
@@ -95,6 +102,8 @@ class _RideRequestsState extends State<RideRequests> {
       tripKm: 11.8,
       pickup: 'Outside local radar area',
       dropoff: 'Stockholm',
+      pickupPosition: LatLng(59.5000, 18.3000),
+      dropoffPosition: LatLng(59.3293, 18.0686),
       isNearby: false,
       followsDestination: false,
     ),
@@ -112,6 +121,8 @@ class _RideRequestsState extends State<RideRequests> {
       tripKm: 7.4,
       pickup: 'Vasagatan, Stockholm',
       dropoff: 'Gärdet, Stockholm',
+      pickupPosition: LatLng(59.3323, 18.0576),
+      dropoffPosition: LatLng(59.3417, 18.1004),
       isNearby: true,
       followsDestination: true,
     ),
@@ -126,6 +137,8 @@ class _RideRequestsState extends State<RideRequests> {
       tripKm: 12.1,
       pickup: 'Odengatan, Stockholm',
       dropoff: 'Liljeholmen, Stockholm',
+      pickupPosition: LatLng(59.3427, 18.0520),
+      dropoffPosition: LatLng(59.3105, 18.0232),
       isNearby: true,
       followsDestination: false,
     ),
@@ -266,7 +279,16 @@ class _RideRequestsState extends State<RideRequests> {
         setState(() => _matchNotice = null);
         Navigator.push(
           context,
-          BottomToTopTransition(const AcceptRide()),
+          BottomToTopTransition(
+            AcceptRide(
+              offerId: trip.id,
+              pickupAddress: trip.pickup,
+              pickupArea: trip.pickup.split(',').last.trim(),
+              dropoffAddress: trip.dropoff,
+              pickupPosition: trip.pickupPosition,
+              dropoffPosition: trip.dropoffPosition,
+            ),
+          ),
         );
       },
     );
@@ -1017,6 +1039,8 @@ class _RadarTrip {
     required this.tripKm,
     required this.pickup,
     required this.dropoff,
+    required this.pickupPosition,
+    required this.dropoffPosition,
     required this.isNearby,
     this.followsDestination = false,
   });
@@ -1031,6 +1055,8 @@ class _RadarTrip {
   final double tripKm;
   final String pickup;
   final String dropoff;
+  final LatLng pickupPosition;
+  final LatLng dropoffPosition;
   final bool isNearby;
   final bool followsDestination;
 }
