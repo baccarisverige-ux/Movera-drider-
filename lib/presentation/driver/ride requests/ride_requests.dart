@@ -271,30 +271,36 @@ class _RideRequestsState extends State<RideRequests> {
       padding: const EdgeInsets.fromLTRB(18, 7, 18, 10),
       child: Row(
         children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nearby trips',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Nearby trips',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-              SizedBox(height: 3),
-              Text(
-                'Only requests around your current area',
-                style: TextStyle(
-                  color: Color(0xFFAEB8BD),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                SizedBox(height: 3),
+                Text(
+                  'Only requests around your current area',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Color(0xFFAEB8BD),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 12),
           Container(
             constraints: const BoxConstraints(minWidth: 34),
             height: 34,
