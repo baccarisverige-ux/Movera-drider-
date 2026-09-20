@@ -383,9 +383,16 @@ void main() {
     tester.widget<InkWell>(launcherInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
-    expect(find.text('Today').hitTestable(), findsOneWidget);
-    expect(find.text('183.25 kr').hitTestable(), findsOneWidget);
-    expect(find.text('3 rides').hitTestable(), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('183.25 kr'), findsOneWidget);
+    expect(find.text('3 rides'), findsOneWidget);
+    var summaryPointer = tester.widget<IgnorePointer>(
+      find.ancestor(
+        of: find.text('Today'),
+        matching: find.byType(IgnorePointer),
+      ),
+    );
+    expect(summaryPointer.ignoring, isFalse);
     _expectNoException(tester);
 
     final closeIcon = find.byIcon(Icons.close_rounded);
@@ -395,7 +402,13 @@ void main() {
     );
     tester.widget<InkWell>(closeInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
-    expect(find.text('Today').hitTestable(), findsNothing);
+    summaryPointer = tester.widget<IgnorePointer>(
+      find.ancestor(
+        of: find.text('Today'),
+        matching: find.byType(IgnorePointer),
+      ),
+    );
+    expect(summaryPointer.ignoring, isTrue);
     expect(find.byIcon(Icons.insights_rounded), findsOneWidget);
     _expectNoException(tester);
 
@@ -405,12 +418,24 @@ void main() {
     );
     tester.widget<InkWell>(launcherAgain).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
-    expect(find.text('Today').hitTestable(), findsOneWidget);
+    summaryPointer = tester.widget<IgnorePointer>(
+      find.ancestor(
+        of: find.text('Today'),
+        matching: find.byType(IgnorePointer),
+      ),
+    );
+    expect(summaryPointer.ignoring, isFalse);
 
     await tester.tap(find.text('OFFLINE'));
     await tester.pump(const Duration(milliseconds: 1550));
     expect(find.text('SCANNING'), findsOneWidget);
-    expect(find.text('Today').hitTestable(), findsNothing);
+    summaryPointer = tester.widget<IgnorePointer>(
+      find.ancestor(
+        of: find.text('Today'),
+        matching: find.byType(IgnorePointer),
+      ),
+    );
+    expect(summaryPointer.ignoring, isTrue);
     _expectNoException(tester);
   });
 
