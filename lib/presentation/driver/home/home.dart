@@ -5,7 +5,10 @@ import 'dart:ui' as ui;
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:movera/core/location/driver_location_service.dart';
+import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
@@ -57,7 +60,13 @@ class _DriverHomeState extends State<DriverHome>
       <String, _HomeRadarMatchState>{};
   String? _homeRadarMatchingOfferId;
   _HomeRadarMatchNotice? _homeRadarMatchNotice;
+  final DriverLocationService _driverLocationService =
+      const DriverLocationService();
+  final RoadRouteService _roadRouteService = RoadRouteService();
+
   GoogleMapController? _mapController;
+  StreamSubscription<Position>? _driverLocationSubscription;
+  bool _hasLiveDriverLocation = false;
   bool isPanelOpen = false;
   bool _blockMapGestures = false;
   bool _sheetPointerActive = false;
@@ -91,9 +100,10 @@ class _DriverHomeState extends State<DriverHome>
   Set<Polyline> _destinationRoutePolylines = {};
   bool _isDirectOfferRoutePreview = false;
 
-  static const LatLng _driverPosition = LatLng(59.3293, 18.0686);
+  static const LatLng _fallbackDriverPosition = LatLng(59.3293, 18.0686);
+  LatLng _driverPosition = _fallbackDriverPosition;
   static const CameraPosition _initialPosition = CameraPosition(
-    target: _driverPosition,
+    target: _fallbackDriverPosition,
     zoom: 14.0,
   );
 
@@ -194,14 +204,61 @@ class _DriverHomeState extends State<DriverHome>
       duration: const Duration(milliseconds: 1600),
     )..repeat();
     _loadMarkers();
+    _startDriverLocation();
+  }
+
+  Future<void> _startDriverLocation() async {
+    try {
+      final position = await _driverLocationService.getCurrentPosition();
+      if (!mounted) return;
+      _applyDriverLocation(position);
+
+      _driverLocationSubscription?.cancel();
+      _driverLocationSubscription = _driverLocationService
+          .watchPosition(distanceFilterMeters: 8)
+          .listen(
+        _applyDriverLocation,
+        onError: (_) {
+          if (!mounted) return;
+          setState(() => _hasLiveDriverLocation = false);
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _hasLiveDriverLocation = false);
+    }
+  }
+
+  void _applyDriverLocation(Position position) {
+    if (!mounted) return;
+
+    final next = LatLng(position.latitude, position.longitude);
+    setState(() {
+      _driverPosition = next;
+      _hasLiveDriverLocation = true;
+      _markers = {
+        Marker(
+          markerId: const MarkerId('driver_location'),
+          position: next,
+          infoWindow: const InfoWindow(title: 'Your live location'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueBlue,
+          ),
+        ),
+      };
+    });
+
+    if (_destinationModeActive) {
+      _refreshDestinationRoadRoute();
+    }
   }
 
   void _loadMarkers() {
     _markers.add(
       Marker(
-        markerId: MarkerId('driver_location'),
+        markerId: const MarkerId('driver_location'),
         position: _driverPosition,
-        infoWindow: InfoWindow(title: 'Your Location'),
+        infoWindow: const InfoWindow(title: 'Your location'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ),
     );
@@ -211,18 +268,7 @@ class _DriverHomeState extends State<DriverHome>
     LatLng pickup,
     LatLng dropoff,
   ) async {
-    final south = pickup.latitude < dropoff.latitude
-        ? pickup.latitude
-        : dropoff.latitude;
-    final north = pickup.latitude > dropoff.latitude
-        ? pickup.latitude
-        : dropoff.latitude;
-    final west = pickup.longitude < dropoff.longitude
-        ? pickup.longitude
-        : dropoff.longitude;
-    final east = pickup.longitude > dropoff.longitude
-        ? pickup.longitude
-        : dropoff.longitude;
+    if (!mounted) return;
 
     setState(() {
       _isDirectOfferRoutePreview = true;
@@ -232,7 +278,7 @@ class _DriverHomeState extends State<DriverHome>
           position: pickup,
           infoWindow: const InfoWindow(title: 'Pickup'),
           icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueAzure,
+            BitmapDescriptor.hueGreen,
           ),
         ),
         Marker(
@@ -240,33 +286,100 @@ class _DriverHomeState extends State<DriverHome>
           position: dropoff,
           infoWindow: const InfoWindow(title: 'Drop-off'),
           icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueViolet,
+            BitmapDescriptor.hueRed,
           ),
         ),
       };
-      _directOfferRoutePolylines = {
-        Polyline(
-          polylineId: const PolylineId('direct_offer_route'),
-          points: [pickup, dropoff],
-          color: AppColor.primary,
-          width: 6,
-          geodesic: true,
-        ),
-      };
+      _directOfferRoutePolylines = <Polyline>{};
     });
 
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-    if (!mounted || _mapController == null) return;
+    final roadPoints = <LatLng>[];
 
-    await _mapController!.animateCamera(
-      CameraUpdate.newLatLngBounds(
-        LatLngBounds(
-          southwest: LatLng(south, west),
-          northeast: LatLng(north, east),
-        ),
-        82,
-      ),
+    if (_hasLiveDriverLocation) {
+      try {
+        final approach = await _roadRouteService.drivingRoute(
+          origin: _driverPosition,
+          destination: pickup,
+        );
+        roadPoints.addAll(approach.points);
+      } catch (_) {}
+    }
+
+    try {
+      final trip = await _roadRouteService.drivingRoute(
+        origin: pickup,
+        destination: dropoff,
+      );
+      if (roadPoints.isNotEmpty &&
+          trip.points.isNotEmpty &&
+          roadPoints.last == trip.points.first) {
+        roadPoints.addAll(trip.points.skip(1));
+      } else {
+        roadPoints.addAll(trip.points);
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    if (roadPoints.length >= 2) {
+      setState(() {
+        _directOfferRoutePolylines = {
+          Polyline(
+            polylineId: const PolylineId('direct_offer_road_route'),
+            points: roadPoints,
+            color: AppColor.primary,
+            width: 6,
+            geodesic: false,
+            startCap: Cap.roundCap,
+            endCap: Cap.roundCap,
+          ),
+        };
+      });
+    }
+
+    await _fitPoints(
+      roadPoints.isNotEmpty ? roadPoints : <LatLng>[pickup, dropoff],
+      padding: 82,
     );
+  }
+
+  Future<void> _fitPoints(
+    List<LatLng> points, {
+    double padding = 80,
+  }) async {
+    if (points.isEmpty || _mapController == null) return;
+
+    var south = points.first.latitude;
+    var north = points.first.latitude;
+    var west = points.first.longitude;
+    var east = points.first.longitude;
+
+    for (final point in points.skip(1)) {
+      south = math.min(south, point.latitude);
+      north = math.max(north, point.latitude);
+      west = math.min(west, point.longitude);
+      east = math.max(east, point.longitude);
+    }
+
+    if ((north - south).abs() < 0.00001 &&
+        (east - west).abs() < 0.00001) {
+      await _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(points.first, 16),
+      );
+      return;
+    }
+
+    try {
+      await _mapController!.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(
+            southwest: LatLng(south, west),
+            northeast: LatLng(north, east),
+          ),
+          padding,
+        ),
+      );
+    } catch (_) {}
   }
 
   void _openDestinationModePicker() {
@@ -306,17 +419,10 @@ class _DriverHomeState extends State<DriverHome>
           ),
         ),
       };
-      _destinationRoutePolylines = {
-        Polyline(
-          polylineId: const PolylineId('destination_mode_route'),
-          points: [_driverPosition, destination],
-          color: AppColor.primary,
-          width: 6,
-          geodesic: true,
-        ),
-      };
+      _destinationRoutePolylines = <Polyline>{};
     });
 
+    await _refreshDestinationRoadRoute();
     await _fitDestinationRoute();
 
     if (!_isOnline && !_isGoingOnline) {
@@ -324,35 +430,53 @@ class _DriverHomeState extends State<DriverHome>
     }
   }
 
+  Future<void> _refreshDestinationRoadRoute() async {
+    final destination = _destinationPosition;
+    if (destination == null || !_hasLiveDriverLocation) {
+      if (mounted) {
+        setState(() => _destinationRoutePolylines = <Polyline>{});
+      }
+      return;
+    }
+
+    try {
+      final route = await _roadRouteService.drivingRoute(
+        origin: _driverPosition,
+        destination: destination,
+      );
+      if (!mounted || _destinationPosition != destination) return;
+
+      setState(() {
+        _destinationRoutePolylines = {
+          Polyline(
+            polylineId: const PolylineId('destination_mode_road_route'),
+            points: route.points,
+            color: AppColor.primary,
+            width: 6,
+            geodesic: false,
+            startCap: Cap.roundCap,
+            endCap: Cap.roundCap,
+          ),
+        };
+      });
+    } catch (_) {
+      if (!mounted || _destinationPosition != destination) return;
+      setState(() => _destinationRoutePolylines = <Polyline>{});
+    }
+  }
+
   Future<void> _fitDestinationRoute() async {
     final destination = _destinationPosition;
     if (destination == null || _mapController == null) return;
 
-    final south = _driverPosition.latitude < destination.latitude
-        ? _driverPosition.latitude
-        : destination.latitude;
-    final north = _driverPosition.latitude > destination.latitude
-        ? _driverPosition.latitude
-        : destination.latitude;
-    final west = _driverPosition.longitude < destination.longitude
-        ? _driverPosition.longitude
-        : destination.longitude;
-    final east = _driverPosition.longitude > destination.longitude
-        ? _driverPosition.longitude
-        : destination.longitude;
+    final routePoints = _destinationRoutePolylines.isEmpty
+        ? <LatLng>[_driverPosition, destination]
+        : _destinationRoutePolylines.first.points;
 
     await Future<void>.delayed(const Duration(milliseconds: 80));
     if (!mounted || _mapController == null) return;
 
-    await _mapController!.animateCamera(
-      CameraUpdate.newLatLngBounds(
-        LatLngBounds(
-          southwest: LatLng(south, west),
-          northeast: LatLng(north, east),
-        ),
-        74,
-      ),
-    );
+    await _fitPoints(routePoints, padding: 74);
   }
 
   void _endDestinationMode() {
@@ -3401,6 +3525,7 @@ class _DriverHomeState extends State<DriverHome>
     _homeRadarMatchResolutionTimer?.cancel();
     _homeRadarNoticeTimer?.cancel();
     _homeRadarExternalClaimTimer?.cancel();
+    _driverLocationSubscription?.cancel();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
     _mapController?.dispose();
