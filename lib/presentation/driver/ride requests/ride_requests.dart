@@ -400,33 +400,40 @@ class _RideRequestsState extends State<RideRequests> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9EEF1),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Text(
-                  trip.category,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE9EEF1),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Text(
+                    trip.category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
-              const Spacer(),
-              Text(
-                trip.fare,
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 25,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.7,
+              const SizedBox(width: 10),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  trip.fare,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 25,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.7,
+                  ),
                 ),
               ),
             ],
@@ -460,12 +467,16 @@ class _RideRequestsState extends State<RideRequests> {
                 color: AppColor.primary,
               ),
               const SizedBox(width: 5),
-              Text(
-                '${trip.pickupMinutes} min · ${trip.pickupKm.toStringAsFixed(1)} km away',
-                style: const TextStyle(
-                  color: _muted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  '${trip.pickupMinutes} min · ${trip.pickupKm.toStringAsFixed(1)} km away',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
