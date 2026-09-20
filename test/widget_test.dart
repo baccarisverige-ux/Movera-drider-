@@ -396,6 +396,7 @@ void main() {
 
     expect(find.text('3 live'), findsOneWidget);
     expect(find.textContaining('Refresh · '), findsNothing);
+    expect(find.text('Match'), findsWidgets);
     _expectNoException(tester);
 
     final radarList = find.byKey(
@@ -408,6 +409,11 @@ void main() {
       find.byKey(const ValueKey<String>('radar-offer-home-radar-match-3')),
       findsOneWidget,
     );
+    _expectNoException(tester);
+
+    await tester.pump(const Duration(milliseconds: 4300));
+    expect(find.text('Matched by another driver'), findsOneWidget);
+    expect(find.text('Matched'), findsOneWidget);
     _expectNoException(tester);
   });
 
@@ -445,6 +451,102 @@ void main() {
       ),
       isTrue,
     );
+    _expectNoException(tester);
+  });
+
+  testWidgets('Full Radar disables a trip when another driver matches it', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: RideRequests()));
+    await tester.pump(const Duration(milliseconds: 120));
+
+    // Demo: nearby-3 is claimed remotely after 13 seconds.
+    await tester.pump(const Duration(seconds: 13));
+    final card = find.byKey(const ValueKey<String>('nearby-3'));
+    expect(card, findsOneWidget);
+    expect(
+      find.descendant(
+        of: card,
+        matching: find.text('Matched by another driver'),
+      ),
+      findsOneWidget,
+    );
+
+    final button = tester.widget<FilledButton>(
+      find.descendant(of: card, matching: find.byType(FilledButton)),
+    );
+    expect(button.onPressed, isNull);
+    expect(
+      find.descendant(of: card, matching: find.text('Matched')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    await tester.pump(const Duration(milliseconds: 2900));
+    expect(card, findsNothing);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Full Radar resolves a simultaneous claim as request taken', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: RideRequests()));
+    await tester.pump(const Duration(milliseconds: 120));
+
+    // Demo: nearby-2 represents two drivers tapping Match at nearly
+    // the same time, with the other driver winning the atomic claim.
+    final card = find.byKey(const ValueKey<String>('nearby-2'));
+    final match = find.descendant(of: card, matching: find.text('Match'));
+    await tester.tap(match);
+    await tester.pump();
+
+    expect(find.text('Matching trip'), findsOneWidget);
+    expect(
+      find.descendant(of: card, matching: find.text('Matching…')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    await tester.pump(const Duration(milliseconds: 1500));
+    expect(find.text('Request taken'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: card,
+        matching: find.text('Matched by another driver'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(AcceptRide), findsNothing);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Full Radar winning Match opens the assigned ride', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: RideRequests()));
+    await tester.pump(const Duration(milliseconds: 120));
+
+    final card = find.byKey(const ValueKey<String>('nearby-1'));
+    await tester.tap(
+      find.descendant(of: card, matching: find.text('Match')),
+    );
+    await tester.pump();
+
+    expect(find.text('Matching trip'), findsOneWidget);
+    _expectNoException(tester);
+
+    await tester.pump(const Duration(milliseconds: 1500));
+    expect(find.text('Trip matched'), findsOneWidget);
+    _expectNoException(tester);
+
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(find.byType(AcceptRide), findsOneWidget);
     _expectNoException(tester);
   });
 
