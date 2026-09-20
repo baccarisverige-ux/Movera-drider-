@@ -778,6 +778,7 @@ class _DriverHomeState extends State<DriverHome>
               left: _showTodaySummaryPopup ? 14 : -360,
               top: MediaQuery.sizeOf(context).height * 0.25,
               child: IgnorePointer(
+                key: const ValueKey<String>('today-summary-pointer'),
                 ignoring: !_showTodaySummaryPopup,
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 260),
