@@ -37,16 +37,24 @@ void _invokeSheetAction(WidgetTester tester, String tooltip) {
   inkWell.onTap!.call();
 }
 
+Future<void> _advanceAnimation(
+  WidgetTester tester,
+  Duration duration,
+) async {
+  await tester.pump();
+  await tester.pump(duration);
+}
+
 Future<void> _openPanel(WidgetTester tester) async {
   final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
   panel.controller!.open();
-  await tester.pump(const Duration(milliseconds: 520));
+  await _advanceAnimation(tester, const Duration(milliseconds: 520));
 }
 
 Future<void> _closePanel(WidgetTester tester) async {
   final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
   panel.controller!.close();
-  await tester.pump(const Duration(milliseconds: 520));
+  await _advanceAnimation(tester, const Duration(milliseconds: 520));
 }
 
 void main() {
@@ -81,28 +89,28 @@ void main() {
     await _pumpHome(tester, const Size(375, 812));
 
     _invokeSheetAction(tester, 'Wallet');
-    await tester.pump(const Duration(milliseconds: 320));
+    await _advanceAnimation(tester, const Duration(milliseconds: 320));
     expect(find.byType(WalletScreen), findsOneWidget);
     _expectNoException(tester);
     await tester.pageBack();
-    await tester.pump(const Duration(milliseconds: 320));
+    await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
     _invokeSheetAction(tester, 'Inbox');
-    await tester.pump(const Duration(milliseconds: 320));
+    await _advanceAnimation(tester, const Duration(milliseconds: 320));
     expect(find.byType(SupportInboxScreen), findsOneWidget);
     _expectNoException(tester);
     await tester.pageBack();
-    await tester.pump(const Duration(milliseconds: 320));
+    await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
     _invokeSheetAction(tester, 'Scheduled');
-    await tester.pump(const Duration(milliseconds: 320));
+    await _advanceAnimation(tester, const Duration(milliseconds: 320));
     expect(find.byType(ScheduledRidesScreen), findsOneWidget);
     _expectNoException(tester);
     await tester.pageBack();
-    await tester.pump(const Duration(milliseconds: 320));
+    await _advanceAnimation(tester, const Duration(milliseconds: 320));
 
     _invokeSheetAction(tester, 'Menu');
-    await tester.pump(const Duration(milliseconds: 320));
+    await _advanceAnimation(tester, const Duration(milliseconds: 320));
     final scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold).first);
     expect(scaffoldState.isDrawerOpen, isTrue);
     _expectNoException(tester);
@@ -125,7 +133,7 @@ void main() {
     final goOffline = find.text('Go offline').hitTestable();
     expect(goOffline, findsOneWidget);
     await tester.tap(goOffline);
-    await tester.pump(const Duration(milliseconds: 520));
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
     expect(find.text('OFFLINE'), findsOneWidget);
     _expectNoException(tester);
