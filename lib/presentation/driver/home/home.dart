@@ -8,8 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
+import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/routing/road_route_service.dart';
+import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
@@ -40,9 +42,13 @@ class DriverHome extends StatefulWidget {
   const DriverHome({
     super.key,
     this.initialOnline = false,
+    this.locationRepository,
+    this.routeRepository,
   });
 
   final bool initialOnline;
+  final DriverLocationRepository? locationRepository;
+  final RouteRepository? routeRepository;
 
   @override
   State<DriverHome> createState() => _DriverHomeState();
@@ -70,9 +76,8 @@ class _DriverHomeState extends State<DriverHome>
       <String, _HomeRadarMatchState>{};
   String? _homeRadarMatchingOfferId;
   _HomeRadarMatchNotice? _homeRadarMatchNotice;
-  final DriverLocationService _driverLocationService =
-      const DriverLocationService();
-  final RoadRouteService _roadRouteService = RoadRouteService();
+  late final DriverLocationRepository _driverLocationService;
+  late final RouteRepository _roadRouteService;
   late final DriverHomeAdminConfig _adminHomeConfig;
   static const String _currentAppVersion = '1.0.0';
   bool _updatePromptShown = false;
@@ -213,6 +218,9 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void initState() {
     super.initState();
+    _driverLocationService =
+        widget.locationRepository ?? const DriverLocationService();
+    _roadRouteService = widget.routeRepository ?? RoadRouteService();
     if (widget.initialOnline) {
       _driverSession.setOnline(true);
     }
