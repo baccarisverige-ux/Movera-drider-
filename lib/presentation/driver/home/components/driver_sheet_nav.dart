@@ -13,6 +13,7 @@ class DriverSheetNav {
     required BuildContext context,
     required GlobalKey<ScaffoldState> scaffoldKey,
     required bool isOnline,
+    required bool hasRideOffers,
     required bool hasScheduledRideOffers,
     required AnimationController goOnlinePulseController,
     required VoidCallback onOpenScheduledRides,
@@ -113,12 +114,15 @@ class DriverSheetNav {
           ),
         ),
         if (isOnline)
-          const Positioned.fill(
+          Positioned.fill(
             child: IgnorePointer(
               child: RadarEdgeDash(
                 notchWidth: 126,
                 notchDepth: 58,
                 cornerRadius: 24,
+                color: hasRideOffers
+                    ? const Color(0xFFFFA94D)
+                    : const Color(0xFF2FBE7B),
               ),
             ),
           ),
@@ -188,14 +192,20 @@ class DriverSheetNav {
     );
   }
 
-  static Widget onlineEdgeDashOverlay({required bool isOnline}) {
+  static Widget onlineEdgeDashOverlay({
+    required bool isOnline,
+    required bool hasRideOffers,
+  }) {
     if (!isOnline) return const SizedBox.shrink();
-    return const Positioned.fill(
+    return Positioned.fill(
       child: IgnorePointer(
         child: RadarEdgeDash(
           notchWidth: 126,
           notchDepth: 58,
           cornerRadius: 24,
+          color: hasRideOffers
+              ? const Color(0xFFFFA94D)
+              : const Color(0xFF2FBE7B),
         ),
       ),
     );
