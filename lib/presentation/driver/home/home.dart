@@ -1543,6 +1543,7 @@ class _DriverHomeState extends State<DriverHome>
       button: true,
       label: "$title, $status. $subtitle",
       child: GestureDetector(
+        key: const ValueKey<String>('trip-radar-touch-target'),
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: SizedBox(
