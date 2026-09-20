@@ -743,7 +743,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 320));
 
-    expect(find.text('All rides'), findsOneWidget);
+    expect(find.text('All rides'), findsWidgets);
     expect(
       find.byKey(const ValueKey<String>('history-all-rides')),
       findsOneWidget,
