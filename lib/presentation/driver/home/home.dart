@@ -49,7 +49,14 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _expandedDirectOfferTimer;
   Timer? _radarOfferTwoTimer;
   Timer? _radarOfferThreeTimer;
+  Timer? _homeRadarMatchResolutionTimer;
+  Timer? _homeRadarNoticeTimer;
+  Timer? _homeRadarExternalClaimTimer;
   final Map<String, Timer> _radarOfferTimeoutTimers = <String, Timer>{};
+  final Map<String, _HomeRadarMatchState> _homeRadarMatchStates =
+      <String, _HomeRadarMatchState>{};
+  String? _homeRadarMatchingOfferId;
+  _HomeRadarMatchNotice? _homeRadarMatchNotice;
   GoogleMapController? _mapController;
   bool isPanelOpen = false;
   bool _blockMapGestures = false;
@@ -540,6 +547,8 @@ class _DriverHomeState extends State<DriverHome>
       _pendingRadarHomeOffers.clear();
       _hasRideOffers = _radarHomeOffers.isNotEmpty;
     });
+
+    _scheduleHomeRadarExternalClaimDemo();
   }
 
   void _releasePendingRadarOffers() {
@@ -563,6 +572,7 @@ class _DriverHomeState extends State<DriverHome>
     setState(() {
       _radarHomeOffers.removeWhere((item) => item.id == offer.id);
       _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
+      _homeRadarMatchStates.remove(offer.id);
       _hasRideOffers =
           _radarHomeOffers.isNotEmpty || _pendingRadarHomeOffers.isNotEmpty;
     });
@@ -572,9 +582,152 @@ class _DriverHomeState extends State<DriverHome>
     }
   }
 
+  _HomeRadarMatchState _homeRadarStateFor(String id) =>
+      _homeRadarMatchStates[id] ?? _HomeRadarMatchState.available;
+
+  void _startHomeRadarMatch(_HomeDirectOffer offer) {
+    if (!_radarHomeOffers.any((item) => item.id == offer.id) ||
+        _homeRadarStateFor(offer.id) != _HomeRadarMatchState.available ||
+        _homeRadarMatchingOfferId != null) {
+      return;
+    }
+
+    setState(() {
+      _homeRadarMatchingOfferId = offer.id;
+      _homeRadarMatchStates[offer.id] = _HomeRadarMatchState.resolving;
+      _homeRadarMatchNotice = const _HomeRadarMatchNotice(
+        type: _HomeRadarMatchNoticeType.matching,
+        title: 'Matching trip',
+        message: 'Confirming this request in real time…',
+      );
+    });
+
+    _homeRadarMatchResolutionTimer?.cancel();
+    _homeRadarMatchResolutionTimer = Timer(
+      const Duration(milliseconds: 1450),
+      () {
+        if (!mounted || _homeRadarMatchingOfferId != offer.id) return;
+
+        if (offer.id == 'home-radar-match-2') {
+          _resolveHomeRadarMatchLost(offer);
+        } else {
+          _resolveHomeRadarMatchWon(offer);
+        }
+      },
+    );
+  }
+
+  void _resolveHomeRadarMatchWon(_HomeDirectOffer offer) {
+    _homeRadarNoticeTimer?.cancel();
+
+    setState(() {
+      _homeRadarMatchingOfferId = null;
+      _homeRadarMatchStates.remove(offer.id);
+      _homeRadarMatchNotice = const _HomeRadarMatchNotice(
+        type: _HomeRadarMatchNoticeType.success,
+        title: 'Trip matched',
+        message: 'You’re assigned to this request. Opening trip…',
+      );
+    });
+
+    _homeRadarNoticeTimer = Timer(
+      const Duration(milliseconds: 850),
+      () {
+        if (!mounted) return;
+        setState(() => _homeRadarMatchNotice = null);
+        _acceptRadarHomeOffer(offer);
+      },
+    );
+  }
+
+  void _resolveHomeRadarMatchLost(_HomeDirectOffer offer) {
+    setState(() {
+      _homeRadarMatchingOfferId = null;
+      _homeRadarMatchStates[offer.id] =
+          _HomeRadarMatchState.claimedElsewhere;
+      _homeRadarMatchNotice = const _HomeRadarMatchNotice(
+        type: _HomeRadarMatchNoticeType.taken,
+        title: 'Request taken',
+        message: 'Another driver was matched first. Choose another trip.',
+      );
+    });
+
+    _homeRadarNoticeTimer?.cancel();
+    _homeRadarNoticeTimer = Timer(
+      const Duration(milliseconds: 2600),
+      () {
+        if (!mounted) return;
+        setState(() => _homeRadarMatchNotice = null);
+      },
+    );
+
+    Timer(
+      const Duration(milliseconds: 2800),
+      () {
+        if (!mounted ||
+            _homeRadarStateFor(offer.id) !=
+                _HomeRadarMatchState.claimedElsewhere) {
+          return;
+        }
+        _dismissRadarHomeOffer(offer);
+      },
+    );
+  }
+
+  void _scheduleHomeRadarExternalClaimDemo() {
+    _homeRadarExternalClaimTimer?.cancel();
+
+    _HomeDirectOffer? offer;
+    for (final item in _radarHomeOffers) {
+      if (item.id == 'home-radar-match-3') {
+        offer = item;
+        break;
+      }
+    }
+    if (offer == null ||
+        _homeRadarStateFor(offer.id) != _HomeRadarMatchState.available) {
+      return;
+    }
+
+    _homeRadarExternalClaimTimer = Timer(
+      const Duration(milliseconds: 4200),
+      () {
+        if (!mounted ||
+            !_radarHomeOffers.any((item) => item.id == offer!.id) ||
+            _homeRadarStateFor(offer.id) !=
+                _HomeRadarMatchState.available) {
+          return;
+        }
+
+        setState(() {
+          _homeRadarMatchStates[offer!.id] =
+              _HomeRadarMatchState.claimedElsewhere;
+        });
+
+        Timer(
+          const Duration(milliseconds: 2800),
+          () {
+            if (!mounted ||
+                _homeRadarStateFor(offer!.id) !=
+                    _HomeRadarMatchState.claimedElsewhere) {
+              return;
+            }
+            _dismissRadarHomeOffer(offer!);
+          },
+        );
+      },
+    );
+  }
+
   void _cancelAllOfferTimers() {
     _outsideOfferTimeoutTimer?.cancel();
     _outsideOfferTimeoutTimer = null;
+    _homeRadarMatchResolutionTimer?.cancel();
+    _homeRadarNoticeTimer?.cancel();
+    _homeRadarExternalClaimTimer?.cancel();
+    _homeRadarMatchingOfferId = null;
+    _homeRadarMatchStates.clear();
+    _homeRadarMatchNotice = null;
     for (final timer in _radarOfferTimeoutTimers.values) {
       timer.cancel();
     }
@@ -3075,6 +3228,9 @@ class _DriverHomeState extends State<DriverHome>
     _expandedDirectOfferTimer?.cancel();
     _radarOfferTwoTimer?.cancel();
     _radarOfferThreeTimer?.cancel();
+    _homeRadarMatchResolutionTimer?.cancel();
+    _homeRadarNoticeTimer?.cancel();
+    _homeRadarExternalClaimTimer?.cancel();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
     _mapController?.dispose();
@@ -3139,6 +3295,22 @@ class _DriverHomeState extends State<DriverHome>
   }
 }
 
+
+enum _HomeRadarMatchState { available, resolving, claimedElsewhere }
+
+enum _HomeRadarMatchNoticeType { matching, success, taken }
+
+class _HomeRadarMatchNotice {
+  const _HomeRadarMatchNotice({
+    required this.type,
+    required this.title,
+    required this.message,
+  });
+
+  final _HomeRadarMatchNoticeType type;
+  final String title;
+  final String message;
+}
 
 class _HomeDirectOffer {
   final String id;
