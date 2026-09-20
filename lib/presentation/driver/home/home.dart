@@ -10,6 +10,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/routing/road_route_service.dart';
+import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
@@ -24,6 +25,7 @@ import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/side%20menu/side_menu.dart';
+import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 import 'package:movera/widgets/responsive_size.dart';
@@ -1085,6 +1087,9 @@ class _DriverHomeState extends State<DriverHome>
       BottomToTopTransition(
         AcceptRide(
           offerId: offer.id,
+          fare: offer.fare,
+          category: offer.category,
+          matchedVia: 'Movera direct match',
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -1117,6 +1122,9 @@ class _DriverHomeState extends State<DriverHome>
       BottomToTopTransition(
         AcceptRide(
           offerId: offer.id,
+          fare: offer.fare,
+          category: offer.category,
+          matchedVia: 'Movera Radar',
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -4103,6 +4111,25 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  Widget _lastWaybillCard() {
+    final last = WaybillStore.last;
+    if (last == null) return const SizedBox.shrink();
+
+    return _sheetAlertCard(
+      icon: Icons.receipt_long_outlined,
+      iconColor: const Color(0xFF315E4D),
+      title: 'Last waybill',
+      subtitle: '${last.service} · ${last.fare} · ${last.dropoff}',
+      onTap: () {
+        showMoveraWaybillSheet(
+          context,
+          last,
+          title: 'Last waybill',
+        );
+      },
+    );
+  }
+
   Widget panelColumn(ScrollController sc) {
     const ink = Color(0xFF252E3A);
     const muted = Color(0xFF7B878E);
@@ -4180,6 +4207,10 @@ class _DriverHomeState extends State<DriverHome>
                           ],
                         ),
                       ),
+                      if (WaybillStore.last != null) ...[
+                        _lastWaybillCard(),
+                        const SizedBox(height: 10),
+                      ],
                       if (_adminHomeConfig.scheduledRides.enabled) ...[
                         _sheetAlertCard(
                           icon: Icons.event_available_outlined,
