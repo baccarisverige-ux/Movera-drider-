@@ -1270,6 +1270,78 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('On-trip Radar stays quiet and offers a next trip without interrupting navigation', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+
+    var action = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+    );
+    action.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    action = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+    );
+    action.onPressed!.call();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(find.textContaining('Dropping off'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('on-trip-radar-strip')),
+      findsOneWidget,
+    );
+    expect(find.text('Next trip Radar'), findsOneWidget);
+    expect(find.text('Scanning quietly while you drive'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('on-trip-radar-offer-sheet')),
+      findsNothing,
+    );
+    _expectNoException(tester);
+
+    await tester.pump(const Duration(milliseconds: 4300));
+
+    expect(find.text('Next trip available'), findsOneWidget);
+    expect(find.textContaining('128,40 kr'), findsOneWidget);
+    expect(find.textContaining('Dropping off'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('on-trip-radar-offer-sheet')),
+      findsNothing,
+    );
+    _expectNoException(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('on-trip-radar-strip')),
+    );
+    await tester.pump(const Duration(milliseconds: 260));
+
+    expect(
+      find.byKey(const ValueKey<String>('on-trip-radar-offer-sheet')),
+      findsOneWidget,
+    );
+    expect(find.text('Available after your current drop-off'), findsOneWidget);
+    expect(
+      find.text(
+        'Silent Radar does not change your map, route or current-trip controls.',
+      ),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('on-trip-radar-match-next')),
+    );
+    await tester.pump(const Duration(milliseconds: 950));
+
+    expect(find.text('Next trip secured'), findsWidgets);
+    expect(find.textContaining('Dropping off'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
   testWidgets('On-trip options allow safe early cancellation with reasons', (
     WidgetTester tester,
   ) async {
