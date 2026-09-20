@@ -93,7 +93,10 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                       Navigator.pushReplacement(
                         context,
                         BottomToTopTransition(
-                          const DriverHome(initialOnline: true),
+                          DriverHome(
+                            initialOnline: true,
+                            waybillRepository: _waybills,
+                          ),
                         ),
                       );
                     },
