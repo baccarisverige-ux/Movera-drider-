@@ -1212,6 +1212,7 @@ class _DriverHomeState extends State<DriverHome>
     return Material(
       color: Colors.transparent,
       child: Container(
+        key: const ValueKey<String>('today-summary-card'),
         width: 278,
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
         decoration: BoxDecoration(
