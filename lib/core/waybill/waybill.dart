@@ -53,64 +53,142 @@ class WaybillRecord {
   }
 }
 
-class WaybillStore {
-  WaybillStore._();
+abstract interface class WaybillRepository {
+  WaybillRecord? get current;
+  WaybillRecord? get next;
+  WaybillRecord? get last;
 
-  static WaybillRecord? _current;
-  static WaybillRecord? _next;
-  static WaybillRecord? _last;
+  ValueListenable<WaybillRecord?> get currentListenable;
+  ValueListenable<WaybillRecord?> get nextListenable;
+  ValueListenable<WaybillRecord?> get lastListenable;
 
-  static final ValueNotifier<WaybillRecord?> currentNotifier =
+  void beginCurrent(WaybillRecord record);
+  void secureNext(WaybillRecord record);
+  void completeCurrent();
+  void discardCurrent();
+  void clearNext();
+  void reset();
+}
+
+/// Frontend implementation. A persistent/backend repository can replace this
+/// without changing trip screens.
+class InMemoryWaybillRepository implements WaybillRepository {
+  InMemoryWaybillRepository._();
+
+  static final InMemoryWaybillRepository instance =
+      InMemoryWaybillRepository._();
+
+  final ValueNotifier<WaybillRecord?> _current =
       ValueNotifier<WaybillRecord?>(null);
-  static final ValueNotifier<WaybillRecord?> nextNotifier =
+  final ValueNotifier<WaybillRecord?> _next =
       ValueNotifier<WaybillRecord?>(null);
-  static final ValueNotifier<WaybillRecord?> lastNotifier =
+  final ValueNotifier<WaybillRecord?> _last =
       ValueNotifier<WaybillRecord?>(null);
 
-  static WaybillRecord? get current => _current;
-  static set current(WaybillRecord? value) {
-    _current = value;
-    currentNotifier.value = value;
+  @override
+  WaybillRecord? get current => _current.value;
+
+  @override
+  WaybillRecord? get next => _next.value;
+
+  @override
+  WaybillRecord? get last => _last.value;
+
+  @override
+  ValueListenable<WaybillRecord?> get currentListenable => _current;
+
+  @override
+  ValueListenable<WaybillRecord?> get nextListenable => _next;
+
+  @override
+  ValueListenable<WaybillRecord?> get lastListenable => _last;
+
+  @override
+  void beginCurrent(WaybillRecord record) {
+    _current.value = record;
   }
 
-  static WaybillRecord? get next => _next;
-  static set next(WaybillRecord? value) {
-    _next = value;
-    nextNotifier.value = value;
+  @override
+  void secureNext(WaybillRecord record) {
+    _next.value = record;
   }
 
-  static WaybillRecord? get last => _last;
-  static set last(WaybillRecord? value) {
-    _last = value;
-    lastNotifier.value = value;
-  }
-
-  static void beginCurrent(WaybillRecord record) {
-    current = record;
-  }
-
-  static void secureNext(WaybillRecord record) {
-    next = record;
-  }
-
-  static void completeCurrent() {
+  @override
+  void completeCurrent() {
     final active = current;
     if (active == null) return;
 
-    last = active.copyWith(
+    _last.value = active.copyWith(
       statusLabel: 'Completed',
       issuedAt: DateTime.now(),
     );
-    current = null;
+    _current.value = null;
   }
 
-  static void clearNext() {
-    next = null;
+  @override
+  void discardCurrent() {
+    _current.value = null;
   }
 
-  static void reset() {
-    current = null;
-    next = null;
-    last = null;
+  @override
+  void clearNext() {
+    _next.value = null;
   }
+
+  @override
+  void reset() {
+    _current.value = null;
+    _next.value = null;
+    _last.value = null;
+  }
+
+  void setLastForTesting(WaybillRecord? record) {
+    _last.value = record;
+  }
+}
+
+/// Compatibility facade while older screens/tests migrate to WaybillRepository.
+class WaybillStore {
+  WaybillStore._();
+
+  static final InMemoryWaybillRepository _repository =
+      InMemoryWaybillRepository.instance;
+
+  static WaybillRecord? get current => _repository.current;
+  static set current(WaybillRecord? value) {
+    if (value == null) {
+      _repository.discardCurrent();
+    } else {
+      _repository.beginCurrent(value);
+    }
+  }
+
+  static WaybillRecord? get next => _repository.next;
+  static set next(WaybillRecord? value) {
+    if (value == null) {
+      _repository.clearNext();
+    } else {
+      _repository.secureNext(value);
+    }
+  }
+
+  static WaybillRecord? get last => _repository.last;
+  static set last(WaybillRecord? value) {
+    _repository.setLastForTesting(value);
+  }
+
+  static ValueListenable<WaybillRecord?> get currentNotifier =>
+      _repository.currentListenable;
+  static ValueListenable<WaybillRecord?> get nextNotifier =>
+      _repository.nextListenable;
+  static ValueListenable<WaybillRecord?> get lastNotifier =>
+      _repository.lastListenable;
+
+  static void beginCurrent(WaybillRecord record) =>
+      _repository.beginCurrent(record);
+  static void secureNext(WaybillRecord record) =>
+      _repository.secureNext(record);
+  static void completeCurrent() => _repository.completeCurrent();
+  static void clearNext() => _repository.clearNext();
+  static void reset() => _repository.reset();
 }
