@@ -43,6 +43,30 @@ class AcceptRide extends StatefulWidget {
 
 enum _RideStage { headingToPickup, waitingForRider, onTrip }
 
+enum _OnTripRadarState { off, scanning, offerAvailable, matching, secured }
+
+class _NextTripRadarOffer {
+  const _NextTripRadarOffer({
+    required this.id,
+    required this.category,
+    required this.fare,
+    required this.rating,
+    required this.pickupMinutes,
+    required this.tripMinutes,
+    required this.pickup,
+    required this.dropoff,
+  });
+
+  final String id;
+  final String category;
+  final String fare;
+  final double rating;
+  final int pickupMinutes;
+  final int tripMinutes;
+  final String pickup;
+  final String dropoff;
+}
+
 class _TripCancellationReason {
   const _TripCancellationReason({
     required this.code,
@@ -154,6 +178,18 @@ class _AcceptRideState extends State<AcceptRide> {
 
   static const LatLng _fallbackDriverPosition = LatLng(59.3262, 18.0595);
 
+  static const _NextTripRadarOffer _demoNextTripOffer =
+      _NextTripRadarOffer(
+    id: 'on-trip-radar-demo-1',
+    category: 'Comfort',
+    fare: '128,40 kr',
+    rating: 4.94,
+    pickupMinutes: 4,
+    tripMinutes: 16,
+    pickup: 'Vasagatan 10, Stockholm',
+    dropoff: 'Södermalm, Stockholm',
+  );
+
 
 
   final DriverLocationService _locationService =
@@ -164,7 +200,11 @@ class _AcceptRideState extends State<AcceptRide> {
   StreamSubscription<Position>? _positionSubscription;
   _RideStage _stage = _RideStage.headingToPickup;
   Timer? _waitTimer;
+  Timer? _nextTripRadarDemoTimer;
+  Timer? _nextTripRadarMatchTimer;
   int _waitSeconds = 0;
+  _OnTripRadarState _onTripRadarState = _OnTripRadarState.off;
+  _NextTripRadarOffer? _nextTripRadarOffer;
 
   LatLng _driverPosition = _fallbackDriverPosition;
   List<LatLng> _roadRoutePoints = <LatLng>[];
@@ -185,6 +225,8 @@ class _AcceptRideState extends State<AcceptRide> {
   @override
   void dispose() {
     _waitTimer?.cancel();
+    _nextTripRadarDemoTimer?.cancel();
+    _nextTripRadarMatchTimer?.cancel();
     _positionSubscription?.cancel();
     _mapController = null;
     super.dispose();
@@ -413,6 +455,7 @@ class _AcceptRideState extends State<AcceptRide> {
       case _RideStage.waitingForRider:
         _waitTimer?.cancel();
         setState(() => _stage = _RideStage.onTrip);
+        _startOnTripRadar();
         break;
       case _RideStage.onTrip:
         Navigator.pushReplacement(
@@ -428,6 +471,457 @@ class _AcceptRideState extends State<AcceptRide> {
         if (mounted) _fitRoute();
       });
     });
+  }
+
+  void _startOnTripRadar() {
+    _nextTripRadarDemoTimer?.cancel();
+    _nextTripRadarMatchTimer?.cancel();
+
+    if (!mounted || _stage != _RideStage.onTrip) return;
+
+    setState(() {
+      _onTripRadarState = _OnTripRadarState.scanning;
+      _nextTripRadarOffer = null;
+    });
+
+    // Frontend demo only. Production will replace this timer with a realtime
+    // dispatch stream filtered for requests that can be served after drop-off.
+    _nextTripRadarDemoTimer = Timer(
+      const Duration(milliseconds: 4200),
+      () {
+        if (!mounted || _stage != _RideStage.onTrip) return;
+        setState(() {
+          _nextTripRadarOffer = _demoNextTripOffer;
+          _onTripRadarState = _OnTripRadarState.offerAvailable;
+        });
+      },
+    );
+  }
+
+  Future<void> _openNextTripRadar() async {
+    if (_stage != _RideStage.onTrip) return;
+
+    final offer = _nextTripRadarOffer;
+    if (offer == null) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.22),
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final secured =
+                _onTripRadarState == _OnTripRadarState.secured;
+            final matching =
+                _onTripRadarState == _OnTripRadarState.matching;
+
+            return Container(
+              key: const ValueKey<String>('on-trip-radar-offer-sheet'),
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF9FBFA),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD7DEDB),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: _mint,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.radar_rounded,
+                            color: _green,
+                            size: 21,
+                          ),
+                        ),
+                        const SizedBox(width: 11),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Next trip',
+                                style: TextStyle(
+                                  color: _ink,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Available after your current drop-off',
+                                style: TextStyle(
+                                  color: _muted,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          offer.fare,
+                          style: const TextStyle(
+                            color: _ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: _line),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              _nextTripMeta(
+                                icon: Icons.local_taxi_outlined,
+                                text: offer.category,
+                              ),
+                              const SizedBox(width: 12),
+                              _nextTripMeta(
+                                icon: Icons.star_rounded,
+                                text: offer.rating.toStringAsFixed(2),
+                              ),
+                              const SizedBox(width: 12),
+                              _nextTripMeta(
+                                icon: Icons.schedule_rounded,
+                                text: '${offer.pickupMinutes} min pickup',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          _nextTripLocationRow(
+                            color: _green,
+                            label: 'Pickup',
+                            address: offer.pickup,
+                          ),
+                          const SizedBox(height: 10),
+                          _nextTripLocationRow(
+                            color: _ink,
+                            label: '${offer.tripMinutes} min trip',
+                            address: offer.dropoff,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.volume_off_outlined,
+                          color: Color(0xFF7D898F),
+                          size: 17,
+                        ),
+                        SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            'Silent Radar does not change your map, route or current-trip controls.',
+                            style: TextStyle(
+                              color: _muted,
+                              fontSize: 9.5,
+                              height: 1.35,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: FilledButton(
+                        key: const ValueKey<String>(
+                          'on-trip-radar-match-next',
+                        ),
+                        onPressed: secured || matching
+                            ? null
+                            : () {
+                                setState(() {
+                                  _onTripRadarState =
+                                      _OnTripRadarState.matching;
+                                });
+                                setSheetState(() {});
+
+                                _nextTripRadarMatchTimer?.cancel();
+                                _nextTripRadarMatchTimer = Timer(
+                                  const Duration(milliseconds: 900),
+                                  () {
+                                    if (!mounted ||
+                                        _stage != _RideStage.onTrip) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _onTripRadarState =
+                                          _OnTripRadarState.secured;
+                                    });
+                                    if (sheetContext.mounted) {
+                                      setSheetState(() {});
+                                    }
+                                  },
+                                );
+                              },
+                        style: FilledButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: _ink,
+                          disabledBackgroundColor: secured
+                              ? const Color(0xFFE6F5EE)
+                              : const Color(0xFFE3E7E8),
+                          foregroundColor: Colors.white,
+                          disabledForegroundColor:
+                              secured ? _green : const Color(0xFF7D898F),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: matching
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 15,
+                                    height: 15,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF7D898F),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Matching…',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                secured
+                                    ? 'Next trip secured'
+                                    : 'Match next trip',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _nextTripMeta({
+    required IconData icon,
+    required String text,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: const Color(0xFF7D898F), size: 14),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: const TextStyle(
+            color: Color(0xFF657178),
+            fontSize: 9.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _nextTripLocationRow({
+    required Color color,
+    required String label,
+    required String address,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          margin: const EdgeInsets.only(top: 3),
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                address,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOnTripRadarStrip() {
+    if (_stage != _RideStage.onTrip ||
+        _onTripRadarState == _OnTripRadarState.off) {
+      return const SizedBox.shrink();
+    }
+
+    final hasOffer = _nextTripRadarOffer != null;
+    final secured = _onTripRadarState == _OnTripRadarState.secured;
+    final matching = _onTripRadarState == _OnTripRadarState.matching;
+
+    final title = secured
+        ? 'Next trip secured'
+        : hasOffer
+            ? 'Next trip available'
+            : 'Next trip Radar';
+    final subtitle = secured
+        ? 'Ready after drop-off'
+        : hasOffer
+            ? '${_nextTripRadarOffer!.fare} · '
+                '${_nextTripRadarOffer!.pickupMinutes} min pickup'
+            : 'Scanning quietly while you drive';
+
+    return Material(
+      key: const ValueKey<String>('on-trip-radar-strip'),
+      color: secured ? const Color(0xFFEAF6F0) : const Color(0xFFF7F9F8),
+      borderRadius: BorderRadius.circular(17),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: hasOffer ? _openNextTripRadar : null,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(11, 9, 10, 9),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: secured
+                  ? const Color(0xFFD1E9DD)
+                  : const Color(0xFFE5E9EB),
+            ),
+            borderRadius: BorderRadius.circular(17),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: secured ? Colors.white : _mint,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: matching
+                    ? const Padding(
+                        padding: EdgeInsets.all(9),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _green,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.radar_rounded,
+                        color: _green,
+                        size: 18,
+                      ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      matching ? 'Matching next trip…' : title,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 8.8,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasOffer && !matching)
+                Icon(
+                  secured
+                      ? Icons.check_circle_rounded
+                      : Icons.chevron_right_rounded,
+                  color: secured ? _green : const Color(0xFF98A3A8),
+                  size: 19,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _startWaitTimer() {
@@ -806,6 +1300,10 @@ class _AcceptRideState extends State<AcceptRide> {
               ),
               const SizedBox(height: 14),
               _buildProgress(),
+              if (_stage == _RideStage.onTrip) ...[
+                const SizedBox(height: 10),
+                _buildOnTripRadarStrip(),
+              ],
               const SizedBox(height: 14),
               _buildRiderRow(),
               const SizedBox(height: 14),
