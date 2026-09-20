@@ -896,8 +896,8 @@ class _AcceptRideState extends State<AcceptRide> {
     );
   }
 
-  Future<void> _showRiderProfile() {
-    return showModalBottomSheet<void>(
+  Future<void> _showRiderProfile() async {
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.35),
@@ -960,8 +960,8 @@ class _AcceptRideState extends State<AcceptRide> {
     );
   }
 
-  Future<void> _showTripOptions() {
-    return showModalBottomSheet<void>(
+  Future<void> _showTripOptions() async {
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.35),
