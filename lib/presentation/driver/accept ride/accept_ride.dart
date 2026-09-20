@@ -516,60 +516,59 @@ class _AcceptRideState extends State<AcceptRide> {
     } catch (_) {}
   }
 
-  Future<void> _advanceRide() async {
+  void _advanceRide() {
     if (_stageTransitioning || !mounted) return;
 
     _stageTransitioning = true;
     _routeRequestToken++;
 
-    try {
-      switch (_stage) {
-        case _RideStage.headingToPickup:
-          setState(() {
-            _stage = _RideStage.waitingForRider;
-            _waitSeconds = 0;
-            _roadRoutePoints = <LatLng>[];
-            _routeDistanceMeters = null;
-            _routeDurationSeconds = null;
-            _routeLoading = false;
-          });
-          _startWaitTimer();
-          await _focusWaitingPickup();
-          break;
-
-        case _RideStage.waitingForRider:
-          _waitTimer?.cancel();
-          setState(() {
-            _stage = _RideStage.onTrip;
-            _roadRoutePoints = <LatLng>[];
-            _routeDistanceMeters = null;
-            _routeDurationSeconds = null;
-          });
-          _startOnTripRadar();
-          await _refreshRoadRoute(force: true);
-          if (mounted) {
-            await _fitRoute();
-          }
-          break;
-
-        case _RideStage.onTrip:
-          _waitTimer?.cancel();
-          _nextTripRadarDemoTimer?.cancel();
-          _nextTripRadarMatchTimer?.cancel();
-          WaybillStore.completeCurrent();
-
-          if (!mounted) return;
-          Navigator.pushReplacement(
-            context,
-            BottomToTopTransition(const DriverRideCompleted()),
-          );
-          return;
-      }
-    } finally {
-      if (mounted) {
+    switch (_stage) {
+      case _RideStage.headingToPickup:
+        setState(() {
+          _stage = _RideStage.waitingForRider;
+          _waitSeconds = 0;
+          _roadRoutePoints = <LatLng>[];
+          _routeDistanceMeters = null;
+          _routeDurationSeconds = null;
+          _routeLoading = false;
+        });
+        _startWaitTimer();
         _stageTransitioning = false;
-      }
+        unawaited(_focusWaitingPickup());
+        return;
+
+      case _RideStage.waitingForRider:
+        _waitTimer?.cancel();
+        setState(() {
+          _stage = _RideStage.onTrip;
+          _roadRoutePoints = <LatLng>[];
+          _routeDistanceMeters = null;
+          _routeDurationSeconds = null;
+          _routeLoading = false;
+        });
+        _startOnTripRadar();
+        _stageTransitioning = false;
+        unawaited(_refreshOnTripRoute());
+        return;
+
+      case _RideStage.onTrip:
+        _waitTimer?.cancel();
+        _nextTripRadarDemoTimer?.cancel();
+        _nextTripRadarMatchTimer?.cancel();
+        WaybillStore.completeCurrent();
+
+        Navigator.pushReplacement(
+          context,
+          BottomToTopTransition(const DriverRideCompleted()),
+        );
+        return;
     }
+  }
+
+  Future<void> _refreshOnTripRoute() async {
+    await _refreshRoadRoute(force: true);
+    if (!mounted || _stage != _RideStage.onTrip) return;
+    await _fitRoute();
   }
 
   Future<void> _focusWaitingPickup() async {
