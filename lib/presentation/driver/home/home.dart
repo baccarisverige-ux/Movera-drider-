@@ -456,34 +456,36 @@ class _DriverHomeState extends State<DriverHome>
         !_isOnline ||
         !_directOfferFollowsDestination(offer) ||
         _radarHomeOffers.any((item) => item.id == offer.id) ||
-        _pendingRadarHomeOffers.any((item) => item.id == offer.id)) {
+        _pendingRadarHomeOffers.any((item) => item.id == offer.id) ||
+        _radarHomeOffers.length + _pendingRadarHomeOffers.length >=
+            _maxHomeRadarOffers) {
       return;
     }
 
+    _scheduleRadarOfferExpiry(offer);
+
     if (_outsideRadarOffer != null) {
-      if (_pendingRadarHomeOffers.length >= _maxHomeRadarOffers) return;
       setState(() {
+        _hasRideOffers = true;
         _pendingRadarHomeOffers.add(offer);
       });
       return;
     }
 
-    if (_radarHomeOffers.length >= _maxHomeRadarOffers) return;
-    _activateRadarHomeOffer(offer);
-  }
-
-  void _activateRadarHomeOffer(_HomeDirectOffer offer) {
-    if (!mounted ||
-        !_isOnline ||
-        _radarHomeOffers.length >= _maxHomeRadarOffers) {
+    // Keep the visible Home Radar list stable. The first detected trip creates
+    // the snapshot; later detections wait for an explicit driver refresh.
+    if (_radarHomeOffers.isEmpty) {
+      _activateRadarHomeOffer(offer);
       return;
     }
 
     setState(() {
       _hasRideOffers = true;
-      _radarHomeOffers.add(offer);
+      _pendingRadarHomeOffers.add(offer);
     });
+  }
 
+  void _scheduleRadarOfferExpiry(_HomeDirectOffer offer) {
     _radarOfferTimeoutTimers.remove(offer.id)?.cancel();
     _radarOfferTimeoutTimers[offer.id] = Timer(
       _radarOfferLifetime,
@@ -494,6 +496,52 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  void _activateRadarHomeOffer(_HomeDirectOffer offer) {
+    if (!mounted ||
+        !_isOnline ||
+        _radarHomeOffers.length >= _maxHomeRadarOffers ||
+        _radarHomeOffers.any((item) => item.id == offer.id)) {
+      return;
+    }
+
+    setState(() {
+      _hasRideOffers = true;
+      _radarHomeOffers.add(offer);
+      _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
+    });
+  }
+
+  void _refreshRadarHomeOffers() {
+    if (!mounted ||
+        !_isOnline ||
+        _outsideRadarOffer != null ||
+        _pendingRadarHomeOffers.isEmpty) {
+      return;
+    }
+
+    final refreshed = <_HomeDirectOffer>[
+      ..._radarHomeOffers,
+      ..._pendingRadarHomeOffers,
+    ];
+
+    final seen = <String>{};
+    final next = <_HomeDirectOffer>[];
+    for (final offer in refreshed) {
+      if (seen.add(offer.id)) {
+        next.add(offer);
+      }
+      if (next.length >= _maxHomeRadarOffers) break;
+    }
+
+    setState(() {
+      _radarHomeOffers
+        ..clear()
+        ..addAll(next);
+      _pendingRadarHomeOffers.clear();
+      _hasRideOffers = _radarHomeOffers.isNotEmpty;
+    });
+  }
+
   void _releasePendingRadarOffers() {
     if (!mounted ||
         !_isOnline ||
@@ -502,16 +550,11 @@ class _DriverHomeState extends State<DriverHome>
       return;
     }
 
-    final pending = List<_HomeDirectOffer>.of(_pendingRadarHomeOffers);
-    setState(() {
-      _pendingRadarHomeOffers.clear();
-    });
-
-    for (final offer in pending) {
-      if (_radarHomeOffers.length >= _maxHomeRadarOffers) break;
-      if (!_radarHomeOffers.any((item) => item.id == offer.id)) {
-        _activateRadarHomeOffer(offer);
-      }
+    // If no Radar snapshot is visible yet, reveal one trip so the Home Radar
+    // panel can appear. Additional trips remain pending until Refresh.
+    if (_radarHomeOffers.isEmpty) {
+      final first = _pendingRadarHomeOffers.first;
+      _activateRadarHomeOffer(first);
     }
   }
 
@@ -521,10 +564,14 @@ class _DriverHomeState extends State<DriverHome>
 
     setState(() {
       _radarHomeOffers.removeWhere((item) => item.id == offer.id);
-      if (_radarHomeOffers.isEmpty) {
-        _hasRideOffers = false;
-      }
+      _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
+      _hasRideOffers =
+          _radarHomeOffers.isNotEmpty || _pendingRadarHomeOffers.isNotEmpty;
     });
+
+    if (_radarHomeOffers.isEmpty && _pendingRadarHomeOffers.isNotEmpty) {
+      _releasePendingRadarOffers();
+    }
   }
 
   void _cancelAllOfferTimers() {
@@ -1335,7 +1382,7 @@ class _DriverHomeState extends State<DriverHome>
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'Live matches inside your radar coverage',
+                            'Stable list · refresh when new trips arrive',
                             style: TextStyle(
                               color: Color(0xFF7C888E),
                               fontSize: 9.5,
@@ -1345,24 +1392,53 @@ class _DriverHomeState extends State<DriverHome>
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF26343A),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        offers.length.toString() + ' live',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
+                    if (_pendingRadarHomeOffers.isNotEmpty)
+                      TextButton.icon(
+                        key: const ValueKey<String>('radar-home-refresh'),
+                        onPressed: _refreshRadarHomeOffers,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF9A650F),
+                          backgroundColor: const Color(0xFFFFF3DE),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 7,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(11),
+                          ),
+                        ),
+                        icon: const Icon(Icons.refresh_rounded, size: 15),
+                        label: Text(
+                          'Refresh · ' +
+                              _pendingRadarHomeOffers.length.toString() +
+                              ' new',
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF26343A),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          offers.length.toString() + ' live',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -2317,10 +2393,14 @@ class _DriverHomeState extends State<DriverHome>
       ]),
       builder: (context, child) {
         final radarOfferCount = _radarHomeOffers.length;
-        final hasRadarOffer = _hasRideOffers || radarOfferCount > 0;
+        final pendingRadarCount = _pendingRadarHomeOffers.length;
+        final hasRadarOffer =
+            _hasRideOffers || radarOfferCount > 0 || pendingRadarCount > 0;
 
         return _buildRadarOrb(
-          title: radarOfferCount > 1
+          title: pendingRadarCount > 0
+              ? pendingRadarCount.toString() + " new"
+              : radarOfferCount > 1
               ? radarOfferCount.toString() + " offers"
               : hasRadarOffer
               ? "Trip found"
