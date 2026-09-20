@@ -144,7 +144,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Home drawer opens without overflow on narrow phone', (
+  testWidgets('Driver menu is full-height, closes on scrim, and Back returns to menu', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -156,6 +156,34 @@ void main() {
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
     expect(scaffoldState.isDrawerOpen, isTrue);
+    final drawer = find.byKey(const ValueKey<String>('driver-side-menu'));
+    expect(drawer, findsOneWidget);
+    expect(tester.getSize(drawer).height, 700);
+    expect(find.byTooltip('Close menu'), findsNothing);
+    _expectNoException(tester);
+
+    // The uncovered map/scrim area closes the menu; no X button is required.
+    await tester.tapAt(const Offset(316, 350));
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    expect(scaffoldState.isDrawerOpen, isFalse);
+    _expectNoException(tester);
+
+    // Top-level menu destinations keep the drawer open underneath. Back from
+    // the destination therefore returns to the menu, not directly to the map.
+    scaffoldState.openDrawer();
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    await tester.tap(find.text('Ride history'));
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.byType(DriverRideHistory), findsOneWidget);
+    _expectNoException(tester);
+
+    Navigator.of(tester.element(find.byType(DriverRideHistory))).pop();
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.byType(DriverRideHistory), findsNothing);
+    expect(scaffoldState.isDrawerOpen, isTrue);
+    expect(find.text('Ride history'), findsOneWidget);
     _expectNoException(tester);
   });
 
