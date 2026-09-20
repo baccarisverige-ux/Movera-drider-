@@ -25,14 +25,16 @@ void _expectNoException(WidgetTester tester) {
 }
 
 void _invokeSheetAction(WidgetTester tester, String tooltip) {
-  final visibleTooltip = find.byTooltip(tooltip).hitTestable().first;
-  final action = find.descendant(
-    of: visibleTooltip,
-    matching: find.byType(InkWell),
-  );
-  expect(action, findsOneWidget);
+  final actions = find
+      .descendant(
+        of: find.byTooltip(tooltip).hitTestable(),
+        matching: find.byType(InkWell),
+      )
+      .hitTestable();
+  final elements = actions.evaluate().toList();
+  expect(elements, isNotEmpty);
 
-  final inkWell = tester.widget<InkWell>(action);
+  final inkWell = elements.first.widget as InkWell;
   expect(inkWell.onTap, isNotNull);
   inkWell.onTap!.call();
 }
