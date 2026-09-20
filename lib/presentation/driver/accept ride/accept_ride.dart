@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/location/driver_location_service.dart';
+import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
@@ -48,8 +49,6 @@ class AcceptRide extends StatefulWidget {
   @override
   State<AcceptRide> createState() => _AcceptRideState();
 }
-
-enum _RideStage { headingToPickup, waitingForRider, onTrip }
 
 enum _OnTripRadarState { off, scanning, offerAvailable, matching, secured }
 
@@ -210,7 +209,11 @@ class _AcceptRideState extends State<AcceptRide> {
 
   GoogleMapController? _mapController;
   StreamSubscription<Position>? _positionSubscription;
-  _RideStage _stage = _RideStage.headingToPickup;
+  final ActiveRideController _rideLifecycle = ActiveRideController();
+  ActiveRideStage get _stage => _rideLifecycle.stage;
+  set _stage(ActiveRideStage value) {
+    _rideLifecycle.transitionTo(value);
+  }
   Timer? _waitTimer;
   Timer? _nextTripRadarDemoTimer;
   Timer? _nextTripRadarMatchTimer;
@@ -243,6 +246,7 @@ class _AcceptRideState extends State<AcceptRide> {
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
     _positionSubscription?.cancel();
+    _rideLifecycle.dispose();
     _mapController = null;
     super.dispose();
   }
@@ -284,11 +288,10 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   LatLng get _routeTarget =>
-      _stage == _RideStage.onTrip
+      _stage == ActiveRideStage.onTrip
           ? widget.dropoffPosition
           : widget.pickupPosition;
 
-  List<LatLng> get _routePoints => _roadRoutePoints;
 
   Set<Marker> get _markers {
     final markers = <Marker>{
@@ -300,7 +303,7 @@ class _AcceptRideState extends State<AcceptRide> {
       ),
     };
 
-    if (_stage != _RideStage.onTrip) {
+    if (_stage != ActiveRideStage.onTrip) {
       markers.add(
         Marker(
           markerId: const MarkerId('pickup'),
@@ -385,17 +388,17 @@ class _AcceptRideState extends State<AcceptRide> {
       _locationStatus = null;
     });
 
-    if (_stage != _RideStage.waitingForRider) {
+    if (_stage != ActiveRideStage.waitingForRider) {
       await _refreshRoadRoute(force: forceRoute);
     }
 
-    if (_stage == _RideStage.onTrip) {
+    if (_stage == ActiveRideStage.onTrip) {
       _maybeScheduleOnTripRadarDemoOffer();
     }
   }
 
   Future<void> _refreshRoadRoute({bool force = false}) async {
-    if (!_hasLiveLocation || _stage == _RideStage.waitingForRider) return;
+    if (!_hasLiveLocation || _stage == ActiveRideStage.waitingForRider) return;
 
     final now = DateTime.now();
     final lastOrigin = _lastRouteOrigin;
@@ -523,9 +526,9 @@ class _AcceptRideState extends State<AcceptRide> {
     _routeRequestToken++;
 
     switch (_stage) {
-      case _RideStage.headingToPickup:
+      case ActiveRideStage.headingToPickup:
         setState(() {
-          _stage = _RideStage.waitingForRider;
+          _stage = ActiveRideStage.waitingForRider;
           _waitSeconds = 0;
           _roadRoutePoints = <LatLng>[];
           _routeDistanceMeters = null;
@@ -537,10 +540,10 @@ class _AcceptRideState extends State<AcceptRide> {
         unawaited(_focusWaitingPickup());
         return;
 
-      case _RideStage.waitingForRider:
+      case ActiveRideStage.waitingForRider:
         _waitTimer?.cancel();
         setState(() {
-          _stage = _RideStage.onTrip;
+          _stage = ActiveRideStage.onTrip;
           _roadRoutePoints = <LatLng>[];
           _routeDistanceMeters = null;
           _routeDurationSeconds = null;
@@ -551,10 +554,11 @@ class _AcceptRideState extends State<AcceptRide> {
         unawaited(_refreshOnTripRoute());
         return;
 
-      case _RideStage.onTrip:
+      case ActiveRideStage.onTrip:
         _waitTimer?.cancel();
         _nextTripRadarDemoTimer?.cancel();
         _nextTripRadarMatchTimer?.cancel();
+        _rideLifecycle.complete();
         WaybillStore.completeCurrent();
 
         Navigator.pushReplacement(
@@ -567,7 +571,7 @@ class _AcceptRideState extends State<AcceptRide> {
 
   Future<void> _refreshOnTripRoute() async {
     await _refreshRoadRoute(force: true);
-    if (!mounted || _stage != _RideStage.onTrip) return;
+    if (!mounted || _stage != ActiveRideStage.onTrip) return;
     await _fitRoute();
   }
 
@@ -591,7 +595,7 @@ class _AcceptRideState extends State<AcceptRide> {
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
 
-    if (!mounted || _stage != _RideStage.onTrip) return;
+    if (!mounted || _stage != ActiveRideStage.onTrip) return;
 
     setState(() {
       _onTripRadarState = _OnTripRadarState.scanning;
@@ -603,7 +607,7 @@ class _AcceptRideState extends State<AcceptRide> {
 
   void _maybeScheduleOnTripRadarDemoOffer() {
     if (!mounted ||
-        _stage != _RideStage.onTrip ||
+        _stage != ActiveRideStage.onTrip ||
         _onTripRadarState != _OnTripRadarState.scanning ||
         (_nextTripRadarDemoTimer?.isActive ?? false)) {
       return;
@@ -624,7 +628,7 @@ class _AcceptRideState extends State<AcceptRide> {
       const Duration(milliseconds: 2200),
       () {
         if (!mounted ||
-            _stage != _RideStage.onTrip ||
+            _stage != ActiveRideStage.onTrip ||
             _onTripRadarState != _OnTripRadarState.scanning) {
           return;
         }
@@ -638,7 +642,7 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Future<void> _openNextTripRadar() async {
-    if (_stage != _RideStage.onTrip) return;
+    if (_stage != ActiveRideStage.onTrip) return;
 
     final offer = _nextTripRadarOffer;
     if (offer == null) return;
@@ -816,7 +820,7 @@ class _AcceptRideState extends State<AcceptRide> {
                                   const Duration(milliseconds: 900),
                                   () {
                                     if (!mounted ||
-                                        _stage != _RideStage.onTrip) {
+                                        _stage != ActiveRideStage.onTrip) {
                                       return;
                                     }
                                     setState(() {
@@ -960,7 +964,7 @@ class _AcceptRideState extends State<AcceptRide> {
 
   Widget _buildSecuredNextTripDetails() {
     final offer = _nextTripRadarOffer;
-    if (_stage != _RideStage.onTrip ||
+    if (_stage != ActiveRideStage.onTrip ||
         _onTripRadarState != _OnTripRadarState.secured ||
         offer == null) {
       return const SizedBox.shrink();
@@ -1131,7 +1135,7 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Widget _buildOnTripRadarOfferButton() {
-    if (_stage != _RideStage.onTrip ||
+    if (_stage != ActiveRideStage.onTrip ||
         _onTripRadarState != _OnTripRadarState.offerAvailable ||
         _nextTripRadarOffer == null) {
       return const SizedBox.shrink();
@@ -1230,7 +1234,7 @@ class _AcceptRideState extends State<AcceptRide> {
   void _startWaitTimer() {
     _waitTimer?.cancel();
     _waitTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _stage != _RideStage.waitingForRider) return;
+      if (!mounted || _stage != ActiveRideStage.waitingForRider) return;
       setState(() => _waitSeconds++);
     });
   }
@@ -1243,22 +1247,22 @@ class _AcceptRideState extends State<AcceptRide> {
 
   String get _title {
     switch (_stage) {
-      case _RideStage.headingToPickup:
+      case ActiveRideStage.headingToPickup:
         return 'Heading to pickup';
-      case _RideStage.waitingForRider:
+      case ActiveRideStage.waitingForRider:
         return 'Waiting for rider';
-      case _RideStage.onTrip:
+      case ActiveRideStage.onTrip:
         return 'Dropping off ${widget.riderName}';
     }
   }
 
   String get _subtitle {
     switch (_stage) {
-      case _RideStage.headingToPickup:
+      case ActiveRideStage.headingToPickup:
         return '${widget.riderName} is waiting at ${widget.pickupAddress}';
-      case _RideStage.waitingForRider:
+      case ActiveRideStage.waitingForRider:
         return '${widget.riderName} will be out shortly';
-      case _RideStage.onTrip:
+      case ActiveRideStage.onTrip:
         return 'On the way to ${widget.dropoffAddress}';
     }
   }
@@ -1310,7 +1314,7 @@ class _AcceptRideState extends State<AcceptRide> {
                 bottom: panelHeight + 16,
                 child: _buildMapControls(),
               ),
-              if (_stage == _RideStage.onTrip &&
+              if (_stage == ActiveRideStage.onTrip &&
                   _onTripRadarState == _OnTripRadarState.offerAvailable)
                 Positioned(
                   left: 16,
@@ -1332,8 +1336,8 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Widget _buildNavigationCard() {
-    final onTrip = _stage == _RideStage.onTrip;
-    final waiting = _stage == _RideStage.waitingForRider;
+    final onTrip = _stage == ActiveRideStage.onTrip;
+    final waiting = _stage == ActiveRideStage.waitingForRider;
     final eyebrow = waiting
         ? 'PICKUP'
         : onTrip
@@ -1598,7 +1602,7 @@ class _AcceptRideState extends State<AcceptRide> {
                     _buildRiderRow(),
                     const SizedBox(height: 10),
                     _buildCurrentWaybillShortcut(),
-                    if (_stage == _RideStage.onTrip)
+                    if (_stage == ActiveRideStage.onTrip)
                       _buildSecuredNextTripDetails(),
                   ],
                 ),
@@ -1622,9 +1626,9 @@ class _AcceptRideState extends State<AcceptRide> {
 
   Widget _stagePill() {
     final label = switch (_stage) {
-      _RideStage.headingToPickup => 'PICKUP',
-      _RideStage.waitingForRider => 'WAITING',
-      _RideStage.onTrip => 'ON TRIP',
+      ActiveRideStage.headingToPickup => 'PICKUP',
+      ActiveRideStage.waitingForRider => 'WAITING',
+      ActiveRideStage.onTrip => 'ON TRIP',
     };
 
     return Container(
@@ -1680,10 +1684,10 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Widget _buildEtaTile() {
-    final main = _stage == _RideStage.waitingForRider
+    final main = _stage == ActiveRideStage.waitingForRider
         ? _waitLabel
         : _routeEtaText;
-    final sub = _stage == _RideStage.waitingForRider
+    final sub = _stage == ActiveRideStage.waitingForRider
         ? 'WAITING'
         : _routeDistanceText;
 
@@ -1722,9 +1726,9 @@ class _AcceptRideState extends State<AcceptRide> {
 
   Widget _buildProgress() {
     final current = switch (_stage) {
-      _RideStage.headingToPickup => 1,
-      _RideStage.waitingForRider => 2,
-      _RideStage.onTrip => 3,
+      ActiveRideStage.headingToPickup => 1,
+      ActiveRideStage.waitingForRider => 2,
+      ActiveRideStage.onTrip => 3,
     };
 
     final items = const [
@@ -2031,14 +2035,14 @@ class _AcceptRideState extends State<AcceptRide> {
             semanticsKey:
                 const ValueKey<String>('active-ride-primary-action'),
             label: switch (_stage) {
-              _RideStage.headingToPickup => 'Slide to confirm pickup',
-              _RideStage.waitingForRider => 'Slide to start trip',
-              _RideStage.onTrip => 'Slide to complete trip',
+              ActiveRideStage.headingToPickup => 'Slide to confirm pickup',
+              ActiveRideStage.waitingForRider => 'Slide to start trip',
+              ActiveRideStage.onTrip => 'Slide to complete trip',
             },
             icon: switch (_stage) {
-              _RideStage.headingToPickup => Icons.location_on_outlined,
-              _RideStage.waitingForRider => Icons.play_arrow_rounded,
-              _RideStage.onTrip => Icons.flag_outlined,
+              ActiveRideStage.headingToPickup => Icons.location_on_outlined,
+              ActiveRideStage.waitingForRider => Icons.play_arrow_rounded,
+              ActiveRideStage.onTrip => Icons.flag_outlined,
             },
             onConfirmed: () {
               _advanceRide();
@@ -2184,13 +2188,13 @@ class _AcceptRideState extends State<AcceptRide> {
                 ),
                 _optionTile(
                   key: const ValueKey<String>('active-ride-cancel-option'),
-                  icon: _stage == _RideStage.onTrip
+                  icon: _stage == ActiveRideStage.onTrip
                       ? Icons.stop_circle_outlined
                       : Icons.close_rounded,
-                  title: _stage == _RideStage.onTrip
+                  title: _stage == ActiveRideStage.onTrip
                       ? 'End trip early'
                       : 'Cancel trip',
-                  subtitle: _stage == _RideStage.onTrip
+                  subtitle: _stage == ActiveRideStage.onTrip
                       ? 'Stop safely first · reason required'
                       : 'Choose a reason before cancelling',
                   danger: true,
@@ -2279,7 +2283,7 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Future<void> _showCancellationReasons() async {
-    final isOnTrip = _stage == _RideStage.onTrip;
+    final isOnTrip = _stage == ActiveRideStage.onTrip;
     final reasons =
         isOnTrip ? _onTripCancellationReasons : _preTripCancellationReasons;
 
@@ -2447,7 +2451,7 @@ class _AcceptRideState extends State<AcceptRide> {
   Future<void> _confirmCancellationReason(
     _TripCancellationReason reason,
   ) async {
-    final isOnTrip = _stage == _RideStage.onTrip;
+    final isOnTrip = _stage == ActiveRideStage.onTrip;
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -2596,6 +2600,7 @@ class _AcceptRideState extends State<AcceptRide> {
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
     _routeRequestToken++;
+    _rideLifecycle.cancel();
     WaybillStore.current = null;
     WaybillStore.clearNext();
 
@@ -2604,7 +2609,7 @@ class _AcceptRideState extends State<AcceptRide> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          _stage == _RideStage.onTrip
+          _stage == ActiveRideStage.onTrip
               ? 'Trip ended early · ${reason.title}'
               : 'Trip cancelled · ${reason.title}',
         ),
