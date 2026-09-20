@@ -2,18 +2,7 @@ import 'dart:convert';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
-
-class RoadRoute {
-  const RoadRoute({
-    required this.points,
-    required this.distanceMeters,
-    required this.durationSeconds,
-  });
-
-  final List<LatLng> points;
-  final double distanceMeters;
-  final double durationSeconds;
-}
+import 'package:movera/core/routing/route_repository.dart';
 
 class RoadRouteException implements Exception {
   const RoadRouteException(this.message);
@@ -30,7 +19,7 @@ class RoadRouteException implements Exception {
 /// frontend can follow actual roads without exposing a private routing key.
 /// Production should swap this adapter for Movera's backend routing endpoint
 /// while keeping the UI contract unchanged.
-class RoadRouteService {
+class RoadRouteService implements RouteRepository {
   RoadRouteService({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
