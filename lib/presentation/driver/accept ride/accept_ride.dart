@@ -4,9 +4,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/routing/road_route_service.dart';
+import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
@@ -31,6 +33,8 @@ class AcceptRide extends StatefulWidget {
     this.dropoffAddress = 'T-Centralen, Stockholm',
     this.pickupPosition = const LatLng(59.3279, 18.0615),
     this.dropoffPosition = const LatLng(59.3326, 18.0649),
+    this.locationRepository,
+    this.routeRepository,
   });
 
   final String offerId;
@@ -45,6 +49,8 @@ class AcceptRide extends StatefulWidget {
   final String dropoffAddress;
   final LatLng pickupPosition;
   final LatLng dropoffPosition;
+  final DriverLocationRepository? locationRepository;
+  final RouteRepository? routeRepository;
 
   @override
   State<AcceptRide> createState() => _AcceptRideState();
@@ -203,9 +209,8 @@ class _AcceptRideState extends State<AcceptRide> {
 
 
 
-  final DriverLocationService _locationService =
-      const DriverLocationService();
-  final RoadRouteService _routeService = RoadRouteService();
+  late final DriverLocationRepository _locationService;
+  late final RouteRepository _routeService;
 
   GoogleMapController? _mapController;
   StreamSubscription<Position>? _positionSubscription;
@@ -236,6 +241,9 @@ class _AcceptRideState extends State<AcceptRide> {
   @override
   void initState() {
     super.initState();
+    _locationService =
+        widget.locationRepository ?? const DriverLocationService();
+    _routeService = widget.routeRepository ?? RoadRouteService();
     WaybillStore.beginCurrent(_buildCurrentWaybill());
     _startLiveLocation();
   }
