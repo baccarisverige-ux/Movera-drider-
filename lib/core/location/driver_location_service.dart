@@ -1,4 +1,5 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:movera/core/location/driver_location_repository.dart';
 
 class DriverLocationException implements Exception {
   const DriverLocationException(this.message);
@@ -9,7 +10,7 @@ class DriverLocationException implements Exception {
   String toString() => message;
 }
 
-class DriverLocationService {
+class DriverLocationService implements DriverLocationRepository {
   const DriverLocationService();
 
   Future<Position> getCurrentPosition() async {
