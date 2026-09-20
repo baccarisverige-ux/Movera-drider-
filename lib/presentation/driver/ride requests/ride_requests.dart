@@ -293,29 +293,31 @@ class _RideRequestsState extends State<RideRequests> {
       padding: const EdgeInsets.fromLTRB(18, 7, 18, 10),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Nearby trips',
+                  widget.destinationModeActive
+                      ? 'Along your destination'
+                      : 'Nearby trips',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
                   ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
                   widget.destinationModeActive
                       ? 'Only trips that keep you moving the same way'
                       : 'Only requests around your current area',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Color(0xFFAEB8BD),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
