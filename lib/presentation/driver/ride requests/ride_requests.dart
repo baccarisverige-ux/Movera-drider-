@@ -7,8 +7,15 @@ import 'package:movera/widgets/navigation_transition.dart';
 
 class RideRequests extends StatefulWidget {
   final ValueChanged<bool>? onCloseRides;
+  final bool destinationModeActive;
+  final String? destinationAddress;
 
-  const RideRequests({super.key, this.onCloseRides});
+  const RideRequests({
+    super.key,
+    this.onCloseRides,
+    this.destinationModeActive = false,
+    this.destinationAddress,
+  });
 
   @override
   State<RideRequests> createState() => _RideRequestsState();
@@ -39,6 +46,7 @@ class _RideRequestsState extends State<RideRequests> {
       pickup: 'Hantverkargatan 4, Stockholm',
       dropoff: 'Trollesundsvägen 58B, Bandhagen',
       isNearby: true,
+      followsDestination: false,
     ),
     const _RadarTrip(
       id: 'nearby-2',
@@ -52,6 +60,7 @@ class _RideRequestsState extends State<RideRequests> {
       pickup: 'Klarabergsgatan, Stockholm',
       dropoff: 'Ringvägen, Södermalm',
       isNearby: true,
+      followsDestination: true,
     ),
     const _RadarTrip(
       id: 'nearby-3',
@@ -65,6 +74,7 @@ class _RideRequestsState extends State<RideRequests> {
       pickup: 'Strandvägen, Stockholm',
       dropoff: 'Solna centrum, Solna',
       isNearby: true,
+      followsDestination: true,
     ),
     const _RadarTrip(
       id: 'outside-area',
@@ -78,6 +88,7 @@ class _RideRequestsState extends State<RideRequests> {
       pickup: 'Outside local radar area',
       dropoff: 'Stockholm',
       isNearby: false,
+      followsDestination: false,
     ),
   ];
 
@@ -94,6 +105,7 @@ class _RideRequestsState extends State<RideRequests> {
       pickup: 'Vasagatan, Stockholm',
       dropoff: 'Gärdet, Stockholm',
       isNearby: true,
+      followsDestination: true,
     ),
     const _RadarTrip(
       id: 'nearby-5',
@@ -107,11 +119,16 @@ class _RideRequestsState extends State<RideRequests> {
       pickup: 'Odengatan, Stockholm',
       dropoff: 'Liljeholmen, Stockholm',
       isNearby: true,
+      followsDestination: false,
     ),
   ];
 
   List<_RadarTrip> get _visibleOffers {
-    final nearby = _offers.where((offer) => offer.isNearby).toList()
+    final nearby = _offers.where((offer) {
+      if (!offer.isNearby) return false;
+      if (!widget.destinationModeActive) return true;
+      return offer.followsDestination;
+    }).toList()
       ..sort((a, b) => a.pickupKm.compareTo(b.pickupKm));
     return nearby;
   }
@@ -167,7 +184,11 @@ class _RideRequestsState extends State<RideRequests> {
   }
 
   void _matchTrip(_RadarTrip trip) {
-    if (!_offers.any((offer) => offer.id == trip.id && offer.isNearby)) {
+    if (!_offers.any((offer) {
+      if (offer.id != trip.id || !offer.isNearby) return false;
+      if (!widget.destinationModeActive) return true;
+      return offer.followsDestination;
+    })) {
       return;
     }
 
@@ -188,6 +209,7 @@ class _RideRequestsState extends State<RideRequests> {
           children: [
             _topBar(),
             _radarStatus(offers.length),
+            if (widget.destinationModeActive) _destinationModeBanner(),
             if (_hasNewTripSignal) _newTripsBanner(),
             Expanded(
               child: offers.isEmpty
@@ -288,7 +310,9 @@ class _RideRequestsState extends State<RideRequests> {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Only requests around your current area',
+                  widget.destinationModeActive
+                      ? 'Only trips that keep you moving the same way'
+                      : 'Only requests around your current area',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -320,6 +344,47 @@ class _RideRequestsState extends State<RideRequests> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _destinationModeBanner() {
+    final destination = widget.destinationAddress?.trim();
+    final label = destination == null || destination.isEmpty
+        ? 'Destination route'
+        : destination.split(',').first.trim();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Container(
+        key: const ValueKey<String>('radar-destination-filter'),
+        padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE7F5EE),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.near_me_rounded,
+              color: _green,
+              size: 17,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Trips toward $label',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -635,6 +700,7 @@ class _RadarTrip {
     required this.pickup,
     required this.dropoff,
     required this.isNearby,
+    this.followsDestination = false,
   });
 
   final String id;
@@ -648,6 +714,7 @@ class _RadarTrip {
   final String pickup;
   final String dropoff;
   final bool isNearby;
+  final bool followsDestination;
 }
 
 class _LiveDot extends StatelessWidget {
