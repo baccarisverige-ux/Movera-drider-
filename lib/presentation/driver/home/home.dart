@@ -618,6 +618,8 @@ class _DriverHomeState extends State<DriverHome>
                     context: context,
                     scaffoldKey: _scaffoldKey,
                     isOnline: _isOnline,
+                    hasRideOffers:
+                        _hasRideOffers || _homeDirectOffers.isNotEmpty,
                     hasScheduledRideOffers: _hasScheduledRideOffers,
                     goOnlinePulseController: _goOnlinePulseController,
                     onOpenScheduledRides: _openScheduledRides,
@@ -2443,7 +2445,10 @@ class _DriverHomeState extends State<DriverHome>
             ),
           ),
         ),
-        DriverSheetNav.onlineEdgeDashOverlay(isOnline: _isOnline),
+        DriverSheetNav.onlineEdgeDashOverlay(
+          isOnline: _isOnline,
+          hasRideOffers: _hasRideOffers || _homeDirectOffers.isNotEmpty,
+        ),
       ],
     );
   }
