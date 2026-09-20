@@ -221,9 +221,16 @@ void main() {
     expect(find.text('SCANNING'), findsOneWidget);
 
     await _openPanel(tester);
-    final scheduled = find.byTooltip('Scheduled').hitTestable();
-    expect(scheduled, findsOneWidget);
-    await tester.tap(scheduled);
+    final scheduledTooltips = find.byTooltip('Scheduled');
+    expect(scheduledTooltips, findsWidgets);
+    final scheduledTaps = find.descendant(
+      of: scheduledTooltips,
+      matching: find.byType(InkWell),
+    );
+    final scheduledAction = tester
+        .widgetList<InkWell>(scheduledTaps)
+        .firstWhere((widget) => widget.onTap != null);
+    scheduledAction.onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
     expect(find.byType(ScheduledRidesScreen), findsOneWidget);
@@ -280,7 +287,10 @@ void main() {
     expect(find.text('104,80 kr'), findsOneWidget);
     expect(find.text('SCANNING'), findsOneWidget);
 
-    // The direct offer auto-dismisses 8.5s after it appears.
+    // Let the 80 ms route-preview continuation install the timeout timer.
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // The direct offer auto-dismisses 8.5s after preview setup completes.
     await tester.pump(const Duration(milliseconds: 8700));
 
     expect(find.text('104,80 kr'), findsNothing);
