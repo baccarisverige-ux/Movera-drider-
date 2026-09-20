@@ -341,9 +341,9 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
           ],
         ),
         const SizedBox(height: 3),
-        const _HistoryRideCard(ride: _rides[0], compact: true),
+        _HistoryRideCard(ride: _rides[0], compact: true),
         const SizedBox(height: 8),
-        const _HistoryRideCard(ride: _rides[1], compact: true),
+        _HistoryRideCard(ride: _rides[1], compact: true),
         const SizedBox(height: 10),
         SizedBox(
           height: 48,
