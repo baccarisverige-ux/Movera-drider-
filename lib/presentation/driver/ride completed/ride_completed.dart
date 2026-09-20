@@ -75,9 +75,16 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                   CustomButton(
                     centerContent: 'Done',
                     onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                        return;
+                      }
+
                       Navigator.pushReplacement(
                         context,
-                        BottomToTopTransition(DriverHome()),
+                        BottomToTopTransition(
+                          const DriverHome(initialOnline: true),
+                        ),
                       );
                     },
                   ),
