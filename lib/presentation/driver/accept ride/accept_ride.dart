@@ -2088,9 +2088,11 @@ class _AcceptRideState extends State<AcceptRide> {
           ),
           child: SafeArea(
             top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 const CircleAvatar(
                   radius: 34,
                   backgroundImage: AssetImage(AppAssets.profileImg),
@@ -2142,10 +2144,14 @@ class _AcceptRideState extends State<AcceptRide> {
   Future<void> _showTripOptions() async {
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.35),
       builder: (sheetContext) {
         return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.78,
+          ),
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
           decoration: const BoxDecoration(
             color: Color(0xFFF7F9F9),
@@ -2224,7 +2230,8 @@ class _AcceptRideState extends State<AcceptRide> {
                     _showCancellationReasons();
                   },
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         );
