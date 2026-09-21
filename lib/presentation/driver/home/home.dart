@@ -4295,7 +4295,8 @@ class _DriverHomeState extends State<DriverHome>
     final accent = busy
         ? const Color(0xFF19865C)
         : const Color(0xFF69B993);
-    final percent = (area.demandPercent / 100).clamp(0.0, 1.0);
+    final percent =
+        (area.demandPercent / 100).clamp(0.0, 1.0).toDouble();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 11, 11, 10),
