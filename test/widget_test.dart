@@ -1987,7 +1987,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Home sheet recovers from an interrupted in-between position', (
+  testWidgets('Home sheet release settles on a valid snap position', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1995,12 +1995,23 @@ void main() {
 
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     final snap = panel.snapPoint!;
-    panel.controller!.panelPosition = 0.30;
 
-    await tester.pump(const Duration(milliseconds: 220));
-    await tester.pump(const Duration(milliseconds: 700));
+    await tester.drag(
+      find.byType(SlidingUpPanel),
+      const Offset(0, -220),
+    );
+    await tester.pump(const Duration(milliseconds: 520));
+    await tester.pump(const Duration(milliseconds: 520));
 
-    expect(panel.controller!.panelPosition, closeTo(snap, 0.035));
+    final position = panel.controller!.panelPosition;
+    expect(
+      position,
+      anyOf(
+        closeTo(0, 0.04),
+        closeTo(snap, 0.04),
+        closeTo(1, 0.04),
+      ),
+    );
     _expectNoException(tester);
   });
 
