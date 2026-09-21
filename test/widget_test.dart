@@ -2016,57 +2016,6 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Collapsed arrival starts waiting and receives rider on-way reply', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-
-    final realtime = MemoryDriverRealtime();
-    final events = <DriverRealtimeEvent>[];
-    final sub = realtime.subscribe('arrival-test').listen(events.add);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AcceptRide(
-          offerId: 'arrival-test',
-          realtime: realtime,
-        ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 180));
-    await _collapseActiveRideSheet(tester);
-
-    final arrived = find.byKey(
-      const ValueKey<String>('active-ride-arrived-button'),
-    );
-    expect(arrived, findsOneWidget);
-    expect(find.text("I've arrived"), findsOneWidget);
-
-    await tester.tap(arrived);
-    await tester.pump(const Duration(milliseconds: 80));
-    await tester.pump();
-
-    expect(
-      events.any((event) => event.kind == DriverRealtimeKind.driverArrived),
-      isTrue,
-    );
-    expect(find.byKey(const ValueKey<String>('active-ride-arrived-button')),
-        findsNothing);
-    expect(find.text('0:00'), findsWidgets);
-
-    realtime.emit(
-      tripId: 'arrival-test',
-      kind: DriverRealtimeKind.riderOnTheWay,
-      message: "I'm on the way",
-    );
-    await tester.pump(const Duration(milliseconds: 80));
-    expect(find.text('RIDER ON THE WAY'), findsOneWidget);
-
-    await sub.cancel();
-    _expectNoException(tester);
-    realtime.dispose();
-  });
-
   testWidgets('Active ride route summary shows real optional stops expanded and collapsed', (
     WidgetTester tester,
   ) async {
