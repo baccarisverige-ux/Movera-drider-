@@ -37,11 +37,7 @@ class _ChatState extends State<Chat> {
       return; // Don't send if text is empty
     }
 
-    if (_messages.length.isEven) {
-      _messages.add(SenderMessage(text: _messageController.text));
-    } else {
-      _messages.add(ReceiverMessage(text: _messageController.text));
-    }
+    _messages.add(SenderMessage(text: _messageController.text));
     setState(() {});
     _messageController.clear();
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 Future<T?> showSafetyToolKitSheet<T>(BuildContext context) {
   return showModalBottomSheet<T>(
@@ -78,7 +79,8 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
     );
 
     if (call == true && mounted) {
-      _showMessage('Emergency call is ready to open on your phone.');
+      await launchUrl(Uri.parse('tel:112'));
+      _showMessage('Calling 112…');
     }
   }
 

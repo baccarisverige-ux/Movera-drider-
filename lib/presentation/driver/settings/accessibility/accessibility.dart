@@ -85,7 +85,32 @@ class _AccessibilityState extends State<Accessibility> {
                 title: items[index].title,
                 subTitle: items[index].subTitle,
                 onTap: () {
-                  // Navigator.push(context, RightToLeftTransition(Analytics()));
+                  if (index != 0) return;
+                  showDialog<void>(
+                    context: context,
+                    builder: (dialogContext) {
+                      return AlertDialog(
+                        backgroundColor: Colors.white,
+                        title: const Text('Hearing'),
+                        content: const Text(
+                          'Riders can be told you are deaf or hard of hearing. This stays on this device.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text('Not now'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF19865C),
+                            ),
+                            child: const Text('Share on trips'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
                 },
                 showArrow: items[index].image == AppAssets.hearing
                     ? true

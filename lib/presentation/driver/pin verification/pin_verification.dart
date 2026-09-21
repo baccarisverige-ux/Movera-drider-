@@ -159,7 +159,19 @@ class _PinVerificationState extends State<PinVerification> {
                       );
                     }),
                     24.height,
-                    CustomButton(centerContent: "Save", onPressed: () {}),
+                    CustomButton(
+                      centerContent: "Save",
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'PIN preference saved on this device.',
+                            ),
+                          ),
+                        );
+                        Navigator.pop(context);
+                      },
+                    ),
                     24.height,
                   ],
                 ),

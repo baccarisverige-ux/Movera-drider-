@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
+import 'package:movera/presentation/driver/driving%20logs/driving_logs.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
 import 'package:movera/presentation/driver/preferences/preferences.dart';
 import 'package:movera/presentation/driver/profile/profile.dart';
+import 'package:movera/presentation/driver/promotions/promotions.dart';
 import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
 import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dart';
 import 'package:movera/presentation/driver/settings/settings.dart';
@@ -108,6 +110,18 @@ class DriverSideMenu extends StatelessWidget {
                         title: 'Ride preferences',
                         subtitle: 'Choose categories you want to receive',
                         onTap: () => _open(context, const Preferences()),
+                      ),
+                      _MenuAction(
+                        icon: Icons.local_offer_outlined,
+                        title: 'Promotions',
+                        subtitle: 'Bonuses and campaign offers',
+                        onTap: () => _open(context, const Promotions()),
+                      ),
+                      _MenuAction(
+                        icon: Icons.timer_outlined,
+                        title: 'Driving logs',
+                        subtitle: 'Hours online and rest rules',
+                        onTap: () => _open(context, const DrivingLogs()),
                       ),
                     ],
                   ),

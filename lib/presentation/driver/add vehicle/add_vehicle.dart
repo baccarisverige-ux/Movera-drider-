@@ -141,7 +141,28 @@ class _AddVehicleState extends State<AddVehicle> {
                 controller: _yearController,
                 hint: 'select model year',
                 keyboardType: TextInputType.number,
-                ontap: () {},
+                ontap: () async {
+                  final now = DateTime.now().year;
+                  final picked = await showDialog<int>(
+                    context: context,
+                    builder: (dialogContext) {
+                      return SimpleDialog(
+                        title: const Text('Vehicle year'),
+                        children: [
+                          for (var year = now; year >= now - 20; year--)
+                            SimpleDialogOption(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, year),
+                              child: Text('$year'),
+                            ),
+                        ],
+                      );
+                    },
+                  );
+                  if (picked != null && mounted) {
+                    _yearController.text = '$picked';
+                  }
+                },
                 suffixWidget: Padding(
                   padding: EdgeInsets.all(12),
                   child: Transform.scale(

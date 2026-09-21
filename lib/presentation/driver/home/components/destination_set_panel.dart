@@ -220,7 +220,7 @@ class _DestinationSetPanelState extends State<DestinationSetPanel> {
                     children: [
                       Image.asset(AppAssets.homeImage1, height: ResSize.h * 36),
                       InkWell(
-                        onTap: () {},
+                        onTap: widget.onClose,
                         child: Container(
                           height: ResSize.h * 57,
                           width: ResSize.w * 57,

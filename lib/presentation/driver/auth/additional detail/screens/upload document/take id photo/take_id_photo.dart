@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/presentation/driver/home/home.dart';
+import 'package:movera/main.dart';
 import 'package:movera/widgets/custom_btn.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
@@ -133,12 +133,19 @@ class _TakeIdPhotoState extends State<TakeIdPhoto> {
               CustomButton(
                 centerContent: "Submit",
                 onPressed: () {
-                  Navigator.push(context, BottomToTopTransition(DriverHome()));
+                  Navigator.of(context).pushAndRemoveUntil(
+                    BottomToTopTransition(const MoveraApp()),
+                    (route) => false,
+                  );
                 },
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.push(context, BottomToTopTransition(DriverHome()));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Hold the ID in frame and capture again.'),
+                    ),
+                  );
                 },
                 child: TextWidget(
                   text: "Retake",

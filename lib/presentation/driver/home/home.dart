@@ -85,6 +85,7 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _homeRadarNoticeTimer;
   Timer? _homeRadarExternalClaimTimer;
   Timer? _homeRadarExternalClaimCleanupTimer;
+  Timer? _homeRadarLostMatchTimer;
   final Map<String, Timer> _radarOfferTimeoutTimers = <String, Timer>{};
   final Map<String, _HomeRadarMatchState> _homeRadarMatchStates =
       <String, _HomeRadarMatchState>{};
@@ -1071,7 +1072,8 @@ class _DriverHomeState extends State<DriverHome>
       },
     );
 
-    Timer(
+    _homeRadarLostMatchTimer?.cancel();
+    _homeRadarLostMatchTimer = Timer(
       const Duration(milliseconds: 2800),
       () {
         if (!mounted ||
@@ -1138,6 +1140,7 @@ class _DriverHomeState extends State<DriverHome>
     _homeRadarNoticeTimer?.cancel();
     _homeRadarExternalClaimTimer?.cancel();
     _homeRadarExternalClaimCleanupTimer?.cancel();
+    _homeRadarLostMatchTimer?.cancel();
     _homeRadarMatchingOfferId = null;
     _homeRadarMatchStates.clear();
     _homeRadarMatchNotice = null;
@@ -1351,7 +1354,7 @@ class _DriverHomeState extends State<DriverHome>
               controller: _destinationPanelController,
               onClose: () {
                 setState(() {
-                  // Any state updates when panel closes
+                  hideMainPanel = false;
                 });
               },
               body: body(isDestinationPanel: true),
@@ -4628,11 +4631,12 @@ class _DriverHomeState extends State<DriverHome>
     _homeRadarNoticeTimer?.cancel();
     _homeRadarExternalClaimTimer?.cancel();
     _homeRadarExternalClaimCleanupTimer?.cancel();
+    _homeRadarLostMatchTimer?.cancel();
     _driverLocationSubscription?.cancel();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
     _overviewListController.dispose();
-    _mapController?.dispose();
+    _mapController = null;
     _driverSession.removeListener(_onDriverSessionChanged);
     if (_ownsDriverSession) {
       _driverSession.dispose();

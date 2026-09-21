@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movera/presentation/driver/my%20bank/my_bank.dart';
 
 class WalletScreen extends StatelessWidget {
   const WalletScreen({super.key});
@@ -272,7 +273,9 @@ class WalletScreen extends StatelessWidget {
     required String title,
     required String action,
   }) {
-    return Row(
+    return Builder(
+      builder: (context) {
+        return Row(
       children: [
         Expanded(
           child: Text(
@@ -285,15 +288,24 @@ class WalletScreen extends StatelessWidget {
             ),
           ),
         ),
-        Text(
-          action,
-          style: const TextStyle(
-            color: _greenMid,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const MyBank()),
+            );
+          },
+          child: Text(
+            action,
+            style: const TextStyle(
+              color: _greenMid,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ],
+        );
+      },
     );
   }
 
@@ -326,7 +338,18 @@ class WalletScreen extends StatelessWidget {
   }
 
   Widget _bankCard() {
-    return Container(
+    return Builder(
+      builder: (context) {
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const MyBank()),
+              );
+            },
+            borderRadius: BorderRadius.circular(22),
+            child: Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
       decoration: BoxDecoration(
@@ -381,6 +404,10 @@ class WalletScreen extends StatelessWidget {
           ),
         ],
       ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

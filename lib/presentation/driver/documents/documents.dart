@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
+import 'package:movera/presentation/driver/auth/additional%20detail/screens/upload%20document/select%20document%20type/select_doc_typ.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
+import 'package:movera/widgets/navigation_transition.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
 
@@ -51,21 +53,32 @@ class DriverDocuments extends StatelessWidget {
               fontWeight: fwSemiBold,
             ),
             16.height,
-            item(documentType: "Driver’s License"),
+            item(context, documentType: "Driver’s License"),
             Divider(height: 0, thickness: 0.2, color: AppColor.border),
-            item(documentType: "Insurance", isFailed: true),
+            item(context, documentType: "Insurance", isFailed: true),
             Divider(height: 0, thickness: 0.2, color: AppColor.border),
-            item(documentType: "Vehicle Verification"),
+            item(context, documentType: "Vehicle Verification"),
             Divider(height: 0, thickness: 0.2, color: AppColor.border),
-            item(documentType: "Driver’s ID"),
+            item(context, documentType: "Driver’s ID"),
           ],
         ),
       ),
     );
   }
 
-  Widget item({String? documentType, bool isFailed = false}) {
-    return Container(
+  Widget item(
+    BuildContext context, {
+    String? documentType,
+    bool isFailed = false,
+  }) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          RightToLeftTransition(const SelectDocumentType()),
+        );
+      },
+      child: Container(
       padding: EdgeInsets.symmetric(vertical: ResSize.h * 12),
       child: Row(
         children: [
@@ -96,6 +109,7 @@ class DriverDocuments extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

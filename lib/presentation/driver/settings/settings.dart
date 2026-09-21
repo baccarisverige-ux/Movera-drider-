@@ -5,7 +5,9 @@ import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/models/title_image.dart';
 import 'package:movera/presentation/driver/pin%20verification/pin_verification.dart';
+import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/settings/accessibility/accessibility.dart';
+import 'package:movera/presentation/driver/settings/emergency_contacts.dart';
 import 'package:movera/presentation/driver/settings/sound%20&%20voice/sound_voice.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
@@ -34,6 +36,7 @@ class _SettingsState extends State<Settings> {
     TitleImageModel(image: AppAssets.safety, title: "Safety "),
   ];
   bool val = false;
+  String _language = 'English (US)';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,10 +91,9 @@ class _SettingsState extends State<Settings> {
                       );
                       break;
                     case 1:
-                      // Navigator.push(context, RightToLeftTransition(Analytics()));
                       break;
                     case 2:
-                      // Navigator.push(context, RightToLeftTransition(Analytics()));
+                      _pickLanguage();
                       break;
                     case 3:
                       Navigator.push(
@@ -106,13 +108,16 @@ class _SettingsState extends State<Settings> {
                       );
                       break;
                     case 5:
-                      // Navigator.push(context, RightToLeftTransition(Analytics()));
+                      Navigator.push(
+                        context,
+                        RightToLeftTransition(const EmergencyContactsScreen()),
+                      );
                       break;
                     case 6:
-                    // Navigator.push(context, RightToLeftTransition(Analytics()));
+                      showSafetyToolKitSheet(context);
+                      break;
                     default:
                   }
-                  // Navigator.push(context, RightToLeftTransition(Analytics()));
                 },
                 showArrow: items[index].image == AppAssets.darkMode
                     ? false
@@ -135,7 +140,7 @@ class _SettingsState extends State<Settings> {
                       )
                     : items[index].image == AppAssets.language
                     ? TextWidget(
-                        text: "English (US) ",
+                        text: _language,
                         color: AppColor.title,
                         fontSize: 14,
                         fontWeight: fwMedium,
@@ -149,6 +154,52 @@ class _SettingsState extends State<Settings> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickLanguage() async {
+    const options = <String>['English (US)', 'Svenska'];
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Language',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF252E3A),
+                    ),
+                  ),
+                ),
+              ),
+              for (final option in options)
+                ListTile(
+                  title: Text(option),
+                  trailing: option == _language
+                      ? const Icon(Icons.check_rounded, color: Color(0xFF19865C))
+                      : null,
+                  onTap: () => Navigator.pop(sheetContext, option),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected != null && mounted) {
+      setState(() => _language = selected);
+    }
   }
 
   Widget _menuItem({

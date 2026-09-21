@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movera/presentation/driver/ride%20history/history%20detail/history_detail.dart';
 
 class DriverRideHistory extends StatefulWidget {
   const DriverRideHistory({super.key});
@@ -773,7 +774,18 @@ class _HistoryRideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const DriverRideHistoryDetail(),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(17),
+        child: Container(
       key: ValueKey<String>(ride.id),
       padding: EdgeInsets.fromLTRB(
         12,
@@ -888,6 +900,8 @@ class _HistoryRideCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+        ),
       ),
     );
   }

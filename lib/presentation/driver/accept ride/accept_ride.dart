@@ -2643,16 +2643,40 @@ class _AcceptRideState extends State<AcceptRide>
     _routeRequestToken++;
     _rideLifecycle.cancel();
     _waybills.discardCurrent();
+
+    final offer = _nextTripRadarOffer;
+    final queuedNext =
+        _onTripRadarState == _OnTripRadarState.secured && offer != null;
+    final nextRide = queuedNext
+        ? AcceptRide(
+            offerId: offer.id,
+            riderName: offer.riderName,
+            riderRating: offer.rating,
+            fare: offer.fare,
+            category: offer.category,
+            matchedVia: 'Movera Radar',
+            pickupAddress: offer.pickup,
+            pickupArea: offer.pickup.split(',').last.trim(),
+            dropoffAddress: offer.dropoff,
+            pickupPosition: offer.pickupPosition,
+            dropoffPosition: offer.dropoffPosition,
+            locationRepository: widget.locationRepository,
+            routeRepository: widget.routeRepository,
+            waybillRepository: _waybills,
+            sessionController: widget.sessionController,
+          )
+        : null;
     _waybills.clearNext();
 
-    // Frontend contract: reason.code is ready to be sent with the backend
-    // cancellation event once trip persistence is connected.
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.showSnackBar(
       SnackBar(
         content: Text(
-          _stage == ActiveRideStage.onTrip
-              ? 'Trip ended early · ${reason.title}'
-              : 'Trip cancelled · ${reason.title}',
+          queuedNext
+              ? 'First trip ended · starting the next one'
+              : _stage == ActiveRideStage.onTrip
+                  ? 'Trip ended early · ${reason.title}'
+                  : 'Trip cancelled · ${reason.title}',
         ),
         backgroundColor: _ink,
         behavior: SnackBarBehavior.floating,
@@ -2662,7 +2686,14 @@ class _AcceptRideState extends State<AcceptRide>
       ),
     );
 
-    Navigator.pop(context);
+    final navigator = Navigator.of(context);
+    if (nextRide != null) {
+      navigator.pushReplacement(BottomToTopTransition(nextRide));
+      return;
+    }
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
   }
 
 }

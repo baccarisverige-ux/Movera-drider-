@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +23,8 @@ class AdditionDetailVehicleRegisteration extends StatefulWidget {
 
 class _AdditionDetailVehicleRegisterationState
     extends State<AdditionDetailVehicleRegisteration> {
-  File? selectedFile;
+  String? selectedFileName;
+  Uint8List? selectedFileBytes;
   final ImagePicker _picker = ImagePicker();
   bool _isPicking = false;
   @override
@@ -58,7 +59,7 @@ class _AdditionDetailVehicleRegisterationState
             ],
           ),
           30.height,
-          selectedFile != null ? _buildFilePreview() : _buildUploadArea(),
+          selectedFileName != null ? _buildFilePreview() : _buildUploadArea(),
         ],
       ),
     );
@@ -163,10 +164,11 @@ class _AdditionDetailVehicleRegisterationState
   }
 
   Widget _buildFilePreview() {
-    String fileName = selectedFile!.path.split('/').last;
+    String fileName = selectedFileName ?? 'document';
     String extension = fileName.split('.').last.toLowerCase();
 
     bool isImage = ['png', 'jpg', 'jpeg'].contains(extension);
+    final bytes = selectedFileBytes;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -179,9 +181,9 @@ class _AdditionDetailVehicleRegisterationState
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // File preview
-          isImage
-              ? Image.file(
-                  selectedFile!,
+          isImage && bytes != null
+              ? Image.memory(
+                  bytes,
                   height: 60,
                   width: 60,
                   fit: BoxFit.cover,
@@ -204,7 +206,8 @@ class _AdditionDetailVehicleRegisterationState
             icon: const Icon(Icons.close, color: Colors.red),
             onPressed: () {
               setState(() {
-                selectedFile = null; // Reset back to upload area
+                selectedFileName = null;
+                selectedFileBytes = null;
               });
             },
           ),
@@ -220,15 +223,20 @@ class _AdditionDetailVehicleRegisterationState
         allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'], // ⬅️ allow both
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null) {
+        final file = result.files.single;
+        Uint8List? bytes = file.bytes;
+        if (bytes == null && file.path != null) {
+          bytes = await XFile(file.path!).readAsBytes();
+        }
         setState(() {
-          selectedFile = File(result.files.single.path!);
+          selectedFileName = file.name;
+          selectedFileBytes = bytes;
         });
         _showSuccessMessage("File selected successfully!");
       }
     } catch (e) {
       _showErrorMessage("Error selecting file: $e");
-      print("---------------------$e---------------------");
     }
   }
 
@@ -244,8 +252,10 @@ class _AdditionDetailVehicleRegisterationState
       );
 
       if (image != null && mounted) {
+        final bytes = await image.readAsBytes();
         setState(() {
-          selectedFile = File(image.path);
+          selectedFileName = image.name;
+          selectedFileBytes = bytes;
         });
         _showSuccessMessage("Photo captured successfully!");
       }
@@ -253,7 +263,6 @@ class _AdditionDetailVehicleRegisterationState
       if (mounted) {
         _showErrorMessage("Error capturing photo: $e");
       }
-      debugPrint("---------------------$e---------------------");
     } finally {
       if (mounted) {
         setState(() => _isPicking = false); // ✅ Reset state properly

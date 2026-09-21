@@ -34,7 +34,7 @@ class AcceptanceRate extends StatelessWidget {
         ),
         centerTitle: true,
         title: TextWidget(
-          text: "Cancelation Rate",
+          text: "Acceptance Rate",
           color: AppColor.title,
           fontSize: 16,
           fontWeight: fwMedium,

@@ -5,9 +5,12 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/analytics/analytics.dart';
+import 'package:movera/presentation/driver/auth/starter/starter.dart';
 import 'package:movera/presentation/driver/documents/documents.dart';
-import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
+import 'package:movera/presentation/driver/my%20bank/my_bank.dart';
+import 'package:movera/presentation/driver/profile/legal_document.dart';
 import 'package:movera/presentation/driver/settings/settings.dart';
+import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/presentation/driver/vehicles/vehicles.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
@@ -117,7 +120,7 @@ class DriverProfile extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    RightToLeftTransition(WalletScreen()),
+                    RightToLeftTransition(const MyBank()),
                   );
                 },
               ),
@@ -134,19 +137,34 @@ class DriverProfile extends StatelessWidget {
               _menuItem(
                 icon: AppAssets.privacyPolicy,
                 title: 'Privacy policy',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    RightToLeftTransition(LegalDocumentScreen.privacy),
+                  );
+                },
               ),
               _menuItem(
                 icon: AppAssets.privacyPolicy,
                 title: 'Terms of service',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    RightToLeftTransition(LegalDocumentScreen.terms),
+                  );
+                },
               ),
               _menuItem(
                 icon: AppAssets.helpCenter,
                 title: 'Help center',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    RightToLeftTransition(const SupportInboxScreen()),
+                  );
+                },
               ),
-              _logoutItem(),
+              _logoutItem(context),
               24.height,
             ],
           ),
@@ -221,26 +239,29 @@ class DriverProfile extends StatelessWidget {
           horizontal: screenHorizPadding,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Transform.scale(
-                  scale: iconScaleSize,
-                  child: Image.asset(
-                    icon,
-                    height: ResSize.h * 20,
-                    color: AppColor.title,
+            Expanded(
+              child: Row(
+                children: [
+                  Transform.scale(
+                    scale: iconScaleSize,
+                    child: Image.asset(
+                      icon,
+                      height: ResSize.h * 20,
+                      color: AppColor.title,
+                    ),
                   ),
-                ),
-                16.width,
-                TextWidget(
-                  text: title,
-                  color: AppColor.title,
-                  fontSize: 18,
-                  fontWeight: fwMedium,
-                ),
-              ],
+                  16.width,
+                  Expanded(
+                    child: TextWidget(
+                      text: title,
+                      color: AppColor.title,
+                      fontSize: 18,
+                      fontWeight: fwMedium,
+                    ),
+                  ),
+                ],
+              ),
             ),
             Icon(
               Icons.arrow_forward_ios_rounded,
@@ -253,9 +274,9 @@ class DriverProfile extends StatelessWidget {
     );
   }
 
-  Widget _logoutItem() {
+  Widget _logoutItem(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: () => _confirmLogout(context),
       splashColor: AppColor.red.withOpacity(0.1),
       highlightColor: AppColor.red.withOpacity(0.1),
       child: Container(
@@ -284,5 +305,39 @@ class DriverProfile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: const Text('Log out?'),
+          content: const Text(
+            'You will return to the sign-in screen on this device.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Stay'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColor.red,
+              ),
+              child: const Text('Log out'),
+            ),
+          ],
+        );
+      },
+    );
+    if (leave == true && context.mounted) {
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const DriverStarter()),
+        (route) => false,
+      );
+    }
   }
 }

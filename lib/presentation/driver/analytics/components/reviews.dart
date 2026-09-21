@@ -34,14 +34,14 @@ class AnalyticsReviews extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextWidget(
-                      text: 'Jeff Pfannerstill',
+                      text: 'Sofia Lindgren',
                       color: AppColor.title,
                       fontSize: 16,
                       fontWeight: fwMedium,
                     ),
                   ),
                   TextWidget(
-                    text: '12 Mar, 2025',
+                    text: '18 Sep, 2026',
                     color: AppColor.subtitle,
                     fontSize: 12,
                     fontWeight: fwSemiBold,
@@ -65,7 +65,7 @@ class AnalyticsReviews extends StatelessWidget {
               7.height,
               TextWidget(
                 text:
-                    'Similique doloremque aut quae quos vel modi iure repellendus tenetur.',
+                    'Quiet ride from Södermalm to Arlanda. Driver waited at the door and the car was clean.',
                 color: AppColor.subtitle,
                 fontSize: 14,
                 fontWeight: fwMedium,

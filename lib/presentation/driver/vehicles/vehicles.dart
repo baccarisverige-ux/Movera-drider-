@@ -77,6 +77,7 @@ class DriverVehicles extends StatelessWidget {
                     color: const Color(0xFFFAFAFA),
                   ),
                   vehicleCard(
+                    context,
                     title: vehicles[index].title,
                     image: vehicles[index].image,
                     subTitle: vehicles[index].subTitle,
@@ -91,7 +92,7 @@ class DriverVehicles extends StatelessWidget {
     );
   }
 
-  Widget vehicleCard({String? image, title, subTitle}) {
+  Widget vehicleCard(BuildContext context, {String? image, title, subTitle}) {
     return SizedBox(
       // padding: EdgeInsets.symmetric(vertical: ResSize.h * 12),
       child: Padding(
@@ -160,7 +161,9 @@ class DriverVehicles extends StatelessWidget {
               textColor: AppColor.title,
               borderRadius: 8,
               fontSize: 16,
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(context, TopToBottomTransition(AddVehicle()));
+              },
             ),
             22.height,
           ],

@@ -5,6 +5,7 @@ import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ChatAppBar extends StatelessWidget {
   const ChatAppBar({super.key});
@@ -43,7 +44,9 @@ class ChatAppBar extends StatelessWidget {
       ),
       actions: [
         IconButton(
-          onPressed: () {},
+          onPressed: () {
+            launchUrl(Uri.parse('tel:+46701234567'));
+          },
           icon: Image.asset(AppAssets.phoneOutl, height: ResSize.h * 23),
         ),
         8.width,

@@ -1,13 +1,13 @@
 // ignore_for_file: unnecessary_to_list_in_spreads
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/widgets/custom_btn.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
-import 'dart:io';
-
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
 
@@ -117,16 +117,24 @@ class _UploadVehiclePhotosState extends State<UploadVehiclePhotos> {
   Widget _buildImageTile(XFile image, int index, bool isInterior) {
     return Stack(
       children: [
-        Container(
-          width: ResSize.w * 160,
-          height: ResSize.h * 120,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(ResSize.w * 12),
-            image: DecorationImage(
-              image: FileImage(File(image.path)),
-              fit: BoxFit.cover,
-            ),
-          ),
+        FutureBuilder<Uint8List>(
+          future: image.readAsBytes(),
+          builder: (context, snapshot) {
+            return Container(
+              width: ResSize.w * 160,
+              height: ResSize.h * 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFFECECEC),
+                borderRadius: BorderRadius.circular(ResSize.w * 12),
+                image: snapshot.hasData
+                    ? DecorationImage(
+                        image: MemoryImage(snapshot.data!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+            );
+          },
         ),
         Positioned(
           top: ResSize.h * 8,
@@ -229,12 +237,12 @@ class _UploadVehiclePhotosState extends State<UploadVehiclePhotos> {
               child: CustomButton(
                 centerContent: "Continue",
                 onPressed: () {
-                  // Navigator.push(
-                  //   context,
-                  //   RightToLeftTransition(
-                  //     const VehicleAdditionalDetailsScreen(),
-                  //   ),
-                  // );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Vehicle photos saved on this device.'),
+                    ),
+                  );
+                  Navigator.of(context).pop();
                 },
               ),
             ),
