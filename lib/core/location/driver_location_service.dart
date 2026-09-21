@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
@@ -14,16 +17,27 @@ class DriverLocationException implements Exception {
 class DriverLocationService implements DriverLocationRepository {
   const DriverLocationService();
 
+  LocationSettings get _settings => LocationSettings(
+        accuracy: kIsWeb
+            ? LocationAccuracy.high
+            : LocationAccuracy.bestForNavigation,
+        timeLimit: const Duration(seconds: 8),
+      );
+
   @override
   Future<DriverLocation> getCurrentPosition() async {
     await _ensurePermission();
 
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-      ),
-    );
-    return _toDriverLocation(position);
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: _settings,
+      );
+      return _toDriverLocation(position);
+    } catch (_) {
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null) return _toDriverLocation(last);
+      rethrow;
+    }
   }
 
   @override
@@ -34,7 +48,9 @@ class DriverLocationService implements DriverLocationRepository {
 
     yield* Geolocator.getPositionStream(
       locationSettings: LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
+        accuracy: kIsWeb
+            ? LocationAccuracy.high
+            : LocationAccuracy.bestForNavigation,
         distanceFilter: distanceFilterMeters,
       ),
     ).map(_toDriverLocation);

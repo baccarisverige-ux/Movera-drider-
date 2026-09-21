@@ -32,4 +32,13 @@ void main() {
     await afterReset.restore();
     expect(afterReset.isOnline, isFalse);
   });
+
+  test('finishing a trip keeps the driver online for Home', () {
+    final session = DriverSessionController();
+    session.setOnline(true);
+    session.stayOnlineAfterTrip();
+    expect(session.isOnline, isTrue);
+    expect(session.consumeResumeHomeAfterTrip(), isTrue);
+    expect(session.consumeResumeHomeAfterTrip(), isFalse);
+  });
 }

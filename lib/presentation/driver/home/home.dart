@@ -101,6 +101,7 @@ class _DriverHomeState extends State<DriverHome>
   GoogleMapController? _mapController;
   StreamSubscription<DriverLocation>? _driverLocationSubscription;
   bool _hasLiveDriverLocation = false;
+  bool _didCenterOnLiveLocation = false;
   BitmapDescriptor _driverVehicleIcon =
       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
   double _driverHeading = 0;
@@ -272,29 +273,48 @@ class _DriverHomeState extends State<DriverHome>
 
   void _onDriverSessionChanged() {
     if (!mounted) return;
+    if (_driverSession.consumeResumeHomeAfterTrip()) {
+      setState(() {
+        showRideRequests = false;
+      });
+      return;
+    }
     setState(() {});
   }
 
-  Future<void> _startDriverLocation() async {
+  Future<void> _startDriverLocation({bool moveCamera = false}) async {
     try {
       final position = await _driverLocationService.getCurrentPosition();
       if (!mounted) return;
       _applyDriverLocation(position);
-
-      _driverLocationSubscription?.cancel();
-      _driverLocationSubscription = _driverLocationService
-          .watchPosition(distanceFilterMeters: 8)
-          .listen(
-        _applyDriverLocation,
-        onError: (_) {
-          if (!mounted) return;
-          setState(() => _hasLiveDriverLocation = false);
-        },
-      );
+      _listenToDriverLocation();
+      if (moveCamera || !_didCenterOnLiveLocation) {
+        _didCenterOnLiveLocation = true;
+        await _animateToDriverLocation();
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _hasLiveDriverLocation = false);
     }
+  }
+
+  void _listenToDriverLocation() {
+    _driverLocationSubscription?.cancel();
+    _driverLocationSubscription = _driverLocationService
+        .watchPosition(distanceFilterMeters: 8)
+        .listen(
+      (location) {
+        _applyDriverLocation(location);
+        if (!_didCenterOnLiveLocation) {
+          _didCenterOnLiveLocation = true;
+          unawaited(_animateToDriverLocation());
+        }
+      },
+      onError: (_) {
+        if (!mounted) return;
+        setState(() => _hasLiveDriverLocation = false);
+      },
+    );
   }
 
   void _applyDriverLocation(DriverLocation location) {
@@ -447,20 +467,28 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
-  Future<void> _zoomToDriverLocation() async {
+  Future<void> _animateToDriverLocation() async {
     final controller = _mapController;
     if (controller == null) return;
 
-    await controller.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(
-          target: _driverPosition,
-          zoom: 16.8,
-          bearing: _driverHeading,
-          tilt: 35,
+    try {
+      await controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _driverPosition,
+            zoom: 16.8,
+            bearing: _driverHeading,
+            tilt: 35,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _zoomToDriverLocation() async {
+    await _startDriverLocation(moveCamera: true);
+    if (!mounted) return;
+    await _animateToDriverLocation();
   }
 
   Widget _buildDriverLocationButton() {
@@ -1146,6 +1174,8 @@ class _DriverHomeState extends State<DriverHome>
           matchedVia: 'Movera direct match',
           waybillRepository: _waybills,
           sessionController: _driverSession,
+          locationRepository: _driverLocationService,
+          routeRepository: _roadRouteService,
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -1183,6 +1213,8 @@ class _DriverHomeState extends State<DriverHome>
           matchedVia: 'Movera Radar',
           waybillRepository: _waybills,
           sessionController: _driverSession,
+          locationRepository: _driverLocationService,
+          routeRepository: _roadRouteService,
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -1413,7 +1445,7 @@ class _DriverHomeState extends State<DriverHome>
       child: CustomGoogleMap(
         initialPosition: _initialPosition,
         markers: _markers,
-        myLocationEnabled: true,
+        myLocationEnabled: false,
         myLocationButtonEnabled: false,
         zoomControlsEnabled: false,
         mapToolbarEnabled: false,
@@ -1454,7 +1486,7 @@ class _DriverHomeState extends State<DriverHome>
               ..._destinationRoutePolylines,
               ..._directOfferRoutePolylines,
             },
-            myLocationEnabled: true,
+            myLocationEnabled: false,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             mapToolbarEnabled: false,
@@ -1465,6 +1497,9 @@ class _DriverHomeState extends State<DriverHome>
             mapType: MapType.normal,
             onMapCreated: (GoogleMapController controller) {
               _mapController = controller;
+              if (_hasLiveDriverLocation) {
+                unawaited(_animateToDriverLocation());
+              }
             },
             onTap: (LatLng position) {},
           ),
@@ -3148,6 +3183,7 @@ class _DriverHomeState extends State<DriverHome>
       _pendingRadarHomeOffers.clear();
     });
     _clearDirectOfferRoute();
+    unawaited(_startDriverLocation(moveCamera: true));
 
     _onlineTransitionTimer = Timer(
       const Duration(milliseconds: 1400),

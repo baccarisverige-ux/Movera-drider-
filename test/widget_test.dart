@@ -1364,6 +1364,23 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Active ride blocks system back so the trip does not snap Home', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+
+    final popScope = tester.allWidgets.firstWhere(
+      (widget) => widget.runtimeType.toString().startsWith('PopScope'),
+    );
+    expect((popScope as dynamic).canPop, isFalse);
+    expect(find.byType(AcceptRide), findsOneWidget);
+    expect(find.text('Heading to pickup'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
   testWidgets('On-trip Radar stays hidden until a near-dropoff offer exists', (
     WidgetTester tester,
   ) async {

@@ -40,13 +40,14 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
   }
 
   void _finish() {
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
+    widget.sessionController?.stayOnlineAfterTrip();
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.popUntil((route) => route.isFirst);
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
+    navigator.pushReplacement(
       BottomToTopTransition(
         DriverHome(
           initialOnline: true,

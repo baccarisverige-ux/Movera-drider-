@@ -17,6 +17,7 @@ class DriverSessionController extends ChangeNotifier {
 
   final DriverSessionRepository _repository;
   bool _isOnline;
+  bool _resumeHomeAfterTrip = false;
 
   bool get isOnline => _isOnline;
 
@@ -32,6 +33,21 @@ class DriverSessionController extends ChangeNotifier {
     if (stored == null || stored == _isOnline) return;
     _isOnline = stored;
     notifyListeners();
+  }
+
+  void stayOnlineAfterTrip() {
+    _resumeHomeAfterTrip = true;
+    if (!_isOnline) {
+      _isOnline = true;
+      unawaited(_repository.saveOnline(true));
+    }
+    notifyListeners();
+  }
+
+  bool consumeResumeHomeAfterTrip() {
+    if (!_resumeHomeAfterTrip) return false;
+    _resumeHomeAfterTrip = false;
+    return true;
   }
 
   void reset() {
