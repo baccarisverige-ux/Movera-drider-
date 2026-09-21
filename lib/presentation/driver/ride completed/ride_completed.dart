@@ -12,10 +12,12 @@ class DriverRideCompleted extends StatefulWidget {
     super.key,
     this.waybillRepository,
     this.sessionController,
+    this.nextRide,
   });
 
   final WaybillRepository? waybillRepository;
   final DriverSessionController? sessionController;
+  final Widget? nextRide;
 
   @override
   State<DriverRideCompleted> createState() => _DriverRideCompletedState();
@@ -42,6 +44,11 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
   void _finish() {
     widget.sessionController?.stayOnlineAfterTrip();
     final navigator = Navigator.of(context);
+    final nextRide = widget.nextRide;
+    if (nextRide != null) {
+      navigator.pushReplacement(BottomToTopTransition(nextRide));
+      return;
+    }
     if (navigator.canPop()) {
       navigator.popUntil((route) => route.isFirst);
       return;

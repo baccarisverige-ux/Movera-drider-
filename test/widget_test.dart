@@ -850,6 +850,12 @@ void main() {
       find.byKey(const ValueKey<String>('driver-location-zoom')),
       findsOneWidget,
     );
+    final location = tester.getRect(
+      find.byKey(const ValueKey<String>('driver-location-zoom')),
+    );
+    final safety = tester.getRect(find.byIcon(Icons.shield_outlined));
+    expect(location.center.dy, closeTo(safety.center.dy, 16));
+    expect(location.left, lessThan(safety.left));
     _expectNoException(tester);
   });
 
@@ -1361,6 +1367,12 @@ void main() {
     expect(find.byType(DriverHome), findsOneWidget);
     await _openPanel(tester);
     expect(find.text('Go offline'), findsOneWidget);
+    await tester.ensureVisible(find.text('Last waybill'));
+    expect(find.text('Last waybill'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('home-sheet-last-waybill')),
+      findsOneWidget,
+    );
     _expectNoException(tester);
   });
 
@@ -1547,6 +1559,55 @@ void main() {
     );
     expect(find.text('Next trip waybill'), findsOneWidget);
     expect(find.text('Movera Radar'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Secured next trip starts after the current drop-off is completed', (
+    WidgetTester tester,
+  ) async {
+    WaybillStore.reset();
+    addTearDown(() {
+      WaybillStore.reset();
+      tester.binding.setSurfaceSize(null);
+    });
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AcceptRide(
+          fare: '156,80 kr',
+          category: 'Comfort',
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 160));
+
+    await _slideActiveRideAction(tester);
+    await _slideActiveRideAction(tester);
+    await tester.pump(const Duration(milliseconds: 2400));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
+    );
+    await tester.pump(const Duration(milliseconds: 260));
+
+    final matchNext =
+        find.byKey(const ValueKey<String>('on-trip-radar-match-next'));
+    await tester.ensureVisible(matchNext);
+    await tester.tap(matchNext);
+    await tester.pump(const Duration(milliseconds: 1600));
+
+    expect(find.text('Next trip secured'), findsWidgets);
+
+    await _slideActiveRideAction(tester);
+    await tester.pump(const Duration(milliseconds: 520));
+    expect(find.byType(DriverRideCompleted), findsOneWidget);
+
+    await tester.tap(find.text('Done'));
+    await tester.pump(const Duration(milliseconds: 520));
+
+    expect(find.byType(AcceptRide), findsOneWidget);
+    expect(find.text('Heading to pickup'), findsOneWidget);
+    expect(find.textContaining('Maya'), findsWidgets);
+    expect(find.textContaining('Vasagatan 10'), findsWidgets);
     _expectNoException(tester);
   });
 

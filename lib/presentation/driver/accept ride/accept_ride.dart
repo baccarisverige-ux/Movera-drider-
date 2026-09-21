@@ -19,6 +19,7 @@ import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/movera_modal_sheet.dart';
+import 'package:movera/widgets/movera_radar_orb.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 
@@ -77,6 +78,8 @@ class _NextTripRadarOffer {
     required this.riderName,
     required this.pickup,
     required this.dropoff,
+    required this.pickupPosition,
+    required this.dropoffPosition,
   });
 
   final String id;
@@ -88,6 +91,8 @@ class _NextTripRadarOffer {
   final String riderName;
   final String pickup;
   final String dropoff;
+  final LatLng pickupPosition;
+  final LatLng dropoffPosition;
 }
 
 class _TripCancellationReason {
@@ -104,7 +109,8 @@ class _TripCancellationReason {
   final IconData icon;
 }
 
-class _AcceptRideState extends State<AcceptRide> {
+class _AcceptRideState extends State<AcceptRide>
+    with TickerProviderStateMixin {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _panel = Color(0xFFFFFFFF);
   static const Color _panel2 = Color(0xFFF1F5F3);
@@ -213,6 +219,8 @@ class _AcceptRideState extends State<AcceptRide> {
     riderName: 'Maya',
     pickup: 'Vasagatan 10, Stockholm',
     dropoff: 'Södermalm, Stockholm',
+    pickupPosition: LatLng(59.3328, 18.0587),
+    dropoffPosition: LatLng(59.3142, 18.0735),
   );
 
 
@@ -247,6 +255,8 @@ class _AcceptRideState extends State<AcceptRide> {
   bool _stageTransitioning = false;
   bool _blockMapGestures = false;
   int _routeRequestToken = 0;
+  late final AnimationController _radarPulseController;
+  late final AnimationController _radarSweepController;
   String? _locationStatus;
 
   @override
@@ -257,7 +267,18 @@ class _AcceptRideState extends State<AcceptRide> {
     _routeService = widget.routeRepository ?? RoadRouteService();
     _waybills =
         widget.waybillRepository ?? InMemoryWaybillRepository.instance;
-    _waybills.beginCurrent(_buildCurrentWaybill());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _waybills.beginCurrent(_buildCurrentWaybill());
+    });
+    _radarPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat(reverse: true);
+    _radarSweepController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
     _startLiveLocation();
   }
 
@@ -266,6 +287,8 @@ class _AcceptRideState extends State<AcceptRide> {
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
+    _radarPulseController.dispose();
+    _radarSweepController.dispose();
     _positionSubscription?.cancel();
     _rideLifecycle.dispose();
     _mapController = null;
@@ -601,10 +624,36 @@ class _AcceptRideState extends State<AcceptRide> {
         _nextTripRadarDemoTimer?.cancel();
         _nextTripRadarMatchTimer?.cancel();
         _waybills.completeCurrent();
+        final offer = _nextTripRadarOffer;
+        final queuedNext =
+            _onTripRadarState == _OnTripRadarState.secured && offer != null;
+        final nextRide = queuedNext
+            ? AcceptRide(
+                offerId: offer.id,
+                riderName: offer.riderName,
+                riderRating: offer.rating,
+                fare: offer.fare,
+                category: offer.category,
+                matchedVia: 'Movera Radar',
+                pickupAddress: offer.pickup,
+                pickupArea: offer.pickup.split(',').last.trim(),
+                dropoffAddress: offer.dropoff,
+                pickupPosition: offer.pickupPosition,
+                dropoffPosition: offer.dropoffPosition,
+                locationRepository: widget.locationRepository,
+                routeRepository: widget.routeRepository,
+                waybillRepository: _waybills,
+                sessionController: widget.sessionController,
+              )
+            : null;
+        if (queuedNext) {
+          _waybills.clearNext();
+        }
         final navigator = Navigator.of(context);
         final completedPage = DriverRideCompleted(
           waybillRepository: _waybills,
           sessionController: widget.sessionController,
+          nextRide: nextRide,
         );
         navigator.pushReplacement(
           BottomToTopTransition(completedPage),
@@ -1208,93 +1257,24 @@ class _AcceptRideState extends State<AcceptRide> {
       return const SizedBox.shrink();
     }
 
-    return Semantics(
-      button: true,
-      label: 'Next trip Radar offer',
-      child: Material(
-        key: const ValueKey<String>('on-trip-radar-offer-button'),
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        child: InkWell(
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        _radarPulseController,
+        _radarSweepController,
+      ]),
+      builder: (context, child) {
+        return MoveraRadarOrb(
+          title: 'Trip found',
+          status: 'NEW',
+          subtitle: 'Tap for Radar',
+          active: true,
+          offer: true,
+          pulse: _radarPulseController.value,
+          sweep: _radarSweepController.value,
           onTap: _openNextTripRadar,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 70,
-            height: 70,
-            child: Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFEAF6F0).withOpacity(0.72),
-                    border: Border.all(
-                      color: _green.withOpacity(0.20),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _green.withOpacity(0.15),
-                        blurRadius: 18,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    border: Border.all(
-                      color: _green.withOpacity(0.30),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF172027).withOpacity(0.10),
-                        blurRadius: 12,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: _moveraRadarMark(size: 38),
-                  ),
-                ),
-                Positioned(
-                  top: 1,
-                  right: 2,
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      minWidth: 22,
-                      minHeight: 22,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    decoration: BoxDecoration(
-                      color: _ink,
-                      borderRadius: BorderRadius.circular(99),
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      '1',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+          touchKey: const ValueKey<String>('on-trip-radar-offer-button'),
+        );
+      },
     );
   }
 
@@ -1394,9 +1374,12 @@ class _AcceptRideState extends State<AcceptRide> {
               if (_stage == ActiveRideStage.onTrip &&
                   _onTripRadarState == _OnTripRadarState.offerAvailable)
                 Positioned(
-                  left: 16,
-                  bottom: panelHeight + 18,
-                  child: _mapOverlay(child: _buildOnTripRadarOfferButton()),
+                  left: 0,
+                  right: 0,
+                  bottom: panelHeight - 8,
+                  child: Center(
+                    child: _mapOverlay(child: _buildOnTripRadarOfferButton()),
+                  ),
                 ),
               Positioned(
                 left: 0,
