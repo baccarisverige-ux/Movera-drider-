@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:movera/constants/appassets.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
@@ -13,11 +14,13 @@ class DriverRideCompleted extends StatefulWidget {
     super.key,
     this.waybillRepository,
     this.sessionController,
+    this.activeRideRepository,
     this.nextRide,
   });
 
   final WaybillRepository? waybillRepository;
   final DriverSessionController? sessionController;
+  final ActiveRideRepository? activeRideRepository;
   final Widget? nextRide;
 
   @override
@@ -62,6 +65,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
           initialOnline: true,
           waybillRepository: _waybills,
           sessionController: widget.sessionController,
+          activeRideRepository: widget.activeRideRepository,
         ),
       ),
     );
@@ -74,6 +78,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
       queued,
       waybillRepository: _waybills,
       sessionController: widget.sessionController,
+      activeRideRepository: widget.activeRideRepository,
     );
   }
 

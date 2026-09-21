@@ -15,6 +15,8 @@ import 'package:movera/core/geo/geo_point_maps.dart';
 import 'package:movera/core/routing/route_maps.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
+import 'package:movera/core/logging/driver_log.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
@@ -60,6 +62,7 @@ class DriverHome extends StatefulWidget {
     this.sessionController,
     this.dispatchRepository,
     this.homeConfigRepository,
+    this.activeRideRepository,
   });
 
   final bool initialOnline;
@@ -69,6 +72,7 @@ class DriverHome extends StatefulWidget {
   final DriverSessionController? sessionController;
   final DispatchRepository? dispatchRepository;
   final DriverHomeConfigRepository? homeConfigRepository;
+  final ActiveRideRepository? activeRideRepository;
 
   @override
   State<DriverHome> createState() => _DriverHomeState();
@@ -280,8 +284,79 @@ class _DriverHomeState extends State<DriverHome>
     _prepareDriverVehicleMarker();
     _startDriverLocation();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_restoreActiveRideIfNeeded());
       _maybeShowAppUpdatePrompt();
     });
+  }
+
+  bool _didAttemptActiveRideRestore = false;
+
+  Future<void> _restoreActiveRideIfNeeded() async {
+    if (_didAttemptActiveRideRestore) return;
+    _didAttemptActiveRideRestore = true;
+    final repo = widget.activeRideRepository;
+    if (repo == null) return;
+    final snapshot = await repo.read();
+    if (!mounted || snapshot == null) return;
+
+    DriverLog.info(
+      'Restoring active ride ${snapshot.tripId} at ${snapshot.stage.name}',
+    );
+    _waybills.beginCurrent(_waybillFromSnapshot(snapshot));
+    final next = snapshot.next;
+    if (next != null) {
+      _waybills.secureNext(_waybillFromQueued(next));
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).push(
+      BottomToTopTransition(
+        AcceptRide.fromPersisted(
+          snapshot,
+          waybillRepository: _waybills,
+          sessionController: _driverSession,
+          locationRepository: _driverLocationService,
+          routeRepository: _roadRouteService,
+          activeRideRepository: repo,
+        ),
+      ),
+    );
+  }
+
+  WaybillRecord _waybillFromSnapshot(PersistedActiveRide snapshot) {
+    return WaybillRecord(
+      tripId: snapshot.tripId,
+      statusLabel: 'Current trip',
+      issuedAt: snapshot.savedAt ?? DateTime.now(),
+      fare: snapshot.fare ?? '—',
+      service: snapshot.category ?? 'Movera',
+      riderName: snapshot.riderName ?? 'Angelica',
+      pickup: snapshot.pickupAddress ?? '',
+      dropoff: snapshot.dropoffAddress ?? '',
+      source: snapshot.matchedVia ?? 'Movera Radar',
+      driverName: 'Movera Driver',
+      vehicle: 'Movera partner vehicle',
+      licensePlate: 'MVR 418',
+      passengerCapacity: 4,
+    );
+  }
+
+  WaybillRecord _waybillFromQueued(PersistedQueuedTrip next) {
+    return WaybillRecord(
+      tripId: next.tripId,
+      statusLabel: 'Next trip secured',
+      issuedAt: DateTime.now(),
+      fare: next.fare,
+      service: next.category,
+      riderName: next.riderName,
+      pickup: next.pickup,
+      dropoff: next.dropoff,
+      source: 'Movera Radar',
+      driverName: 'Movera Driver',
+      vehicle: 'Movera partner vehicle',
+      licensePlate: 'MVR 418',
+      passengerCapacity: 4,
+    );
   }
 
   void _onDriverSessionChanged() {
@@ -1104,6 +1179,7 @@ class _DriverHomeState extends State<DriverHome>
           sessionController: _driverSession,
           locationRepository: _driverLocationService,
           routeRepository: _roadRouteService,
+          activeRideRepository: widget.activeRideRepository,
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -1143,6 +1219,7 @@ class _DriverHomeState extends State<DriverHome>
           sessionController: _driverSession,
           locationRepository: _driverLocationService,
           routeRepository: _roadRouteService,
+          activeRideRepository: widget.activeRideRepository,
           pickupAddress: offer.pickup,
           pickupArea: offer.pickup.split(',').last.trim(),
           dropoffAddress: offer.dropoff,
@@ -1327,6 +1404,7 @@ class _DriverHomeState extends State<DriverHome>
                   locationRepository: _driverLocationService,
                   routeRepository: _roadRouteService,
                   dispatchRepository: _dispatch,
+                  activeRideRepository: widget.activeRideRepository,
                   onCloseRides: (hasOffers) {
                     setState(() {
                       showRideRequests = false;

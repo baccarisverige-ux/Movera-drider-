@@ -15,11 +15,15 @@ class ActiveRideController extends ChangeNotifier {
   ActiveRideController({
     this.tripId,
     ActiveRideRepository? repository,
-  }) : _repository = repository ?? MemoryActiveRideRepository();
+    ActiveRideStage initialStage = ActiveRideStage.headingToPickup,
+    this.snapshotBuilder,
+  })  : _repository = repository ?? MemoryActiveRideRepository(),
+        _stage = initialStage;
 
   final String? tripId;
   final ActiveRideRepository _repository;
-  ActiveRideStage _stage = ActiveRideStage.headingToPickup;
+  PersistedActiveRide Function(ActiveRideStage stage)? snapshotBuilder;
+  ActiveRideStage _stage;
   bool _completed = false;
   bool _cancelled = false;
 
@@ -51,7 +55,7 @@ class ActiveRideController extends ChangeNotifier {
 
     _stage = next;
     notifyListeners();
-    _persist();
+    persistNow();
     return true;
   }
 
@@ -71,21 +75,22 @@ class ActiveRideController extends ChangeNotifier {
     return true;
   }
 
+  /// Write the current live snapshot. Safe to call from lifecycle pauses.
+  void persistNow() {
+    if (terminal) return;
+    final id = tripId;
+    if (id == null) return;
+    final ride = snapshotBuilder?.call(_stage) ??
+        PersistedActiveRide(tripId: id, stage: _stage);
+    unawaited(_repository.save(ride));
+  }
+
   Future<void> restore() async {
     final stored = await _repository.read();
     if (stored == null) return;
     if (tripId != null && stored.tripId != tripId) return;
+    if (!stored.isFresh) return;
     _stage = stored.stage;
     notifyListeners();
-  }
-
-  void _persist() {
-    final id = tripId;
-    if (id == null) return;
-    unawaited(
-      _repository.save(
-        PersistedActiveRide(tripId: id, stage: _stage),
-      ),
-    );
   }
 }

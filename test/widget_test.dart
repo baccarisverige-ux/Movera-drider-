@@ -21,6 +21,7 @@ import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dar
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 Future<void> _pumpHome(WidgetTester tester, Size size) async {
@@ -97,6 +98,10 @@ void _invokeTooltipAction(WidgetTester tester, String tooltip) {
 }
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   const phoneSizes = <Size>[
     Size(320, 700),
     Size(375, 812),

@@ -74,3 +74,14 @@ D8 / D9 — `DriverRealtime` is a sequence-numbered envelope. `riderCancelled` i
 
 P5 — Same envelope shape as Rider's `RideRealtimeEvent` (`tripId`, `sequence`, reconnect replay).
 
+## Active ride crash recovery (Safari / PWA)
+
+Safari was killing the tab during an active trip (`A problem repeatedly occurred`) because `AcceptRide` rebuilt `CustomGoogleMap` (an `HtmlElementView`) on every `LiveVehicleAnimator` pose tick (~60fps) and every 2m GPS `setState`. After the reload, the ride lived only in the Navigator stack and in-memory repositories, so Home came back empty.
+
+Fix (no UX change):
+
+- Map markers update on a 5Hz throttle with a stable `ValueKey('active-ride-map')`. GPS `setState` is gone; web GPS filter is 20m.
+- `PrefsActiveRideRepository` stores `movera_driver_active_ride` (6h freshness). Home restores `AcceptRide.fromPersisted` after a crash, reload, or PWA resume.
+- Lifecycle pause persists the snapshot and stops GPS; resume continues the same trip.
+- D11 still holds: restoring a trip does **not** restore `online = true`.
+

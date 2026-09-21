@@ -9,6 +9,8 @@ import 'package:movera/core/dispatch/demo_dispatch_repository.dart';
 import 'package:movera/core/dispatch/dispatch_repository.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
+import 'package:movera/core/ride/prefs_active_ride_repository.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
@@ -42,6 +44,7 @@ class _MoveraAppState extends State<MoveraApp> {
   late final RouteRepository _routing;
   late final DispatchRepository _dispatch;
   late final DriverHomeConfigRepository _homeConfig;
+  late final ActiveRideRepository _activeRide;
 
   @override
   void initState() {
@@ -53,6 +56,7 @@ class _MoveraAppState extends State<MoveraApp> {
     _routing = RoadRouteService();
     _dispatch = DemoDispatchRepository();
     _homeConfig = const LocalDriverHomeConfigRepository();
+    _activeRide = PrefsActiveRideRepository();
     unawaited(_session.restore());
   }
 
@@ -94,6 +98,7 @@ class _MoveraAppState extends State<MoveraApp> {
               routeRepository: _routing,
               dispatchRepository: _dispatch,
               homeConfigRepository: _homeConfig,
+              activeRideRepository: _activeRide,
             ),
           );
         },

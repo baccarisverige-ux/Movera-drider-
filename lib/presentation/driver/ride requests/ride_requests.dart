@@ -7,6 +7,7 @@ import 'package:movera/core/dispatch/demo_dispatch_repository.dart';
 import 'package:movera/core/dispatch/dispatch_repository.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/routing/route_repository.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -24,6 +25,7 @@ class RideRequests extends StatefulWidget {
   final DriverLocationRepository? locationRepository;
   final RouteRepository? routeRepository;
   final DispatchRepository? dispatchRepository;
+  final ActiveRideRepository? activeRideRepository;
 
   const RideRequests({
     super.key,
@@ -35,6 +37,7 @@ class RideRequests extends StatefulWidget {
     this.locationRepository,
     this.routeRepository,
     this.dispatchRepository,
+    this.activeRideRepository,
   });
 
   @override
@@ -248,6 +251,7 @@ class _RideRequestsState extends State<RideRequests> {
           waybillRepository: widget.waybillRepository,
           locationRepository: widget.locationRepository,
           routeRepository: widget.routeRepository,
+          activeRideRepository: widget.activeRideRepository,
           pickupAddress: trip.pickup,
           pickupArea: trip.pickup.split(',').last.trim(),
           dropoffAddress: trip.dropoff,

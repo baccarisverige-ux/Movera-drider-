@@ -69,4 +69,25 @@ void main() {
     await afterCancel.restore();
     expect(afterCancel.stage, ActiveRideStage.headingToPickup);
   });
+
+  test('persistNow writes a snapshot builder payload', () async {
+    final store = MemoryActiveRideRepository();
+    final ride = ActiveRideController(
+      tripId: 'nearby-1',
+      repository: store,
+      snapshotBuilder: (stage) => PersistedActiveRide(
+        tripId: 'nearby-1',
+        stage: stage,
+        riderName: 'Angelica',
+        pickupAddress: 'Kungsgatan 42, Stockholm',
+      ),
+    );
+
+    ride.persistNow();
+    await Future<void>.delayed(Duration.zero);
+    final stored = await store.read();
+    expect(stored, isNotNull);
+    expect(stored!.riderName, 'Angelica');
+    expect(stored.pickupAddress, 'Kungsgatan 42, Stockholm');
+  });
 }

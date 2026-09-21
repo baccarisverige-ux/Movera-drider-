@@ -1,0 +1,190 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:movera/core/ride/active_ride_controller.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
+import 'package:movera/core/ride/prefs_active_ride_repository.dart';
+import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('active ride snapshot round-trips JSON and keeps next trip', () {
+    final original = PersistedActiveRide(
+      tripId: 'nearby-1',
+      stage: ActiveRideStage.onTrip,
+      savedAt: DateTime.now(),
+      riderName: 'Angelica',
+      fare: '104,80 kr',
+      category: 'Comfort',
+      matchedVia: 'Movera Radar',
+      pickupAddress: 'Kungsgatan 42, Stockholm',
+      pickupArea: 'Stockholm',
+      dropoffAddress: 'Hornstull, Stockholm',
+      pickupLat: 59.3343,
+      pickupLng: 18.0615,
+      dropoffLat: 59.3157,
+      dropoffLng: 18.0335,
+      waitSeconds: 12,
+      next: const PersistedQueuedTrip(
+        tripId: 'on-trip-radar-demo-1',
+        riderName: 'Maya',
+        fare: '128,40 kr',
+        category: 'Comfort',
+        pickup: 'Vasagatan 10, Stockholm',
+        dropoff: 'Södermalm, Stockholm',
+        pickupLat: 59.3328,
+        pickupLng: 18.0587,
+        dropoffLat: 59.3142,
+        dropoffLng: 18.0735,
+      ),
+    );
+
+    final decoded = PersistedActiveRide.fromJson(
+      Map<String, dynamic>.from(jsonDecode(jsonEncode(original.toJson())) as Map),
+    );
+
+    expect(decoded, isNotNull);
+    expect(decoded!.tripId, 'nearby-1');
+    expect(decoded.stage, ActiveRideStage.onTrip);
+    expect(decoded.isFresh, isTrue);
+    expect(decoded.riderName, 'Angelica');
+    expect(decoded.pickupLat, 59.3343);
+    expect(decoded.next?.tripId, 'on-trip-radar-demo-1');
+    expect(decoded.next?.riderName, 'Maya');
+  });
+
+  test('stale snapshots older than six hours are not fresh', () {
+    final stale = PersistedActiveRide(
+      tripId: 'old-1',
+      stage: ActiveRideStage.headingToPickup,
+      savedAt: DateTime.now().subtract(const Duration(hours: 7)),
+    );
+    expect(stale.isFresh, isFalse);
+
+    final live = PersistedActiveRide(
+      tripId: 'live-1',
+      stage: ActiveRideStage.waitingForRider,
+      savedAt: DateTime.now().subtract(const Duration(hours: 2)),
+    );
+    expect(live.isFresh, isTrue);
+  });
+
+  test('prefs repository restores a fresh ride and drops a stale one', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = PrefsActiveRideRepository();
+
+    await store.save(
+      const PersistedActiveRide(
+        tripId: 'trip-live',
+        stage: ActiveRideStage.waitingForRider,
+        riderName: 'Angelica',
+        pickupAddress: 'Kungsgatan 42, Stockholm',
+        dropoffAddress: 'Hornstull, Stockholm',
+      ),
+    );
+
+    final restored = await store.read();
+    expect(restored, isNotNull);
+    expect(restored!.tripId, 'trip-live');
+    expect(restored.stage, ActiveRideStage.waitingForRider);
+    expect(restored.savedAt, isNotNull);
+  });
+
+  test('prefs repository drops a stale snapshot', () async {
+    SharedPreferences.setMockInitialValues({
+      PrefsActiveRideRepository.key: jsonEncode(
+        PersistedActiveRide(
+          tripId: 'trip-stale',
+          stage: ActiveRideStage.onTrip,
+          savedAt: DateTime.now().subtract(const Duration(hours: 8)),
+        ).toJson(),
+      ),
+    });
+    final staleStore = PrefsActiveRideRepository();
+    expect(await staleStore.read(), isNull);
+  });
+
+  test('clear wins over an in-flight save so a cancelled trip cannot revive', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = PrefsActiveRideRepository();
+    await store.save(
+      const PersistedActiveRide(
+        tripId: 'trip-cancel',
+        stage: ActiveRideStage.headingToPickup,
+      ),
+    );
+    await store.clear();
+    expect(await store.read(), isNull);
+  });
+
+  test('controller restore skips a stale snapshot', () async {
+    final store = MemoryActiveRideRepository();
+    await store.save(
+      PersistedActiveRide(
+        tripId: 'nearby-1',
+        stage: ActiveRideStage.onTrip,
+        savedAt: DateTime.now().subtract(const Duration(hours: 9)),
+      ),
+    );
+
+    final ride = ActiveRideController(
+      tripId: 'nearby-1',
+      repository: store,
+    );
+    await ride.restore();
+    expect(ride.stage, ActiveRideStage.headingToPickup);
+  });
+
+  test('controller initialStage restores mid-trip without walking transitions', () {
+    final ride = ActiveRideController(
+      tripId: 'nearby-1',
+      initialStage: ActiveRideStage.onTrip,
+    );
+    expect(ride.stage, ActiveRideStage.onTrip);
+    expect(ride.complete(), isTrue);
+  });
+
+  test('fromPersisted reconstructs the same trip so Home can reopen it', () {
+    final snapshot = PersistedActiveRide(
+      tripId: 'nearby-1',
+      stage: ActiveRideStage.waitingForRider,
+      riderName: 'Angelica',
+      riderRating: 4.96,
+      fare: '104,80 kr',
+      category: 'Comfort',
+      matchedVia: 'Movera direct match',
+      pickupAddress: 'Kungsgatan 42, Stockholm',
+      pickupArea: 'Stockholm',
+      dropoffAddress: 'Hornstull, Stockholm',
+      pickupLat: 59.3343,
+      pickupLng: 18.0615,
+      dropoffLat: 59.3157,
+      dropoffLng: 18.0335,
+      waitSeconds: 42,
+    );
+
+    final ride = AcceptRide.fromPersisted(snapshot);
+    expect(ride.offerId, 'nearby-1');
+    expect(ride.initialStage, ActiveRideStage.waitingForRider);
+    expect(ride.riderName, 'Angelica');
+    expect(ride.fare, '104,80 kr');
+    expect(ride.pickupAddress, 'Kungsgatan 42, Stockholm');
+    expect(ride.dropoffAddress, 'Hornstull, Stockholm');
+    expect(ride.pickupPosition.latitude, 59.3343);
+    expect(ride.dropoffPosition.longitude, 18.0335);
+    expect(ride.initialWaitSeconds, 42);
+    expect(ride.matchedVia, 'Movera direct match');
+  });
+
+  test('active ride map is not rebuilt from the live vehicle pose ticker', () {
+    final source = File(
+      'lib/presentation/driver/accept ride/accept_ride.dart',
+    ).readAsStringSync();
+    expect(source.contains('valueListenable: _vehicle.pose'), isFalse);
+    expect(source.contains('_ThrottledVehicleMap'), isTrue);
+    expect(source.contains("ValueKey<String>('active-ride-map')"), isTrue);
+  });
+}

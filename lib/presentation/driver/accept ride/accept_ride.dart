@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/geo/geo_point.dart';
@@ -11,6 +12,7 @@ import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/navigation/live_vehicle_animator.dart';
 import 'package:movera/core/navigation/navigation_controller.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
@@ -53,6 +55,10 @@ class AcceptRide extends StatefulWidget {
     this.routeRepository,
     this.waybillRepository,
     this.sessionController,
+    this.activeRideRepository,
+    this.initialStage = ActiveRideStage.headingToPickup,
+    this.initialWaitSeconds = 0,
+    this.restoredSnapshot,
   });
 
   final String offerId;
@@ -71,6 +77,10 @@ class AcceptRide extends StatefulWidget {
   final RouteRepository? routeRepository;
   final WaybillRepository? waybillRepository;
   final DriverSessionController? sessionController;
+  final ActiveRideRepository? activeRideRepository;
+  final ActiveRideStage initialStage;
+  final int initialWaitSeconds;
+  final PersistedActiveRide? restoredSnapshot;
 
   factory AcceptRide.fromQueuedWaybill(
     WaybillRecord record, {
@@ -79,6 +89,7 @@ class AcceptRide extends StatefulWidget {
     RouteRepository? routeRepository,
     WaybillRepository? waybillRepository,
     DriverSessionController? sessionController,
+    ActiveRideRepository? activeRideRepository,
   }) {
     final pickup = record.pickup;
     return AcceptRide(
@@ -95,6 +106,48 @@ class AcceptRide extends StatefulWidget {
       routeRepository: routeRepository,
       waybillRepository: waybillRepository,
       sessionController: sessionController,
+      activeRideRepository: activeRideRepository,
+    );
+  }
+
+  factory AcceptRide.fromPersisted(
+    PersistedActiveRide snapshot, {
+    Key? key,
+    DriverLocationRepository? locationRepository,
+    RouteRepository? routeRepository,
+    WaybillRepository? waybillRepository,
+    DriverSessionController? sessionController,
+    ActiveRideRepository? activeRideRepository,
+  }) {
+    final pickup = snapshot.pickupAddress ?? 'Stockholm';
+    return AcceptRide(
+      key: key,
+      offerId: snapshot.tripId,
+      riderName: snapshot.riderName ?? 'Angelica',
+      riderRating: snapshot.riderRating ?? 4.9,
+      riderTrips: snapshot.riderTrips ?? 312,
+      fare: snapshot.fare ?? '—',
+      category: snapshot.category ?? 'Movera',
+      matchedVia: snapshot.matchedVia ?? 'Movera Radar',
+      pickupAddress: pickup,
+      pickupArea: snapshot.pickupArea ?? pickup.split(',').last.trim(),
+      dropoffAddress: snapshot.dropoffAddress ?? 'Stockholm',
+      pickupPosition: LatLng(
+        snapshot.pickupLat ?? 59.3279,
+        snapshot.pickupLng ?? 18.0615,
+      ),
+      dropoffPosition: LatLng(
+        snapshot.dropoffLat ?? 59.3326,
+        snapshot.dropoffLng ?? 18.0649,
+      ),
+      locationRepository: locationRepository,
+      routeRepository: routeRepository,
+      waybillRepository: waybillRepository,
+      sessionController: sessionController,
+      activeRideRepository: activeRideRepository,
+      initialStage: snapshot.stage,
+      initialWaitSeconds: snapshot.waitSeconds ?? 0,
+      restoredSnapshot: snapshot,
     );
   }
 
@@ -147,7 +200,7 @@ class _TripCancellationReason {
 }
 
 class _AcceptRideState extends State<AcceptRide>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _panel = Color(0xFFFFFFFF);
   static const Color _panel2 = Color(0xFFF1F5F3);
@@ -278,15 +331,18 @@ class _AcceptRideState extends State<AcceptRide>
 
   GoogleMapController? _mapController;
   StreamSubscription<DriverLocation>? _positionSubscription;
-  late final ActiveRideController _rideLifecycle =
-      ActiveRideController(tripId: widget.offerId);
+  late final ActiveRideController _rideLifecycle = ActiveRideController(
+    tripId: widget.offerId,
+    repository: widget.activeRideRepository,
+    initialStage: widget.initialStage,
+  );
   ActiveRideStage get _stage => _rideLifecycle.stage;
-  set _stage(ActiveRideStage value) {
-    _rideLifecycle.transitionTo(value);
-  }
   Timer? _waitTimer;
   Timer? _nextTripRadarDemoTimer;
   Timer? _nextTripRadarMatchTimer;
+  DateTime? _lastGpsAppliedAt;
+  DateTime? _lastSnapshotAt;
+  bool _liveUpdatesPaused = false;
   int _waitSeconds = 0;
   _OnTripRadarState _onTripRadarState = _OnTripRadarState.off;
   _NextTripRadarOffer? _nextTripRadarOffer;
@@ -309,6 +365,7 @@ class _AcceptRideState extends State<AcceptRide>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _locationService =
         widget.locationRepository ?? const DriverLocationService();
     _routeService = widget.routeRepository ?? RoadRouteService();
@@ -316,11 +373,19 @@ class _AcceptRideState extends State<AcceptRide>
         widget.waybillRepository ?? InMemoryWaybillRepository.instance;
     _navigation = NavigationController(routeRepository: _routeService);
     _navigation.addListener(_onNavigationChanged);
+    _rideLifecycle.snapshotBuilder = _buildSnapshot;
     _rideLifecycle.addListener(_syncNavigationStage);
     _syncNavigationStage();
+    _restoreQueuedNextFromSnapshot();
+    _waitSeconds = widget.initialWaitSeconds;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _waybills.beginCurrent(_buildCurrentWaybill());
+      if (widget.restoredSnapshot?.next != null && _nextTripRadarOffer != null) {
+        _waybills.secureNext(_buildNextWaybill(_nextTripRadarOffer!));
+      }
+      _resumeStageSideEffects();
+      _rideLifecycle.persistNow();
     });
     _radarPulseController = AnimationController(
       vsync: this,
@@ -347,6 +412,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
@@ -362,6 +428,121 @@ class _AcceptRideState extends State<AcceptRide>
     _ridePanelPosition.dispose();
     _mapController = null;
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _resumeLiveUpdates();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _rideLifecycle.persistNow();
+        _pauseLiveUpdates();
+    }
+  }
+
+  PersistedActiveRide _buildSnapshot(ActiveRideStage stage) {
+    final offer = _nextTripRadarOffer;
+    final securedOffer =
+        _onTripRadarState == _OnTripRadarState.secured ? offer : null;
+    return PersistedActiveRide(
+      tripId: widget.offerId,
+      stage: stage,
+      nextTripId: securedOffer?.id,
+      riderName: widget.riderName,
+      riderRating: widget.riderRating,
+      riderTrips: widget.riderTrips,
+      fare: widget.fare,
+      category: widget.category,
+      matchedVia: widget.matchedVia,
+      pickupAddress: widget.pickupAddress,
+      pickupArea: widget.pickupArea,
+      dropoffAddress: widget.dropoffAddress,
+      pickupLat: widget.pickupPosition.latitude,
+      pickupLng: widget.pickupPosition.longitude,
+      dropoffLat: widget.dropoffPosition.latitude,
+      dropoffLng: widget.dropoffPosition.longitude,
+      waitSeconds: _waitSeconds,
+      next: securedOffer == null
+          ? null
+          : PersistedQueuedTrip(
+              tripId: securedOffer.id,
+              riderName: securedOffer.riderName,
+              fare: securedOffer.fare,
+              category: securedOffer.category,
+              pickup: securedOffer.pickup,
+              dropoff: securedOffer.dropoff,
+              pickupLat: securedOffer.pickupPosition.latitude,
+              pickupLng: securedOffer.pickupPosition.longitude,
+              dropoffLat: securedOffer.dropoffPosition.latitude,
+              dropoffLng: securedOffer.dropoffPosition.longitude,
+              rating: securedOffer.rating,
+              pickupMinutes: securedOffer.pickupMinutes,
+              tripMinutes: securedOffer.tripMinutes,
+            ),
+    );
+  }
+
+  void _restoreQueuedNextFromSnapshot() {
+    final next = widget.restoredSnapshot?.next;
+    if (next == null) return;
+    _onTripRadarState = _OnTripRadarState.secured;
+    _nextTripRadarOffer = _NextTripRadarOffer(
+      id: next.tripId,
+      category: next.category,
+      fare: next.fare,
+      rating: next.rating,
+      pickupMinutes: next.pickupMinutes,
+      tripMinutes: next.tripMinutes,
+      riderName: next.riderName,
+      pickup: next.pickup,
+      dropoff: next.dropoff,
+      pickupPosition: LatLng(next.pickupLat, next.pickupLng),
+      dropoffPosition: LatLng(next.dropoffLat, next.dropoffLng),
+    );
+  }
+
+  void _resumeStageSideEffects() {
+    switch (widget.initialStage) {
+      case ActiveRideStage.headingToPickup:
+        return;
+      case ActiveRideStage.waitingForRider:
+        _startWaitTimer();
+        unawaited(_focusWaitingPickup());
+      case ActiveRideStage.onTrip:
+        if (_onTripRadarState != _OnTripRadarState.secured) {
+          _startOnTripRadar();
+        }
+        unawaited(_refreshOnTripRoute());
+    }
+  }
+
+  void _pauseLiveUpdates() {
+    if (_liveUpdatesPaused) return;
+    _liveUpdatesPaused = true;
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
+    if (_radarPulseController.isAnimating) {
+      _radarPulseController.stop();
+    }
+    if (_radarSweepController.isAnimating) {
+      _radarSweepController.stop();
+    }
+  }
+
+  void _resumeLiveUpdates() {
+    if (!_liveUpdatesPaused) return;
+    _liveUpdatesPaused = false;
+    if (!_radarPulseController.isAnimating) {
+      _radarPulseController.repeat(reverse: true);
+    }
+    if (!_radarSweepController.isAnimating) {
+      _radarSweepController.repeat();
+    }
+    unawaited(_startLiveLocation());
   }
 
   WaybillRecord _buildCurrentWaybill() {
@@ -431,43 +612,6 @@ class _AcceptRideState extends State<AcceptRide>
     });
   }
 
-  Set<Marker> _markersFor(LiveVehiclePose pose) {
-    final markers = <Marker>{
-      Marker(
-        markerId: const MarkerId('driver'),
-        position: pose.position,
-        rotation: pose.headingDegrees,
-        flat: true,
-        anchor: const Offset(0.5, 0.5),
-        zIndexInt: 12,
-        icon: _driverVehicleIcon,
-        infoWindow: const InfoWindow(title: 'You'),
-      ),
-    };
-
-    if (_stage != ActiveRideStage.onTrip) {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('pickup'),
-          position: widget.pickupPosition,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-          infoWindow: InfoWindow(title: widget.pickupAddress),
-        ),
-      );
-    } else {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('dropoff'),
-          position: widget.dropoffPosition,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          infoWindow: InfoWindow(title: widget.dropoffAddress),
-        ),
-      );
-    }
-
-    return markers;
-  }
-
   Future<void> _prepareDriverVehicleMarker() async {
     final icon = await MoveraVehicleMarker.createIcon();
     if (!mounted) return;
@@ -499,7 +643,7 @@ class _AcceptRideState extends State<AcceptRide>
 
       _positionSubscription?.cancel();
       _positionSubscription = _locationService
-          .watchPosition(distanceFilterMeters: 2)
+          .watchPosition(distanceFilterMeters: kIsWeb ? 20 : 8)
           .listen(
         (position) {
           _applyDriverPosition(position);
@@ -530,13 +674,28 @@ class _AcceptRideState extends State<AcceptRide>
     final next = location.point.toLatLng();
     if (!mounted) return;
 
+    if (!forceRoute &&
+        kIsWeb &&
+        _lastGpsAppliedAt != null &&
+        DateTime.now().difference(_lastGpsAppliedAt!) <
+            const Duration(milliseconds: 800)) {
+      _vehicle.moveTo(next, _navigation.snapshot.headingDegrees);
+      return;
+    }
+    _lastGpsAppliedAt = DateTime.now();
+
     _navigation.setVehicle(location);
-    setState(() {
-      _driverPosition = next;
-      _hasLiveLocation = true;
-      _locationStatus = _navigation.status;
-    });
+    _driverPosition = next;
+    _hasLiveLocation = true;
+    _locationStatus = _navigation.status;
     _vehicle.moveTo(next, _navigation.snapshot.headingDegrees);
+
+    final lastSnap = _lastSnapshotAt;
+    if (lastSnap == null ||
+        DateTime.now().difference(lastSnap) > const Duration(minutes: 2)) {
+      _lastSnapshotAt = DateTime.now();
+      _rideLifecycle.persistNow();
+    }
 
     if (_stage != ActiveRideStage.waitingForRider) {
       await _refreshRoadRoute(force: forceRoute);
@@ -739,12 +898,14 @@ class _AcceptRideState extends State<AcceptRide>
                 routeRepository: widget.routeRepository,
                 waybillRepository: _waybills,
                 sessionController: widget.sessionController,
+                activeRideRepository: widget.activeRideRepository,
               )
             : null;
         final navigator = Navigator.of(context);
         final completedPage = DriverRideCompleted(
           waybillRepository: _waybills,
           sessionController: widget.sessionController,
+          activeRideRepository: widget.activeRideRepository,
           nextRide: nextRide,
         );
         navigator.pushReplacement(
@@ -1091,6 +1252,7 @@ class _AcceptRideState extends State<AcceptRide>
                                     _waybills.secureNext(
                                       _buildNextWaybill(offer),
                                     );
+                                    _rideLifecycle.persistNow();
                                     if (sheetContext.mounted) {
                                       setSheetState(() {});
                                     }
@@ -1522,41 +1684,27 @@ class _AcceptRideState extends State<AcceptRide>
               children: [
                 AbsorbPointer(
                   absorbing: _blockMapGestures,
-                  child: ValueListenableBuilder<LiveVehiclePose>(
-                    valueListenable: _vehicle.pose,
-                    builder: (context, pose, _) {
-                      return CustomGoogleMap(
-                        initialPosition: CameraPosition(
-                          target: pose.position,
-                          zoom: 15.8,
-                        ),
-                        markers: _markersFor(pose),
-                        polylines: _polylines,
-                        myLocationEnabled: false,
-                        myLocationButtonEnabled: false,
-                        zoomControlsEnabled: false,
-                        mapToolbarEnabled: false,
-                        compassEnabled: false,
-                        trafficEnabled: false,
-                        buildingsEnabled: true,
-                        indoorViewEnabled: false,
-                        scrollGesturesEnabled: !_blockMapGestures,
-                        zoomGesturesEnabled: !_blockMapGestures,
-                        rotateGesturesEnabled: !_blockMapGestures,
-                        tiltGesturesEnabled: !_blockMapGestures,
-                        mapType: MapType.normal,
-                        padding: MapOverlayInsets.forActiveRide(
-                          safeTop: safeTop,
-                          collapsedSheet: collapsed,
-                        ).edgeInsets,
-                        onCameraMove: _onCameraMove,
-                        onMapCreated: (controller) {
-                          _mapController = controller;
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) _fitRoute();
-                          });
-                        },
-                      );
+                  child: _ThrottledVehicleMap(
+                    vehicle: _vehicle,
+                    vehicleIcon: _driverVehicleIcon,
+                    stage: _stage,
+                    pickupPosition: widget.pickupPosition,
+                    dropoffPosition: widget.dropoffPosition,
+                    pickupAddress: widget.pickupAddress,
+                    dropoffAddress: widget.dropoffAddress,
+                    polylines: _polylines,
+                    padding: MapOverlayInsets.forActiveRide(
+                      safeTop: safeTop,
+                      collapsedSheet: collapsed,
+                    ).edgeInsets,
+                    blockGestures: _blockMapGestures,
+                    initialTarget: _driverPosition,
+                    onCameraMove: _onCameraMove,
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _fitRoute();
+                      });
                     },
                   ),
                 ),
@@ -2859,6 +3007,7 @@ class _AcceptRideState extends State<AcceptRide>
             routeRepository: widget.routeRepository,
             waybillRepository: _waybills,
             sessionController: widget.sessionController,
+            activeRideRepository: widget.activeRideRepository,
           )
         : null;
     if (nextRide != null) {
@@ -2895,6 +3044,146 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
+}
+
+class _ThrottledVehicleMap extends StatefulWidget {
+  const _ThrottledVehicleMap({
+    required this.vehicle,
+    required this.vehicleIcon,
+    required this.stage,
+    required this.pickupPosition,
+    required this.dropoffPosition,
+    required this.pickupAddress,
+    required this.dropoffAddress,
+    required this.polylines,
+    required this.padding,
+    required this.blockGestures,
+    required this.initialTarget,
+    required this.onMapCreated,
+    required this.onCameraMove,
+  });
+
+  final LiveVehicleAnimator vehicle;
+  final BitmapDescriptor vehicleIcon;
+  final ActiveRideStage stage;
+  final LatLng pickupPosition;
+  final LatLng dropoffPosition;
+  final String pickupAddress;
+  final String dropoffAddress;
+  final Set<Polyline> polylines;
+  final EdgeInsets padding;
+  final bool blockGestures;
+  final LatLng initialTarget;
+  final void Function(GoogleMapController) onMapCreated;
+  final void Function(CameraPosition) onCameraMove;
+
+  @override
+  State<_ThrottledVehicleMap> createState() => _ThrottledVehicleMapState();
+}
+
+class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
+  Timer? _ticker;
+  late LiveVehiclePose _pose;
+
+  @override
+  void initState() {
+    super.initState();
+    _pose = widget.vehicle.current;
+    final inTests = WidgetsBinding.instance.runtimeType
+        .toString()
+        .contains('TestWidgetsFlutterBinding');
+    if (inTests) return;
+    _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      if (!mounted) return;
+      final next = widget.vehicle.current;
+      if (next.position.latitude == _pose.position.latitude &&
+          next.position.longitude == _pose.position.longitude &&
+          next.headingDegrees == _pose.headingDegrees) {
+        return;
+      }
+      setState(() => _pose = next);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _ThrottledVehicleMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.vehicle, widget.vehicle)) {
+      _pose = widget.vehicle.current;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  Set<Marker> get _markers {
+    final markers = <Marker>{
+      Marker(
+        markerId: const MarkerId('driver'),
+        position: _pose.position,
+        rotation: _pose.headingDegrees,
+        flat: true,
+        anchor: const Offset(0.5, 0.5),
+        zIndexInt: 12,
+        icon: widget.vehicleIcon,
+        infoWindow: const InfoWindow(title: 'You'),
+      ),
+    };
+
+    if (widget.stage != ActiveRideStage.onTrip) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: widget.pickupPosition,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: InfoWindow(title: widget.pickupAddress),
+        ),
+      );
+    } else {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('dropoff'),
+          position: widget.dropoffPosition,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(title: widget.dropoffAddress),
+        ),
+      );
+    }
+
+    return markers;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomGoogleMap(
+      key: const ValueKey<String>('active-ride-map'),
+      initialPosition: CameraPosition(
+        target: widget.initialTarget,
+        zoom: 15.8,
+      ),
+      markers: _markers,
+      polylines: widget.polylines,
+      myLocationEnabled: false,
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+      compassEnabled: false,
+      trafficEnabled: false,
+      buildingsEnabled: true,
+      indoorViewEnabled: false,
+      scrollGesturesEnabled: !widget.blockGestures,
+      zoomGesturesEnabled: !widget.blockGestures,
+      rotateGesturesEnabled: !widget.blockGestures,
+      tiltGesturesEnabled: !widget.blockGestures,
+      mapType: MapType.normal,
+      padding: widget.padding,
+      onCameraMove: widget.onCameraMove,
+      onMapCreated: widget.onMapCreated,
+    );
+  }
 }
 
 class _SlideRideAction extends StatefulWidget {
