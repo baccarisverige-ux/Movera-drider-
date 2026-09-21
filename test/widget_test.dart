@@ -812,6 +812,12 @@ void main() {
     expect(find.text('Östermalm'), findsOneWidget);
     expect(find.text('Kungsholmen'), findsOneWidget);
     expect(find.text('Around Stockholm'), findsOneWidget);
+    expect(find.text('Arlanda'), findsOneWidget);
+    expect(find.text('Södertälje'), findsOneWidget);
+    expect(find.text('Kista'), findsOneWidget);
+    expect(find.text('Bromma'), findsOneWidget);
+    expect(find.text('82%'), findsOneWidget);
+    expect(find.text('69%'), findsOneWidget);
     _expectNoException(tester);
   });
 
