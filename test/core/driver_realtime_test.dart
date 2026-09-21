@@ -34,6 +34,31 @@ void main() {
     bus.dispose();
   });
 
+  test('pickup communication signals round-trip through realtime seam', () async {
+    final bus = MemoryDriverRealtime();
+    final seen = <DriverRealtimeEvent>[];
+    final sub = bus.subscribe('trip-1').listen(seen.add);
+
+    await bus.sendSignal(
+      tripId: 'trip-1',
+      kind: DriverRealtimeKind.driverArrived,
+      message: 'Your driver has arrived at the pickup point.',
+    );
+    await bus.sendSignal(
+      tripId: 'trip-1',
+      kind: DriverRealtimeKind.riderOnTheWay,
+      message: "I'm on the way",
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(seen, hasLength(2));
+    expect(seen.first.kind, DriverRealtimeKind.driverArrived);
+    expect(seen.last.kind, DriverRealtimeKind.riderOnTheWay);
+    expect(seen.last.message, "I'm on the way");
+    await sub.cancel();
+    bus.dispose();
+  });
+
   test('reconnect replays the last event for the trip', () async {
     final bus = MemoryDriverRealtime();
     bus.emit(
