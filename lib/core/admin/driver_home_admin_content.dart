@@ -124,14 +124,14 @@ class StockholmWorkStatsConfig {
     required this.subtitle,
     required this.innerAreas,
     required this.surroundingTitle,
-    required this.surroundingSummary,
+    required this.surroundingAreas,
   });
 
   final String title;
   final String subtitle;
   final List<StockholmAreaConfig> innerAreas;
   final String surroundingTitle;
-  final String surroundingSummary;
+  final List<StockholmAreaConfig> surroundingAreas;
 }
 
 /// Driver-side contract for content controlled by the Movera admin system.
@@ -249,7 +249,48 @@ class DriverHomeAdminContentService {
           ),
         ],
         surroundingTitle: 'Around Stockholm',
-        surroundingSummary: 'Solna · Nacka · Huddinge · Täby',
+        surroundingAreas: [
+          StockholmAreaConfig(
+            name: 'Solna',
+            demandPercent: 74,
+            demandLabel: 'Busy',
+          ),
+          StockholmAreaConfig(
+            name: 'Nacka',
+            demandPercent: 63,
+            demandLabel: 'Steady',
+          ),
+          StockholmAreaConfig(
+            name: 'Huddinge',
+            demandPercent: 58,
+            demandLabel: 'Steady',
+          ),
+          StockholmAreaConfig(
+            name: 'Täby',
+            demandPercent: 46,
+            demandLabel: 'Quiet',
+          ),
+          StockholmAreaConfig(
+            name: 'Arlanda',
+            demandPercent: 82,
+            demandLabel: 'Busy',
+          ),
+          StockholmAreaConfig(
+            name: 'Södertälje',
+            demandPercent: 69,
+            demandLabel: 'Steady',
+          ),
+          StockholmAreaConfig(
+            name: 'Kista',
+            demandPercent: 76,
+            demandLabel: 'Busy',
+          ),
+          StockholmAreaConfig(
+            name: 'Bromma',
+            demandPercent: 54,
+            demandLabel: 'Steady',
+          ),
+        ],
       ),
     );
   }
