@@ -1400,6 +1400,99 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets(
+    'Active ride stages keep the same map, panel and ride State mounted',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(320, 700));
+      await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+      await tester.pump(const Duration(milliseconds: 160));
+
+      final rideState = tester.state(find.byType(AcceptRide));
+      final mapElement = tester.element(
+        find.byKey(const ValueKey<String>('active-ride-map')),
+      );
+      final panelElement = tester.element(
+        find.byKey(const ValueKey<String>('active-ride-panel')),
+      );
+      final slideElement = tester.element(
+        find.byKey(const ValueKey<String>('active-ride-slide-action')),
+      );
+
+      expect(find.byType(AcceptRide), findsOneWidget);
+      expect(find.byType(CustomGoogleMap), findsOneWidget);
+      expect(find.text('Heading to pickup'), findsOneWidget);
+
+      await _slideActiveRideAction(tester);
+
+      expect(find.text('Waiting for rider'), findsWidgets);
+      expect(find.byType(AcceptRide), findsOneWidget);
+      expect(find.byType(CustomGoogleMap), findsOneWidget);
+      expect(
+        identical(rideState, tester.state(find.byType(AcceptRide))),
+        isTrue,
+      );
+      expect(
+        identical(
+          mapElement,
+          tester.element(find.byKey(const ValueKey<String>('active-ride-map'))),
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          panelElement,
+          tester.element(find.byKey(const ValueKey<String>('active-ride-panel'))),
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          slideElement,
+          tester.element(
+            find.byKey(const ValueKey<String>('active-ride-slide-action')),
+          ),
+        ),
+        isTrue,
+      );
+      _expectNoException(tester);
+
+      await _slideActiveRideAction(tester);
+
+      expect(find.textContaining('Dropping off'), findsOneWidget);
+      expect(find.byType(AcceptRide), findsOneWidget);
+      expect(find.byType(DriverRideCompleted), findsNothing);
+      expect(
+        identical(rideState, tester.state(find.byType(AcceptRide))),
+        isTrue,
+      );
+      expect(
+        identical(
+          mapElement,
+          tester.element(find.byKey(const ValueKey<String>('active-ride-map'))),
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          panelElement,
+          tester.element(find.byKey(const ValueKey<String>('active-ride-panel'))),
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          slideElement,
+          tester.element(
+            find.byKey(const ValueKey<String>('active-ride-slide-action')),
+          ),
+        ),
+        isTrue,
+      );
+      _expectNoException(tester);
+    },
+  );
+
   testWidgets('Completing a trip returns to the same online Home session', (
     WidgetTester tester,
   ) async {

@@ -350,6 +350,8 @@ class _AcceptRideState extends State<AcceptRide>
   LatLng _driverPosition = _fallbackDriverPosition;
   List<GeoPoint> _roadGeoPoints = <GeoPoint>[];
   List<LatLng> _roadRoutePoints = <LatLng>[];
+  List<LatLng> _cachedPolylinePoints = const <LatLng>[];
+  Set<Polyline> _cachedPolylines = <Polyline>{};
   double? _routeDistanceMeters;
   double? _routeDurationSeconds;
   bool _hasLiveLocation = false;
@@ -516,7 +518,7 @@ class _AcceptRideState extends State<AcceptRide>
         if (_onTripRadarState != _OnTripRadarState.secured) {
           _startOnTripRadar();
         }
-        unawaited(_refreshOnTripRoute());
+        unawaited(_refreshOnTripRoute(fitCamera: true));
     }
   }
 
@@ -592,7 +594,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _onNavigationChanged() {
-    if (!mounted) return;
+    if (!mounted || _stageTransitioning) return;
     final route = _navigation.route;
     final status = _navigation.status;
     final pointsChanged = route != null &&
@@ -619,9 +621,17 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Set<Polyline> get _polylines {
-    if (_roadRoutePoints.length < 2) return <Polyline>{};
-
-    return {
+    if (_roadRoutePoints.length < 2) {
+      if (_cachedPolylines.isEmpty) return _cachedPolylines;
+      _cachedPolylines = <Polyline>{};
+      return _cachedPolylines;
+    }
+    if (identical(_cachedPolylinePoints, _roadRoutePoints) &&
+        _cachedPolylines.isNotEmpty) {
+      return _cachedPolylines;
+    }
+    _cachedPolylinePoints = _roadRoutePoints;
+    _cachedPolylines = {
       Polyline(
         polylineId: const PolylineId('active-road-route'),
         points: _roadRoutePoints,
@@ -632,6 +642,7 @@ class _AcceptRideState extends State<AcceptRide>
         endCap: Cap.roundCap,
       ),
     };
+    return _cachedPolylines;
   }
 
   Future<void> _startLiveLocation() async {
@@ -846,13 +857,11 @@ class _AcceptRideState extends State<AcceptRide>
           _stageTransitioning = false;
           return;
         }
-        setState(() {
-          _waitSeconds = 0;
-          _routeLoading = false;
-        });
+        _waitSeconds = 0;
+        _routeLoading = false;
         _startWaitTimer();
+        if (mounted) setState(() {});
         _unlockStageAfterFrame();
-        unawaited(_focusWaitingPickup());
         return;
 
       case ActiveRideStage.waitingForRider:
@@ -861,10 +870,12 @@ class _AcceptRideState extends State<AcceptRide>
           return;
         }
         _waitTimer?.cancel();
-        setState(() {
-          _routeLoading = true;
-        });
-        _startOnTripRadar();
+        _nextTripRadarDemoTimer?.cancel();
+        _nextTripRadarMatchTimer?.cancel();
+        _onTripRadarState = _OnTripRadarState.scanning;
+        _nextTripRadarOffer = null;
+        if (mounted) setState(() {});
+        _maybeScheduleOnTripRadarDemoOffer();
         _unlockStageAfterFrame();
         unawaited(_refreshOnTripRoute());
         return;
@@ -993,10 +1004,12 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  Future<void> _refreshOnTripRoute() async {
+  Future<void> _refreshOnTripRoute({bool fitCamera = false}) async {
     await _refreshRoadRoute(force: true);
     if (!mounted || _stage != ActiveRideStage.onTrip) return;
-    await _fitRoute();
+    if (fitCamera) {
+      await _fitRoute();
+    }
   }
 
   Future<void> _focusWaitingPickup() async {
@@ -1685,6 +1698,7 @@ class _AcceptRideState extends State<AcceptRide>
                 AbsorbPointer(
                   absorbing: _blockMapGestures,
                   child: _ThrottledVehicleMap(
+                    key: const ValueKey<String>('active-ride-throttled-map'),
                     vehicle: _vehicle,
                     vehicleIcon: _driverVehicleIcon,
                     stage: _stage,
@@ -1701,9 +1715,11 @@ class _AcceptRideState extends State<AcceptRide>
                     initialTarget: _driverPosition,
                     onCameraMove: _onCameraMove,
                     onMapCreated: (controller) {
+                      final firstCreate = _mapController == null;
                       _mapController = controller;
+                      if (!firstCreate) return;
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) _fitRoute();
+                        if (mounted) unawaited(_fitRoute());
                       });
                     },
                   ),
@@ -1912,7 +1928,7 @@ class _AcceptRideState extends State<AcceptRide>
       builder: (context, pos, _) {
         final compact = pos < 0.14;
         return Container(
-          key: ValueKey<String>('active-ride-panel-${_stage.name}'),
+          key: const ValueKey<String>('active-ride-panel'),
           decoration: BoxDecoration(
             color: _panel,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
@@ -1941,6 +1957,10 @@ class _AcceptRideState extends State<AcceptRide>
                       ),
                     ),
                   ),
+                ),
+                KeyedSubtree(
+                  key: ValueKey<String>('active-ride-panel-${_stage.name}'),
+                  child: const SizedBox.shrink(),
                 ),
                 if (compact)
                   CompactTripDock(
@@ -2437,7 +2457,7 @@ class _AcceptRideState extends State<AcceptRide>
         const SizedBox(width: 10),
         Expanded(
           child: _SlideRideAction(
-            key: ValueKey<String>('active-ride-primary-action-${_stage.name}'),
+            key: const ValueKey<String>('active-ride-slide-action'),
             semanticsKey:
                 const ValueKey<String>('active-ride-primary-action'),
             label: switch (_stage) {
@@ -3048,6 +3068,7 @@ class _AcceptRideState extends State<AcceptRide>
 
 class _ThrottledVehicleMap extends StatefulWidget {
   const _ThrottledVehicleMap({
+    super.key,
     required this.vehicle,
     required this.vehicleIcon,
     required this.stage,
@@ -3158,30 +3179,32 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomGoogleMap(
-      key: const ValueKey<String>('active-ride-map'),
-      initialPosition: CameraPosition(
-        target: widget.initialTarget,
-        zoom: 15.8,
+    return RepaintBoundary(
+      child: CustomGoogleMap(
+        key: const ValueKey<String>('active-ride-map'),
+        initialPosition: CameraPosition(
+          target: widget.initialTarget,
+          zoom: 15.8,
+        ),
+        markers: _markers,
+        polylines: widget.polylines,
+        myLocationEnabled: false,
+        myLocationButtonEnabled: false,
+        zoomControlsEnabled: false,
+        mapToolbarEnabled: false,
+        compassEnabled: false,
+        trafficEnabled: false,
+        buildingsEnabled: true,
+        indoorViewEnabled: false,
+        scrollGesturesEnabled: !widget.blockGestures,
+        zoomGesturesEnabled: !widget.blockGestures,
+        rotateGesturesEnabled: !widget.blockGestures,
+        tiltGesturesEnabled: !widget.blockGestures,
+        mapType: MapType.normal,
+        padding: widget.padding,
+        onCameraMove: widget.onCameraMove,
+        onMapCreated: widget.onMapCreated,
       ),
-      markers: _markers,
-      polylines: widget.polylines,
-      myLocationEnabled: false,
-      myLocationButtonEnabled: false,
-      zoomControlsEnabled: false,
-      mapToolbarEnabled: false,
-      compassEnabled: false,
-      trafficEnabled: false,
-      buildingsEnabled: true,
-      indoorViewEnabled: false,
-      scrollGesturesEnabled: !widget.blockGestures,
-      zoomGesturesEnabled: !widget.blockGestures,
-      rotateGesturesEnabled: !widget.blockGestures,
-      tiltGesturesEnabled: !widget.blockGestures,
-      mapType: MapType.normal,
-      padding: widget.padding,
-      onCameraMove: widget.onCameraMove,
-      onMapCreated: widget.onMapCreated,
     );
   }
 }
@@ -3212,6 +3235,21 @@ class _SlideRideActionState extends State<_SlideRideAction> {
   double _fraction = 0;
   bool _dragging = false;
   bool _confirmed = false;
+
+  @override
+  void didUpdateWidget(covariant _SlideRideAction oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.label == widget.label && oldWidget.icon == widget.icon) {
+      return;
+    }
+    _fraction = 0;
+    _dragging = true;
+    _confirmed = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _confirmed || _fraction != 0) return;
+      setState(() => _dragging = false);
+    });
+  }
 
   void _update(double delta, double maxTravel) {
     if (_confirmed || maxTravel <= 0) return;

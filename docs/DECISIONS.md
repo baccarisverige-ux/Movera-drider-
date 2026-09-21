@@ -85,3 +85,13 @@ Fix (no UX change):
 - Lifecycle pause persists the snapshot and stops GPS; resume continues the same trip.
 - D11 still holds: restoring a trip does **not** restore `online = true`.
 
+## Active ride stage transitions (no remount)
+
+Pickup → Waiting → On trip stays on the same `AcceptRide` route. The sheet used a stage-suffixed `ValueKey`, which remounted the panel (and felt like a reload) on every slide. Camera `fitRoute` / `focusPickup` on those transitions fought live follow.
+
+Fix (no UX change, no lifecycle change):
+
+- Stable `ValueKey('active-ride-panel')` and `ValueKey('active-ride-slide-action')`. Stage keys remain as zero-size markers for tests.
+- Stage changes update copy, slide label and markers in place. GPS, map, overlays and sheet position stay mounted.
+- Waiting and on-trip transitions do not re-fit the camera or flash `Routing…`. First map create and crash-restore may still fit.
+
