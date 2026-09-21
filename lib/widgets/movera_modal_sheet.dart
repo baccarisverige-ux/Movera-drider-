@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:movera/widgets/layout_viewport.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 /// Shows a bottom sheet pinned to the hittable surface.
 ///
@@ -30,12 +31,14 @@ Future<T?> showMoveraModalSheet<T>({
         ),
         child: Align(
           alignment: Alignment.bottomCenter,
-          child: ColoredBox(
-            color: backgroundColor,
-            child: SizedBox(
-              width: surface.width,
-              height: height,
-              child: builder(sheetContext),
+          child: PointerInterceptor(
+            child: ColoredBox(
+              color: backgroundColor,
+              child: SizedBox(
+                width: surface.width,
+                height: height,
+                child: builder(sheetContext),
+              ),
             ),
           ),
         ),

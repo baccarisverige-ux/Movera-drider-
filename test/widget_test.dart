@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/main.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
@@ -15,8 +16,8 @@ import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dar
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/widgets/custom_google_map.dart';
-import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 Future<void> _pumpHome(WidgetTester tester, Size size) async {
   await tester.binding.setSurfaceSize(size);
@@ -1412,6 +1413,59 @@ void main() {
       find.text(
         'Silent Radar does not change your map, route or current-trip controls.',
       ),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+  });
+
+  testWidgets('Active ride slide blocks map pan while the finger is down', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+
+    expect(find.byType(PointerInterceptor), findsWidgets);
+    CustomGoogleMap map = tester.widget<CustomGoogleMap>(
+      find.byType(CustomGoogleMap),
+    );
+    expect(map.scrollGesturesEnabled, isTrue);
+
+    final action =
+        find.byKey(const ValueKey<String>('active-ride-primary-action'));
+    final gesture = await tester.startGesture(tester.getCenter(action));
+    await tester.pump();
+
+    map = tester.widget<CustomGoogleMap>(find.byType(CustomGoogleMap));
+    expect(map.scrollGesturesEnabled, isFalse);
+
+    await gesture.up();
+    await tester.pump();
+    _expectNoException(tester);
+  });
+
+  testWidgets('On-trip Radar demo appears toward a city drop-off', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AcceptRide(
+          pickupPosition: LatLng(59.3295, 18.0475),
+          dropoffPosition: LatLng(59.2705, 18.0515),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 160));
+
+    await _slideActiveRideAction(tester);
+    await _slideActiveRideAction(tester);
+    await tester.pump(const Duration(milliseconds: 2400));
+
+    expect(
+      find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
       findsOneWidget,
     );
     _expectNoException(tester);

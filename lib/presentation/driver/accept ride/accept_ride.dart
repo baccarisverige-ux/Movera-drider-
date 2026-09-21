@@ -20,6 +20,7 @@ import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/movera_modal_sheet.dart';
 import 'package:movera/widgets/navigation_transition.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 class AcceptRide extends StatefulWidget {
   const AcceptRide({
@@ -113,7 +114,7 @@ class _AcceptRideState extends State<AcceptRide> {
   static const Color _mint = Color(0xFFE6F5EE);
   static const Color _line = Color(0xFFE5E9EB);
   static const Color _danger = Color(0xFFE75D65);
-  static const double _nextTripRadarRadiusMeters = 6000;
+  static const double _nextTripRadarRadiusMeters = 30000;
 
   static const List<_TripCancellationReason> _preTripCancellationReasons = [
     _TripCancellationReason(
@@ -244,6 +245,7 @@ class _AcceptRideState extends State<AcceptRide> {
   bool _hasLiveLocation = false;
   bool _routeLoading = false;
   bool _stageTransitioning = false;
+  bool _blockMapGestures = false;
   int _routeRequestToken = 0;
   String? _locationStatus;
 
@@ -603,6 +605,25 @@ class _AcceptRideState extends State<AcceptRide> {
     });
   }
 
+  void _setMapGesturesBlocked(bool value) {
+    if (!mounted || _blockMapGestures == value) return;
+    setState(() {
+      _blockMapGestures = value;
+    });
+  }
+
+  Widget _mapOverlay({required Widget child}) {
+    return PointerInterceptor(
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: (_) => _setMapGesturesBlocked(true),
+        onPointerUp: (_) => _setMapGesturesBlocked(false),
+        onPointerCancel: (_) => _setMapGesturesBlocked(false),
+        child: child,
+      ),
+    );
+  }
+
   Future<void> _refreshOnTripRoute() async {
     await _refreshRoadRoute(force: true);
     if (!mounted || _stage != ActiveRideStage.onTrip) return;
@@ -647,13 +668,16 @@ class _AcceptRideState extends State<AcceptRide> {
       return;
     }
 
-    final metersToDropoff = GeoPoint.fromLatLng(_driverPosition).distanceMetersTo(
-      GeoPoint.fromLatLng(widget.dropoffPosition),
-    );
-
-    // Demo behavior: no UI is shown while scanning. An offer becomes visible
-    // only once the driver is reasonably close to the current drop-off.
-    if (metersToDropoff > _nextTripRadarRadiusMeters) return;
+    // Demo: appear while heading to drop-off. Without live GPS (web/tests)
+    // always show after the delay. Live GPS still requires a city-scale
+    // remaining distance so a far-away device does not get the demo.
+    if (_hasLiveLocation) {
+      final metersToDropoff =
+          GeoPoint.fromLatLng(_driverPosition).distanceMetersTo(
+        GeoPoint.fromLatLng(widget.dropoffPosition),
+      );
+      if (metersToDropoff > _nextTripRadarRadiusMeters) return;
+    }
 
     _nextTripRadarDemoTimer = Timer(
       const Duration(milliseconds: 2200),
@@ -1309,54 +1333,61 @@ class _AcceptRideState extends State<AcceptRide> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              CustomGoogleMap(
-                initialPosition: CameraPosition(
-                  target: _driverPosition,
-                  zoom: 15.8,
+              AbsorbPointer(
+                absorbing: _blockMapGestures,
+                child: CustomGoogleMap(
+                  initialPosition: CameraPosition(
+                    target: _driverPosition,
+                    zoom: 15.8,
+                  ),
+                  markers: _markers,
+                  polylines: _polylines,
+                  myLocationEnabled: false,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  mapToolbarEnabled: false,
+                  compassEnabled: false,
+                  trafficEnabled: false,
+                  buildingsEnabled: true,
+                  indoorViewEnabled: false,
+                  scrollGesturesEnabled: !_blockMapGestures,
+                  zoomGesturesEnabled: !_blockMapGestures,
+                  rotateGesturesEnabled: !_blockMapGestures,
+                  tiltGesturesEnabled: !_blockMapGestures,
+                  mapType: MapType.normal,
+                  padding: EdgeInsets.only(bottom: panelHeight - 12),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) _fitRoute();
+                    });
+                  },
                 ),
-                markers: _markers,
-                polylines: _polylines,
-                myLocationEnabled: false,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                mapToolbarEnabled: false,
-                compassEnabled: false,
-                trafficEnabled: false,
-                buildingsEnabled: true,
-                indoorViewEnabled: false,
-                mapType: MapType.normal,
-                padding: EdgeInsets.only(bottom: panelHeight - 12),
-                onMapCreated: (controller) {
-                  _mapController = controller;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) _fitRoute();
-                  });
-                },
               ),
               Positioned(
                 left: 14,
                 right: 14,
                 top: safeTop + 10,
-                child: _buildNavigationCard(),
+                child: _mapOverlay(child: _buildNavigationCard()),
               ),
               Positioned(
                 right: 14,
                 bottom: panelHeight + 16,
-                child: _buildMapControls(),
+                child: _mapOverlay(child: _buildMapControls()),
               ),
               if (_stage == ActiveRideStage.onTrip &&
                   _onTripRadarState == _OnTripRadarState.offerAvailable)
                 Positioned(
                   left: 16,
                   bottom: panelHeight + 18,
-                  child: _buildOnTripRadarOfferButton(),
+                  child: _mapOverlay(child: _buildOnTripRadarOfferButton()),
                 ),
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
                 height: panelHeight,
-                child: _buildRidePanel(),
+                child: _mapOverlay(child: _buildRidePanel()),
               ),
             ],
           );
@@ -2076,6 +2107,7 @@ class _AcceptRideState extends State<AcceptRide> {
               ActiveRideStage.onTrip => Icons.flag_outlined,
             },
             onConfirmed: () {
+              _setMapGesturesBlocked(false);
               _advanceRide();
             },
           ),
