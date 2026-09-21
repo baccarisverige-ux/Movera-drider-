@@ -129,10 +129,10 @@ class _DriverHomeState extends State<DriverHome>
   late final MoveraSnapSheetController _snapSheet;
   bool showRideRequests = false;
   bool isAccountActivated = true;
-  bool _isGoingOnline = false;
   late final DriverSessionController _driverSession;
   late final bool _ownsDriverSession;
   bool get _isOnline => _driverSession.isOnline;
+  bool get _isGoingOnline => _driverSession.isGoingOnline;
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
   bool _showTodaySummaryPopup = false;
@@ -3180,8 +3180,7 @@ class _DriverHomeState extends State<DriverHome>
     _radarOfferThreeTimer?.cancel();
 
     setState(() {
-      _isGoingOnline = true;
-      _driverSession.setOnline(false);
+      _driverSession.beginGoingOnline();
       _hasRideOffers = false;
       _showTodaySummaryPopup = false;
       _outsideRadarOffer = null;
@@ -3196,8 +3195,7 @@ class _DriverHomeState extends State<DriverHome>
       () {
         if (!mounted) return;
         setState(() {
-          _isGoingOnline = false;
-          _driverSession.setOnline(true);
+          _driverSession.completeGoingOnline();
         });
 
         // Frontend demo only. Outside-Radar offers remain exclusive and
@@ -3264,7 +3262,6 @@ class _DriverHomeState extends State<DriverHome>
     _radarOfferThreeTimer?.cancel();
 
     setState(() {
-      _isGoingOnline = false;
       _driverSession.setOnline(false);
       _hasRideOffers = false;
       _outsideRadarOffer = null;

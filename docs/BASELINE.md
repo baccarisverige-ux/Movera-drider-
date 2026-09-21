@@ -70,6 +70,8 @@ The uploaded Driver presentation includes these major areas:
 - The uploaded root contained an accidental `tatus` file containing terminal `less` help; Phase 1 removes it.
 - Several source folders contain spaces or punctuation. They are preserved during baseline stabilization to avoid unsafe mass renames; normalization belongs to a later architecture migration.
 - Android application id is `se.movera.driver`. Release signing uses `MOVERA_UPLOAD_STORE_*` env vars when present, otherwise debug keys for local/CI previews.
+- Canonical vocabulary lives in `docs/DECISIONS.md` (tripId, TripStatus, SEK/Stockholm). Driver online status after a cold start is always offline.
+
 - Large assets exist and should be optimized later only after visual regression protection is in place.
 
 ## Baseline rules

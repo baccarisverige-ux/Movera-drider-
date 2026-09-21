@@ -1,0 +1,118 @@
+openapi: 3.1.0
+info:
+  title: Movera Contracts
+  version: 0.1.0
+  description: >
+    Interface-only contract (P3). No backend is implied. Identifier is tripId.
+    Currency is SEK. See docs/DECISIONS.md.
+servers:
+  - url: https://api.dev.movera.invalid/api/v1
+paths:
+  /trips/{tripId}:
+    get:
+      operationId: getTrip
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+      responses:
+        '200':
+          description: Trip projection
+  /trips:
+    post:
+      operationId: createTrip
+      responses:
+        '201':
+          description: Trip requested
+  /trips/{tripId}/cancel:
+    post:
+      operationId: cancelTrip
+      parameters:
+        - $ref: '#/components/parameters/TripId'
+      responses:
+        '200':
+          description: Cancelled
+  /offers/{offerId}/accept:
+    post:
+      operationId: acceptOffer
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Offer accepted or claimed_elsewhere
+  /drivers/{driverId}/queue:
+    get:
+      operationId: getDriverQueue
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Queued next trip (or empty)
+  /admin/drivers/{driverId}/suspend:
+    post:
+      operationId: suspendDriver
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Driver suspended
+components:
+  parameters:
+    TripId:
+      name: tripId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    TripStatus:
+      type: string
+      enum:
+        - draft
+        - quoted
+        - requested
+        - searching
+        - offered
+        - accepted
+        - driver_to_pickup
+        - arrived
+        - rider_onboard
+        - in_trip
+        - approaching_dropoff
+        - completed
+        - cancelled_by_rider
+        - cancelled_by_driver
+        - cancelled_by_admin
+        - no_show
+        - expired
+        - failed
+    DriverOnlineStatus:
+      type: string
+      enum:
+        - offline
+        - going_online
+        - online
+        - on_trip
+        - suspended
+    GeoPoint:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat:
+          type: number
+        lng:
+          type: number
+        accuracy:
+          type: number
+        heading:
+          type: number

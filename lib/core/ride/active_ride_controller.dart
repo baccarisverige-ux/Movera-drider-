@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 
 export 'package:movera/core/ride/active_ride_repository.dart' show ActiveRideStage;
@@ -26,6 +27,14 @@ class ActiveRideController extends ChangeNotifier {
   bool get completed => _completed;
   bool get cancelled => _cancelled;
   bool get terminal => _completed || _cancelled;
+
+  /// Canonical P1 status derived from the live stage and terminal flags.
+  /// Does not replace [ActiveRideStage] in UI.
+  TripStatus get tripStatus {
+    if (_cancelled) return TripStatus.cancelledByDriver;
+    if (_completed) return TripStatus.completed;
+    return _stage.tripStatus;
+  }
 
   bool transitionTo(ActiveRideStage next) {
     if (terminal) return false;
