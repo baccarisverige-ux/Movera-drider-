@@ -6,6 +6,7 @@ class DriverHomeAdminConfig {
     required this.eventsSectionTitle,
     required this.eventsSectionSubtitle,
     required this.events,
+    required this.stockholmWork,
   });
 
   final DriverPerformanceConfig performance;
@@ -14,6 +15,7 @@ class DriverHomeAdminConfig {
   final String eventsSectionTitle;
   final String eventsSectionSubtitle;
   final List<DriverEventConfig> events;
+  final StockholmWorkStatsConfig stockholmWork;
 }
 
 class DriverPerformanceConfig {
@@ -102,6 +104,34 @@ class DriverEventConfig {
   final String imageUrl;
   final String imageCredit;
   final bool enabled;
+}
+
+class StockholmAreaConfig {
+  const StockholmAreaConfig({
+    required this.name,
+    required this.demandPercent,
+    required this.demandLabel,
+  });
+
+  final String name;
+  final int demandPercent;
+  final String demandLabel;
+}
+
+class StockholmWorkStatsConfig {
+  const StockholmWorkStatsConfig({
+    required this.title,
+    required this.subtitle,
+    required this.innerAreas,
+    required this.surroundingTitle,
+    required this.surroundingSummary,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<StockholmAreaConfig> innerAreas;
+  final String surroundingTitle;
+  final String surroundingSummary;
 }
 
 /// Driver-side contract for content controlled by the Movera admin system.
@@ -193,6 +223,34 @@ class DriverHomeAdminContentService {
           enabled: true,
         ),
       ],
+      stockholmWork: StockholmWorkStatsConfig(
+        title: 'Work in Stockholm',
+        subtitle: 'Inner city and the area around',
+        innerAreas: [
+          StockholmAreaConfig(
+            name: 'Södermalm',
+            demandPercent: 86,
+            demandLabel: 'Busy',
+          ),
+          StockholmAreaConfig(
+            name: 'Norrmalm',
+            demandPercent: 78,
+            demandLabel: 'Busy',
+          ),
+          StockholmAreaConfig(
+            name: 'Östermalm',
+            demandPercent: 64,
+            demandLabel: 'Steady',
+          ),
+          StockholmAreaConfig(
+            name: 'Kungsholmen',
+            demandPercent: 57,
+            demandLabel: 'Steady',
+          ),
+        ],
+        surroundingTitle: 'Around Stockholm',
+        surroundingSummary: 'Solna · Nacka · Huddinge · Täby',
+      ),
     );
   }
 }

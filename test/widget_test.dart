@@ -770,6 +770,32 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Home sheet shows Stockholm work areas under What’s happening', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+    await _openPanel(tester);
+
+    final overviewList = find.byKey(
+      const PageStorageKey<String>('driver-overview-list'),
+    );
+    await tester.drag(overviewList, const Offset(0, -720));
+    await tester.pump(const Duration(milliseconds: 220));
+
+    expect(
+      find.byKey(const ValueKey<String>('stockholm-work-stats')),
+      findsOneWidget,
+    );
+    expect(find.text('Work in Stockholm'), findsOneWidget);
+    expect(find.text('Södermalm'), findsOneWidget);
+    expect(find.text('Norrmalm'), findsOneWidget);
+    expect(find.text('Östermalm'), findsOneWidget);
+    expect(find.text('Kungsholmen'), findsOneWidget);
+    expect(find.text('Around Stockholm'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
   testWidgets('Event details show date time and recommended driving window', (
     WidgetTester tester,
   ) async {
@@ -971,6 +997,17 @@ void main() {
     expect(summaryPointer.ignoring, isFalse);
     _expectNoException(tester);
 
+    await tester.tap(find.byKey(const ValueKey<String>('today-summary-scrim')));
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    summaryPointer = tester.widget<IgnorePointer>(
+      find.byKey(const ValueKey<String>('today-summary-pointer')),
+    );
+    expect(summaryPointer.ignoring, isTrue);
+    _expectNoException(tester);
+
+    tester.widget<InkWell>(launcherInk).onTap!.call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+
     final closeIcon = find.byIcon(Icons.close_rounded);
     final closeInk = find.ancestor(
       of: closeIcon,
@@ -998,6 +1035,8 @@ void main() {
     );
     expect(summaryPointer.ignoring, isFalse);
 
+    await tester.tap(find.byKey(const ValueKey<String>('today-summary-scrim')));
+    await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 1550));
     expect(find.text('LIVE'), findsOneWidget);

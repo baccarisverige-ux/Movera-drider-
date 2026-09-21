@@ -1368,6 +1368,7 @@ class _DriverHomeState extends State<DriverHome>
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
+              panelSnapping: true,
               defaultPanelState: PanelState.CLOSED,
               maxHeight: MediaQuery.sizeOf(context).height * 0.86,
               parallaxEnabled: false,
@@ -1733,19 +1734,20 @@ class _DriverHomeState extends State<DriverHome>
                   right: 0,
                   bottom: radarBottom,
                   child: Center(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 360),
-                      reverseDuration: const Duration(milliseconds: 260),
+                    child: _radarDragToSheet(
+                      child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 480),
+                      reverseDuration: const Duration(milliseconds: 320),
                       switchInCurve: Curves.easeOutCubic,
                       switchOutCurve: Curves.easeInCubic,
                       transitionBuilder: (child, animation) {
                         final scale = Tween<double>(
-                          begin: 0.94,
+                          begin: 0.97,
                           end: 1.0,
                         ).animate(
                           CurvedAnimation(
                             parent: animation,
-                            curve: Curves.easeOutBack,
+                            curve: Curves.easeOutCubic,
                           ),
                         );
                         return FadeTransition(
@@ -1770,6 +1772,7 @@ class _DriverHomeState extends State<DriverHome>
                             ? _buildGoingOnlineButton()
                             : _buildGoOnlineButton(),
                       ),
+                    ),
                     ),
                   ),
                 );
@@ -1807,6 +1810,17 @@ class _DriverHomeState extends State<DriverHome>
               child: _buildRadarOffersTray(),
             ),
           if (!isDestinationPanel) ...[
+            if (_showTodaySummaryPopup)
+              Positioned.fill(
+                child: GestureDetector(
+                  key: const ValueKey<String>('today-summary-scrim'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _hideTodaySummary,
+                  child: ColoredBox(
+                    color: const Color(0xFF172027).withOpacity(0.22),
+                  ),
+                ),
+              ),
             AnimatedPositioned(
               duration: const Duration(milliseconds: 420),
               curve: _showTodaySummaryPopup
@@ -2882,6 +2896,38 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  void _onRadarSheetDragUpdate(DragUpdateDetails details) {
+    if (!_panelController.isAttached) return;
+    final range = MediaQuery.sizeOf(context).height * 0.86 - 108.0;
+    if (range <= 0) return;
+    final next = (_panelController.panelPosition - details.delta.dy / range)
+        .clamp(0.0, 1.0);
+    _panelController.panelPosition = next;
+  }
+
+  void _onRadarSheetDragEnd(DragEndDetails details) {
+    if (!_panelController.isAttached) return;
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity < -280) {
+      _panelController.open();
+    } else if (velocity > 280) {
+      _panelController.close();
+    } else if (_panelController.panelPosition > 0.28) {
+      _panelController.open();
+    } else {
+      _panelController.close();
+    }
+  }
+
+  Widget _radarDragToSheet({required Widget child}) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragUpdate: _onRadarSheetDragUpdate,
+      onVerticalDragEnd: _onRadarSheetDragEnd,
+      child: child,
+    );
+  }
+
   void _showTodaySummary() {
     if (_showTodaySummaryPopup) return;
     setState(() {
@@ -2918,18 +2964,23 @@ class _DriverHomeState extends State<DriverHome>
       child: Container(
         key: const ValueKey<String>('today-summary-card'),
         width: 278,
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
+        padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
         decoration: BoxDecoration(
-          color: AppColor.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: const Color(0xFFE2E8E5),
+            color: const Color(0xFFD7EBE1),
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF172027).withOpacity(0.12),
-              blurRadius: 20,
-              offset: const Offset(5, 7),
+              color: const Color(0xFF19865C).withOpacity(0.10),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: const Color(0xFF172027).withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -2938,6 +2989,20 @@ class _DriverHomeState extends State<DriverHome>
           children: [
             Row(
               children: [
+                Container(
+                  height: 34,
+                  width: 34,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F5EE),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.insights_rounded,
+                    color: Color(0xFF19865C),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
                     "Today",
@@ -2971,7 +3036,7 @@ class _DriverHomeState extends State<DriverHome>
                         Text(
                           'History',
                           style: TextStyle(
-                            color: Color(0xFF315E4D),
+                            color: Color(0xFF19865C),
                             fontSize: 10.5,
                             fontWeight: FontWeight.w800,
                           ),
@@ -2979,7 +3044,7 @@ class _DriverHomeState extends State<DriverHome>
                         SizedBox(width: 3),
                         Icon(
                           Icons.arrow_forward_ios_rounded,
-                          color: Color(0xFF315E4D),
+                          color: Color(0xFF19865C),
                           size: 10,
                         ),
                       ],
@@ -3002,22 +3067,22 @@ class _DriverHomeState extends State<DriverHome>
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 11),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFFF6F8F7),
-                    Color(0xFFF1F5F3),
+                    Color(0xFFEAF6F0),
+                    Color(0xFFF7FBF9),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(17),
                 border: Border.all(
-                  color: const Color(0xFFE5EBE8),
+                  color: const Color(0xFFD7EBE1),
                 ),
               ),
               child: Row(
@@ -3026,15 +3091,15 @@ class _DriverHomeState extends State<DriverHome>
                     height: 34,
                     width: 34,
                     decoration: BoxDecoration(
-                      color: AppColor.white,
+                      color: Colors.white,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFFDDE4E1),
+                        color: const Color(0xFFD7EBE1),
                       ),
                     ),
                     child: const Icon(
                       Icons.account_balance_wallet_outlined,
-                      color: Color(0xFF435149),
+                      color: Color(0xFF19865C),
                       size: 17,
                     ),
                   ),
@@ -3046,7 +3111,7 @@ class _DriverHomeState extends State<DriverHome>
                         Text(
                           "183.25 kr",
                           style: TextStyle(
-                            color: Color(0xFF20282E),
+                            color: Color(0xFF19865C),
                             fontSize: 22,
                             height: 1,
                             fontWeight: FontWeight.w900,
@@ -3076,13 +3141,13 @@ class _DriverHomeState extends State<DriverHome>
                 ],
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 4),
             _premiumActivityRow(
               icon: Icons.local_taxi_outlined,
               title: "3 rides",
               subtitle: "Completed today",
             ),
-            const Divider(height: 1, color: Color(0xFFE8ECEE)),
+            const Divider(height: 1, color: Color(0xFFE6F5EE)),
             _premiumActivityRow(
               icon: Icons.route_outlined,
               title: "Central Station → Södermalm",
@@ -3321,7 +3386,7 @@ class _DriverHomeState extends State<DriverHome>
         return _buildRadarOrb(
           title: "Radar",
           status: "STARTING",
-          subtitle: "Going live",
+          subtitle: "Connecting",
           active: true,
           loading: true,
           pulse: _goOnlinePulseController.value,
@@ -3985,6 +4050,163 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  Widget _stockholmWorkStats() {
+    final stats = _adminHomeConfig.stockholmWork;
+    return Container(
+      key: const ValueKey<String>('stockholm-work-stats'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: const Color(0xFFD7EBE1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 34,
+                width: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F5EE),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.map_outlined,
+                  color: Color(0xFF19865C),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stats.title,
+                      style: const TextStyle(
+                        color: Color(0xFF252E3A),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      stats.subtitle,
+                      style: const TextStyle(
+                        color: Color(0xFF8A959A),
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (var i = 0; i < stats.innerAreas.length; i += 2) ...[
+            Row(
+              children: [
+                Expanded(child: _stockholmAreaTile(stats.innerAreas[i])),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: i + 1 < stats.innerAreas.length
+                      ? _stockholmAreaTile(stats.innerAreas[i + 1])
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+            if (i + 2 < stats.innerAreas.length) const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7FBF9),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE6F5EE)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  stats.surroundingTitle,
+                  style: const TextStyle(
+                    color: Color(0xFF19865C),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  stats.surroundingSummary,
+                  style: const TextStyle(
+                    color: Color(0xFF5F6C72),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stockholmAreaTile(StockholmAreaConfig area) {
+    final busy = area.demandPercent >= 75;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+      decoration: BoxDecoration(
+        color: busy ? const Color(0xFFEAF6F0) : const Color(0xFFF7F9F8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: busy ? const Color(0xFFD7EBE1) : const Color(0xFFE7ECEA),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            area.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF252E3A),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: area.demandPercent / 100,
+              minHeight: 5,
+              backgroundColor: const Color(0xFFE3EAE6),
+              color: busy ? const Color(0xFF19865C) : const Color(0xFF74C7A0),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${area.demandPercent}% · ${area.demandLabel}',
+            style: TextStyle(
+              color: busy ? const Color(0xFF19865C) : const Color(0xFF66737A),
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _performanceCell({
     required String label,
     required String value,
@@ -4191,6 +4413,8 @@ class _DriverHomeState extends State<DriverHome>
                             },
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        _stockholmWorkStats(),
                       ],
                     ],
                   ),

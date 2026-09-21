@@ -35,9 +35,25 @@ class MoveraRadarOrb extends StatelessWidget {
     final accent = offer
         ? Color.lerp(detectedGold, detectedAmber, pulse) ?? detectedGold
         : mint;
-    final glowStrength = active ? 0.14 + (pulse * 0.30) : 0.08;
-    final ringScale = active ? 0.74 + (pulse * 0.38) : 1.0;
-    final secondWaveScale = active ? 0.84 + ((1 - pulse) * 0.24) : 1.0;
+    final glowStrength = !active
+        ? 0.08
+        : loading
+            ? 0.10 + (pulse * 0.14)
+            : offer
+                ? 0.14 + (pulse * 0.26)
+                : 0.11 + (pulse * 0.16);
+    final ringScale = !active
+        ? 1.0
+        : loading
+            ? 0.96 + (pulse * 0.07)
+            : offer
+                ? 0.84 + (pulse * 0.22)
+                : 0.91 + (pulse * 0.12);
+    final secondWaveScale = !active
+        ? 1.0
+        : loading
+            ? 0.90 + ((1 - pulse) * 0.10)
+            : 0.86 + ((1 - pulse) * 0.16);
 
     return Semantics(
       button: true,
