@@ -2753,22 +2753,52 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Widget _buildPrimaryAction() {
+    final accent = switch (_stage) {
+      ActiveRideStage.headingToPickup => const Color(0xFF1A8B64),
+      ActiveRideStage.waitingForRider => const Color(0xFF2A7D67),
+      ActiveRideStage.onTrip => const Color(0xFF176B51),
+    };
+
     return Row(
       children: [
         Material(
           key: const ValueKey<String>('active-ride-trip-options'),
-          color: const Color(0xFFF0F3F2),
-          borderRadius: BorderRadius.circular(16),
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(19),
           child: InkWell(
             onTap: _showTripOptions,
-            borderRadius: BorderRadius.circular(16),
-            child: const SizedBox(
-              height: 54,
-              width: 54,
-              child: Icon(
-                Icons.tune_rounded,
-                color: _ink,
-                size: 20,
+            borderRadius: BorderRadius.circular(19),
+            child: Container(
+              height: 62,
+              width: 62,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFF8FAF9),
+                    Color(0xFFEEF3F1),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(19),
+                border: Border.all(color: const Color(0xFFE1E8E5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF18392E).withOpacity(0.07),
+                    blurRadius: 14,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: SvgPicture.asset(
+                'assets/icons/movera_route.svg',
+                width: 22,
+                height: 22,
+                colorFilter: const ColorFilter.mode(
+                  Color(0xFF33423C),
+                  BlendMode.srcIn,
+                ),
               ),
             ),
           ),
@@ -2784,11 +2814,20 @@ class _AcceptRideState extends State<AcceptRide>
               ActiveRideStage.waitingForRider => 'Slide to start trip',
               ActiveRideStage.onTrip => 'Slide to complete trip',
             },
-            icon: switch (_stage) {
-              ActiveRideStage.headingToPickup => Icons.location_on_outlined,
-              ActiveRideStage.waitingForRider => Icons.play_arrow_rounded,
-              ActiveRideStage.onTrip => Icons.flag_outlined,
+            confirmedLabel: switch (_stage) {
+              ActiveRideStage.headingToPickup => 'Pickup confirmed',
+              ActiveRideStage.waitingForRider => 'Trip started',
+              ActiveRideStage.onTrip => 'Trip completed',
             },
+            iconAsset: switch (_stage) {
+              ActiveRideStage.headingToPickup =>
+                'assets/icons/movera_pin.svg',
+              ActiveRideStage.waitingForRider =>
+                'assets/icons/movera_navigation.svg',
+              ActiveRideStage.onTrip =>
+                'assets/icons/movera_flag.svg',
+            },
+            accent: accent,
             onConfirmed: () {
               _setMapGesturesBlocked(false);
               _advanceRide();
