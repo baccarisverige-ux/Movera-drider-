@@ -4169,12 +4169,26 @@ class _DriverHomeState extends State<DriverHome>
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(color: const Color(0xFFDCECE5)),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _StockholmLiveDot(),
-                    SizedBox(width: 5),
-                    Text(
+                    Container(
+                      height: 6,
+                      width: 6,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2BB47C),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2BB47C).withOpacity(0.22),
+                            blurRadius: 5,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    const Text(
                       'Live',
                       style: TextStyle(
                         color: Color(0xFF177C57),
@@ -4255,7 +4269,7 @@ class _DriverHomeState extends State<DriverHome>
                         style: const TextStyle(
                           color: Color(0xFF5E6B70),
                           fontSize: 10.5,
-                          fontWeight: FontWeight.w650,
+                          fontWeight: FontWeight.w600,
                           height: 1.3,
                         ),
                       ),
@@ -4312,7 +4326,7 @@ class _DriverHomeState extends State<DriverHome>
                   style: const TextStyle(
                     color: Color(0xFF26313A),
                     fontSize: 11.5,
-                    fontWeight: FontWeight.w850,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: -0.15,
                   ),
                 ),
@@ -4397,7 +4411,7 @@ class _DriverHomeState extends State<DriverHome>
                         ? const Color(0xFF177C57)
                         : const Color(0xFF66736E),
                     fontSize: 9,
-                    fontWeight: FontWeight.w750,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
