@@ -63,6 +63,61 @@ class BottomToTopTransition extends ModalRoute<void> {
   }
 }
 
+
+/// Active-ride handoff route.
+///
+/// Google Maps is a platform view on web/iOS Safari. Moving the whole incoming
+/// ride page with a route transform can make that platform view briefly detach
+/// and re-attach, which looks like the pickup screen disappears and returns.
+/// Mount the active ride atomically instead; ride-sheet/map motion continues
+/// inside [AcceptRide] itself.
+class ActiveRideTransition extends ModalRoute<void> {
+  ActiveRideTransition(this.page);
+
+  final Widget page;
+
+  @override
+  bool get opaque => true;
+
+  @override
+  bool get barrierDismissible => false;
+
+  @override
+  Color? get barrierColor => null;
+
+  @override
+  String? get barrierLabel => null;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  Duration get transitionDuration => Duration.zero;
+
+  @override
+  Duration get reverseTransitionDuration =>
+      const Duration(milliseconds: 160);
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
+    return page;
+  }
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
+}
+
 class TopToBottomTransition extends PageRouteBuilder {
   final Widget page;
 
