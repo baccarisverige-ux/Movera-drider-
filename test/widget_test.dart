@@ -2044,7 +2044,7 @@ void main() {
 
     await tester.tap(arrived);
     await tester.pump(const Duration(milliseconds: 80));
-    await Future<void>.delayed(Duration.zero);
+    await tester.pump();
 
     expect(
       events.any((event) => event.kind == DriverRealtimeKind.driverArrived),
