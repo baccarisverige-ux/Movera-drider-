@@ -1987,6 +1987,23 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Home sheet recovers from an interrupted in-between position', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    final snap = panel.snapPoint!;
+    panel.controller!.panelPosition = 0.30;
+
+    await tester.pump(const Duration(milliseconds: 220));
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(panel.controller!.panelPosition, closeTo(snap, 0.035));
+    _expectNoException(tester);
+  });
+
   testWidgets('Active ride keeps a live navigation banner and a collapsible sheet', (
     WidgetTester tester,
   ) async {
