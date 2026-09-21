@@ -1884,7 +1884,7 @@ void main() {
     expect(panel.maxHeight, closeTo(812 * 0.90, 0.5));
     expect(panel.snapPoint, isNotNull);
     expect(panel.snapPoint!, inInclusiveRange(0.08, 0.92));
-    expect(panel.panelSnapping, isFalse);
+    expect(panel.panelSnapping, isTrue);
     _expectNoException(tester);
   });
 
