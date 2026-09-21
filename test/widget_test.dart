@@ -2097,7 +2097,6 @@ void main() {
     final openY = tester.getTopLeft(mapControls).dy;
 
     await _collapseActiveRideSheet(tester);
-    expect(find.text('Heading to pickup'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('active-ride-primary-action')),
       findsOneWidget,
@@ -2107,6 +2106,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Odlarvägen 22'), findsWidgets);
+    expect(find.text('T-Centralen, Stockholm'), findsWidgets);
     expect(
       find.byKey(const ValueKey<String>('active-ride-navigation-card')),
       findsOneWidget,
