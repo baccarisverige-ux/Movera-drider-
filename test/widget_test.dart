@@ -1679,6 +1679,68 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets(
+    'Completed screen starts a queued trip even without a nextRide widget',
+    (WidgetTester tester) async {
+      WaybillStore.reset();
+      addTearDown(() {
+        WaybillStore.reset();
+        tester.binding.setSurfaceSize(null);
+      });
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+
+      WaybillStore.last = WaybillRecord(
+        tripId: 'finished-1',
+        statusLabel: 'Completed',
+        issuedAt: DateTime(2026, 9, 21, 12),
+        fare: '104,80 kr',
+        service: 'Comfort',
+        riderName: 'Angelica',
+        pickup: 'Odlarvägen 22',
+        dropoff: 'T-Centralen, Stockholm',
+        source: 'Movera Radar',
+        driverName: 'Movera Driver',
+        vehicle: 'Movera partner vehicle',
+        licensePlate: 'MVR 418',
+        passengerCapacity: 4,
+      );
+      WaybillStore.secureNext(
+        WaybillRecord(
+          tripId: 'queued-1',
+          statusLabel: 'Next trip secured',
+          issuedAt: DateTime(2026, 9, 21, 12, 20),
+          fare: '128,40 kr',
+          service: 'Comfort',
+          riderName: 'Maya',
+          pickup: 'Vasagatan 10, Stockholm',
+          dropoff: 'Södermalm, Stockholm',
+          source: 'Movera Radar',
+          driverName: 'Movera Driver',
+          vehicle: 'Movera partner vehicle',
+          licensePlate: 'MVR 418',
+          passengerCapacity: 4,
+        ),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(home: DriverRideCompleted()),
+      );
+      await tester.pump(const Duration(milliseconds: 160));
+
+      await tester.tap(find.text('Done'));
+      await tester.pump(const Duration(milliseconds: 520));
+
+      expect(find.byType(AcceptRide), findsOneWidget);
+      expect(find.byType(DriverHome), findsNothing);
+      expect(find.text('Heading to pickup'), findsOneWidget);
+      expect(find.textContaining('Maya'), findsWidgets);
+      expect(find.textContaining('Vasagatan 10'), findsWidgets);
+      expect(WaybillStore.next, isNull);
+      expect(WaybillStore.current?.tripId, 'queued-1');
+      _expectNoException(tester);
+    },
+  );
+
   testWidgets('Current trip waybill is directly visible in the active ride sheet', (
     WidgetTester tester,
   ) async {

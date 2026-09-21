@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:mobkit_dashed_border/mobkit_dashed_border.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
+import 'package:movera/core/logging/driver_log.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
@@ -235,7 +236,8 @@ class _AdditionDetailVehicleInsuranceState
         });
         _showSuccessMessage("File selected successfully!");
       }
-    } catch (e) {
+    } catch (e, stack) {
+      DriverLog.error('Vehicle insurance file picker failed', e, stack);
       _showErrorMessage("Error selecting file: $e");
     }
   }

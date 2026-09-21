@@ -3,6 +3,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
+import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/navigation_transition.dart';
@@ -44,8 +45,9 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
   void _finish() {
     widget.sessionController?.stayOnlineAfterTrip();
     final navigator = Navigator.of(context);
-    final nextRide = widget.nextRide;
+    final nextRide = widget.nextRide ?? _rideFromQueuedWaybill();
     if (nextRide != null) {
+      _waybills.promoteNextToCurrent();
       navigator.pushReplacement(BottomToTopTransition(nextRide));
       return;
     }
@@ -62,6 +64,16 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
           sessionController: widget.sessionController,
         ),
       ),
+    );
+  }
+
+  Widget? _rideFromQueuedWaybill() {
+    final queued = _waybills.next;
+    if (queued == null) return null;
+    return AcceptRide.fromQueuedWaybill(
+      queued,
+      waybillRepository: _waybills,
+      sessionController: widget.sessionController,
     );
   }
 

@@ -68,6 +68,11 @@ abstract interface class WaybillRepository {
   void discardCurrent();
   void clearNext();
   void reset();
+
+  /// Move a secured next trip into the current slot.
+  ///
+  /// Returns the promoted record, or null if nothing was queued.
+  WaybillRecord? promoteNextToCurrent();
 }
 
 /// Frontend implementation. A persistent/backend repository can replace this
@@ -136,6 +141,15 @@ class InMemoryWaybillRepository implements WaybillRepository {
   }
 
   @override
+  WaybillRecord? promoteNextToCurrent() {
+    final queued = next;
+    if (queued == null) return null;
+    _current.value = queued.copyWith(statusLabel: 'Current trip');
+    _next.value = null;
+    return queued;
+  }
+
+  @override
   void reset() {
     _current.value = null;
     _next.value = null;
@@ -190,5 +204,7 @@ class WaybillStore {
       _repository.secureNext(record);
   static void completeCurrent() => _repository.completeCurrent();
   static void clearNext() => _repository.clearNext();
+  static WaybillRecord? promoteNextToCurrent() =>
+      _repository.promoteNextToCurrent();
   static void reset() => _repository.reset();
 }

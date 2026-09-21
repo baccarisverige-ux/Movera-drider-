@@ -70,6 +70,32 @@ class AcceptRide extends StatefulWidget {
   final WaybillRepository? waybillRepository;
   final DriverSessionController? sessionController;
 
+  factory AcceptRide.fromQueuedWaybill(
+    WaybillRecord record, {
+    Key? key,
+    DriverLocationRepository? locationRepository,
+    RouteRepository? routeRepository,
+    WaybillRepository? waybillRepository,
+    DriverSessionController? sessionController,
+  }) {
+    final pickup = record.pickup;
+    return AcceptRide(
+      key: key,
+      offerId: record.tripId,
+      riderName: record.riderName,
+      fare: record.fare,
+      category: record.service,
+      matchedVia: record.source,
+      pickupAddress: pickup,
+      pickupArea: pickup.split(',').last.trim(),
+      dropoffAddress: record.dropoff,
+      locationRepository: locationRepository,
+      routeRepository: routeRepository,
+      waybillRepository: waybillRepository,
+      sessionController: sessionController,
+    );
+  }
+
   @override
   State<AcceptRide> createState() => _AcceptRideState();
 }
@@ -710,9 +736,6 @@ class _AcceptRideState extends State<AcceptRide>
                 sessionController: widget.sessionController,
               )
             : null;
-        if (queuedNext) {
-          _waybills.clearNext();
-        }
         final navigator = Navigator.of(context);
         final completedPage = DriverRideCompleted(
           waybillRepository: _waybills,
@@ -2833,7 +2856,11 @@ class _AcceptRideState extends State<AcceptRide>
             sessionController: widget.sessionController,
           )
         : null;
-    _waybills.clearNext();
+    if (nextRide != null) {
+      _waybills.promoteNextToCurrent();
+    } else {
+      _waybills.clearNext();
+    }
 
     final messenger = ScaffoldMessenger.maybeOf(context);
     messenger?.showSnackBar(

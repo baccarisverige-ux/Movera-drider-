@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
+import 'package:movera/core/logging/driver_log.dart';
 
 class DriverLocationException implements Exception {
   const DriverLocationException(this.message);
@@ -33,9 +34,11 @@ class DriverLocationService implements DriverLocationRepository {
         locationSettings: _settings,
       );
       return _toDriverLocation(position);
-    } catch (_) {
+    } catch (error, stack) {
+      DriverLog.warn('Current GPS failed, trying last known: $error');
       final last = await Geolocator.getLastKnownPosition();
       if (last != null) return _toDriverLocation(last);
+      DriverLog.error('No GPS fix available', error, stack);
       rethrow;
     }
   }
