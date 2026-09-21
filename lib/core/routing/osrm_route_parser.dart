@@ -1,4 +1,3 @@
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/routing/route_repository.dart';
@@ -21,13 +20,13 @@ class OsrmRouteParser {
       throw const FormatException('Route geometry is empty.');
     }
 
-    final points = <LatLng>[];
+    final points = <GeoPoint>[];
     for (final coordinate in coordinatesJson) {
       if (coordinate is! List || coordinate.length < 2) continue;
       final longitude = coordinate[0];
       final latitude = coordinate[1];
       if (longitude is num && latitude is num) {
-        points.add(LatLng(latitude.toDouble(), longitude.toDouble()));
+        points.add(GeoPoint(latitude.toDouble(), longitude.toDouble()));
       }
     }
 

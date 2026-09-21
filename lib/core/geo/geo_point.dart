@@ -1,21 +1,13 @@
 import 'dart:math' as math;
 
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-
 /// Neutral geographic point used by domain/repository boundaries.
 ///
-/// Google Maps [LatLng] stays in adapters and presentation, not in core
-/// interfaces that backend implementations will replace.
+/// Maps SDK conversion lives in `geo_point_maps.dart` (D3).
 class GeoPoint {
   const GeoPoint(this.latitude, this.longitude);
 
   final double latitude;
   final double longitude;
-
-  LatLng toLatLng() => LatLng(latitude, longitude);
-
-  factory GeoPoint.fromLatLng(LatLng value) =>
-      GeoPoint(value.latitude, value.longitude);
 
   double distanceMetersTo(GeoPoint other) {
     const earthRadiusMeters = 6371000.0;

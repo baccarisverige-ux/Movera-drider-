@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/geo/geo_point.dart';
+import 'package:movera/core/geo/geo_point_maps.dart';
+import 'package:movera/core/routing/route_maps.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/navigation/live_vehicle_animator.dart';
@@ -290,6 +292,7 @@ class _AcceptRideState extends State<AcceptRide>
   _NextTripRadarOffer? _nextTripRadarOffer;
 
   LatLng _driverPosition = _fallbackDriverPosition;
+  List<GeoPoint> _roadGeoPoints = <GeoPoint>[];
   List<LatLng> _roadRoutePoints = <LatLng>[];
   double? _routeDistanceMeters;
   double? _routeDurationSeconds;
@@ -413,12 +416,13 @@ class _AcceptRideState extends State<AcceptRide>
     final status = _navigation.status;
     final pointsChanged = route != null &&
         route.points.length >= 2 &&
-        !identical(_roadRoutePoints, route.points);
+        !identical(_roadGeoPoints, route.points);
     final mappedRoute = route;
     if (!pointsChanged && status == _locationStatus) return;
     setState(() {
       if (pointsChanged && mappedRoute != null) {
-        _roadRoutePoints = mappedRoute.points;
+        _roadGeoPoints = mappedRoute.points;
+        _roadRoutePoints = mappedRoute.latLngPoints;
         _routeDistanceMeters = mappedRoute.distanceMeters;
         _routeDurationSeconds = mappedRoute.durationSeconds;
       }
@@ -555,8 +559,8 @@ class _AcceptRideState extends State<AcceptRide>
     if (!_allowExternalRouting) return;
 
     await _navigation.ensureRoute(
-      origin: GeoPoint.fromLatLng(_driverPosition),
-      destination: GeoPoint.fromLatLng(_routeTarget),
+      origin: GeoPointMaps.fromLatLng(_driverPosition),
+      destination: GeoPointMaps.fromLatLng(_routeTarget),
       force: force,
     );
     if (!mounted) return;
@@ -564,7 +568,8 @@ class _AcceptRideState extends State<AcceptRide>
     final route = _navigation.route;
     setState(() {
       if (route != null && route.points.length >= 2) {
-        _roadRoutePoints = route.points;
+        _roadGeoPoints = route.points;
+        _roadRoutePoints = route.latLngPoints;
         _routeDistanceMeters = route.distanceMeters;
         _routeDurationSeconds = route.durationSeconds;
       }
@@ -876,8 +881,8 @@ class _AcceptRideState extends State<AcceptRide>
     // remaining distance so a far-away device does not get the demo.
     if (_hasLiveLocation) {
       final metersToDropoff =
-          GeoPoint.fromLatLng(_driverPosition).distanceMetersTo(
-        GeoPoint.fromLatLng(widget.dropoffPosition),
+          GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
+        GeoPointMaps.fromLatLng(widget.dropoffPosition),
       );
       if (metersToDropoff > _nextTripRadarRadiusMeters) return;
     }

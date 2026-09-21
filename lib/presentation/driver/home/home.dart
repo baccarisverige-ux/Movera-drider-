@@ -11,7 +11,8 @@ import 'package:movera/core/admin/driver_home_admin_content.dart';
 import 'package:movera/core/admin/driver_home_config_repository.dart';
 import 'package:movera/core/dispatch/dispatch_repository.dart';
 import 'package:movera/core/dispatch/demo_dispatch_repository.dart';
-import 'package:movera/core/geo/geo_point.dart';
+import 'package:movera/core/geo/geo_point_maps.dart';
+import 'package:movera/core/routing/route_maps.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/routing/road_route_service.dart';
@@ -495,24 +496,24 @@ class _DriverHomeState extends State<DriverHome>
     if (_hasLiveDriverLocation) {
       try {
         final approach = await _roadRouteService.drivingRoute(
-          origin: GeoPoint.fromLatLng(_driverPosition),
-          destination: GeoPoint.fromLatLng(pickup),
+          origin: GeoPointMaps.fromLatLng(_driverPosition),
+          destination: GeoPointMaps.fromLatLng(pickup),
         );
-        roadPoints.addAll(approach.points);
+        roadPoints.addAll(approach.latLngPoints);
       } catch (_) {}
     }
 
     try {
       final trip = await _roadRouteService.drivingRoute(
-        origin: GeoPoint.fromLatLng(pickup),
-        destination: GeoPoint.fromLatLng(dropoff),
+        origin: GeoPointMaps.fromLatLng(pickup),
+        destination: GeoPointMaps.fromLatLng(dropoff),
       );
       if (roadPoints.isNotEmpty &&
-          trip.points.isNotEmpty &&
-          roadPoints.last == trip.points.first) {
-        roadPoints.addAll(trip.points.skip(1));
+          trip.latLngPoints.isNotEmpty &&
+          roadPoints.last == trip.latLngPoints.first) {
+        roadPoints.addAll(trip.latLngPoints.skip(1));
       } else {
-        roadPoints.addAll(trip.points);
+        roadPoints.addAll(trip.latLngPoints);
       }
     } catch (_) {}
 
@@ -650,8 +651,8 @@ class _DriverHomeState extends State<DriverHome>
 
     try {
       final route = await _roadRouteService.drivingRoute(
-        origin: GeoPoint.fromLatLng(_driverPosition),
-        destination: GeoPoint.fromLatLng(destination),
+        origin: GeoPointMaps.fromLatLng(_driverPosition),
+        destination: GeoPointMaps.fromLatLng(destination),
       );
       if (!mounted || _destinationPosition != destination) return;
 
@@ -659,7 +660,7 @@ class _DriverHomeState extends State<DriverHome>
         _destinationRoutePolylines = {
           Polyline(
             polylineId: const PolylineId('destination_mode_road_route'),
-            points: route.points,
+            points: route.latLngPoints,
             color: AppColor.primary,
             width: 6,
             geodesic: false,

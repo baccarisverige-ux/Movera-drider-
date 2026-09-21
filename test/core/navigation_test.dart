@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/navigation/navigation_controller.dart';
@@ -71,9 +70,9 @@ void main() {
     const calculator = RouteProgressCalculator();
     final route = RoadRoute(
       points: const [
-        LatLng(59.3279, 18.0615),
-        LatLng(59.3290, 18.0630),
-        LatLng(59.3326, 18.0649),
+        GeoPoint(59.3279, 18.0615),
+        GeoPoint(59.3290, 18.0630),
+        GeoPoint(59.3326, 18.0649),
       ],
       distanceMeters: 420,
       durationSeconds: 90,
@@ -283,9 +282,9 @@ class _TurnRouteRepository implements RouteRepository {
   }) async {
     return RoadRoute(
       points: [
-        LatLng(origin.latitude, origin.longitude),
-        const LatLng(59.3290, 18.0630),
-        LatLng(destination.latitude, destination.longitude),
+        GeoPoint(origin.latitude, origin.longitude),
+        const GeoPoint(59.3290, 18.0630),
+        GeoPoint(destination.latitude, destination.longitude),
       ],
       distanceMeters: 420,
       durationSeconds: 90,
