@@ -4082,11 +4082,6 @@ class _DriverHomeState extends State<DriverHome>
       (current, next) =>
           next.demandPercent > current.demandPercent ? next : current,
     );
-    final surroundingAreas = stats.surroundingSummary
-        .split(' · ')
-        .where((area) => area.trim().isNotEmpty)
-        .toList(growable: false);
-
     return Container(
       key: const ValueKey<String>('stockholm-work-stats'),
       width: double.infinity,
@@ -4296,34 +4291,90 @@ class _DriverHomeState extends State<DriverHome>
                 ),
                 const SizedBox(height: 9),
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                  spacing: 7,
+                  runSpacing: 7,
                   children: [
-                    for (final area in surroundingAreas)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(99),
-                          border: Border.all(
-                            color: const Color(0xFFDDE7E2),
-                          ),
-                        ),
-                        child: Text(
-                          area,
-                          style: const TextStyle(
-                            color: Color(0xFF60706A),
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
+                    for (final area in stats.surroundingAreas)
+                      _stockholmSurroundingChip(area),
                   ],
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stockholmSurroundingChip(StockholmAreaConfig area) {
+    final status = area.demandLabel.toLowerCase();
+    final isBusy = status == 'busy';
+    final isQuiet = status == 'quiet';
+
+    final background = isBusy
+        ? const Color(0xFFE8F5EF)
+        : isQuiet
+            ? const Color(0xFFF3F5F4)
+            : const Color(0xFFF0F7F3);
+    final border = isBusy
+        ? const Color(0xFFCFE7DC)
+        : isQuiet
+            ? const Color(0xFFE2E7E4)
+            : const Color(0xFFDCE9E3);
+    final accent = isBusy
+        ? const Color(0xFF167653)
+        : isQuiet
+            ? const Color(0xFF98A49F)
+            : const Color(0xFF65A98B);
+    final textColor = isBusy
+        ? const Color(0xFF155F47)
+        : isQuiet
+            ? const Color(0xFF737F7A)
+            : const Color(0xFF526F64);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: accent,
+              shape: BoxShape.circle,
+              boxShadow: isBusy
+                  ? [
+                      BoxShadow(
+                        color: accent.withOpacity(0.20),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            area.name,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            '${area.demandPercent}%',
+            style: TextStyle(
+              color: accent,
+              fontSize: 8.5,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
