@@ -541,7 +541,7 @@ class _DriverHomeState extends State<DriverHome>
   double _homeMapObscuredBottom(BuildContext context) {
     if (_outsideRadarOffer != null) {
       final height = MediaQuery.sizeOf(context).height;
-      return math.min(440.0, height * 0.54);
+      return math.max(320.0, height * 0.48);
     }
     if (_isDirectOfferRoutePreview || _radarHomeOffers.isNotEmpty) {
       return 188;
@@ -1801,7 +1801,7 @@ class _DriverHomeState extends State<DriverHome>
             ),
           ),
 
-          if (!isDestinationPanel)
+          if (!isDestinationPanel && _outsideRadarOffer == null)
             ValueListenableBuilder<double>(
               valueListenable: _panelSlidePosition,
               builder: (context, panelPosition, child) {
@@ -1873,7 +1873,7 @@ class _DriverHomeState extends State<DriverHome>
             Positioned(
               left: 14,
               right: 14,
-              bottom: 178,
+              bottom: MediaQuery.paddingOf(context).bottom + 24,
               child: _buildOutsideRadarOfferCard(_outsideRadarOffer!),
             ),
           if (!isDestinationPanel &&
@@ -3429,26 +3429,6 @@ class _DriverHomeState extends State<DriverHome>
         _radarSweepController,
       ]),
       builder: (context, child) {
-        final exclusive = _outsideRadarOffer;
-        if (exclusive != null) {
-          return _buildRadarOrb(
-            title: "Exclusive",
-            status: "RADAR",
-            subtitle: "Priority offer",
-            active: true,
-            offer: true,
-            exclusive: true,
-            pulse: _goOnlinePulseController.value,
-            sweep: _radarSweepController.value,
-            onTap: () => unawaited(
-              _previewDirectOfferRoute(
-                exclusive.pickupPosition,
-                exclusive.dropoffPosition,
-              ),
-            ),
-          );
-        }
-
         final radarOfferCount = _radarHomeOffers.length;
         final pendingRadarCount = _pendingRadarHomeOffers.length;
         final hasRadarOffer =
@@ -3482,7 +3462,6 @@ class _DriverHomeState extends State<DriverHome>
     bool active = false,
     bool loading = false,
     bool offer = false,
-    bool exclusive = false,
     double pulse = 0,
     double sweep = 0,
   }) {
@@ -3494,7 +3473,6 @@ class _DriverHomeState extends State<DriverHome>
       active: active,
       loading: loading,
       offer: offer,
-      exclusive: exclusive,
       pulse: pulse,
       sweep: sweep,
     );
