@@ -247,9 +247,17 @@ class NavigationController extends ChangeNotifier {
       );
     }
 
+    final action = RouteInstructionCopy.shortAction(
+      type: instruction.type,
+      modifier: instruction.modifier,
+      exitNumber: instruction.exitNumber,
+    );
     return NavigationBanner(
-      primary: instruction.text,
-      distanceLabel: 'in ${RouteInstructionCopy.formatDistance(meters)}',
+      primary: RouteInstructionCopy.livePrimary(
+        action: action,
+        meters: meters,
+      ),
+      distanceLabel: RouteInstructionCopy.formatDistance(meters),
       roadName: instruction.roadName,
       symbol: RouteInstructionCopy.symbolFor(
         type: instruction.type,

@@ -4,8 +4,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/main.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/routing/route_repository.dart';
+import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
+import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
@@ -1919,6 +1921,39 @@ void main() {
     expect(radar, findsOneWidget);
     expect(tester.getSize(radar), const Size(88, 88));
     expect(tester.getTopLeft(radar).dx, lessThan(40));
+    _expectNoException(tester);
+  });
+
+  testWidgets('Live navigation banner shows turn-by-turn copy at the extreme top', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: NavigationInstructionBanner(
+            banner: NavigationBanner(
+              primary: 'Turn left in 300 m',
+              distanceLabel: '300 m',
+              roadName: 'Sveavägen',
+              symbol: NavigationBannerSymbol.left,
+            ),
+            etaLabel: '4 min',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Turn left in 300 m'), findsOneWidget);
+    expect(find.text('Sveavägen'), findsOneWidget);
+    final banner = tester.getRect(
+      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
+    );
+    expect(banner.top, closeTo(0, 0.5));
+    expect(banner.left, closeTo(0, 0.5));
+    expect(banner.width, closeTo(375, 1));
     _expectNoException(tester);
   });
 }

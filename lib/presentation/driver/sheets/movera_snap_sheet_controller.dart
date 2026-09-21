@@ -24,11 +24,20 @@ class MoveraSnapSheetController {
     _spring = null;
   }
 
+  /// SlidingUpPanel still starts a 410ms decelerate fling when
+  /// `panelSnapping` is false. Assigning position stops that controller
+  /// so our spring owns the settle.
+  void stopPanelAnimation() {
+    if (!panel.isAttached) return;
+    panel.panelPosition = panel.panelPosition.clamp(0.0, 1.0);
+  }
+
   Future<void> springTo(
     double target, {
     double velocityPxPerSec = 0,
   }) async {
     if (!panel.isAttached) return;
+    stopPanelAnimation();
     final start = panel.panelPosition;
     if ((start - target).abs() < 0.003) {
       panel.panelPosition = target;

@@ -9,14 +9,14 @@ class MoveraSheetMetrics {
   static const double middleFraction = 0.46;
   static const double expandedFraction = 0.90;
   static const double springMass = 1.0;
-  static const double springStiffness = 320;
-  static const double springDamping = 32;
-  static const double flickVelocity = 280;
+  static const double springStiffness = 400;
+  static const double springDampingRatio = 1.05;
+  static const double flickVelocity = 240;
 
-  static final SpringDescription spring = SpringDescription(
+  static final SpringDescription spring = SpringDescription.withDampingRatio(
     mass: springMass,
     stiffness: springStiffness,
-    damping: springDamping,
+    ratio: springDampingRatio,
   );
 
   static double expandedHeight(double viewportHeight) =>

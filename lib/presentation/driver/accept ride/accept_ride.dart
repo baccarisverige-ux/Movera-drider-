@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
+import 'package:movera/core/navigation/live_vehicle_animator.dart';
 import 'package:movera/core/navigation/navigation_controller.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/routing/road_route_service.dart';
@@ -26,6 +27,7 @@ import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/movera_modal_sheet.dart';
 import 'package:movera/widgets/movera_radar_orb.dart';
 import 'package:movera/widgets/movera_sheet_metrics.dart';
+import 'package:movera/widgets/movera_vehicle_marker.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -236,6 +238,9 @@ class _AcceptRideState extends State<AcceptRide>
   late final RouteRepository _routeService;
   late final WaybillRepository _waybills;
   late final NavigationController _navigation;
+  late final LiveVehicleAnimator _vehicle;
+  BitmapDescriptor _driverVehicleIcon =
+      BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
   final PanelController _ridePanelController = PanelController();
   final ValueNotifier<double> _ridePanelPosition = ValueNotifier<double>(1);
   late final MoveraSnapSheetController _snapSheet;
@@ -300,6 +305,14 @@ class _AcceptRideState extends State<AcceptRide>
       panel: _ridePanelController,
       vsync: this,
     );
+    _vehicle = LiveVehicleAnimator(
+      vsync: this,
+      initial: const LiveVehiclePose(
+        position: _fallbackDriverPosition,
+        headingDegrees: 0,
+      ),
+    );
+    unawaited(_prepareDriverVehicleMarker());
     _startLiveLocation();
   }
 
@@ -315,6 +328,7 @@ class _AcceptRideState extends State<AcceptRide>
     _rideLifecycle.dispose();
     _navigation.removeListener(_onNavigationChanged);
     _navigation.dispose();
+    _vehicle.dispose();
     _snapSheet.dispose();
     _ridePanelPosition.dispose();
     _mapController = null;
@@ -374,27 +388,29 @@ class _AcceptRideState extends State<AcceptRide>
     final pointsChanged = route != null &&
         route.points.length >= 2 &&
         !identical(_roadRoutePoints, route.points);
+    final mappedRoute = route;
     if (!pointsChanged && status == _locationStatus) return;
     setState(() {
-      if (pointsChanged) {
-        _roadRoutePoints = route!.points;
-        _routeDistanceMeters = route.distanceMeters;
-        _routeDurationSeconds = route.durationSeconds;
+      if (pointsChanged && mappedRoute != null) {
+        _roadRoutePoints = mappedRoute.points;
+        _routeDistanceMeters = mappedRoute.distanceMeters;
+        _routeDurationSeconds = mappedRoute.durationSeconds;
       }
       _routeLoading = status != null;
       _locationStatus = status;
     });
   }
 
-  Set<Marker> get _markers {
+  Set<Marker> _markersFor(LiveVehiclePose pose) {
     final markers = <Marker>{
       Marker(
         markerId: const MarkerId('driver'),
-        position: _driverPosition,
-        rotation: _navigation.snapshot.headingDegrees,
+        position: pose.position,
+        rotation: pose.headingDegrees,
         flat: true,
         anchor: const Offset(0.5, 0.5),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        zIndexInt: 12,
+        icon: _driverVehicleIcon,
         infoWindow: const InfoWindow(title: 'You'),
       ),
     };
@@ -422,6 +438,12 @@ class _AcceptRideState extends State<AcceptRide>
     return markers;
   }
 
+  Future<void> _prepareDriverVehicleMarker() async {
+    final icon = await MoveraVehicleMarker.createIcon();
+    if (!mounted) return;
+    setState(() => _driverVehicleIcon = icon);
+  }
+
   Set<Polyline> get _polylines {
     if (_roadRoutePoints.length < 2) return <Polyline>{};
 
@@ -447,7 +469,7 @@ class _AcceptRideState extends State<AcceptRide>
 
       _positionSubscription?.cancel();
       _positionSubscription = _locationService
-          .watchPosition(distanceFilterMeters: 8)
+          .watchPosition(distanceFilterMeters: 2)
           .listen(
         (position) {
           _applyDriverPosition(position);
@@ -484,6 +506,7 @@ class _AcceptRideState extends State<AcceptRide>
       _hasLiveLocation = true;
       _locationStatus = _navigation.status;
     });
+    _vehicle.moveTo(next, _navigation.snapshot.headingDegrees);
 
     if (_stage != ActiveRideStage.waitingForRider) {
       await _refreshRoadRoute(force: forceRoute);
@@ -541,9 +564,9 @@ class _AcceptRideState extends State<AcceptRide>
       await controller.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
-            target: _driverPosition,
+            target: _vehicle.current.position,
             zoom: 16.8,
-            bearing: _navigation.snapshot.headingDegrees,
+            bearing: _vehicle.current.headingDegrees,
             tilt: 30,
           ),
         ),
@@ -749,7 +772,10 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _onRideSheetPointerEnd(PointerEvent event) {
     _onRideSheetPointerMove(event);
-    unawaited(_snapRideSheet());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_snapRideSheet());
+    });
   }
 
   double _rideExpandedHeight(BuildContext context) {
@@ -1468,36 +1494,41 @@ class _AcceptRideState extends State<AcceptRide>
               children: [
                 AbsorbPointer(
                   absorbing: _blockMapGestures,
-                  child: CustomGoogleMap(
-                    initialPosition: CameraPosition(
-                      target: _driverPosition,
-                      zoom: 15.8,
-                    ),
-                    markers: _markers,
-                    polylines: _polylines,
-                    myLocationEnabled: false,
-                    myLocationButtonEnabled: false,
-                    zoomControlsEnabled: false,
-                    mapToolbarEnabled: false,
-                    compassEnabled: false,
-                    trafficEnabled: false,
-                    buildingsEnabled: true,
-                    indoorViewEnabled: false,
-                    scrollGesturesEnabled: !_blockMapGestures,
-                    zoomGesturesEnabled: !_blockMapGestures,
-                    rotateGesturesEnabled: !_blockMapGestures,
-                    tiltGesturesEnabled: !_blockMapGestures,
-                    mapType: MapType.normal,
-                    padding: MapOverlayInsets.forActiveRide(
-                      safeTop: safeTop,
-                      collapsedSheet: collapsed,
-                    ).edgeInsets,
-                    onCameraMove: _onCameraMove,
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) _fitRoute();
-                      });
+                  child: ValueListenableBuilder<LiveVehiclePose>(
+                    valueListenable: _vehicle.pose,
+                    builder: (context, pose, _) {
+                      return CustomGoogleMap(
+                        initialPosition: CameraPosition(
+                          target: pose.position,
+                          zoom: 15.8,
+                        ),
+                        markers: _markersFor(pose),
+                        polylines: _polylines,
+                        myLocationEnabled: false,
+                        myLocationButtonEnabled: false,
+                        zoomControlsEnabled: false,
+                        mapToolbarEnabled: false,
+                        compassEnabled: false,
+                        trafficEnabled: false,
+                        buildingsEnabled: true,
+                        indoorViewEnabled: false,
+                        scrollGesturesEnabled: !_blockMapGestures,
+                        zoomGesturesEnabled: !_blockMapGestures,
+                        rotateGesturesEnabled: !_blockMapGestures,
+                        tiltGesturesEnabled: !_blockMapGestures,
+                        mapType: MapType.normal,
+                        padding: MapOverlayInsets.forActiveRide(
+                          safeTop: safeTop,
+                          collapsedSheet: collapsed,
+                        ).edgeInsets,
+                        onCameraMove: _onCameraMove,
+                        onMapCreated: (controller) {
+                          _mapController = controller;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) _fitRoute();
+                          });
+                        },
+                      );
                     },
                   ),
                 ),

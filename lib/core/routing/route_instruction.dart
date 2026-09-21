@@ -192,6 +192,88 @@ class RouteInstructionCopy {
     }
   }
 
+  static String shortAction({
+    required RouteManeuverType type,
+    required String modifier,
+    String? exitNumber,
+  }) {
+    switch (type) {
+      case RouteManeuverType.arrive:
+        return 'Arrive';
+      case RouteManeuverType.depart:
+        return 'Head out';
+      case RouteManeuverType.continueStraight:
+      case RouteManeuverType.newName:
+        return 'Continue straight';
+      case RouteManeuverType.roundabout:
+      case RouteManeuverType.rotary:
+      case RouteManeuverType.roundaboutTurn:
+      case RouteManeuverType.exitRoundabout:
+      case RouteManeuverType.exitRotary:
+        final exit = (exitNumber ?? '').trim();
+        return exit.isEmpty ? 'Roundabout' : 'Roundabout, exit $exit';
+      case RouteManeuverType.offRamp:
+      case RouteManeuverType.ramp:
+        return modifier.contains('left')
+            ? 'Exit left'
+            : modifier.contains('right')
+                ? 'Exit right'
+                : 'Take the exit';
+      case RouteManeuverType.onRamp:
+      case RouteManeuverType.merge:
+        return modifier.contains('left')
+            ? 'Merge left'
+            : modifier.contains('right')
+                ? 'Merge right'
+                : 'Merge';
+      case RouteManeuverType.fork:
+        return modifier.contains('left') ? 'Keep left' : 'Keep right';
+      case RouteManeuverType.endOfRoad:
+        return modifier.contains('left') ? 'Turn left' : 'Turn right';
+      case RouteManeuverType.turn:
+      case RouteManeuverType.unknown:
+      case RouteManeuverType.notification:
+        return _shortTurn(modifier);
+    }
+  }
+
+  static String livePrimary({
+    required String action,
+    required double meters,
+  }) {
+    final lower = action.toLowerCase();
+    if (lower.startsWith('roundabout')) return action;
+    final dist = formatDistance(meters);
+    if (dist == 'now') return '$action now';
+    if (lower.startsWith('continue')) return '$action $dist';
+    return '$action in $dist';
+  }
+
+  static String _shortTurn(String modifier) {
+    switch (modifier) {
+      case 'uturn':
+      case 'uturn left':
+      case 'uturn right':
+        return 'U-turn';
+      case 'sharp left':
+        return 'Turn sharp left';
+      case 'sharp right':
+        return 'Turn sharp right';
+      case 'slight left':
+        return 'Turn slight left';
+      case 'slight right':
+        return 'Turn slight right';
+      case 'left':
+        return 'Turn left';
+      case 'right':
+        return 'Turn right';
+      case 'straight':
+        return 'Continue straight';
+      default:
+        return 'Continue';
+    }
+  }
+
   static String _turnLine(String modifier, String onto) {
     switch (modifier) {
       case 'uturn':

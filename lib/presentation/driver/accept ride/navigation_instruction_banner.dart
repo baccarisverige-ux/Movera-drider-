@@ -17,7 +17,6 @@ class NavigationInstructionBanner extends StatelessWidget {
     const muted = Color(0xFF7D898F);
     const green = Color(0xFF19865C);
     final subtitle = [
-      banner.distanceLabel,
       if ((banner.roadName ?? '').isNotEmpty) banner.roadName,
       if ((banner.status ?? '').isNotEmpty) banner.status,
     ].whereType<String>().where((item) => item.isNotEmpty).join(' · ');
@@ -67,17 +66,19 @@ class NavigationInstructionBanner extends StatelessWidget {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

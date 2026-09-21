@@ -142,6 +142,25 @@ void main() {
     expect(navigation.snapshot.waitingAtPickup, isTrue);
   });
 
+  test('navigation banner uses live turn-by-turn copy', () async {
+    final navigation = NavigationController(
+      routeRepository: _TurnRouteRepository(),
+    );
+    navigation.setVehicle(
+      const DriverLocation(
+        point: GeoPoint(59.3279, 18.0615),
+        headingDegrees: 12,
+      ),
+    );
+    await navigation.ensureRoute(
+      origin: const GeoPoint(59.3279, 18.0615),
+      destination: const GeoPoint(59.3326, 18.0649),
+      force: true,
+    );
+    expect(navigation.snapshot.banner?.primary, startsWith('Turn left in'));
+    expect(navigation.snapshot.banner?.roadName, 'Sveavägen');
+  });
+
   test('home sheet snaps choose next stop from flick velocity', () {
     const snap = 0.42;
     expect(
@@ -178,14 +197,55 @@ void main() {
     );
   });
 
-  test('sheet spring and collapsed heights match the overlay contract', () {
+  test('sheet spring is critically damped with no bounce', () {
     expect(MoveraSheetMetrics.collapsedHeight, 108);
     expect(MoveraSheetMetrics.activeCollapsedHeight, 148);
     expect(MoveraSheetMetrics.middleFraction, 0.46);
     expect(MoveraSheetMetrics.expandedFraction, 0.90);
     expect(MoveraSheetMetrics.springMass, 1.0);
-    expect(MoveraSheetMetrics.springStiffness, 320);
-    expect(MoveraSheetMetrics.springDamping, 32);
+    expect(MoveraSheetMetrics.springStiffness, 400);
+    expect(MoveraSheetMetrics.springDampingRatio, 1.05);
+    expect(MoveraSheetMetrics.spring.damping, greaterThan(38));
+  });
+
+  test('live navigation copy matches driver banner examples', () {
+    expect(
+      RouteInstructionCopy.livePrimary(action: 'Turn left', meters: 300),
+      'Turn left in 300 m',
+    );
+    expect(
+      RouteInstructionCopy.livePrimary(action: 'Turn right', meters: 150),
+      'Turn right in 150 m',
+    );
+    expect(
+      RouteInstructionCopy.livePrimary(
+        action: 'Continue straight',
+        meters: 1200,
+      ),
+      'Continue straight 1.2 km',
+    );
+    expect(
+      RouteInstructionCopy.livePrimary(
+        action: 'Roundabout, exit 2',
+        meters: 80,
+      ),
+      'Roundabout, exit 2',
+    );
+    expect(
+      RouteInstructionCopy.shortAction(
+        type: RouteManeuverType.turn,
+        modifier: 'left',
+      ),
+      'Turn left',
+    );
+    expect(
+      RouteInstructionCopy.shortAction(
+        type: RouteManeuverType.roundabout,
+        modifier: '',
+        exitNumber: '2',
+      ),
+      'Roundabout, exit 2',
+    );
   });
 
   test('map overlay insets keep fitted routes in the visible map', () {
@@ -212,5 +272,33 @@ class _FailingRouteRepository implements RouteRepository {
     required GeoPoint destination,
   }) async {
     throw Exception('offline');
+  }
+}
+
+class _TurnRouteRepository implements RouteRepository {
+  @override
+  Future<RoadRoute> drivingRoute({
+    required GeoPoint origin,
+    required GeoPoint destination,
+  }) async {
+    return RoadRoute(
+      points: [
+        LatLng(origin.latitude, origin.longitude),
+        const LatLng(59.3290, 18.0630),
+        LatLng(destination.latitude, destination.longitude),
+      ],
+      distanceMeters: 420,
+      durationSeconds: 90,
+      instructions: const [
+        RouteInstruction(
+          type: RouteManeuverType.turn,
+          modifier: 'left',
+          text: 'Turn left onto Sveavägen',
+          distanceMeters: 300,
+          maneuverLocation: GeoPoint(59.3290, 18.0630),
+          roadName: 'Sveavägen',
+        ),
+      ],
+    );
   }
 }
