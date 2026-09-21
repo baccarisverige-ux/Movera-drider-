@@ -136,7 +136,8 @@ void main() {
       routeRepository: _FailingRouteRepository(),
     );
     navigation.setStage(ActiveRideStage.waitingForRider);
-    expect(navigation.snapshot.banner?.primary, 'Waiting for rider');
+    expect(navigation.snapshot.banner?.primary, 'Pickup');
+    expect(navigation.snapshot.banner?.distanceLabel, 'Waiting for rider');
     expect(navigation.snapshot.waitingAtPickup, isTrue);
   });
 

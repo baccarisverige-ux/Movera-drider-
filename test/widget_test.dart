@@ -1363,7 +1363,7 @@ void main() {
 
     await _slideActiveRideAction(tester);
 
-    expect(find.text('Waiting for rider'), findsOneWidget);
+    expect(find.text('Waiting for rider'), findsWidgets);
     expect(find.text('Slide to start trip'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('active-ride-panel-waitingForRider')),
@@ -1653,6 +1653,7 @@ void main() {
     await tester.ensureVisible(matchNext);
     await tester.tap(matchNext);
     await tester.pump(const Duration(milliseconds: 1600));
+    await _expandActiveRideSheet(tester);
 
     expect(find.text('Next trip secured'), findsWidgets);
 

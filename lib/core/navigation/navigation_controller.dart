@@ -171,8 +171,8 @@ class NavigationController extends ChangeNotifier {
         waitingAtPickup: true,
         route: _route,
         banner: const NavigationBanner(
-          primary: 'Waiting for rider',
-          distanceLabel: 'Pickup',
+          primary: 'Pickup',
+          distanceLabel: 'Waiting for rider',
           symbol: NavigationBannerSymbol.arrive,
         ),
         status: _status,
