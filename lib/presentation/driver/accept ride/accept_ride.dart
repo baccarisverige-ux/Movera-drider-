@@ -15,6 +15,7 @@ import 'package:movera/core/navigation/live_vehicle_animator.dart';
 import 'package:movera/core/navigation/navigation_controller.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
+import 'package:movera/core/realtime/driver_realtime.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
@@ -59,6 +60,7 @@ class AcceptRide extends StatefulWidget {
     this.waybillRepository,
     this.sessionController,
     this.activeRideRepository,
+    this.realtime,
     this.initialStage = ActiveRideStage.headingToPickup,
     this.initialWaitSeconds = 0,
     this.restoredSnapshot,
@@ -82,6 +84,7 @@ class AcceptRide extends StatefulWidget {
   final WaybillRepository? waybillRepository;
   final DriverSessionController? sessionController;
   final ActiveRideRepository? activeRideRepository;
+  final DriverRealtime? realtime;
   final ActiveRideStage initialStage;
   final int initialWaitSeconds;
   final PersistedActiveRide? restoredSnapshot;
@@ -345,6 +348,10 @@ class _AcceptRideState extends State<AcceptRide>
   );
   ActiveRideStage get _stage => _rideLifecycle.stage;
   Timer? _waitTimer;
+  StreamSubscription<DriverRealtimeEvent>? _realtimeSubscription;
+  late final DriverRealtime _realtime;
+  late final bool _ownsRealtime;
+  bool _riderOnTheWay = false;
   Timer? _nextTripRadarDemoTimer;
   Timer? _nextTripRadarMatchTimer;
   DateTime? _lastGpsAppliedAt;
@@ -382,6 +389,10 @@ class _AcceptRideState extends State<AcceptRide>
         widget.waybillRepository ?? InMemoryWaybillRepository.instance;
     _navigation = NavigationController(routeRepository: _routeService);
     _navigation.addListener(_onNavigationChanged);
+    _ownsRealtime = widget.realtime == null;
+    _realtime = widget.realtime ?? MemoryDriverRealtime();
+    _realtimeSubscription =
+        _realtime.subscribe(widget.offerId).listen(_onRealtimeEvent);
     _rideLifecycle.snapshotBuilder = _buildSnapshot;
     _rideLifecycle.addListener(_syncNavigationStage);
     _syncNavigationStage();
@@ -424,6 +435,11 @@ class _AcceptRideState extends State<AcceptRide>
     _rideSheetPositionGuardTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _waitTimer?.cancel();
+    _realtimeSubscription?.cancel();
+    _realtime.unsubscribe();
+    if (_ownsRealtime) {
+      _realtime.dispose();
+    }
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
     _radarPulseController.dispose();
@@ -600,6 +616,55 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _syncNavigationStage() {
     _navigation.setStage(_rideLifecycle.stage);
+  }
+
+  void _onRealtimeEvent(DriverRealtimeEvent event) {
+    if (!mounted || event.tripId != widget.offerId) return;
+    if (event.kind != DriverRealtimeKind.riderOnTheWay) return;
+    setState(() => _riderOnTheWay = true);
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(
+          event.message?.trim().isNotEmpty == true
+              ? event.message!
+              : '${widget.riderName} is on the way',
+        ),
+        backgroundColor: _ink,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    );
+  }
+
+  void _confirmPickupArrival() {
+    if (_stageTransitioning ||
+        !mounted ||
+        _rideLifecycle.terminal ||
+        _stage != ActiveRideStage.headingToPickup) {
+      return;
+    }
+
+    _stageTransitioning = true;
+    if (!_rideLifecycle.transitionTo(ActiveRideStage.waitingForRider)) {
+      _stageTransitioning = false;
+      return;
+    }
+
+    _waitSeconds = 0;
+    _routeLoading = false;
+    _startWaitTimer();
+    unawaited(
+      _realtime.sendSignal(
+        tripId: widget.offerId,
+        kind: DriverRealtimeKind.driverArrived,
+        message: 'Your driver has arrived at the pickup point.',
+      ),
+    );
+    if (mounted) setState(() {});
+    _unlockStageAfterFrame();
   }
 
   void _onNavigationChanged() {
@@ -862,15 +927,8 @@ class _AcceptRideState extends State<AcceptRide>
 
     switch (_stage) {
       case ActiveRideStage.headingToPickup:
-        if (!_rideLifecycle.transitionTo(ActiveRideStage.waitingForRider)) {
-          _stageTransitioning = false;
-          return;
-        }
-        _waitSeconds = 0;
-        _routeLoading = false;
-        _startWaitTimer();
-        if (mounted) setState(() {});
-        _unlockStageAfterFrame();
+        _stageTransitioning = false;
+        _confirmPickupArrival();
         return;
 
       case ActiveRideStage.waitingForRider:
@@ -1668,7 +1726,9 @@ class _AcceptRideState extends State<AcceptRide>
       case ActiveRideStage.headingToPickup:
         return '${widget.riderName} is waiting at ${widget.pickupAddress}';
       case ActiveRideStage.waitingForRider:
-        return '${widget.riderName} will be out shortly';
+        return _riderOnTheWay
+            ? '${widget.riderName} says: I’m on the way'
+            : '${widget.riderName} has been notified and will be out shortly';
       case ActiveRideStage.onTrip:
         return 'On the way to ${widget.dropoffAddress}';
     }
@@ -2023,6 +2083,10 @@ class _AcceptRideState extends State<AcceptRide>
                       ActiveRideStage.waitingForRider => 'WAITING',
                       ActiveRideStage.onTrip => 'ON TRIP',
                     },
+                    onArrived: _stage == ActiveRideStage.headingToPickup
+                        ? _confirmPickupArrival
+                        : null,
+                    riderReply: _riderOnTheWay ? 'RIDER ON THE WAY' : null,
                   )
                 else
                   Expanded(
