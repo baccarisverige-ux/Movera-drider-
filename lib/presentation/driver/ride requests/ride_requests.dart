@@ -226,10 +226,11 @@ class _RideRequestsState extends State<RideRequests> {
   void _resolveMatchWon(_RadarTrip trip) {
     _matchNoticeTimer?.cancel();
 
+    // Keep the winning Radar frame intact until the active ride has mounted.
+    // Clearing/removing the card underneath a long map transition caused a
+    // visible disappear/reappear flash on iPhone Safari.
     setState(() {
-      _matchingOfferId = null;
-      _offers.removeWhere((offer) => offer.id == trip.id);
-      _offerStates.remove(trip.id);
+      _matchingOfferId = trip.id;
       _matchNotice = const _RadarMatchNotice(
         type: _RadarMatchNoticeType.success,
         title: 'Trip matched',
@@ -258,10 +259,18 @@ class _RideRequestsState extends State<RideRequests> {
           pickupPosition: trip.pickupPosition,
           dropoffPosition: trip.dropoffPosition,
         );
-        navigator.push(BottomToTopTransition(ride));
-        if (mounted) {
-          setState(() => _matchNotice = null);
-        }
+
+        navigator.push(ActiveRideTransition(ride));
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _matchingOfferId = null;
+            _offers.removeWhere((offer) => offer.id == trip.id);
+            _offerStates.remove(trip.id);
+            _matchNotice = null;
+          });
+        });
       },
     );
   }
