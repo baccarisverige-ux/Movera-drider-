@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:movera/constants/appcolors.dart';
+import 'package:movera/core/admin/driver_home_config_repository.dart';
+import 'package:movera/core/dispatch/demo_dispatch_repository.dart';
+import 'package:movera/core/dispatch/dispatch_repository.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
+import 'package:movera/core/session/driver_session_repository.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/widgets/layout_viewport.dart';
@@ -29,23 +33,33 @@ class MoveraApp extends StatefulWidget {
 
 class _MoveraAppState extends State<MoveraApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  late final DriverSessionRepository _sessionStore;
   late final DriverSessionController _session;
   late final WaybillRepository _waybills;
   late final DriverLocationRepository _location;
   late final RouteRepository _routing;
+  late final DispatchRepository _dispatch;
+  late final DriverHomeConfigRepository _homeConfig;
 
   @override
   void initState() {
     super.initState();
-    _session = DriverSessionController();
+    _sessionStore = MemoryDriverSessionRepository();
+    _session = DriverSessionController(repository: _sessionStore);
     _waybills = InMemoryWaybillRepository.instance;
     _location = const DriverLocationService();
     _routing = RoadRouteService();
+    _dispatch = DemoDispatchRepository();
+    _homeConfig = const LocalDriverHomeConfigRepository();
   }
 
   @override
   void dispose() {
     _session.dispose();
+    final dispatch = _dispatch;
+    if (dispatch is DemoDispatchRepository) {
+      dispatch.dispose();
+    }
     super.dispose();
   }
 
@@ -75,6 +89,8 @@ class _MoveraAppState extends State<MoveraApp> {
               waybillRepository: _waybills,
               locationRepository: _location,
               routeRepository: _routing,
+              dispatchRepository: _dispatch,
+              homeConfigRepository: _homeConfig,
             ),
           );
         },

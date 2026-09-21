@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:movera/core/dispatch/demo_dispatch_repository.dart';
+import 'package:movera/core/dispatch/dispatch_repository.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
@@ -19,6 +21,7 @@ class RideRequests extends StatefulWidget {
   final WaybillRepository? waybillRepository;
   final DriverLocationRepository? locationRepository;
   final RouteRepository? routeRepository;
+  final DispatchRepository? dispatchRepository;
 
   const RideRequests({
     super.key,
@@ -29,6 +32,7 @@ class RideRequests extends StatefulWidget {
     this.waybillRepository,
     this.locationRepository,
     this.routeRepository,
+    this.dispatchRepository,
   });
 
   @override
@@ -46,8 +50,9 @@ class _RideRequestsState extends State<RideRequests> {
 
   Timer? _newTripSignalTimer;
   Timer? _availabilityTimer;
-  Timer? _matchResolutionTimer;
   Timer? _matchNoticeTimer;
+  late final DispatchRepository _dispatch;
+  late final bool _ownsDispatch;
   final Map<String, Timer> _claimedRemovalTimers = <String, Timer>{};
   final Map<String, _RadarOfferState> _offerStates =
       <String, _RadarOfferState>{};
@@ -170,6 +175,8 @@ class _RideRequestsState extends State<RideRequests> {
   @override
   void initState() {
     super.initState();
+    _ownsDispatch = widget.dispatchRepository == null;
+    _dispatch = widget.dispatchRepository ?? DemoDispatchRepository();
 
     // Frontend-only signal simulation. A real backend/realtime source should
     // set this flag when new nearby requests arrive. The list itself stays on
@@ -199,10 +206,15 @@ class _RideRequestsState extends State<RideRequests> {
   void dispose() {
     _newTripSignalTimer?.cancel();
     _availabilityTimer?.cancel();
-    _matchResolutionTimer?.cancel();
     _matchNoticeTimer?.cancel();
     for (final timer in _claimedRemovalTimers.values) {
       timer.cancel();
+    }
+    if (_ownsDispatch) {
+      final dispatch = _dispatch;
+      if (dispatch is DemoDispatchRepository) {
+        dispatch.dispose();
+      }
     }
     super.dispose();
   }
@@ -253,22 +265,18 @@ class _RideRequestsState extends State<RideRequests> {
       );
     });
 
-    _matchResolutionTimer?.cancel();
-    _matchResolutionTimer = Timer(
-      const Duration(milliseconds: 1450),
-      () {
-        if (!mounted || _matchingOfferId != trip.id) return;
+    unawaited(_claimTrip(trip));
+  }
 
-        // Frontend demo outcomes:
-        // nearby-2 simulates two drivers claiming at virtually the same time.
-        // Other offers simulate this driver winning the atomic backend claim.
-        if (trip.id == 'nearby-2') {
-          _resolveMatchLost(trip);
-        } else {
-          _resolveMatchWon(trip);
-        }
-      },
-    );
+  Future<void> _claimTrip(_RadarTrip trip) async {
+    final result = await _dispatch.claimOffer(trip.id);
+    if (!mounted || _matchingOfferId != trip.id) return;
+
+    if (result.isSuccess) {
+      _resolveMatchWon(trip);
+    } else {
+      _resolveMatchLost(trip);
+    }
   }
 
   void _resolveMatchWon(_RadarTrip trip) {

@@ -8,6 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
+import 'package:movera/core/admin/driver_home_config_repository.dart';
+import 'package:movera/core/dispatch/dispatch_repository.dart';
+import 'package:movera/core/dispatch/demo_dispatch_repository.dart';
+import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/routing/road_route_service.dart';
@@ -47,6 +51,8 @@ class DriverHome extends StatefulWidget {
     this.routeRepository,
     this.waybillRepository,
     this.sessionController,
+    this.dispatchRepository,
+    this.homeConfigRepository,
   });
 
   final bool initialOnline;
@@ -54,6 +60,8 @@ class DriverHome extends StatefulWidget {
   final RouteRepository? routeRepository;
   final WaybillRepository? waybillRepository;
   final DriverSessionController? sessionController;
+  final DispatchRepository? dispatchRepository;
+  final DriverHomeConfigRepository? homeConfigRepository;
 
   @override
   State<DriverHome> createState() => _DriverHomeState();
@@ -85,6 +93,8 @@ class _DriverHomeState extends State<DriverHome>
   late final DriverLocationRepository _driverLocationService;
   late final RouteRepository _roadRouteService;
   late final WaybillRepository _waybills;
+  late final DispatchRepository _dispatch;
+  late final bool _ownsDispatch;
   late final DriverHomeAdminConfig _adminHomeConfig;
   static const String _currentAppVersion = '1.0.0';
   bool _updatePromptShown = false;
@@ -235,10 +245,14 @@ class _DriverHomeState extends State<DriverHome>
     _roadRouteService = widget.routeRepository ?? RoadRouteService();
     _waybills =
         widget.waybillRepository ?? InMemoryWaybillRepository.instance;
+    _ownsDispatch = widget.dispatchRepository == null;
+    _dispatch = widget.dispatchRepository ?? DemoDispatchRepository();
     if (widget.sessionController != null && widget.initialOnline) {
       _driverSession.setOnline(true);
     }
-    _adminHomeConfig = const DriverHomeAdminContentService().load();
+    _adminHomeConfig = (widget.homeConfigRepository ??
+            const LocalDriverHomeConfigRepository())
+        .load();
     _hasScheduledRideOffers =
         _adminHomeConfig.scheduledRides.hasOpenRequests;
     _goOnlinePulseController = AnimationController(
@@ -541,8 +555,8 @@ class _DriverHomeState extends State<DriverHome>
     if (_hasLiveDriverLocation) {
       try {
         final approach = await _roadRouteService.drivingRoute(
-          origin: _driverPosition,
-          destination: pickup,
+          origin: GeoPoint.fromLatLng(_driverPosition),
+          destination: GeoPoint.fromLatLng(pickup),
         );
         roadPoints.addAll(approach.points);
       } catch (_) {}
@@ -550,8 +564,8 @@ class _DriverHomeState extends State<DriverHome>
 
     try {
       final trip = await _roadRouteService.drivingRoute(
-        origin: pickup,
-        destination: dropoff,
+        origin: GeoPoint.fromLatLng(pickup),
+        destination: GeoPoint.fromLatLng(dropoff),
       );
       if (roadPoints.isNotEmpty &&
           trip.points.isNotEmpty &&
@@ -684,8 +698,8 @@ class _DriverHomeState extends State<DriverHome>
 
     try {
       final route = await _roadRouteService.drivingRoute(
-        origin: _driverPosition,
-        destination: destination,
+        origin: GeoPoint.fromLatLng(_driverPosition),
+        destination: GeoPoint.fromLatLng(destination),
       );
       if (!mounted || _destinationPosition != destination) return;
 
@@ -1288,6 +1302,7 @@ class _DriverHomeState extends State<DriverHome>
                   waybillRepository: _waybills,
                   locationRepository: _driverLocationService,
                   routeRepository: _roadRouteService,
+                  dispatchRepository: _dispatch,
                   onCloseRides: (hasOffers) {
                     setState(() {
                       showRideRequests = false;
@@ -4608,6 +4623,10 @@ class _DriverHomeState extends State<DriverHome>
     _driverSession.removeListener(_onDriverSessionChanged);
     if (_ownsDriverSession) {
       _driverSession.dispose();
+    }
+    final dispatch = _dispatch;
+    if (_ownsDispatch && dispatch is DemoDispatchRepository) {
+      dispatch.dispose();
     }
     super.dispose();
   }

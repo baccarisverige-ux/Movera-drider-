@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:movera/core/session/driver_session_repository.dart';
 
 /// Single source of truth for driver availability during one app/session flow.
 ///
@@ -8,8 +11,11 @@ import 'package:flutter/foundation.dart';
 class DriverSessionController extends ChangeNotifier {
   DriverSessionController({
     bool initialOnline = false,
-  }) : _isOnline = initialOnline;
+    DriverSessionRepository? repository,
+  })  : _isOnline = initialOnline,
+        _repository = repository ?? MemoryDriverSessionRepository();
 
+  final DriverSessionRepository _repository;
   bool _isOnline;
 
   bool get isOnline => _isOnline;
@@ -18,9 +24,21 @@ class DriverSessionController extends ChangeNotifier {
     if (_isOnline == value) return;
     _isOnline = value;
     notifyListeners();
+    unawaited(_repository.saveOnline(value));
+  }
+
+  Future<void> restore() async {
+    final stored = await _repository.readOnline();
+    if (stored == null || stored == _isOnline) return;
+    _isOnline = stored;
+    notifyListeners();
   }
 
   void reset() {
-    setOnline(false);
+    if (_isOnline) {
+      _isOnline = false;
+      notifyListeners();
+    }
+    unawaited(_repository.clear());
   }
 }

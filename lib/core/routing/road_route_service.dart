@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/routing/route_repository.dart';
 
 class RoadRouteException implements Exception {
@@ -26,8 +27,8 @@ class RoadRouteService implements RouteRepository {
 
   @override
   Future<RoadRoute> drivingRoute({
-    required LatLng origin,
-    required LatLng destination,
+    required GeoPoint origin,
+    required GeoPoint destination,
   }) async {
     final coordinates =
         '${origin.longitude},${origin.latitude};'

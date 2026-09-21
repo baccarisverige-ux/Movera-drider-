@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
@@ -452,8 +453,8 @@ class _AcceptRideState extends State<AcceptRide> {
 
     try {
       final route = await _routeService.drivingRoute(
-        origin: requestOrigin,
-        destination: requestTarget,
+        origin: GeoPoint.fromLatLng(requestOrigin),
+        destination: GeoPoint.fromLatLng(requestTarget),
       );
 
       if (!mounted ||
