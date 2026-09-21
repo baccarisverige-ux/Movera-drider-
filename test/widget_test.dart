@@ -576,7 +576,7 @@ void main() {
     expect(notice.width, closeTo(375, 1));
     _expectNoException(tester);
 
-    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump(const Duration(milliseconds: 520));
     expect(find.byType(AcceptRide), findsOneWidget);
     _expectNoException(tester);
   });
