@@ -5,24 +5,40 @@ import 'package:movera/core/geo/geo_point.dart';
 
 /// Frontend/demo dispatch. A backend implementation replaces this class.
 ///
-/// nearby-2 is the only demo offer that loses the atomic claim race.
+/// Snapshot rules the Radar UI already depends on:
+/// - nearby-1, nearby-2, nearby-3 are live immediately
+/// - nearby-4 and nearby-5 arrive later and wait for an explicit refresh
+/// - nearby-2 loses the atomic claim race
+/// - nearby-3 is claimed by another driver without this driver tapping Match
 class DemoDispatchRepository implements DispatchRepository {
   DemoDispatchRepository({
     Duration claimDelay = const Duration(milliseconds: 1450),
+    Duration newOfferDelay = const Duration(seconds: 7),
+    Duration externalClaimDelay = const Duration(seconds: 13),
     this.losingOfferId = 'nearby-2',
-  }) : _claimDelay = claimDelay;
+    this.externalClaimOfferId = 'nearby-3',
+  })  : _claimDelay = claimDelay,
+        _newOfferDelay = newOfferDelay,
+        _externalClaimDelay = externalClaimDelay;
 
   final Duration _claimDelay;
+  final Duration _newOfferDelay;
+  final Duration _externalClaimDelay;
   final String losingOfferId;
+  final String externalClaimOfferId;
 
   final StreamController<List<RideOffer>> _nearby =
       StreamController<List<RideOffer>>.broadcast();
   final StreamController<List<RideOffer>> _nextTrip =
       StreamController<List<RideOffer>>.broadcast();
 
-  List<RideOffer> _offers = List<RideOffer>.from(_seedOffers);
+  List<RideOffer> _offers = List<RideOffer>.from(_immediateOffers);
+  List<RideOffer> _queued = List<RideOffer>.from(_laterOffers);
+  bool _demoStarted = false;
+  Timer? _newOfferTimer;
+  Timer? _externalClaimTimer;
 
-  static const List<RideOffer> _seedOffers = [
+  static const List<RideOffer> _immediateOffers = [
     RideOffer(
       id: 'nearby-1',
       category: 'Comfort',
@@ -71,6 +87,9 @@ class DemoDispatchRepository implements DispatchRepository {
       isNearby: true,
       followsDestination: true,
     ),
+  ];
+
+  static const List<RideOffer> _laterOffers = [
     RideOffer(
       id: 'nearby-4',
       category: 'Priority',
@@ -109,7 +128,8 @@ class DemoDispatchRepository implements DispatchRepository {
   Stream<List<RideOffer>> watchNearbyOffers({
     bool destinationModeActive = false,
   }) {
-    Future<void>.microtask(() => _emitNearby(destinationModeActive));
+    _ensureDemoSchedule();
+    Future<void>.microtask(() => _emitNearby());
     return _nearby.stream.map((offers) {
       if (!destinationModeActive) return offers;
       return offers.where((offer) => offer.followsDestination).toList();
@@ -140,23 +160,49 @@ class DemoDispatchRepository implements DispatchRepository {
       return const ClaimResult.unavailable();
     }
     if (offerId == losingOfferId) {
+      _removeOffer(offerId);
       return const ClaimResult.alreadyClaimed();
     }
-    _offers = _offers.where((item) => item.id != offerId).toList();
+    _removeOffer(offerId);
     return ClaimResult.success(offer);
   }
 
   @override
   void refreshOffers() {
-    _emitNearby(false);
+    _emitNearby();
   }
 
-  void _emitNearby(bool destinationModeActive) {
+  void _ensureDemoSchedule() {
+    if (_demoStarted) return;
+    _demoStarted = true;
+    _newOfferTimer = Timer(_newOfferDelay, _releaseQueuedOffers);
+    _externalClaimTimer = Timer(_externalClaimDelay, () {
+      _removeOffer(externalClaimOfferId);
+    });
+  }
+
+  void _releaseQueuedOffers() {
+    if (_queued.isEmpty) return;
+    _offers = [..._offers, ..._queued];
+    _queued = const <RideOffer>[];
+    _emitNearby();
+  }
+
+  void _removeOffer(String offerId) {
+    final next = _offers.where((item) => item.id != offerId).toList();
+    if (next.length == _offers.length) return;
+    _offers = next;
+    _emitNearby();
+  }
+
+  void _emitNearby() {
     if (_nearby.isClosed) return;
     _nearby.add(List<RideOffer>.unmodifiable(_offers));
   }
 
   void dispose() {
+    _newOfferTimer?.cancel();
+    _externalClaimTimer?.cancel();
     _nearby.close();
     _nextTrip.close();
   }

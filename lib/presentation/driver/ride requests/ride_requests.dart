@@ -48,120 +48,20 @@ class _RideRequestsState extends State<RideRequests> {
   static const Color _mint = Color(0xFF58E5A6);
   static const int _maxVisibleRadarOffers = 10;
 
-  Timer? _newTripSignalTimer;
-  Timer? _availabilityTimer;
   Timer? _matchNoticeTimer;
   late final DispatchRepository _dispatch;
   late final bool _ownsDispatch;
+  StreamSubscription<List<RideOffer>>? _nearbySubscription;
   final Map<String, Timer> _claimedRemovalTimers = <String, Timer>{};
   final Map<String, _RadarOfferState> _offerStates =
       <String, _RadarOfferState>{};
   bool _hasNewTripSignal = false;
+  bool _hasDispatchSnapshot = false;
   String? _matchingOfferId;
   _RadarMatchNotice? _matchNotice;
+  List<RideOffer> _latestDispatchOffers = const <RideOffer>[];
 
-  final List<_RadarTrip> _offers = [
-    const _RadarTrip(
-      id: 'nearby-1',
-      category: 'Comfort',
-      fare: '111,02 kr',
-      rating: '4.95',
-      pickupMinutes: 7,
-      pickupKm: 2.1,
-      tripMinutes: 15,
-      tripKm: 10.5,
-      pickup: 'Hantverkargatan 4, Stockholm',
-      dropoff: 'Trollesundsvägen 58B, Bandhagen',
-      pickupPosition: LatLng(59.3295, 18.0475),
-      dropoffPosition: LatLng(59.2705, 18.0515),
-      isNearby: true,
-      followsDestination: false,
-    ),
-    const _RadarTrip(
-      id: 'nearby-2',
-      category: 'Movera',
-      fare: '96,40 kr',
-      rating: '4.91',
-      pickupMinutes: 5,
-      pickupKm: 1.4,
-      tripMinutes: 18,
-      tripKm: 8.7,
-      pickup: 'Klarabergsgatan, Stockholm',
-      dropoff: 'Ringvägen, Södermalm',
-      pickupPosition: LatLng(59.3316, 18.0592),
-      dropoffPosition: LatLng(59.3125, 18.0750),
-      isNearby: true,
-      followsDestination: true,
-    ),
-    const _RadarTrip(
-      id: 'nearby-3',
-      category: 'Premium',
-      fare: '184,60 kr',
-      rating: '4.98',
-      pickupMinutes: 9,
-      pickupKm: 3.6,
-      tripMinutes: 22,
-      tripKm: 14.2,
-      pickup: 'Strandvägen, Stockholm',
-      dropoff: 'Solna centrum, Solna',
-      pickupPosition: LatLng(59.3332, 18.0916),
-      dropoffPosition: LatLng(59.3599, 18.0002),
-      isNearby: true,
-      followsDestination: true,
-    ),
-    const _RadarTrip(
-      id: 'outside-area',
-      category: 'Priority',
-      fare: '210,00 kr',
-      rating: '4.89',
-      pickupMinutes: 34,
-      pickupKm: 31.0,
-      tripMinutes: 17,
-      tripKm: 11.8,
-      pickup: 'Outside local radar area',
-      dropoff: 'Stockholm',
-      pickupPosition: LatLng(59.5000, 18.3000),
-      dropoffPosition: LatLng(59.3293, 18.0686),
-      isNearby: false,
-      followsDestination: false,
-    ),
-  ];
-
-  final List<_RadarTrip> _pendingNearbyOffers = [
-    const _RadarTrip(
-      id: 'nearby-4',
-      category: 'Priority',
-      fare: '128,70 kr',
-      rating: '4.93',
-      pickupMinutes: 4,
-      pickupKm: 1.1,
-      tripMinutes: 13,
-      tripKm: 7.4,
-      pickup: 'Vasagatan, Stockholm',
-      dropoff: 'Gärdet, Stockholm',
-      pickupPosition: LatLng(59.3323, 18.0576),
-      dropoffPosition: LatLng(59.3417, 18.1004),
-      isNearby: true,
-      followsDestination: true,
-    ),
-    const _RadarTrip(
-      id: 'nearby-5',
-      category: 'Electric',
-      fare: '139,20 kr',
-      rating: '4.97',
-      pickupMinutes: 8,
-      pickupKm: 2.9,
-      tripMinutes: 20,
-      tripKm: 12.1,
-      pickup: 'Odengatan, Stockholm',
-      dropoff: 'Liljeholmen, Stockholm',
-      pickupPosition: LatLng(59.3427, 18.0520),
-      dropoffPosition: LatLng(59.3105, 18.0232),
-      isNearby: true,
-      followsDestination: false,
-    ),
-  ];
-
+  final List<_RadarTrip> _offers = <_RadarTrip>[];
   List<_RadarTrip> get _visibleOffers {
     final nearby = _offers.where((offer) {
       if (!offer.isNearby) return false;
@@ -172,40 +72,36 @@ class _RideRequestsState extends State<RideRequests> {
     return nearby.take(_maxVisibleRadarOffers).toList(growable: false);
   }
 
+  _RadarTrip _tripFromOffer(RideOffer offer) {
+    return _RadarTrip(
+      id: offer.id,
+      category: offer.category,
+      fare: offer.fare,
+      rating: offer.rating,
+      pickupMinutes: offer.pickupMinutes,
+      pickupKm: offer.pickupKm,
+      tripMinutes: offer.tripMinutes,
+      tripKm: offer.tripKm,
+      pickup: offer.pickup,
+      dropoff: offer.dropoff,
+      pickupPosition: offer.pickupPosition.toLatLng(),
+      dropoffPosition: offer.dropoffPosition.toLatLng(),
+      isNearby: offer.isNearby,
+      followsDestination: offer.followsDestination,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _ownsDispatch = widget.dispatchRepository == null;
     _dispatch = widget.dispatchRepository ?? DemoDispatchRepository();
-
-    // Frontend-only signal simulation. A real backend/realtime source should
-    // set this flag when new nearby requests arrive. The list itself stays on
-    // this screen until the driver explicitly refreshes after that signal.
-    _newTripSignalTimer = Timer(const Duration(seconds: 7), () {
-      if (!mounted) return;
-      setState(() {
-        _hasNewTripSignal = true;
-      });
-    });
-
-    // Frontend demo: this request is claimed by another driver without this
-    // driver tapping it. Production receives this from the dispatch backend.
-    _availabilityTimer = Timer(const Duration(seconds: 13), () {
-      if (!mounted) return;
-      final trip = _offers.cast<_RadarTrip?>().firstWhere(
-            (offer) => offer?.id == 'nearby-3',
-            orElse: () => null,
-          );
-      if (trip != null && _stateFor(trip.id) == _RadarOfferState.available) {
-        _markClaimedElsewhere(trip, showNotice: false);
-      }
-    });
+    _nearbySubscription = _dispatch.watchNearbyOffers().listen(_onDispatchOffers);
   }
 
   @override
   void dispose() {
-    _newTripSignalTimer?.cancel();
-    _availabilityTimer?.cancel();
+    _nearbySubscription?.cancel();
     _matchNoticeTimer?.cancel();
     for (final timer in _claimedRemovalTimers.values) {
       timer.cancel();
@@ -219,18 +115,61 @@ class _RideRequestsState extends State<RideRequests> {
     super.dispose();
   }
 
+  void _onDispatchOffers(List<RideOffer> offers) {
+    if (!mounted) return;
+    _latestDispatchOffers = offers;
+
+    // First emission is the stable snapshot. Later additions wait for Refresh.
+    // Removals of still-available cards are remote claims from dispatch.
+    if (!_hasDispatchSnapshot) {
+      setState(() {
+        _hasDispatchSnapshot = true;
+        _offers
+          ..clear()
+          ..addAll(offers.map(_tripFromOffer));
+      });
+      return;
+    }
+
+    final displayedIds = _offers.map((trip) => trip.id).toSet();
+    final incomingIds = offers.map((offer) => offer.id).toSet();
+    final hasNew = offers.any(
+      (offer) => offer.isNearby && !displayedIds.contains(offer.id),
+    );
+    final disappeared = _offers.where((trip) {
+      return !incomingIds.contains(trip.id) &&
+          _stateFor(trip.id) == _RadarOfferState.available;
+    }).toList();
+
+    if (hasNew && !_hasNewTripSignal) {
+      setState(() => _hasNewTripSignal = true);
+    }
+    for (final trip in disappeared) {
+      _markClaimedElsewhere(trip, showNotice: false);
+    }
+  }
+
   void _refreshFromRadarSignal() {
     if (!_hasNewTripSignal) return;
 
     setState(() {
-      final existingIds = _offers.map((offer) => offer.id).toSet();
-      for (final offer in _pendingNearbyOffers) {
-        if (offer.isNearby && !existingIds.contains(offer.id)) {
-          _offers.add(offer);
-        }
-      }
+      final lingering = _offers.where((trip) {
+        final state = _stateFor(trip.id);
+        return state == _RadarOfferState.claimedElsewhere ||
+            state == _RadarOfferState.resolving;
+      }).toList();
+      final lingeringIds = lingering.map((trip) => trip.id).toSet();
+      _offers
+        ..clear()
+        ..addAll(
+          _latestDispatchOffers
+              .map(_tripFromOffer)
+              .where((trip) => !lingeringIds.contains(trip.id)),
+        )
+        ..addAll(lingering);
       _hasNewTripSignal = false;
     });
+    _dispatch.refreshOffers();
   }
 
   void _closeRides() {
