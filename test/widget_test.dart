@@ -2015,6 +2015,47 @@ void main() {
     _expectNoException(tester);
   });
 
+  testWidgets('Active ride route summary shows real optional stops expanded and collapsed', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AcceptRide(
+          pickupAddress: 'Kungsgatan 44, Stockholm',
+          dropoffAddress: 'Fittjavägen, Botkyrka',
+          stopAddresses: <String>[
+            'Vasagatan 10, Stockholm',
+            'Liljeholmen, Stockholm',
+          ],
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 180));
+
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-journey-card')),
+      findsOneWidget,
+    );
+    expect(find.text('Stop 1'), findsOneWidget);
+    expect(find.text('Stop 2'), findsOneWidget);
+    expect(find.text('Vasagatan 10, Stockholm'), findsOneWidget);
+    expect(find.text('Liljeholmen, Stockholm'), findsOneWidget);
+
+    await _collapseActiveRideSheet(tester);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-compact-dock')),
+      findsOneWidget,
+    );
+    expect(find.text('2 stops'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+  });
+
   testWidgets('Active ride keeps a live navigation banner and a collapsible sheet', (
     WidgetTester tester,
   ) async {
@@ -2034,9 +2075,13 @@ void main() {
     );
 
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect(panel.minHeight, 148);
+    expect(panel.minHeight, 164);
     expect(panel.snapPoint, isNotNull);
-    expect(panel.panelSnapping, isFalse);
+    expect(panel.panelSnapping, isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-journey-card')),
+      findsOneWidget,
+    );
 
     final banner = tester.getRect(
       find.byKey(const ValueKey<String>('active-ride-navigation-card')),
