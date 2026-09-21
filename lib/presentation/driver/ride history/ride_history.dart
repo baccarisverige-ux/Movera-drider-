@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movera/core/history/trip_history.dart';
 import 'package:movera/presentation/driver/ride%20history/history%20detail/history_detail.dart';
 
 class DriverRideHistory extends StatefulWidget {
@@ -32,6 +33,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
       distance: '6.8 km',
       duration: '18 min',
       earnings: '126 kr',
+      riderName: 'Angelica Holm',
     ),
     _HistoryRide(
       id: 'ride-002',
@@ -43,6 +45,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
       distance: '8.1 km',
       duration: '22 min',
       earnings: '94 kr',
+      riderName: 'Maya Lind',
     ),
     _HistoryRide(
       id: 'ride-003',
@@ -54,6 +57,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
       distance: '5.4 km',
       duration: '16 min',
       earnings: '83.25 kr',
+      riderName: 'Erik Nordin',
     ),
     _HistoryRide(
       id: 'ride-004',
@@ -65,6 +69,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
       distance: '10.2 km',
       duration: '27 min',
       earnings: '174 kr',
+      riderName: 'Sofia Berg',
     ),
     _HistoryRide(
       id: 'ride-005',
@@ -76,6 +81,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
       distance: '7.7 km',
       duration: '21 min',
       earnings: '118 kr',
+      riderName: 'Noah Ek',
     ),
     _HistoryRide(
       id: 'ride-006',
@@ -87,6 +93,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
       distance: '9.3 km',
       duration: '24 min',
       earnings: '139 kr',
+      riderName: 'Linnea Åberg',
     ),
   ];
 
@@ -780,7 +787,19 @@ class _HistoryRideCard extends StatelessWidget {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => const DriverRideHistoryDetail(),
+              builder: (_) => DriverRideHistoryDetail(
+                record: TripHistoryRecord(
+                  tripId: ride.id,
+                  riderName: ride.riderName,
+                  whenLabel: '${ride.day}, ${ride.time}',
+                  pickup: ride.pickup,
+                  dropoff: ride.dropoff,
+                  fare: ride.earnings,
+                  category: ride.category,
+                  distance: ride.distance,
+                  duration: ride.duration,
+                ),
+              ),
             ),
           );
         },
@@ -918,6 +937,7 @@ class _HistoryRide {
     required this.distance,
     required this.duration,
     required this.earnings,
+    required this.riderName,
   });
 
   final String id;
@@ -929,4 +949,5 @@ class _HistoryRide {
   final String distance;
   final String duration;
   final String earnings;
+  final String riderName;
 }

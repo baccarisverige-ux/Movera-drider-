@@ -116,3 +116,41 @@ components:
           type: number
         heading:
           type: number
+    RealtimeEnvelope:
+      type: object
+      required: [tripId, kind, sequence, at]
+      properties:
+        tripId:
+          type: string
+        kind:
+          type: string
+          enum: [trip_projection, rider_cancelled, location]
+        sequence:
+          type: integer
+          minimum: 1
+        at:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/TripStatus'
+        lat:
+          type: number
+        lng:
+          type: number
+    DriverCancelReason:
+      type: string
+      enum:
+        - rider_requested_cancel
+        - rider_not_at_pickup
+        - unsafe_pickup
+        - vehicle_issue_before_start
+        - driver_emergency_before_start
+        - other_before_start
+        - rider_requested_early_end
+        - safety_concern_on_trip
+        - vehicle_issue_on_trip
+        - accident_or_road_emergency
+        - rider_behavior
+        - trip_or_destination_issue
+        - other_on_trip
+

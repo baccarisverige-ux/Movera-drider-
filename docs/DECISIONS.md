@@ -68,3 +68,9 @@ D4 — Driver, Vehicle, DriverDocument, and Earnings repositories exist under `l
 
 D6 — `Money` stores öre integers and formats `104,80 kr`. Existing screen literals are unchanged until a later wiring pass.
 
+D7 — History detail takes a `TripHistoryRecord`. Tapping a history card opens that trip, not dummy Pakistan/USD copy.
+
+D8 / D9 — `DriverRealtime` is a sequence-numbered envelope. `riderCancelled` is a kind on that envelope. Screens do not subscribe yet.
+
+P5 — Same envelope shape as Rider's `RideRealtimeEvent` (`tripId`, `sequence`, reconnect replay).
+

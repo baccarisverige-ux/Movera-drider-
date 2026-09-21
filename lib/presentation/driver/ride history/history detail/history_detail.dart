@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
+import 'package:movera/core/history/trip_history.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/responsive_size.dart';
@@ -11,7 +12,9 @@ import 'package:movera/widgets/sizedbox_extention.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 class DriverRideHistoryDetail extends StatefulWidget {
-  const DriverRideHistoryDetail({super.key});
+  const DriverRideHistoryDetail({super.key, required this.record});
+
+  final TripHistoryRecord record;
 
   @override
   State<DriverRideHistoryDetail> createState() =>
@@ -25,11 +28,12 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
   // ignore: prefer_final_fields
   Set<Marker> _markers = {};
 
-  // Default location
   static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(59.3293, 18.0686), // Central Stockholm
+    target: LatLng(59.3293, 18.0686),
     zoom: 14.0,
   );
+
+  TripHistoryRecord get _ride => widget.record;
 
   @override
   void initState() {
@@ -38,8 +42,6 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
   }
 
   void _loadMarkers() {
-    // Add any initial markers if needed
-    // Example: driver location marker
     _markers.add(
       Marker(
         markerId: MarkerId('driver_location'),
@@ -50,7 +52,6 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
     );
   }
 
-  // bool isPanelOpen = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,7 +65,6 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
         margin: EdgeInsets.all(0),
         minHeight: ResSize.h * 120,
         padding: EdgeInsets.symmetric(
-          // horizontal: screenHorizPadding,
           vertical: ResSize.h * 19,
         ),
         boxShadow: [],
@@ -91,11 +91,8 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                 mapType: MapType.normal,
                 onMapCreated: (GoogleMapController controller) {
                   _mapController = controller;
-                  // Any additional map setup can be done here
                 },
-                onTap: (LatLng position) {
-                  // Handle map tap events
-                },
+                onTap: (LatLng position) {},
               ),
               SizedBox(
                 height: MediaQuery.of(context).size.height,
@@ -176,14 +173,14 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TextWidget(
-                        text: "May 12, 10:30 am",
+                        text: _ride.whenLabel,
                         color: AppColor.title,
                         fontSize: 16,
                         fontWeight: fwBold,
                       ),
                       3.height,
                       TextWidget(
-                        text: "Dora Sipes",
+                        text: _ride.riderName,
                         color: AppColor.subtitle,
                         fontSize: 16,
                         fontWeight: fwBold,
@@ -238,7 +235,6 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
             color: Color(0xffF9F9F9),
           ),
           16.height,
-
           Padding(
             padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
             child: _buildPickupDropSection(),
@@ -335,7 +331,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                     children: [
                       Expanded(
                         child: TextWidget(
-                          text: '1141 central park, Lemonade Homilton',
+                          text: _ride.pickup,
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: AppColor.title,
@@ -359,7 +355,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                     children: [
                       Expanded(
                         child: TextWidget(
-                          text: 'Skypulse office, RWP, Pakistan',
+                          text: _ride.dropoff,
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: AppColor.title,
@@ -392,7 +388,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
               color: AppColor.title,
               fontSize: 16,
               fontWeight: fwBold,
-              text: '\$14.30',
+              text: _ride.fare,
             ),
           ],
         ),
@@ -410,11 +406,10 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
               color: AppColor.title,
               fontSize: 16,
               fontWeight: fwBold,
-              text: '\$4.30',
+              text: _ride.tip,
             ),
           ],
         ),
-
         16.height,
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -440,7 +435,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                   color: AppColor.title,
                   fontSize: 16,
                   fontWeight: fwBold,
-                  text: 'Wallet',
+                  text: _ride.paymentMethod,
                 ),
               ],
             ),
@@ -460,7 +455,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
               color: AppColor.title,
               fontSize: 16,
               fontWeight: fwBold,
-              text: 'Movera VIP',
+              text: _ride.category,
             ),
           ],
         ),
@@ -476,13 +471,13 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             TextWidget(
-              text: 'Booking ID',
+              text: 'Trip ID',
               color: AppColor.subtitle,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
             TextWidget(
-              text: '#IL41514',
+              text: _ride.tripId,
               color: AppColor.title,
               fontSize: 16,
               fontWeight: fwBold,
@@ -500,7 +495,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
               fontWeight: fwBold,
             ),
             TextWidget(
-              text: 'Today, 10:30 am',
+              text: _ride.whenLabel,
               color: AppColor.title,
               fontSize: 16,
               fontWeight: fwBold,
