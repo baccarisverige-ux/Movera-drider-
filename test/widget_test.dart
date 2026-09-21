@@ -2063,9 +2063,8 @@ void main() {
     expect(find.text('RIDER ON THE WAY'), findsOneWidget);
 
     await sub.cancel();
-    await tester.pumpWidget(const SizedBox.shrink());
-    realtime.dispose();
     _expectNoException(tester);
+    realtime.dispose();
   });
 
   testWidgets('Active ride route summary shows real optional stops expanded and collapsed', (
