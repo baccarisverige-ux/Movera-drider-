@@ -73,7 +73,7 @@ class RouteProgressCalculator {
     var instructionIndex = instructionHint.clamp(
       0,
       math.max(0, route.instructions.length - 1),
-    );
+    ).toInt();
     while (instructionIndex < route.instructions.length) {
       final instruction = route.instructions[instructionIndex];
       final toManeuver =
