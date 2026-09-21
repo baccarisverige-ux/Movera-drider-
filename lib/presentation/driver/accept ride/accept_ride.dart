@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
+import 'package:movera/core/navigation/navigation_controller.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/routing/route_repository.dart';
@@ -13,6 +14,7 @@ import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
+import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
@@ -20,8 +22,10 @@ import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/movera_modal_sheet.dart';
 import 'package:movera/widgets/movera_radar_orb.dart';
+import 'package:movera/widgets/movera_sheet_metrics.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 class AcceptRide extends StatefulWidget {
   const AcceptRide({
@@ -228,6 +232,9 @@ class _AcceptRideState extends State<AcceptRide>
   late final DriverLocationRepository _locationService;
   late final RouteRepository _routeService;
   late final WaybillRepository _waybills;
+  late final NavigationController _navigation;
+  final PanelController _ridePanelController = PanelController();
+  final ValueNotifier<double> _ridePanelPosition = ValueNotifier<double>(1);
 
   GoogleMapController? _mapController;
   StreamSubscription<DriverLocation>? _positionSubscription;
@@ -248,13 +255,12 @@ class _AcceptRideState extends State<AcceptRide>
   List<LatLng> _roadRoutePoints = <LatLng>[];
   double? _routeDistanceMeters;
   double? _routeDurationSeconds;
-  LatLng? _lastRouteOrigin;
-  DateTime? _lastRouteAt;
   bool _hasLiveLocation = false;
   bool _routeLoading = false;
   bool _stageTransitioning = false;
   bool _blockMapGestures = false;
-  int _routeRequestToken = 0;
+  bool _cameraProgrammatic = false;
+  DateTime? _lastCameraFollowAt;
   late final AnimationController _radarPulseController;
   late final AnimationController _radarSweepController;
   String? _locationStatus;
@@ -267,6 +273,10 @@ class _AcceptRideState extends State<AcceptRide>
     _routeService = widget.routeRepository ?? RoadRouteService();
     _waybills =
         widget.waybillRepository ?? InMemoryWaybillRepository.instance;
+    _navigation = NavigationController(routeRepository: _routeService);
+    _navigation.addListener(_onNavigationChanged);
+    _rideLifecycle.addListener(_syncNavigationStage);
+    _syncNavigationStage();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _waybills.beginCurrent(_buildCurrentWaybill());
@@ -290,7 +300,11 @@ class _AcceptRideState extends State<AcceptRide>
     _radarPulseController.dispose();
     _radarSweepController.dispose();
     _positionSubscription?.cancel();
+    _rideLifecycle.removeListener(_syncNavigationStage);
     _rideLifecycle.dispose();
+    _navigation.removeListener(_onNavigationChanged);
+    _navigation.dispose();
+    _ridePanelPosition.dispose();
     _mapController = null;
     super.dispose();
   }
@@ -337,11 +351,37 @@ class _AcceptRideState extends State<AcceptRide>
           : widget.pickupPosition;
 
 
+  void _syncNavigationStage() {
+    _navigation.setStage(_rideLifecycle.stage);
+  }
+
+  void _onNavigationChanged() {
+    if (!mounted) return;
+    final route = _navigation.route;
+    final status = _navigation.status;
+    final pointsChanged = route != null &&
+        route.points.length >= 2 &&
+        !identical(_roadRoutePoints, route.points);
+    if (!pointsChanged && status == _locationStatus) return;
+    setState(() {
+      if (pointsChanged) {
+        _roadRoutePoints = route!.points;
+        _routeDistanceMeters = route.distanceMeters;
+        _routeDurationSeconds = route.durationSeconds;
+      }
+      _routeLoading = status != null;
+      _locationStatus = status;
+    });
+  }
+
   Set<Marker> get _markers {
     final markers = <Marker>{
       Marker(
         markerId: const MarkerId('driver'),
         position: _driverPosition,
+        rotation: _navigation.snapshot.headingDegrees,
+        flat: true,
+        anchor: const Offset(0.5, 0.5),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         infoWindow: const InfoWindow(title: 'You'),
       ),
@@ -402,16 +442,18 @@ class _AcceptRideState extends State<AcceptRide>
         },
         onError: (Object error) {
           if (!mounted) return;
+          _navigation.keepLastKnown(status: 'Location updating…');
           setState(() {
-            _locationStatus = 'Live location interrupted';
+            _locationStatus = 'Location updating…';
           });
         },
       );
     } catch (_) {
       if (!mounted) return;
+      _navigation.keepLastKnown(status: 'Location updating…');
       setState(() {
         _hasLiveLocation = false;
-        _locationStatus = 'Using map location';
+        _locationStatus = 'Location updating…';
       });
       unawaited(_refreshRoadRoute(force: true));
     }
@@ -424,14 +466,16 @@ class _AcceptRideState extends State<AcceptRide>
     final next = location.point.toLatLng();
     if (!mounted) return;
 
+    _navigation.setVehicle(location);
     setState(() {
       _driverPosition = next;
       _hasLiveLocation = true;
-      _locationStatus = null;
+      _locationStatus = _navigation.status;
     });
 
     if (_stage != ActiveRideStage.waitingForRider) {
       await _refreshRoadRoute(force: forceRoute);
+      await _followVehicle();
     }
 
     if (_stage == ActiveRideStage.onTrip) {
@@ -449,69 +493,56 @@ class _AcceptRideState extends State<AcceptRide>
     if (_stage == ActiveRideStage.waitingForRider) return;
     if (!_allowExternalRouting) return;
 
-    final now = DateTime.now();
-    final lastOrigin = _lastRouteOrigin;
-    final lastAt = _lastRouteAt;
+    await _navigation.ensureRoute(
+      origin: GeoPoint.fromLatLng(_driverPosition),
+      destination: GeoPoint.fromLatLng(_routeTarget),
+      force: force,
+    );
+    if (!mounted) return;
 
-    if (!force && lastOrigin != null && lastAt != null) {
-      final movedMeters = GeoPoint.fromLatLng(lastOrigin).distanceMetersTo(
-        GeoPoint.fromLatLng(_driverPosition),
-      );
-
-      if (movedMeters < 20 &&
-          now.difference(lastAt) < const Duration(seconds: 5)) {
-        return;
-      }
-    }
-
-    _lastRouteOrigin = _driverPosition;
-    _lastRouteAt = now;
-
-    final requestToken = ++_routeRequestToken;
-    final requestStage = _stage;
-    final requestTarget = _routeTarget;
-    final requestOrigin = _driverPosition;
-
-    if (mounted) {
-      setState(() {
-        _routeLoading = true;
-      });
-    }
-
-    try {
-      final route = await _routeService.drivingRoute(
-        origin: GeoPoint.fromLatLng(requestOrigin),
-        destination: GeoPoint.fromLatLng(requestTarget),
-      );
-
-      if (!mounted ||
-          requestToken != _routeRequestToken ||
-          requestStage != _stage ||
-          requestTarget != _routeTarget) {
-        return;
-      }
-
-      setState(() {
+    final route = _navigation.route;
+    setState(() {
+      if (route != null && route.points.length >= 2) {
         _roadRoutePoints = route.points;
         _routeDistanceMeters = route.distanceMeters;
         _routeDurationSeconds = route.durationSeconds;
-        _routeLoading = false;
-      });
-    } catch (_) {
-      if (!mounted ||
-          requestToken != _routeRequestToken ||
-          requestStage != _stage) {
-        return;
       }
+      _routeLoading = _navigation.status != null;
+      _locationStatus = _navigation.status;
+    });
+  }
 
-      setState(() {
-        // Never draw a fake straight line when road routing is unavailable.
-        _roadRoutePoints = <LatLng>[];
-        _routeDistanceMeters = null;
-        _routeDurationSeconds = null;
-        _routeLoading = false;
-      });
+  Future<void> _followVehicle({bool force = false}) async {
+    if (!_allowExternalRouting) return;
+    if (!force && !_navigation.followCamera) return;
+    final controller = _mapController;
+    if (controller == null) return;
+    final now = DateTime.now();
+    if (!force &&
+        _lastCameraFollowAt != null &&
+        now.difference(_lastCameraFollowAt!) < const Duration(milliseconds: 900)) {
+      return;
     }
+    _lastCameraFollowAt = now;
+    _cameraProgrammatic = true;
+    try {
+      await controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _driverPosition,
+            zoom: 16.8,
+            bearing: _navigation.snapshot.headingDegrees,
+            tilt: 30,
+          ),
+        ),
+      );
+    } catch (_) {}
+    _cameraProgrammatic = false;
+  }
+
+  void _onCameraMove(CameraPosition position) {
+    if (_cameraProgrammatic) return;
+    _navigation.pauseFollow();
   }
 
   String get _routeEtaText {
@@ -578,7 +609,6 @@ class _AcceptRideState extends State<AcceptRide>
     if (_stageTransitioning || !mounted || _rideLifecycle.terminal) return;
 
     _stageTransitioning = true;
-    _routeRequestToken++;
 
     switch (_stage) {
       case ActiveRideStage.headingToPickup:
@@ -588,9 +618,6 @@ class _AcceptRideState extends State<AcceptRide>
         }
         setState(() {
           _waitSeconds = 0;
-          _roadRoutePoints = <LatLng>[];
-          _routeDistanceMeters = null;
-          _routeDurationSeconds = null;
           _routeLoading = false;
         });
         _startWaitTimer();
@@ -605,10 +632,7 @@ class _AcceptRideState extends State<AcceptRide>
         }
         _waitTimer?.cancel();
         setState(() {
-          _roadRoutePoints = <LatLng>[];
-          _routeDistanceMeters = null;
-          _routeDurationSeconds = null;
-          _routeLoading = false;
+          _routeLoading = true;
         });
         _startOnTripRadar();
         _unlockStageAfterFrame();
@@ -1272,6 +1296,8 @@ class _AcceptRideState extends State<AcceptRide>
           pulse: _radarPulseController.value,
           sweep: _radarSweepController.value,
           onTap: _openNextTripRadar,
+          size: 68,
+          touchSize: 88,
           touchKey: const ValueKey<String>('on-trip-radar-offer-button'),
         );
       },
@@ -1323,72 +1349,127 @@ class _AcceptRideState extends State<AcceptRide>
       backgroundColor: _canvas,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final panelHeight = math.min(420.0, constraints.maxHeight * 0.47);
+          final viewport = constraints.maxHeight;
+          final collapsed = MoveraSheetMetrics.activeCollapsedHeight;
           final safeTop = MediaQuery.paddingOf(context).top;
+          final bannerReserve = safeTop + 96;
+          final expanded = math.min(
+            MoveraSheetMetrics.expandedHeight(viewport),
+            math.max(collapsed + 160, viewport - bannerReserve),
+          );
+          final snap = MoveraSheetMetrics.snapPoint(
+            viewportHeight: viewport,
+            collapsed: collapsed,
+          );
 
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              AbsorbPointer(
-                absorbing: _blockMapGestures,
-                child: CustomGoogleMap(
-                  initialPosition: CameraPosition(
-                    target: _driverPosition,
-                    zoom: 15.8,
+          return SlidingUpPanel(
+            controller: _ridePanelController,
+            minHeight: collapsed,
+            maxHeight: expanded,
+            snapPoint: snap,
+            panelSnapping: true,
+            defaultPanelState: PanelState.OPEN,
+            color: Colors.transparent,
+            boxShadow: const [],
+            backdropEnabled: false,
+            padding: EdgeInsets.zero,
+            margin: EdgeInsets.zero,
+            onPanelSlide: (pos) {
+              _ridePanelPosition.value = pos;
+            },
+            onPanelOpened: () => _ridePanelPosition.value = 1,
+            onPanelClosed: () => _ridePanelPosition.value = 0,
+            panel: _mapOverlay(child: _buildRidePanel()),
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                AbsorbPointer(
+                  absorbing: _blockMapGestures,
+                  child: CustomGoogleMap(
+                    initialPosition: CameraPosition(
+                      target: _driverPosition,
+                      zoom: 15.8,
+                    ),
+                    markers: _markers,
+                    polylines: _polylines,
+                    myLocationEnabled: false,
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                    mapToolbarEnabled: false,
+                    compassEnabled: false,
+                    trafficEnabled: false,
+                    buildingsEnabled: true,
+                    indoorViewEnabled: false,
+                    scrollGesturesEnabled: !_blockMapGestures,
+                    zoomGesturesEnabled: !_blockMapGestures,
+                    rotateGesturesEnabled: !_blockMapGestures,
+                    tiltGesturesEnabled: !_blockMapGestures,
+                    mapType: MapType.normal,
+                    padding: EdgeInsets.only(
+                      top: safeTop + 78,
+                      bottom: collapsed - 12,
+                    ),
+                    onCameraMove: _onCameraMove,
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _fitRoute();
+                      });
+                    },
                   ),
-                  markers: _markers,
-                  polylines: _polylines,
-                  myLocationEnabled: false,
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  mapToolbarEnabled: false,
-                  compassEnabled: false,
-                  trafficEnabled: false,
-                  buildingsEnabled: true,
-                  indoorViewEnabled: false,
-                  scrollGesturesEnabled: !_blockMapGestures,
-                  zoomGesturesEnabled: !_blockMapGestures,
-                  rotateGesturesEnabled: !_blockMapGestures,
-                  tiltGesturesEnabled: !_blockMapGestures,
-                  mapType: MapType.normal,
-                  padding: EdgeInsets.only(bottom: panelHeight - 12),
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) _fitRoute();
-                    });
-                  },
                 ),
-              ),
-              Positioned(
-                left: 14,
-                right: 14,
-                top: safeTop + 10,
-                child: _mapOverlay(child: _buildNavigationCard()),
-              ),
-              Positioned(
-                right: 14,
-                bottom: panelHeight + 16,
-                child: _mapOverlay(child: _buildMapControls()),
-              ),
-              if (_stage == ActiveRideStage.onTrip &&
-                  _onTripRadarState == _OnTripRadarState.offerAvailable)
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: panelHeight - 8,
-                  child: Center(
-                    child: _mapOverlay(child: _buildOnTripRadarOfferButton()),
+                  top: 0,
+                  child: _mapOverlay(
+                    child: ListenableBuilder(
+                      listenable: _navigation,
+                      builder: (context, _) {
+                        final banner = _navigation.snapshot.banner;
+                        if (banner == null) {
+                          return _buildNavigationCard();
+                        }
+                        return NavigationInstructionBanner(
+                          banner: banner,
+                          etaLabel: _stage == ActiveRideStage.waitingForRider
+                              ? _waitLabel
+                              : _routeEtaText,
+                        );
+                      },
+                    ),
                   ),
                 ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: panelHeight,
-                child: _mapOverlay(child: _buildRidePanel()),
-              ),
-            ],
+                Positioned.fill(
+                  child: ValueListenableBuilder<double>(
+                  valueListenable: _ridePanelPosition,
+                  builder: (context, pos, _) {
+                    final panelHeight =
+                        collapsed + ((expanded - collapsed) * pos);
+                    return Stack(
+                      children: [
+                        Positioned(
+                          right: 14,
+                          bottom: panelHeight + 16,
+                          child: _mapOverlay(child: _buildMapControls()),
+                        ),
+                        if (_stage == ActiveRideStage.onTrip &&
+                            _onTripRadarState ==
+                                _OnTripRadarState.offerAvailable)
+                          Positioned(
+                            left: 10,
+                            bottom: panelHeight + 56,
+                            child: _mapOverlay(
+                              child: _buildOnTripRadarOfferButton(),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -1529,7 +1610,10 @@ class _AcceptRideState extends State<AcceptRide>
       children: [
         _mapCircleButton(
           icon: Icons.my_location_rounded,
-          onTap: _fitRoute,
+          onTap: () {
+            _navigation.resumeFollow();
+            unawaited(_followVehicle(force: true));
+          },
         ),
         const SizedBox(height: 9),
         _mapCircleButton(
@@ -1580,109 +1664,147 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Widget _buildRidePanel() {
-    return Container(
-      key: ValueKey<String>('active-ride-panel-${_stage.name}'),
-      decoration: BoxDecoration(
-        color: _panel,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        border: Border(top: BorderSide(color: _line)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF172027).withOpacity(0.12),
-            blurRadius: 28,
-            offset: const Offset(0, -8),
+    return ValueListenableBuilder<double>(
+      valueListenable: _ridePanelPosition,
+      builder: (context, pos, _) {
+        final compact = pos < 0.14;
+        return Container(
+          key: ValueKey<String>('active-ride-panel-${_stage.name}'),
+          decoration: BoxDecoration(
+            color: _panel,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            border: Border(top: BorderSide(color: _line)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF172027).withOpacity(0.12),
+                blurRadius: 28,
+                offset: const Offset(0, -8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-              child: Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD8DEDF),
-                    borderRadius: BorderRadius.circular(99),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD8DEDF),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                key: const PageStorageKey<String>('active-ride-scroll'),
-                padding: const EdgeInsets.fromLTRB(16, 13, 16, 10),
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                if (compact)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: Row(
                       children: [
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _stagePill(),
-                              const SizedBox(height: 8),
-                              Text(
-                                _title,
-                                style: const TextStyle(
-                                  color: _ink,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.55,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _subtitle,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: _muted,
-                                  fontSize: 10.5,
-                                  height: 1.35,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 7),
-                              _liveStatus(),
-                            ],
+                          child: Text(
+                            _title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ink,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        _buildEtaTile(),
+                        Text(
+                          _stage == ActiveRideStage.waitingForRider
+                              ? _waitLabel
+                              : _routeEtaText,
+                          style: const TextStyle(
+                            color: _green,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    _buildProgress(),
-                    const SizedBox(height: 14),
-                    _buildRiderRow(),
-                    const SizedBox(height: 10),
-                    _buildCurrentWaybillShortcut(),
-                    if (_stage == ActiveRideStage.onTrip)
-                      _buildSecuredNextTripDetails(),
-                  ],
+                  )
+                else
+                  Expanded(
+                    child: SingleChildScrollView(
+                      key: const PageStorageKey<String>('active-ride-scroll'),
+                      padding: const EdgeInsets.fromLTRB(16, 13, 16, 10),
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _stagePill(),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _title,
+                                      style: const TextStyle(
+                                        color: _ink,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -0.55,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _subtitle,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: _muted,
+                                        fontSize: 10.5,
+                                        height: 1.35,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 7),
+                                    _liveStatus(),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              _buildEtaTile(),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          _buildProgress(),
+                          const SizedBox(height: 14),
+                          _buildRiderRow(),
+                          const SizedBox(height: 10),
+                          _buildCurrentWaybillShortcut(),
+                          if (_stage == ActiveRideStage.onTrip)
+                            _buildSecuredNextTripDetails(),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (compact) const Spacer(),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      top: BorderSide(color: Color(0xFFF0F2F3)),
+                    ),
+                  ),
+                  child: _buildPrimaryAction(),
                 ),
-              ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Color(0xFFF0F2F3)),
-                ),
-              ),
-              child: _buildPrimaryAction(),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -2640,7 +2762,6 @@ class _AcceptRideState extends State<AcceptRide>
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
-    _routeRequestToken++;
     _rideLifecycle.cancel();
     _waybills.discardCurrent();
 

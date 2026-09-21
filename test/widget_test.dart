@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/main.dart';
+import 'package:movera/core/geo/geo_point.dart';
+import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
@@ -62,6 +64,20 @@ Future<void> _openPanel(WidgetTester tester) async {
 Future<void> _closePanel(WidgetTester tester) async {
   final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
   panel.controller!.close();
+  await _advanceAnimation(tester, const Duration(milliseconds: 520));
+}
+
+SlidingUpPanel _activeRidePanel(WidgetTester tester) {
+  return tester.widgetList<SlidingUpPanel>(find.byType(SlidingUpPanel)).last;
+}
+
+Future<void> _collapseActiveRideSheet(WidgetTester tester) async {
+  _activeRidePanel(tester).controller!.close();
+  await _advanceAnimation(tester, const Duration(milliseconds: 520));
+}
+
+Future<void> _expandActiveRideSheet(WidgetTester tester) async {
+  _activeRidePanel(tester).controller!.open();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
 }
 
@@ -1467,6 +1483,7 @@ void main() {
     );
     _expectNoException(tester);
 
+    await _collapseActiveRideSheet(tester);
     await tester.tap(
       find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
     );
@@ -1563,6 +1580,7 @@ void main() {
     await _slideActiveRideAction(tester);
 
     await tester.pump(const Duration(milliseconds: 2400));
+    await _collapseActiveRideSheet(tester);
     await tester.tap(
       find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
     );
@@ -1573,6 +1591,7 @@ void main() {
     await tester.ensureVisible(matchNext);
     await tester.tap(matchNext);
     await tester.pump(const Duration(milliseconds: 1600));
+    await _expandActiveRideSheet(tester);
 
     expect(
       find.byKey(const ValueKey<String>('secured-next-trip-details')),
@@ -1623,6 +1642,7 @@ void main() {
     await _slideActiveRideAction(tester);
     await _slideActiveRideAction(tester);
     await tester.pump(const Duration(milliseconds: 2400));
+    await _collapseActiveRideSheet(tester);
     await tester.tap(
       find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
     );
@@ -1781,4 +1801,105 @@ void main() {
     expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
     _expectNoException(tester);
   });
+
+  testWidgets('Home sheet exposes three snap positions', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect(panel.minHeight, 108);
+    expect(panel.maxHeight, closeTo(812 * 0.90, 0.5));
+    expect(panel.snapPoint, isNotNull);
+    expect(panel.snapPoint!, inInclusiveRange(0.08, 0.92));
+    _expectNoException(tester);
+  });
+
+  testWidgets('Active ride keeps a live navigation banner and a collapsible sheet', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
+      findsOneWidget,
+    );
+    expect(find.text('Heading to pickup'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+      findsOneWidget,
+    );
+
+    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect(panel.minHeight, 132);
+    expect(panel.snapPoint, isNotNull);
+
+    await _collapseActiveRideSheet(tester);
+    expect(find.text('Heading to pickup'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-primary-action')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+  });
+
+  testWidgets('Routing failure keeps the driver on the active trip', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AcceptRide(routeRepository: _FailingRouteRepository()),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 160));
+
+    expect(find.byType(AcceptRide), findsOneWidget);
+    expect(find.text('Heading to pickup'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+  });
+
+  testWidgets('On-trip Radar orb is smaller with an accessible touch target', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+
+    await _slideActiveRideAction(tester);
+    await _slideActiveRideAction(tester);
+    await tester.pump(const Duration(milliseconds: 2400));
+    await _collapseActiveRideSheet(tester);
+
+    final radar = find.byKey(
+      const ValueKey<String>('on-trip-radar-offer-button'),
+    );
+    expect(radar, findsOneWidget);
+    expect(tester.getSize(radar), const Size(88, 88));
+    _expectNoException(tester);
+  });
+}
+
+class _FailingRouteRepository implements RouteRepository {
+  @override
+  Future<RoadRoute> drivingRoute({
+    required GeoPoint origin,
+    required GeoPoint destination,
+  }) async {
+    throw Exception('offline');
+  }
 }

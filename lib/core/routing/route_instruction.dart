@@ -1,0 +1,259 @@
+import 'package:movera/core/geo/geo_point.dart';
+
+enum RouteManeuverType {
+  turn,
+  newName,
+  depart,
+  arrive,
+  merge,
+  ramp,
+  onRamp,
+  offRamp,
+  fork,
+  endOfRoad,
+  continueStraight,
+  roundabout,
+  rotary,
+  roundaboutTurn,
+  notification,
+  exitRoundabout,
+  exitRotary,
+  unknown,
+}
+
+class RouteInstruction {
+  const RouteInstruction({
+    required this.type,
+    required this.modifier,
+    required this.text,
+    required this.distanceMeters,
+    required this.maneuverLocation,
+    this.roadName,
+    this.exitNumber,
+  });
+
+  final RouteManeuverType type;
+  final String modifier;
+  final String text;
+  final double distanceMeters;
+  final GeoPoint maneuverLocation;
+  final String? roadName;
+  final String? exitNumber;
+
+  bool get isArrival =>
+      type == RouteManeuverType.arrive ||
+      type == RouteManeuverType.notification && modifier == 'arrive';
+
+  RouteInstruction copyWith({double? distanceMeters, String? text}) {
+    return RouteInstruction(
+      type: type,
+      modifier: modifier,
+      text: text ?? this.text,
+      distanceMeters: distanceMeters ?? this.distanceMeters,
+      maneuverLocation: maneuverLocation,
+      roadName: roadName,
+      exitNumber: exitNumber,
+    );
+  }
+}
+
+class NavigationBanner {
+  const NavigationBanner({
+    required this.primary,
+    required this.distanceLabel,
+    this.roadName,
+    this.symbol = NavigationBannerSymbol.straight,
+    this.status,
+  });
+
+  final String primary;
+  final String distanceLabel;
+  final String? roadName;
+  final NavigationBannerSymbol symbol;
+  final String? status;
+}
+
+enum NavigationBannerSymbol {
+  left,
+  right,
+  slightLeft,
+  slightRight,
+  sharpLeft,
+  sharpRight,
+  straight,
+  uTurn,
+  roundabout,
+  arrive,
+  merge,
+  exit,
+}
+
+extension RouteManeuverTypeX on RouteManeuverType {
+  static RouteManeuverType fromOsrm(String? raw) {
+    switch (raw) {
+      case 'turn':
+        return RouteManeuverType.turn;
+      case 'new name':
+        return RouteManeuverType.newName;
+      case 'depart':
+        return RouteManeuverType.depart;
+      case 'arrive':
+        return RouteManeuverType.arrive;
+      case 'merge':
+        return RouteManeuverType.merge;
+      case 'ramp':
+        return RouteManeuverType.ramp;
+      case 'on ramp':
+        return RouteManeuverType.onRamp;
+      case 'off ramp':
+        return RouteManeuverType.offRamp;
+      case 'fork':
+        return RouteManeuverType.fork;
+      case 'end of road':
+        return RouteManeuverType.endOfRoad;
+      case 'continue':
+        return RouteManeuverType.continueStraight;
+      case 'roundabout':
+        return RouteManeuverType.roundabout;
+      case 'rotary':
+        return RouteManeuverType.rotary;
+      case 'roundabout turn':
+        return RouteManeuverType.roundaboutTurn;
+      case 'notification':
+        return RouteManeuverType.notification;
+      case 'exit roundabout':
+        return RouteManeuverType.exitRoundabout;
+      case 'exit rotary':
+        return RouteManeuverType.exitRotary;
+      default:
+        return RouteManeuverType.unknown;
+    }
+  }
+}
+
+class RouteInstructionCopy {
+  const RouteInstructionCopy._();
+
+  static String formatDistance(double meters) {
+    if (meters < 25) return 'now';
+    if (meters < 1000) return '${meters.round()} m';
+    final km = meters / 1000;
+    return '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
+  }
+
+  static String build({
+    required RouteManeuverType type,
+    required String modifier,
+    String? roadName,
+    String? exitNumber,
+  }) {
+    final road = (roadName ?? '').trim();
+    final onto = road.isEmpty ? '' : ' onto $road';
+    switch (type) {
+      case RouteManeuverType.arrive:
+        return 'Arrive at destination';
+      case RouteManeuverType.depart:
+        return road.isEmpty ? 'Head out' : 'Head out on $road';
+      case RouteManeuverType.continueStraight:
+      case RouteManeuverType.newName:
+        return road.isEmpty ? 'Continue straight' : 'Continue on $road';
+      case RouteManeuverType.roundabout:
+      case RouteManeuverType.rotary:
+      case RouteManeuverType.roundaboutTurn:
+      case RouteManeuverType.exitRoundabout:
+      case RouteManeuverType.exitRotary:
+        final exit = exitNumber ?? '';
+        if (exit.isEmpty) return 'At the roundabout, continue';
+        return 'At roundabout, take exit $exit';
+      case RouteManeuverType.offRamp:
+      case RouteManeuverType.ramp:
+        return modifier.contains('left')
+            ? 'Take the exit on the left$onto'
+            : modifier.contains('right')
+                ? 'Take the exit on the right$onto'
+                : 'Take the exit$onto';
+      case RouteManeuverType.onRamp:
+      case RouteManeuverType.merge:
+        return modifier.contains('left')
+            ? 'Merge left$onto'
+            : modifier.contains('right')
+                ? 'Merge right$onto'
+                : 'Merge$onto';
+      case RouteManeuverType.fork:
+        return modifier.contains('left') ? 'Keep left$onto' : 'Keep right$onto';
+      case RouteManeuverType.endOfRoad:
+        return modifier.contains('left')
+            ? 'Turn left at the end of the road$onto'
+            : 'Turn right at the end of the road$onto';
+      case RouteManeuverType.turn:
+      case RouteManeuverType.unknown:
+      case RouteManeuverType.notification:
+        return _turnLine(modifier, onto);
+    }
+  }
+
+  static String _turnLine(String modifier, String onto) {
+    switch (modifier) {
+      case 'uturn':
+      case 'uturn left':
+      case 'uturn right':
+        return 'Make a U-turn$onto';
+      case 'sharp left':
+        return 'Turn sharp left$onto';
+      case 'sharp right':
+        return 'Turn sharp right$onto';
+      case 'slight left':
+        return 'Turn slight left$onto';
+      case 'slight right':
+        return 'Turn slight right$onto';
+      case 'left':
+        return 'Turn left$onto';
+      case 'right':
+        return 'Turn right$onto';
+      case 'straight':
+        return 'Continue straight$onto';
+      default:
+        return onto.isEmpty ? 'Continue' : 'Continue$onto';
+    }
+  }
+
+  static NavigationBannerSymbol symbolFor({
+    required RouteManeuverType type,
+    required String modifier,
+  }) {
+    if (type == RouteManeuverType.arrive) {
+      return NavigationBannerSymbol.arrive;
+    }
+    if (type == RouteManeuverType.roundabout ||
+        type == RouteManeuverType.rotary ||
+        type == RouteManeuverType.exitRoundabout) {
+      return NavigationBannerSymbol.roundabout;
+    }
+    if (type == RouteManeuverType.offRamp || type == RouteManeuverType.ramp) {
+      return NavigationBannerSymbol.exit;
+    }
+    if (type == RouteManeuverType.merge || type == RouteManeuverType.onRamp) {
+      return NavigationBannerSymbol.merge;
+    }
+    switch (modifier) {
+      case 'uturn':
+      case 'uturn left':
+      case 'uturn right':
+        return NavigationBannerSymbol.uTurn;
+      case 'sharp left':
+        return NavigationBannerSymbol.sharpLeft;
+      case 'sharp right':
+        return NavigationBannerSymbol.sharpRight;
+      case 'slight left':
+        return NavigationBannerSymbol.slightLeft;
+      case 'slight right':
+        return NavigationBannerSymbol.slightRight;
+      case 'left':
+        return NavigationBannerSymbol.left;
+      case 'right':
+        return NavigationBannerSymbol.right;
+      default:
+        return NavigationBannerSymbol.straight;
+    }
+  }
+}

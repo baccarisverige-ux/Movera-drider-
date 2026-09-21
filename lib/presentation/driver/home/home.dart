@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
 import 'package:movera/core/admin/driver_home_config_repository.dart';
@@ -39,6 +41,7 @@ import 'package:movera/widgets/sizedbox_extention.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/movera_radar_orb.dart';
+import 'package:movera/widgets/movera_sheet_metrics.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -112,13 +115,16 @@ class _DriverHomeState extends State<DriverHome>
   bool _sheetPointerActive = false;
   double _mainPanelPosition = 0;
   final ValueNotifier<double> _panelSlidePosition = ValueNotifier<double>(0);
-  final ScrollController _overviewListController = ScrollController();
+  bool _hasScheduledRideOffers = true;
 
-  static const Duration _sheetMotionDuration = Duration(milliseconds: 420);
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
   static const Duration _radarOfferLifetime = Duration(milliseconds: 30000);
   static const int _maxHomeRadarOffers = 4;
-  static const Curve _sheetMotionCurve = Curves.easeOutCubic;
+  double _sheetPointerVelocity = 0;
+  double _sheetPointerLastY = 0;
+  int _sheetPointerLastMs = 0;
+  double _lastSnapHapticAt = -1;
+  AnimationController? _sheetSpringController;
   bool showRideRequests = false;
   bool isAccountActivated = true;
   bool _isGoingOnline = false;
@@ -1266,10 +1272,18 @@ class _DriverHomeState extends State<DriverHome>
 
   void _onSheetPointerDown(PointerDownEvent event) {
     _sheetPointerActive = true;
+    _sheetPointerLastY = event.position.dy;
+    _sheetPointerLastMs = DateTime.now().millisecondsSinceEpoch;
+    _sheetPointerVelocity = 0;
     _setMapGesturesBlocked(true);
   }
 
+  void _onSheetPointerMove(PointerEvent event) {
+    _trackSheetPointer(event);
+  }
+
   void _onSheetPointerEnd(PointerEvent event) {
+    _trackSheetPointer(event);
     _sheetPointerActive = false;
     if (_mainPanelPosition <= 0.001) {
       _setMapGesturesBlocked(false);
@@ -1278,19 +1292,86 @@ class _DriverHomeState extends State<DriverHome>
 
   Future<void> _openDriverSheet() async {
     _setMapGesturesBlocked(true);
-    await _panelController.animatePanelToPosition(
-      1,
-      duration: _sheetMotionDuration,
-      curve: _sheetMotionCurve,
-    );
+    await _springPanelTo(1);
   }
 
   Future<void> _closeDriverSheet() async {
-    await _panelController.animatePanelToPosition(
-      0,
-      duration: _sheetMotionDuration,
-      curve: _sheetMotionCurve,
+    await _springPanelTo(0);
+  }
+
+  double _homeSnapPoint(BuildContext context) {
+    return MoveraSheetMetrics.snapPoint(
+      viewportHeight: MediaQuery.sizeOf(context).height,
     );
+  }
+
+  double _homeExpandedHeight(BuildContext context) {
+    return MoveraSheetMetrics.expandedHeight(MediaQuery.sizeOf(context).height);
+  }
+
+  void _trackSheetPointer(PointerEvent event) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (_sheetPointerLastMs != 0) {
+      final dt = math.max(1, now - _sheetPointerLastMs);
+      _sheetPointerVelocity = (event.position.dy - _sheetPointerLastY) / dt * 1000;
+    }
+    _sheetPointerLastY = event.position.dy;
+    _sheetPointerLastMs = now;
+  }
+
+  Future<void> _snapHomeSheet({double? velocity}) async {
+    if (!_panelController.isAttached) return;
+    final snap = _homeSnapPoint(context);
+    final target = MoveraSheetMetrics.targetPosition(
+      position: _panelController.panelPosition,
+      velocityPxPerSec: velocity ?? _sheetPointerVelocity,
+      snap: snap,
+    );
+    if ((target - _lastSnapHapticAt).abs() > 0.04) {
+      unawaited(HapticFeedback.lightImpact());
+      _lastSnapHapticAt = target;
+    }
+    await _springPanelTo(
+      target,
+      velocityPxPerSec: velocity ?? _sheetPointerVelocity,
+    );
+  }
+
+  Future<void> _springPanelTo(
+    double target, {
+    double velocityPxPerSec = 0,
+  }) async {
+    if (!_panelController.isAttached) return;
+    final start = _panelController.panelPosition;
+    if ((start - target).abs() < 0.003) {
+      _panelController.panelPosition = target;
+      return;
+    }
+
+    _sheetSpringController?.dispose();
+    final controller = AnimationController.unbounded(vsync: this);
+    _sheetSpringController = controller;
+    final range =
+        _homeExpandedHeight(context) - MoveraSheetMetrics.collapsedHeight;
+    final velocity = range <= 0 ? 0.0 : -velocityPxPerSec / range;
+    final simulation = SpringSimulation(
+      MoveraSheetMetrics.spring,
+      start,
+      target,
+      velocity,
+    );
+    controller.addListener(() {
+      if (!_panelController.isAttached) return;
+      _panelController.panelPosition = controller.value.clamp(0.0, 1.0);
+    });
+    try {
+      await controller.animateWith(simulation);
+    } finally {
+      if (identical(_sheetSpringController, controller)) {
+        controller.dispose();
+        _sheetSpringController = null;
+      }
+    }
   }
 
   @override
@@ -1363,17 +1444,18 @@ class _DriverHomeState extends State<DriverHome>
               color: Colors.transparent,
               backdropColor: Colors.transparent,
               backdropOpacity: 0,
-              backdropEnabled: false, // Changed to false
+              backdropEnabled: false,
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: 108,
+              minHeight: MoveraSheetMetrics.collapsedHeight,
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
               panelSnapping: true,
+              snapPoint: _homeSnapPoint(context),
               defaultPanelState: PanelState.CLOSED,
-              maxHeight: MediaQuery.sizeOf(context).height * 0.86,
+              maxHeight: _homeExpandedHeight(context),
               parallaxEnabled: false,
               onPanelSlide: (double pos) {
                 _mainPanelPosition = pos;
@@ -1412,17 +1494,24 @@ class _DriverHomeState extends State<DriverHome>
                 child: Listener(
                   behavior: HitTestBehavior.opaque,
                   onPointerDown: _onSheetPointerDown,
+                  onPointerMove: _onSheetPointerMove,
                   onPointerUp: _onSheetPointerEnd,
                   onPointerCancel: _onSheetPointerEnd,
-                  child: DriverSheetNav.collapsedDock(
-                    context: context,
-                    scaffoldKey: _scaffoldKey,
-                    isOnline: _isOnline,
-                    hasRideOffers:
-                        _hasRideOffers || _radarHomeOffers.isNotEmpty,
-                    hasScheduledRideOffers: _hasScheduledRideOffers,
-                    goOnlinePulseController: _goOnlinePulseController,
-                    onOpenScheduledRides: _openScheduledRides,
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: _panelSlidePosition,
+                    builder: (context, pos, _) {
+                      return DriverSheetNav.collapsedDock(
+                        context: context,
+                        scaffoldKey: _scaffoldKey,
+                        isOnline: _isOnline,
+                        hasRideOffers:
+                            _hasRideOffers || _radarHomeOffers.isNotEmpty,
+                        hasScheduledRideOffers: _hasScheduledRideOffers,
+                        goOnlinePulseController: _goOnlinePulseController,
+                        onOpenScheduledRides: _openScheduledRides,
+                        notchDepth: MoveraSheetMetrics.notchDepthFor(pos),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -1431,6 +1520,7 @@ class _DriverHomeState extends State<DriverHome>
                 child: Listener(
                   behavior: HitTestBehavior.opaque,
                   onPointerDown: _onSheetPointerDown,
+                  onPointerMove: _onSheetPointerMove,
                   onPointerUp: _onSheetPointerEnd,
                   onPointerCancel: _onSheetPointerEnd,
                   child: panelColumn(sc),
@@ -1719,9 +1809,8 @@ class _DriverHomeState extends State<DriverHome>
             ValueListenableBuilder<double>(
               valueListenable: _panelSlidePosition,
               builder: (context, panelPosition, child) {
-                final maxPanelHeight =
-                    MediaQuery.sizeOf(context).height * 0.86;
-                const minPanelHeight = 108.0;
+                final maxPanelHeight = _homeExpandedHeight(context);
+                const minPanelHeight = MoveraSheetMetrics.collapsedHeight;
                 final currentPanelHeight =
                     minPanelHeight +
                     ((maxPanelHeight - minPanelHeight) * panelPosition);
@@ -2901,7 +2990,9 @@ class _DriverHomeState extends State<DriverHome>
 
   void _onRadarSheetDragUpdate(DragUpdateDetails details) {
     if (!_panelController.isAttached) return;
-    final range = MediaQuery.sizeOf(context).height * 0.86 - 108.0;
+    _sheetSpringController?.dispose();
+    _sheetSpringController = null;
+    final range = _homeExpandedHeight(context) - MoveraSheetMetrics.collapsedHeight;
     if (range <= 0) return;
     final next = (_panelController.panelPosition - details.delta.dy / range)
         .clamp(0.0, 1.0);
@@ -2909,17 +3000,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _onRadarSheetDragEnd(DragEndDetails details) {
-    if (!_panelController.isAttached) return;
-    final velocity = details.primaryVelocity ?? 0;
-    if (velocity < -280) {
-      _panelController.open();
-    } else if (velocity > 280) {
-      _panelController.close();
-    } else if (_panelController.panelPosition > 0.28) {
-      _panelController.open();
-    } else {
-      _panelController.close();
-    }
+    unawaited(_snapHomeSheet(velocity: details.primaryVelocity ?? 0));
   }
 
   Widget _radarDragToSheet({required Widget child}) {
@@ -4273,9 +4354,9 @@ class _DriverHomeState extends State<DriverHome>
       clipBehavior: Clip.hardEdge,
       children: [
         PhysicalShape(
-          clipper: const RadarSheetClipper(
+          clipper: RadarSheetClipper(
             notchWidth: 126,
-            notchDepth: 58,
+            notchDepth: MoveraSheetMetrics.notchDepthFor(_panelSlidePosition.value),
             cornerRadius: 24,
           ),
           color: const Color(0xFFFCFDFD),
@@ -4290,11 +4371,20 @@ class _DriverHomeState extends State<DriverHome>
                 Expanded(
                   child: ListView(
                     key: const PageStorageKey<String>('driver-overview-list'),
-                    controller: _overviewListController,
+                    controller: sc,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
                     children: [
-                      const Padding(
+                      AnimatedOpacity(
+                        duration: const Duration(milliseconds: 180),
+                        opacity: _panelSlidePosition.value < 0.12 ? 0 : 1,
+                        child: AnimatedSlide(
+                          duration: const Duration(milliseconds: 180),
+                          offset: Offset(
+                            0,
+                            _panelSlidePosition.value < 0.18 ? 0.04 : 0,
+                          ),
+                          child: const Padding(
                         padding: EdgeInsets.fromLTRB(2, 2, 2, 16),
                         child: Row(
                           children: [
@@ -4343,6 +4433,8 @@ class _DriverHomeState extends State<DriverHome>
                           ],
                         ),
                       ),
+                          ),
+                        ),
                       ValueListenableBuilder<WaybillRecord?>(
                         valueListenable: _waybills.lastListenable,
                         builder: (context, lastWaybill, _) {
@@ -4635,7 +4727,7 @@ class _DriverHomeState extends State<DriverHome>
     _driverLocationSubscription?.cancel();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
-    _overviewListController.dispose();
+    _sheetSpringController?.dispose();
     _mapController = null;
     _driverSession.removeListener(_onDriverSessionChanged);
     if (_ownsDriverSession) {

@@ -17,6 +17,7 @@ class DriverSheetNav {
     required bool hasScheduledRideOffers,
     required AnimationController goOnlinePulseController,
     required VoidCallback onOpenScheduledRides,
+    double notchDepth = 58,
   }) {
     final safeBottom = MediaQuery.paddingOf(context).bottom;
 
@@ -24,9 +25,9 @@ class DriverSheetNav {
       clipBehavior: Clip.none,
       children: [
         PhysicalShape(
-          clipper: const RadarSheetClipper(
+          clipper: RadarSheetClipper(
             notchWidth: 126,
-            notchDepth: 58,
+            notchDepth: notchDepth,
             cornerRadius: 24,
           ),
           color: const Color(0xFFFCFDFD),

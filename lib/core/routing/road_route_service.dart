@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:movera/core/geo/geo_point.dart';
+import 'package:movera/core/routing/osrm_route_parser.dart';
 import 'package:movera/core/routing/route_repository.dart';
 
 class RoadRouteException implements Exception {
@@ -21,9 +21,14 @@ class RoadRouteException implements Exception {
 /// Production should swap this adapter for Movera's backend routing endpoint
 /// while keeping the UI contract unchanged.
 class RoadRouteService implements RouteRepository {
-  RoadRouteService({http.Client? client}) : _client = client ?? http.Client();
+  RoadRouteService({
+    http.Client? client,
+    OsrmRouteParser parser = const OsrmRouteParser(),
+  })  : _client = client ?? http.Client(),
+        _parser = parser;
 
   final http.Client _client;
+  final OsrmRouteParser _parser;
 
   @override
   Future<RoadRoute> drivingRoute({
@@ -37,10 +42,11 @@ class RoadRouteService implements RouteRepository {
     final uri = Uri.https(
       'router.project-osrm.org',
       '/route/v1/driving/$coordinates',
-      <String, String>{
+      const <String, String>{
         'overview': 'full',
         'geometries': 'geojson',
-        'steps': 'false',
+        'steps': 'true',
+        'annotations': 'false',
         'alternatives': 'false',
       },
     );
@@ -70,40 +76,10 @@ class RoadRouteService implements RouteRepository {
       throw const RoadRouteException('Invalid route response.');
     }
 
-    final geometry = route['geometry'];
-    if (geometry is! Map<String, dynamic>) {
-      throw const RoadRouteException('Invalid route geometry.');
+    try {
+      return _parser.parseRoute(route);
+    } on FormatException catch (error) {
+      throw RoadRouteException(error.message);
     }
-
-    final coordinatesJson = geometry['coordinates'];
-    if (coordinatesJson is! List || coordinatesJson.length < 2) {
-      throw const RoadRouteException('Route geometry is empty.');
-    }
-
-    final points = <LatLng>[];
-    for (final coordinate in coordinatesJson) {
-      if (coordinate is! List || coordinate.length < 2) continue;
-
-      final longitude = coordinate[0];
-      final latitude = coordinate[1];
-      if (longitude is num && latitude is num) {
-        points.add(
-          LatLng(latitude.toDouble(), longitude.toDouble()),
-        );
-      }
-    }
-
-    if (points.length < 2) {
-      throw const RoadRouteException('Route geometry is empty.');
-    }
-
-    final distance = route['distance'];
-    final duration = route['duration'];
-
-    return RoadRoute(
-      points: points,
-      distanceMeters: distance is num ? distance.toDouble() : 0,
-      durationSeconds: duration is num ? duration.toDouble() : 0,
-    );
   }
 }
