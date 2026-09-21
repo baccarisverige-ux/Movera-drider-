@@ -2477,10 +2477,10 @@ class _AcceptRideState extends State<AcceptRide>
     };
 
     final items = const [
-      ('Matched', Icons.check_rounded),
-      ('Pickup', Icons.location_on_outlined),
-      ('Rider', Icons.person_outline_rounded),
-      ('Trip', Icons.route_outlined),
+      ('Matched', 'assets/icons/movera_check.svg'),
+      ('Pickup', 'assets/icons/movera_pin.svg'),
+      ('Rider', 'assets/icons/movera_user.svg'),
+      ('Trip', 'assets/icons/movera_route.svg'),
     ];
 
     return Container(
@@ -2503,9 +2503,10 @@ class _AcceptRideState extends State<AcceptRide>
                   child: Column(
                     children: [
                       AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: active ? 26 : 22,
-                        height: active ? 26 : 22,
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        width: active ? 29 : 24,
+                        height: active ? 29 : 24,
                         decoration: BoxDecoration(
                           color: done
                               ? _green
@@ -2516,11 +2517,25 @@ class _AcceptRideState extends State<AcceptRide>
                           border: active
                               ? Border.all(color: _green, width: 1.5)
                               : null,
+                          boxShadow: active
+                              ? [
+                                  BoxShadow(
+                                    color: _green.withOpacity(0.12),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ]
+                              : null,
                         ),
-                        child: Icon(
+                        alignment: Alignment.center,
+                        child: SvgPicture.asset(
                           items[index].$2,
-                          size: 13,
-                          color: done ? Colors.white : color,
+                          width: active ? 14 : 12,
+                          height: active ? 14 : 12,
+                          colorFilter: ColorFilter.mode(
+                            done ? Colors.white : color,
+                            BlendMode.srcIn,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -2541,7 +2556,10 @@ class _AcceptRideState extends State<AcceptRide>
                     width: 8,
                     height: 2,
                     margin: const EdgeInsets.only(bottom: 16),
-                    color: done ? _green : const Color(0xFFDDE3E4),
+                    decoration: BoxDecoration(
+                      color: done ? _green : const Color(0xFFDDE3E4),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                   ),
               ],
             ),
