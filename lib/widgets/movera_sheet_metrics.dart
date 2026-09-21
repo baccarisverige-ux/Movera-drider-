@@ -5,7 +5,7 @@ class MoveraSheetMetrics {
   const MoveraSheetMetrics._();
 
   static const double collapsedHeight = 108;
-  static const double activeCollapsedHeight = 148;
+  static const double activeCollapsedHeight = 164;
   static const double middleFraction = 0.46;
   static const double expandedFraction = 0.90;
   static const double springMass = 1.0;
