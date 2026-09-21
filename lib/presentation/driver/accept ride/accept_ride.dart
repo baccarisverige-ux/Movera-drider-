@@ -2012,7 +2012,7 @@ class _AcceptRideState extends State<AcceptRide>
                     key: const ValueKey<String>('active-ride-compact-dock'),
                     pickupAddress: widget.pickupAddress,
                     dropoffAddress: widget.dropoffAddress,
-                    stopCount: widget.stopAddresses.length,
+                    stopAddresses: widget.stopAddresses,
                     etaLabel: _stage == ActiveRideStage.waitingForRider
                         ? _waitLabel
                         : _routeEtaText,
