@@ -13,6 +13,8 @@ class CompactTripDock extends StatelessWidget {
     required this.stopAddresses,
     required this.etaLabel,
     required this.stageLabel,
+    this.onArrived,
+    this.riderReply,
   });
 
   final String pickupAddress;
@@ -20,6 +22,8 @@ class CompactTripDock extends StatelessWidget {
   final List<String> stopAddresses;
   final String etaLabel;
   final String stageLabel;
+  final VoidCallback? onArrived;
+  final String? riderReply;
 
   static const _ink = Color(0xFF233039);
   static const _muted = Color(0xFF7D898F);
@@ -212,31 +216,58 @@ class CompactTripDock extends StatelessWidget {
             ),
             const SizedBox(width: 7),
             Padding(
-              padding: const EdgeInsets.only(right: 10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    etaLabel,
-                    style: const TextStyle(
-                      color: _green,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w900,
+              padding: const EdgeInsets.only(right: 8),
+              child: onArrived != null
+                  ? Material(
+                      key: const ValueKey<String>('active-ride-arrived-button'),
+                      color: const Color(0xFF19865C),
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        onTap: onArrived,
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 9,
+                          ),
+                          child: Text(
+                            "I've arrived",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.05,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          etaLabel,
+                          style: const TextStyle(
+                            color: _green,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          riderReply ?? stageLabel,
+                          style: TextStyle(
+                            color: riderReply != null
+                                ? const Color(0xFF19865C)
+                                : const Color(0xFF8A9599),
+                            fontSize: 7.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.25,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    stageLabel,
-                    style: const TextStyle(
-                      color: Color(0xFF8A9599),
-                      fontSize: 7.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.35,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
