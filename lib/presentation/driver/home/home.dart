@@ -120,6 +120,7 @@ class _DriverHomeState extends State<DriverHome>
   double _mainPanelPosition = 0;
   final ValueNotifier<double> _panelSlidePosition = ValueNotifier<double>(0);
 
+  static const double _homeExpandedFraction = 0.86;
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
   static const Duration _radarOfferLifetime = Duration(milliseconds: 30000);
   static const int _maxHomeRadarOffers = 4;
@@ -1221,13 +1222,17 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   double _homeSnapPoint(BuildContext context) {
-    return MoveraSheetMetrics.snapPoint(
-      viewportHeight: MediaQuery.sizeOf(context).height,
-    );
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final maxHeight = _homeExpandedHeight(context);
+    final middleHeight = MoveraSheetMetrics.middleHeight(viewportHeight);
+    final span = maxHeight - MoveraSheetMetrics.collapsedHeight;
+    if (span <= 0) return 0.5;
+    return ((middleHeight - MoveraSheetMetrics.collapsedHeight) / span)
+        .clamp(0.08, 0.92);
   }
 
   double _homeExpandedHeight(BuildContext context) {
-    return MoveraSheetMetrics.expandedHeight(MediaQuery.sizeOf(context).height);
+    return MediaQuery.sizeOf(context).height * _homeExpandedFraction;
   }
 
   void _trackSheetPointer(PointerEvent event) {
