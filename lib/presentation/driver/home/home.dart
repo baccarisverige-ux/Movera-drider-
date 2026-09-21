@@ -4078,26 +4078,28 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _stockholmWorkStats() {
     final stats = _adminHomeConfig.stockholmWork;
+    final strongest = stats.innerAreas.reduce(
+      (current, next) =>
+          next.demandPercent > current.demandPercent ? next : current,
+    );
+    final surroundingAreas = stats.surroundingSummary
+        .split(' · ')
+        .where((area) => area.trim().isNotEmpty)
+        .toList(growable: false);
+
     return Container(
       key: const ValueKey<String>('stockholm-work-stats'),
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(15, 15, 15, 14),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFFFFF),
-            Color(0xFFF8FBFA),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFDCE9E3)),
+        color: const Color(0xFFFCFDFD),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFE0E9E5)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF173E31).withOpacity(0.055),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+            color: const Color(0xFF18392E).withOpacity(0.055),
+            blurRadius: 28,
+            offset: const Offset(0, 11),
           ),
         ],
       ),
@@ -4107,30 +4109,22 @@ class _DriverHomeState extends State<DriverHome>
           Row(
             children: [
               Container(
-                height: 42,
-                width: 42,
+                height: 43,
+                width: 43,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFEAF8F2),
-                      Color(0xFFDDF2E9),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFD4EADF)),
+                  color: const Color(0xFF163D31),
+                  borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF19865C).withOpacity(0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      color: const Color(0xFF163D31).withOpacity(0.16),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
                 child: const Icon(
-                  Icons.map_outlined,
-                  color: Color(0xFF177C57),
+                  Icons.location_city_rounded,
+                  color: Color(0xFFE8F6EF),
                   size: 20,
                 ),
               ),
@@ -4142,17 +4136,17 @@ class _DriverHomeState extends State<DriverHome>
                     Text(
                       stats.title,
                       style: const TextStyle(
-                        color: Color(0xFF202A34),
-                        fontSize: 15,
+                        color: Color(0xFF1E2932),
+                        fontSize: 15.5,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -0.25,
+                        letterSpacing: -0.35,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       stats.subtitle,
                       style: const TextStyle(
-                        color: Color(0xFF7F8B90),
+                        color: Color(0xFF84908E),
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         height: 1.25,
@@ -4161,92 +4155,46 @@ class _DriverHomeState extends State<DriverHome>
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F7F4),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: const Color(0xFFDCECE5)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      height: 6,
-                      width: 6,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2BB47C),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF2BB47C).withOpacity(0.22),
-                            blurRadius: 5,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    const Text(
-                      'Live',
-                      style: TextStyle(
-                        color: Color(0xFF177C57),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 15),
-          for (var i = 0; i < stats.innerAreas.length; i += 2) ...[
-            Row(
-              children: [
-                Expanded(child: _stockholmAreaTile(stats.innerAreas[i])),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: i + 1 < stats.innerAreas.length
-                      ? _stockholmAreaTile(stats.innerAreas[i + 1])
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ),
-            if (i + 2 < stats.innerAreas.length) const SizedBox(height: 9),
-          ],
-          const SizedBox(height: 13),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+            padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  Color(0xFFF0F8F4),
-                  Color(0xFFF7FBF9),
+                  Color(0xFF173F32),
+                  Color(0xFF245845),
                 ],
               ),
-              borderRadius: BorderRadius.circular(17),
-              border: Border.all(color: const Color(0xFFDDECE5)),
+              borderRadius: BorderRadius.circular(19),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF173F32).withOpacity(0.13),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 Container(
-                  height: 32,
-                  width: 32,
+                  height: 36,
+                  width: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.86),
-                    borderRadius: BorderRadius.circular(11),
-                    border: Border.all(color: const Color(0xFFDCEAE4)),
+                    color: Colors.white.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.12),
+                    ),
                   ),
                   child: const Icon(
-                    Icons.explore_outlined,
-                    size: 17,
-                    color: Color(0xFF19865C),
+                    Icons.trending_up_rounded,
+                    color: Color(0xFFBCE7D2),
+                    size: 18,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -4254,33 +4202,126 @@ class _DriverHomeState extends State<DriverHome>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        stats.surroundingTitle,
-                        style: const TextStyle(
-                          color: Color(0xFF177C57),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.05,
+                      const Text(
+                        'Strongest area',
+                        style: TextStyle(
+                          color: Color(0xFFBFD5CC),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.15,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        stats.surroundingSummary,
+                        strongest.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0xFF5E6B70),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                          height: 1.3,
+                          color: Colors.white,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.15,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 17,
-                  color: Color(0xFF80A899),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEBF7F1),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Text(
+                    '${strongest.demandPercent}%',
+                    style: const TextStyle(
+                      color: Color(0xFF176F52),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          for (var i = 0; i < stats.innerAreas.length; i++) ...[
+            _stockholmAreaRow(stats.innerAreas[i]),
+            if (i != stats.innerAreas.length - 1)
+              const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(12, 11, 12, 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F8F6),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE1EBE6)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      height: 28,
+                      width: 28,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFDFE9E4)),
+                      ),
+                      child: const Icon(
+                        Icons.explore_outlined,
+                        size: 15,
+                        color: Color(0xFF1B7D5C),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      stats.surroundingTitle,
+                      style: const TextStyle(
+                        color: Color(0xFF22312D),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.05,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 9),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final area in surroundingAreas)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(
+                            color: const Color(0xFFDDE7E2),
+                          ),
+                        ),
+                        child: Text(
+                          area,
+                          style: const TextStyle(
+                            color: Color(0xFF60706A),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
@@ -4290,73 +4331,97 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _stockholmAreaTile(StockholmAreaConfig area) {
+  Widget _stockholmAreaRow(StockholmAreaConfig area) {
     final busy = area.demandPercent >= 75;
-    final accent = busy
-        ? const Color(0xFF19865C)
-        : const Color(0xFF69B993);
+    final accent =
+        busy ? const Color(0xFF1C7D5B) : const Color(0xFF67A98C);
     final percent =
         (area.demandPercent / 100).clamp(0.0, 1.0).toDouble();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(11, 11, 11, 10),
+      padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
       decoration: BoxDecoration(
-        color: busy ? const Color(0xFFF5FAF7) : const Color(0xFFFAFBFB),
-        borderRadius: BorderRadius.circular(17),
-        border: Border.all(
-          color: busy ? const Color(0xFFD8EADF) : const Color(0xFFE4E9E7),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1F4538).withOpacity(busy ? 0.045 : 0.025),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE6ECE9)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Container(
+                height: 7,
+                width: 7,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withOpacity(0.18),
+                      blurRadius: 5,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 7),
               Expanded(
                 child: Text(
                   area.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF26313A),
+                    color: Color(0xFF26323A),
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.15,
+                    letterSpacing: -0.1,
                   ),
                 ),
               ),
-              const SizedBox(width: 5),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 3.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: busy
-                      ? const Color(0xFFE6F4ED)
+                      ? const Color(0xFFE9F5EF)
                       : const Color(0xFFF0F4F2),
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(
-                  '${area.demandPercent}%',
+                  area.demandLabel,
                   style: TextStyle(
-                    color: busy ? const Color(0xFF177C57) : const Color(0xFF617069),
+                    color: busy
+                        ? const Color(0xFF177454)
+                        : const Color(0xFF66756F),
                     fontSize: 8.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 34,
+                child: Text(
+                  '${area.demandPercent}%',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: busy
+                        ? const Color(0xFF166E50)
+                        : const Color(0xFF5D6B66),
+                    fontSize: 10,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
           Container(
-            height: 6,
+            height: 5,
             decoration: BoxDecoration(
-              color: const Color(0xFFE7ECE9),
+              color: const Color(0xFFE9EEEC),
               borderRadius: BorderRadius.circular(99),
             ),
             clipBehavior: Clip.antiAlias,
@@ -4370,53 +4435,18 @@ class _DriverHomeState extends State<DriverHome>
                     gradient: LinearGradient(
                       colors: busy
                           ? const [
-                              Color(0xFF238C65),
-                              Color(0xFF43A77E),
+                              Color(0xFF1A7958),
+                              Color(0xFF4BA17F),
                             ]
                           : const [
-                              Color(0xFF70C39A),
-                              Color(0xFF8FD0B0),
+                              Color(0xFF6DAE92),
+                              Color(0xFF91C9AF),
                             ],
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Container(
-                height: 6,
-                width: 6,
-                decoration: BoxDecoration(
-                  color: accent,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withOpacity(0.20),
-                      blurRadius: 5,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  area.demandLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: busy
-                        ? const Color(0xFF177C57)
-                        : const Color(0xFF66736E),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
