@@ -1206,7 +1206,9 @@ class _DriverHomeState extends State<DriverHome>
     if (_mainPanelPosition <= 0.001) {
       _setMapGesturesBlocked(false);
     }
-    _settleHomeSheet();
+    // SlidingUpPanel owns direct finger-release snapping on Home.
+    // The custom spring is reserved for radar/programmatic movement so
+    // two settle animations never fight each other.
   }
 
   Future<void> _openDriverSheet() async {
@@ -1352,7 +1354,7 @@ class _DriverHomeState extends State<DriverHome>
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
-              panelSnapping: false,
+              panelSnapping: true,
               snapPoint: _homeSnapPoint(context),
               defaultPanelState: PanelState.CLOSED,
               maxHeight: _homeExpandedHeight(context),
@@ -1397,21 +1399,15 @@ class _DriverHomeState extends State<DriverHome>
                   onPointerMove: _onSheetPointerMove,
                   onPointerUp: _onSheetPointerEnd,
                   onPointerCancel: _onSheetPointerEnd,
-                  child: ValueListenableBuilder<double>(
-                    valueListenable: _panelSlidePosition,
-                    builder: (context, pos, _) {
-                      return DriverSheetNav.collapsedDock(
-                        context: context,
-                        scaffoldKey: _scaffoldKey,
-                        isOnline: _isOnline,
-                        hasRideOffers:
-                            _hasRideOffers || _radarHomeOffers.isNotEmpty,
-                        hasScheduledRideOffers: _hasScheduledRideOffers,
-                        goOnlinePulseController: _goOnlinePulseController,
-                        onOpenScheduledRides: _openScheduledRides,
-                        notchDepth: MoveraSheetMetrics.notchDepthFor(pos),
-                      );
-                    },
+                  child: DriverSheetNav.collapsedDock(
+                    context: context,
+                    scaffoldKey: _scaffoldKey,
+                    isOnline: _isOnline,
+                    hasRideOffers:
+                        _hasRideOffers || _radarHomeOffers.isNotEmpty,
+                    hasScheduledRideOffers: _hasScheduledRideOffers,
+                    goOnlinePulseController: _goOnlinePulseController,
+                    onOpenScheduledRides: _openScheduledRides,
                   ),
                 ),
               ),
@@ -4209,9 +4205,9 @@ class _DriverHomeState extends State<DriverHome>
       clipBehavior: Clip.hardEdge,
       children: [
         PhysicalShape(
-          clipper: RadarSheetClipper(
+          clipper: const RadarSheetClipper(
             notchWidth: 126,
-            notchDepth: MoveraSheetMetrics.notchDepthFor(_panelSlidePosition.value),
+            notchDepth: 58,
             cornerRadius: 24,
           ),
           color: const Color(0xFFFCFDFD),
@@ -4230,16 +4226,7 @@ class _DriverHomeState extends State<DriverHome>
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
                     children: [
-                      AnimatedOpacity(
-                        duration: const Duration(milliseconds: 180),
-                        opacity: _panelSlidePosition.value < 0.12 ? 0 : 1,
-                        child: AnimatedSlide(
-                          duration: const Duration(milliseconds: 180),
-                          offset: Offset(
-                            0,
-                            _panelSlidePosition.value < 0.18 ? 0.04 : 0,
-                          ),
-                          child: const Padding(
+                      const Padding(
                         padding: EdgeInsets.fromLTRB(2, 2, 2, 16),
                         child: Row(
                           children: [
@@ -4288,8 +4275,6 @@ class _DriverHomeState extends State<DriverHome>
                           ],
                         ),
                       ),
-                          ),
-                        ),
                       ValueListenableBuilder<WaybillRecord?>(
                         valueListenable: _waybills.lastListenable,
                         builder: (context, lastWaybill, _) {
