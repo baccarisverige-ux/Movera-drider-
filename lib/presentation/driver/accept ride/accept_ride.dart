@@ -49,6 +49,7 @@ class AcceptRide extends StatefulWidget {
     this.pickupAddress = 'Odlarvägen 22',
     this.pickupArea = 'Enhörna',
     this.dropoffAddress = 'T-Centralen, Stockholm',
+    this.stopAddresses = const <String>[],
     this.pickupPosition = const LatLng(59.3279, 18.0615),
     this.dropoffPosition = const LatLng(59.3326, 18.0649),
     this.locationRepository,
@@ -71,6 +72,7 @@ class AcceptRide extends StatefulWidget {
   final String pickupAddress;
   final String pickupArea;
   final String dropoffAddress;
+  final List<String> stopAddresses;
   final LatLng pickupPosition;
   final LatLng dropoffPosition;
   final DriverLocationRepository? locationRepository;
@@ -132,6 +134,7 @@ class AcceptRide extends StatefulWidget {
       pickupAddress: pickup,
       pickupArea: snapshot.pickupArea ?? pickup.split(',').last.trim(),
       dropoffAddress: snapshot.dropoffAddress ?? 'Stockholm',
+      stopAddresses: snapshot.stopAddresses,
       pickupPosition: LatLng(
         snapshot.pickupLat ?? 59.3279,
         snapshot.pickupLng ?? 18.0615,
@@ -463,6 +466,7 @@ class _AcceptRideState extends State<AcceptRide>
       pickupAddress: widget.pickupAddress,
       pickupArea: widget.pickupArea,
       dropoffAddress: widget.dropoffAddress,
+      stopAddresses: widget.stopAddresses,
       pickupLat: widget.pickupPosition.latitude,
       pickupLng: widget.pickupPosition.longitude,
       dropoffLat: widget.dropoffPosition.latitude,
