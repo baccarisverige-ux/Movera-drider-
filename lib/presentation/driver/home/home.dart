@@ -33,6 +33,7 @@ import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
+import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
@@ -75,6 +76,7 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _homeRadarMatchResolutionTimer;
   Timer? _homeRadarNoticeTimer;
   Timer? _homeRadarExternalClaimTimer;
+  Timer? _homeRadarExternalClaimCleanupTimer;
   final Map<String, Timer> _radarOfferTimeoutTimers = <String, Timer>{};
   final Map<String, _HomeRadarMatchState> _homeRadarMatchStates =
       <String, _HomeRadarMatchState>{};
@@ -98,6 +100,7 @@ class _DriverHomeState extends State<DriverHome>
   bool _sheetPointerActive = false;
   double _mainPanelPosition = 0;
   final ValueNotifier<double> _panelSlidePosition = ValueNotifier<double>(0);
+  final ScrollController _overviewListController = ScrollController();
 
   static const Duration _sheetMotionDuration = Duration(milliseconds: 420);
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
@@ -1069,7 +1072,8 @@ class _DriverHomeState extends State<DriverHome>
               _HomeRadarMatchState.claimedElsewhere;
         });
 
-        Timer(
+        _homeRadarExternalClaimCleanupTimer?.cancel();
+        _homeRadarExternalClaimCleanupTimer = Timer(
           const Duration(milliseconds: 2800),
           () {
             if (!mounted ||
@@ -1090,6 +1094,7 @@ class _DriverHomeState extends State<DriverHome>
     _homeRadarMatchResolutionTimer?.cancel();
     _homeRadarNoticeTimer?.cancel();
     _homeRadarExternalClaimTimer?.cancel();
+    _homeRadarExternalClaimCleanupTimer?.cancel();
     _homeRadarMatchingOfferId = null;
     _homeRadarMatchStates.clear();
     _homeRadarMatchNotice = null;
@@ -1240,7 +1245,8 @@ class _DriverHomeState extends State<DriverHome>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return LayoutViewport(
+      child: Scaffold(
       key: _scaffoldKey,
       drawer: DriverSideMenu(
         isOnline: _isOnline,
@@ -1315,7 +1321,7 @@ class _DriverHomeState extends State<DriverHome>
               boxShadow: [],
               isDraggable: true,
               defaultPanelState: PanelState.CLOSED,
-              maxHeight: MediaQuery.of(context).size.height * 0.86,
+              maxHeight: MediaQuery.sizeOf(context).height * 0.86,
               parallaxEnabled: false,
               onPanelSlide: (double pos) {
                 _mainPanelPosition = pos;
@@ -1383,6 +1389,7 @@ class _DriverHomeState extends State<DriverHome>
                 child: body(),
               ),
             ),
+      ),
     );
   }
 
@@ -1413,11 +1420,12 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Widget body({bool isDestinationPanel = false}) {
-    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final viewport = MediaQuery.sizeOf(context);
+    final viewportWidth = viewport.width;
 
     return SizedBox(
-      height: MediaQuery.of(context).size.height,
-      width: double.infinity,
+      height: viewport.height,
+      width: viewportWidth,
       child: Stack(
         children: [
           CustomGoogleMap(
@@ -1666,7 +1674,7 @@ class _DriverHomeState extends State<DriverHome>
               valueListenable: _panelSlidePosition,
               builder: (context, panelPosition, child) {
                 final maxPanelHeight =
-                    MediaQuery.of(context).size.height * 0.86;
+                    MediaQuery.sizeOf(context).height * 0.86;
                 const minPanelHeight = 108.0;
                 final currentPanelHeight =
                     minPanelHeight +
@@ -2325,14 +2333,18 @@ class _DriverHomeState extends State<DriverHome>
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      offer.fare,
-                      style: const TextStyle(
-                        color: Color(0xFF252E3A),
-                        fontSize: 25,
-                        height: 1,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.7,
+                    Flexible(
+                      child: Text(
+                        offer.fare,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF252E3A),
+                          fontSize: 25,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.7,
+                        ),
                       ),
                     ),
                     const Spacer(),
@@ -2392,16 +2404,20 @@ class _DriverHomeState extends State<DriverHome>
                               : const Color(0xFFB87512),
                         ),
                         const SizedBox(width: 7),
-                        Text(
-                          claimed
-                              ? 'Matched by another driver'
-                              : 'Confirming availability',
-                          style: TextStyle(
-                            color: claimed
-                                ? const Color(0xFF68747A)
-                                : const Color(0xFF9A650F),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w800,
+                        Expanded(
+                          child: Text(
+                            claimed
+                                ? 'Matched by another driver'
+                                : 'Confirming availability',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: claimed
+                                  ? const Color(0xFF68747A)
+                                  : const Color(0xFF9A650F),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ],
@@ -2588,17 +2604,21 @@ class _DriverHomeState extends State<DriverHome>
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      offer.fare,
-                      style: const TextStyle(
-                        color: Color(0xFF252E3A),
-                        fontSize: 30,
-                        height: 1,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.9,
+                    Flexible(
+                      child: Text(
+                        offer.fare,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF252E3A),
+                          fontSize: 30,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.9,
+                        ),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     const Icon(
                       Icons.star_rounded,
                       color: Color(0xFFD7A02C),
@@ -2644,21 +2664,29 @@ class _DriverHomeState extends State<DriverHome>
                               size: 14,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              'Exclusive offer · ${seconds}s',
-                              style: const TextStyle(
-                                color: Color(0xFFB84F3D),
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w800,
+                            Expanded(
+                              child: Text(
+                                'Exclusive offer · ${seconds}s',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFFB84F3D),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ),
-                            const Spacer(),
-                            const Text(
-                              'Outside Radar',
-                              style: TextStyle(
-                                color: Color(0xFF8A9499),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w600,
+                            const SizedBox(width: 8),
+                            const Flexible(
+                              child: Text(
+                                'Outside Radar',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Color(0xFF8A9499),
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -2770,6 +2798,8 @@ class _DriverHomeState extends State<DriverHome>
             children: [
               Text(
                 title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFF252E3A),
                   fontSize: 12.5,
@@ -4213,7 +4243,7 @@ class _DriverHomeState extends State<DriverHome>
     const muted = Color(0xFF7B878E);
 
     return Stack(
-      clipBehavior: Clip.none,
+      clipBehavior: Clip.hardEdge,
       children: [
         PhysicalShape(
           clipper: const RadarSheetClipper(
@@ -4229,13 +4259,13 @@ class _DriverHomeState extends State<DriverHome>
             color: const Color(0xFFFCFDFD),
             child: Column(
               children: [
-                const SizedBox(height: 62),
+                const SizedBox(height: 88),
                 Expanded(
                   child: ListView(
                     key: const PageStorageKey<String>('driver-overview-list'),
-                    controller: sc,
+                    controller: _overviewListController,
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                    padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
                     children: [
                       const Padding(
                         padding: EdgeInsets.fromLTRB(2, 2, 2, 16),
@@ -4299,7 +4329,9 @@ class _DriverHomeState extends State<DriverHome>
                           );
                         },
                       ),
+                      _performanceSummaryCard(),
                       if (_adminHomeConfig.scheduledRides.enabled) ...[
+                        const SizedBox(height: 10),
                         _sheetAlertCard(
                           icon: Icons.event_available_outlined,
                           iconColor: const Color(0xFF7E8A93),
@@ -4307,9 +4339,7 @@ class _DriverHomeState extends State<DriverHome>
                           subtitle: _adminHomeConfig.scheduledRides.subtitle,
                           onTap: _openScheduledRides,
                         ),
-                        const SizedBox(height: 10),
                       ],
-                      _performanceSummaryCard(),
                       if (_adminHomeConfig.events
                           .where((event) => event.enabled)
                           .isNotEmpty) ...[
@@ -4569,9 +4599,11 @@ class _DriverHomeState extends State<DriverHome>
     _homeRadarMatchResolutionTimer?.cancel();
     _homeRadarNoticeTimer?.cancel();
     _homeRadarExternalClaimTimer?.cancel();
+    _homeRadarExternalClaimCleanupTimer?.cancel();
     _driverLocationSubscription?.cancel();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
+    _overviewListController.dispose();
     _mapController?.dispose();
     _driverSession.removeListener(_onDriverSessionChanged);
     if (_ownsDriverSession) {

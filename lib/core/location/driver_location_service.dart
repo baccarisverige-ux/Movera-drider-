@@ -13,6 +13,7 @@ class DriverLocationException implements Exception {
 class DriverLocationService implements DriverLocationRepository {
   const DriverLocationService();
 
+  @override
   Future<Position> getCurrentPosition() async {
     await _ensurePermission();
 
@@ -23,6 +24,7 @@ class DriverLocationService implements DriverLocationRepository {
     );
   }
 
+  @override
   Stream<Position> watchPosition({
     int distanceFilterMeters = 8,
   }) async* {

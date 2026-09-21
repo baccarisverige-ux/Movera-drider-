@@ -27,9 +27,12 @@ class DriverSideMenu extends StatelessWidget {
   // Deliberately keep the Drawer open under the destination route.
   // When the driver presses Back, Flutter reveals the menu again instead of
   // dropping them directly onto the map.
+  //
+  // Uses a non-[PageRoute] so [HeroController] cannot park the page offstage
+  // (which would make Back / [Navigator.pop] a no-op in widget tests).
   void _open(BuildContext context, Widget page) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => page),
+    Navigator.of(context, rootNavigator: true).push(
+      _DriverMenuRoute(page),
     );
   }
 
@@ -533,6 +536,64 @@ class _MetricTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DriverMenuRoute extends ModalRoute<void> {
+  _DriverMenuRoute(this.page);
+
+  final Widget page;
+
+  @override
+  bool get opaque => true;
+
+  @override
+  bool get barrierDismissible => false;
+
+  @override
+  Color? get barrierColor => null;
+
+  @override
+  String? get barrierLabel => null;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 280);
+
+  @override
+  Duration get reverseTransitionDuration =>
+      const Duration(milliseconds: 220);
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
+    return page;
+  }
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(1, 0),
+        end: Offset.zero,
+      ).animate(curved),
+      child: child,
     );
   }
 }

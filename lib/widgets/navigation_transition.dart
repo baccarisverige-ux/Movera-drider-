@@ -1,28 +1,66 @@
 import 'package:flutter/material.dart';
 
-class BottomToTopTransition extends PageRouteBuilder {
+/// Full-screen slide-up route that is *not* a [PageRoute].
+///
+/// [HeroController] only runs for [PageRoute]s and parks the incoming page
+/// [ModalRoute.offstage] until a second frame. Widget tests that pump once
+/// after [Navigator.push] would otherwise miss the page with
+/// `skipOffstage: true`.
+class BottomToTopTransition extends ModalRoute<void> {
+  BottomToTopTransition(this.page);
+
   final Widget page;
 
-  BottomToTopTransition(this.page)
-      : super(
-          pageBuilder: (context, animation, anotherAnimation) => page,
-          transitionDuration: const Duration(milliseconds: 1000),
-          reverseTransitionDuration: const Duration(milliseconds: 200),
-          transitionsBuilder: (context, animation, anotherAnimation, child) {
-            animation = CurvedAnimation(
-                curve: Curves.fastLinearToSlowEaseIn,
-                parent: animation,
-                reverseCurve: Curves.fastOutSlowIn);
-            return Align(
-              alignment: Alignment.bottomCenter,
-              child: SizeTransition(
-                sizeFactor: animation,
-                axisAlignment: 0,
-                child: page,
-              ),
-            );
-          },
-        );
+  @override
+  bool get opaque => true;
+
+  @override
+  bool get barrierDismissible => false;
+
+  @override
+  Color? get barrierColor => null;
+
+  @override
+  String? get barrierLabel => null;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 1000);
+
+  @override
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 200);
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
+    return page;
+  }
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.fastLinearToSlowEaseIn,
+      reverseCurve: Curves.fastOutSlowIn,
+    );
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0, 1),
+        end: Offset.zero,
+      ).animate(curved),
+      child: child,
+    );
+  }
 }
 
 class TopToBottomTransition extends PageRouteBuilder {
@@ -43,7 +81,7 @@ class TopToBottomTransition extends PageRouteBuilder {
               child: SizeTransition(
                 sizeFactor: animation,
                 axisAlignment: 0,
-                child: page,
+                child: child,
               ),
             );
           },
@@ -69,7 +107,7 @@ class SwitchTransition extends PageRouteBuilder {
                 axis: Axis.horizontal,
                 sizeFactor: animation,
                 axisAlignment: 0,
-                child: page,
+                child: child,
               ),
             );
           },
@@ -95,7 +133,7 @@ class LeftToRightTransition extends PageRouteBuilder {
                 axis: Axis.horizontal,
                 sizeFactor: animation,
                 axisAlignment: 0,
-                child: page,
+                child: child,
               ),
             );
           },
@@ -121,7 +159,7 @@ class RightToLeftTransition extends PageRouteBuilder {
                 axis: Axis.horizontal,
                 sizeFactor: animation,
                 axisAlignment: 0,
-                child: page,
+                child: child,
               ),
             );
           },

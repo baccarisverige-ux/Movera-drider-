@@ -1,0 +1,73 @@
+import 'package:movera/core/geo/geo_point.dart';
+
+enum ClaimOutcome {
+  success,
+  alreadyClaimed,
+  expired,
+  unavailable,
+  networkError,
+}
+
+class RideOffer {
+  const RideOffer({
+    required this.id,
+    required this.category,
+    required this.fare,
+    required this.rating,
+    required this.pickupMinutes,
+    required this.pickupKm,
+    required this.tripMinutes,
+    required this.tripKm,
+    required this.pickup,
+    required this.dropoff,
+    required this.pickupPosition,
+    required this.dropoffPosition,
+    required this.isNearby,
+    required this.followsDestination,
+  });
+
+  final String id;
+  final String category;
+  final String fare;
+  final String rating;
+  final int pickupMinutes;
+  final double pickupKm;
+  final int tripMinutes;
+  final double tripKm;
+  final String pickup;
+  final String dropoff;
+  final GeoPoint pickupPosition;
+  final GeoPoint dropoffPosition;
+  final bool isNearby;
+  final bool followsDestination;
+}
+
+class ClaimResult {
+  const ClaimResult._(this.outcome, {this.offer});
+
+  const ClaimResult.success(RideOffer offer)
+      : this._(ClaimOutcome.success, offer: offer);
+
+  const ClaimResult.alreadyClaimed() : this._(ClaimOutcome.alreadyClaimed);
+  const ClaimResult.expired() : this._(ClaimOutcome.expired);
+  const ClaimResult.unavailable() : this._(ClaimOutcome.unavailable);
+  const ClaimResult.networkError() : this._(ClaimOutcome.networkError);
+
+  final ClaimOutcome outcome;
+  final RideOffer? offer;
+
+  bool get isSuccess => outcome == ClaimOutcome.success;
+}
+
+/// Dispatch/Radar boundary. UI must not decide an atomic winner.
+abstract interface class DispatchRepository {
+  Stream<List<RideOffer>> watchNearbyOffers({
+    bool destinationModeActive = false,
+  });
+
+  Stream<List<RideOffer>> watchNextTripOffers();
+
+  Future<ClaimResult> claimOffer(String offerId);
+
+  void refreshOffers();
+}

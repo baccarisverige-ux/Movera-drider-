@@ -17,6 +17,8 @@ import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart'
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/custom_google_map.dart';
+import 'package:movera/widgets/layout_viewport.dart';
+import 'package:movera/widgets/movera_modal_sheet.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 
 class AcceptRide extends StatefulWidget {
@@ -536,15 +538,18 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   void _advanceRide() {
-    if (_stageTransitioning || !mounted) return;
+    if (_stageTransitioning || !mounted || _rideLifecycle.terminal) return;
 
     _stageTransitioning = true;
     _routeRequestToken++;
 
     switch (_stage) {
       case ActiveRideStage.headingToPickup:
+        if (!_rideLifecycle.transitionTo(ActiveRideStage.waitingForRider)) {
+          _stageTransitioning = false;
+          return;
+        }
         setState(() {
-          _stage = ActiveRideStage.waitingForRider;
           _waitSeconds = 0;
           _roadRoutePoints = <LatLng>[];
           _routeDistanceMeters = null;
@@ -552,42 +557,52 @@ class _AcceptRideState extends State<AcceptRide> {
           _routeLoading = false;
         });
         _startWaitTimer();
-        _stageTransitioning = false;
+        _unlockStageAfterFrame();
         unawaited(_focusWaitingPickup());
         return;
 
       case ActiveRideStage.waitingForRider:
+        if (!_rideLifecycle.transitionTo(ActiveRideStage.onTrip)) {
+          _stageTransitioning = false;
+          return;
+        }
         _waitTimer?.cancel();
         setState(() {
-          _stage = ActiveRideStage.onTrip;
           _roadRoutePoints = <LatLng>[];
           _routeDistanceMeters = null;
           _routeDurationSeconds = null;
           _routeLoading = false;
         });
         _startOnTripRadar();
-        _stageTransitioning = false;
+        _unlockStageAfterFrame();
         unawaited(_refreshOnTripRoute());
         return;
 
       case ActiveRideStage.onTrip:
+        if (!_rideLifecycle.complete()) {
+          _stageTransitioning = false;
+          return;
+        }
         _waitTimer?.cancel();
         _nextTripRadarDemoTimer?.cancel();
         _nextTripRadarMatchTimer?.cancel();
-        _rideLifecycle.complete();
         _waybills.completeCurrent();
-
-        Navigator.pushReplacement(
-          context,
-          BottomToTopTransition(
-            DriverRideCompleted(
-              waybillRepository: _waybills,
-              sessionController: widget.sessionController,
-            ),
-          ),
+        final navigator = Navigator.of(context);
+        final completedPage = DriverRideCompleted(
+          waybillRepository: _waybills,
+          sessionController: widget.sessionController,
+        );
+        navigator.pushReplacement(
+          BottomToTopTransition(completedPage),
         );
         return;
     }
+  }
+
+  void _unlockStageAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _stageTransitioning = false;
+    });
   }
 
   Future<void> _refreshOnTripRoute() async {
@@ -668,11 +683,10 @@ class _AcceptRideState extends State<AcceptRide> {
     final offer = _nextTripRadarOffer;
     if (offer == null) return;
 
-    await showModalBottomSheet<void>(
+    await showMoveraModalSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.22),
-      isScrollControlled: true,
+      heightFactor: 0.82,
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -681,26 +695,20 @@ class _AcceptRideState extends State<AcceptRide> {
             final matching =
                 _onTripRadarState == _OnTripRadarState.matching;
 
-            return Container(
+            return MoveraModalSheet(
               key: const ValueKey<String>('on-trip-radar-offer-sheet'),
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.82,
-              ),
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF9FBFA),
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-              ),
+              heightFactor: 0.82,
+              color: const Color(0xFFF9FBFA),
+              radius: 28,
               child: SafeArea(
                 top: false,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
                   children: [
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+                        physics: const BouncingScrollPhysics(),
+                        children: [
                     Center(
                       child: Container(
                         width: 42,
@@ -820,7 +828,12 @@ class _AcceptRideState extends State<AcceptRide> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
+                  ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
+                      child: SizedBox(
                       width: double.infinity,
                       height: 52,
                       child: FilledButton(
@@ -911,8 +924,8 @@ class _AcceptRideState extends State<AcceptRide> {
                               ),
                       ),
                     ),
+                    ),
                   ],
-                  ),
                 ),
               ),
             );
@@ -1290,7 +1303,8 @@ class _AcceptRideState extends State<AcceptRide> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return LayoutViewport(
+      child: Scaffold(
       backgroundColor: _canvas,
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -1353,6 +1367,7 @@ class _AcceptRideState extends State<AcceptRide> {
           );
         },
       ),
+    ),
     );
   }
 
@@ -2148,28 +2163,20 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Future<void> _showTripOptions() async {
-    await showModalBottomSheet<void>(
+    await showMoveraModalSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.35),
+      heightFactor: 0.78,
       builder: (sheetContext) {
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.78,
-          ),
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF7F9F9),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-          ),
+        return MoveraModalSheet(
+          heightFactor: 0.78,
+          color: const Color(0xFFF7F9F9),
           child: SafeArea(
             top: false,
-            child: SingleChildScrollView(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
               physics: const BouncingScrollPhysics(),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              children: [
                   Container(
                     width: 44,
                     height: 5,
@@ -2239,8 +2246,7 @@ class _AcceptRideState extends State<AcceptRide> {
                       _showCancellationReasons();
                     },
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         );
@@ -2324,159 +2330,140 @@ class _AcceptRideState extends State<AcceptRide> {
     final reasons =
         isOnTrip ? _onTripCancellationReasons : _preTripCancellationReasons;
 
-    final reason = await showModalBottomSheet<_TripCancellationReason>(
+    final reason = await showMoveraModalSheet<_TripCancellationReason>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.32),
+      heightFactor: isOnTrip ? 0.72 : 0.66,
       builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          initialChildSize: isOnTrip ? 0.72 : 0.66,
-          minChildSize: 0.48,
-          maxChildSize: 0.88,
-          expand: false,
-          builder: (context, controller) {
-            return Container(
-              key: const ValueKey<String>('trip-cancellation-reasons-sheet'),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF8FAF9),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 10),
-                    Container(
-                      width: 42,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD7DEDB),
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isOnTrip
-                                ? 'Why are you ending the trip?'
-                                : 'Why are you cancelling?',
-                            style: const TextStyle(
-                              color: _ink,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            isOnTrip
-                                ? 'Stop the vehicle in a safe place before ending an active trip.'
-                                : 'Choose the reason that best explains the cancellation.',
-                            style: const TextStyle(
-                              color: _muted,
-                              fontSize: 11,
-                              height: 1.4,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView.separated(
-                        controller: controller,
-                        padding: const EdgeInsets.fromLTRB(14, 2, 14, 20),
-                        itemCount: reasons.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 7),
-                        itemBuilder: (context, index) {
-                          final reason = reasons[index];
-                          return Material(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(17),
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              key: ValueKey<String>(
-                                'trip-cancel-reason-${reason.code}',
-                              ),
-                              onTap: () =>
-                                  Navigator.pop(sheetContext, reason),
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  12,
-                                  11,
-                                  10,
-                                  11,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 39,
-                                      height: 39,
-                                      decoration: BoxDecoration(
-                                        color: isOnTrip
-                                            ? const Color(0xFFFFEEF0)
-                                            : const Color(0xFFF0F3F2),
-                                        borderRadius:
-                                            BorderRadius.circular(13),
-                                      ),
-                                      child: Icon(
-                                        reason.icon,
-                                        color: isOnTrip
-                                            ? _danger
-                                            : const Color(0xFF58656C),
-                                        size: 19,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 11),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            reason.title,
-                                            style: const TextStyle(
-                                              color: _ink,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            reason.subtitle,
-                                            style: const TextStyle(
-                                              color: _muted,
-                                              fontSize: 9.5,
-                                              height: 1.3,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.chevron_right_rounded,
-                                      color: Color(0xFFA5AFB4),
-                                      size: 20,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+        return MoveraModalSheet(
+          key: const ValueKey<String>('trip-cancellation-reasons-sheet'),
+          heightFactor: isOnTrip ? 0.72 : 0.66,
+          color: const Color(0xFFF8FAF9),
+          radius: 28,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD7DEDB),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
                 ),
-              ),
-            );
-          },
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isOnTrip
+                            ? 'Why are you ending the trip?'
+                            : 'Why are you cancelling?',
+                        style: const TextStyle(
+                          color: _ink,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        isOnTrip
+                            ? 'Stop the vehicle in a safe place before ending an active trip.'
+                            : 'Choose the reason that best explains the cancellation.',
+                        style: const TextStyle(
+                          color: _muted,
+                          fontSize: 11,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(14, 2, 14, 20),
+                    itemCount: reasons.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 7),
+                    itemBuilder: (context, index) {
+                      final reason = reasons[index];
+                      return Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(17),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          key: ValueKey<String>(
+                            'trip-cancel-reason-${reason.code}',
+                          ),
+                          onTap: () => Navigator.pop(sheetContext, reason),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 39,
+                                  height: 39,
+                                  decoration: BoxDecoration(
+                                    color: isOnTrip
+                                        ? const Color(0xFFFFEEF0)
+                                        : const Color(0xFFF0F3F2),
+                                    borderRadius: BorderRadius.circular(13),
+                                  ),
+                                  child: Icon(
+                                    reason.icon,
+                                    color: isOnTrip
+                                        ? _danger
+                                        : const Color(0xFF58656C),
+                                    size: 19,
+                                  ),
+                                ),
+                                const SizedBox(width: 11),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        reason.title,
+                                        style: const TextStyle(
+                                          color: _ink,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        reason.subtitle,
+                                        style: const TextStyle(
+                                          color: _muted,
+                                          fontSize: 9.5,
+                                          height: 1.3,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: Color(0xFFA5AFB4),
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -2490,31 +2477,21 @@ class _AcceptRideState extends State<AcceptRide> {
   ) async {
     final isOnTrip = _stage == ActiveRideStage.onTrip;
 
-    final confirmed = await showModalBottomSheet<bool>(
+    final confirmed = await showMoveraModalSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.34),
+      heightFactor: 0.56,
       builder: (sheetContext) {
-        return Container(
+        return MoveraModalSheet(
           key: const ValueKey<String>('trip-cancellation-confirmation'),
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF8FAF9),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
+          heightFactor: 0.56,
+          color: const Color(0xFFF8FAF9),
+          radius: 28,
           child: SafeArea(
             top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
               children: [
-                Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD7DEDB),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
                 const SizedBox(height: 17),
                 Container(
                   width: 50,
@@ -2692,9 +2669,10 @@ class _SlideRideActionState extends State<_SlideRideAction> {
 
   void _update(double delta, double maxTravel) {
     if (_confirmed || maxTravel <= 0) return;
+    final next = (_fraction + (delta / maxTravel)).clamp(0.0, 1.0);
     setState(() {
       _dragging = true;
-      _fraction = (_fraction + (delta / maxTravel)).clamp(0.0, 1.0);
+      _fraction = next >= _trigger ? 1 : next;
     });
   }
 

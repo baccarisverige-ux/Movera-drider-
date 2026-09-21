@@ -9,6 +9,7 @@ import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/home/home.dart';
+import 'package:movera/widgets/layout_viewport.dart';
 
 void main() {
   runApp(const MoveraApp());
@@ -27,6 +28,7 @@ class MoveraApp extends StatefulWidget {
 }
 
 class _MoveraAppState extends State<MoveraApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   late final DriverSessionController _session;
   late final WaybillRepository _waybills;
   late final DriverLocationRepository _location;
@@ -49,26 +51,34 @@ class _MoveraAppState extends State<MoveraApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(375, 812),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      useInheritedMediaQuery: true,
-      builder: (_, child) {
-        return GetMaterialApp(
-          title: 'Movera Driver',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData.light(
-            useMaterial3: true,
-          ).copyWith(scaffoldBackgroundColor: AppColor.bg),
-          home: DriverHome(
-            sessionController: _session,
-            waybillRepository: _waybills,
-            locationRepository: _location,
-            routeRepository: _routing,
-          ),
-        );
-      },
+    return LayoutViewport(
+      child: ScreenUtilInit(
+        designSize: const Size(375, 812),
+        minTextAdapt: true,
+        splitScreenMode: true,
+        useInheritedMediaQuery: true,
+        builder: (_, __) {
+          return GetMaterialApp(
+            navigatorKey: _navigatorKey,
+            title: 'Movera Driver',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData.light(
+              useMaterial3: true,
+            ).copyWith(scaffoldBackgroundColor: AppColor.bg),
+            builder: (context, child) {
+              return LayoutViewport(
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+            home: DriverHome(
+              sessionController: _session,
+              waybillRepository: _waybills,
+              locationRepository: _location,
+              routeRepository: _routing,
+            ),
+          );
+        },
+      ),
     );
   }
 }

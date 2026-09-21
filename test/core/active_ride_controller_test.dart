@@ -30,4 +30,15 @@ void main() {
       isFalse,
     );
   });
+
+  test('complete is idempotent and rejects double completion', () {
+    final ride = ActiveRideController();
+    expect(ride.complete(), isFalse);
+
+    expect(ride.transitionTo(ActiveRideStage.waitingForRider), isTrue);
+    expect(ride.transitionTo(ActiveRideStage.onTrip), isTrue);
+    expect(ride.complete(), isTrue);
+    expect(ride.complete(), isFalse);
+    expect(ride.cancelled, isFalse);
+  });
 }

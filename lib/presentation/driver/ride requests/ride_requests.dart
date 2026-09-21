@@ -8,6 +8,7 @@ import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
+import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 
 class RideRequests extends StatefulWidget {
@@ -288,27 +289,26 @@ class _RideRequestsState extends State<RideRequests> {
       const Duration(milliseconds: 500),
       () {
         if (!mounted) return;
-        setState(() => _matchNotice = null);
-        Navigator.push(
-          context,
-          BottomToTopTransition(
-            AcceptRide(
-              offerId: trip.id,
-              fare: trip.fare,
-              category: trip.category,
-              matchedVia: 'Movera Radar',
-              sessionController: widget.sessionController,
-              waybillRepository: widget.waybillRepository,
-              locationRepository: widget.locationRepository,
-              routeRepository: widget.routeRepository,
-              pickupAddress: trip.pickup,
-              pickupArea: trip.pickup.split(',').last.trim(),
-              dropoffAddress: trip.dropoff,
-              pickupPosition: trip.pickupPosition,
-              dropoffPosition: trip.dropoffPosition,
-            ),
-          ),
+        final navigator = Navigator.of(context);
+        final ride = AcceptRide(
+          offerId: trip.id,
+          fare: trip.fare,
+          category: trip.category,
+          matchedVia: 'Movera Radar',
+          sessionController: widget.sessionController,
+          waybillRepository: widget.waybillRepository,
+          locationRepository: widget.locationRepository,
+          routeRepository: widget.routeRepository,
+          pickupAddress: trip.pickup,
+          pickupArea: trip.pickup.split(',').last.trim(),
+          dropoffAddress: trip.dropoff,
+          pickupPosition: trip.pickupPosition,
+          dropoffPosition: trip.dropoffPosition,
         );
+        navigator.push(BottomToTopTransition(ride));
+        if (mounted) {
+          setState(() => _matchNotice = null);
+        }
       },
     );
   }
@@ -378,7 +378,8 @@ class _RideRequestsState extends State<RideRequests> {
   Widget build(BuildContext context) {
     final offers = _visibleOffers;
 
-    return Material(
+    return LayoutViewport(
+      child: Material(
       color: Colors.transparent,
       child: Stack(
         fit: StackFit.expand,
@@ -416,6 +417,7 @@ class _RideRequestsState extends State<RideRequests> {
             ),
         ],
       ),
+    ),
     );
   }
 
