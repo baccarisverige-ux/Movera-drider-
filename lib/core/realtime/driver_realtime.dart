@@ -7,6 +7,8 @@ enum DriverRealtimeKind {
   tripProjection,
   riderCancelled,
   location,
+  driverArrived,
+  riderOnTheWay,
 }
 
 class DriverRealtimeEvent {
@@ -18,6 +20,7 @@ class DriverRealtimeEvent {
     this.status,
     this.latitude,
     this.longitude,
+    this.message,
   });
 
   final String tripId;
@@ -27,6 +30,7 @@ class DriverRealtimeEvent {
   final TripStatus? status;
   final double? latitude;
   final double? longitude;
+  final String? message;
 }
 
 /// Mirror of Rider's [RideRealtime] shape so both apps hit the same seam.
@@ -34,6 +38,12 @@ abstract interface class DriverRealtime {
   Stream<DriverRealtimeEvent> subscribe(String tripId);
 
   Future<void> reconnectAndResync(String tripId);
+
+  Future<void> sendSignal({
+    required String tripId,
+    required DriverRealtimeKind kind,
+    String? message,
+  });
 
   void unsubscribe();
 
@@ -63,6 +73,7 @@ class MemoryDriverRealtime implements DriverRealtime {
     TripStatus? status,
     double? latitude,
     double? longitude,
+    String? message,
     DateTime? at,
   }) {
     _sequence += 1;
@@ -74,6 +85,7 @@ class MemoryDriverRealtime implements DriverRealtime {
       status: status,
       latitude: latitude,
       longitude: longitude,
+      message: message,
     );
     publish(event);
     return event;
@@ -83,6 +95,19 @@ class MemoryDriverRealtime implements DriverRealtime {
   Stream<DriverRealtimeEvent> subscribe(String tripId) {
     _tripId = tripId;
     return _controller.stream.where((event) => event.tripId == tripId);
+  }
+
+  @override
+  Future<void> sendSignal({
+    required String tripId,
+    required DriverRealtimeKind kind,
+    String? message,
+  }) async {
+    emit(
+      tripId: tripId,
+      kind: kind,
+      message: message,
+    );
   }
 
   @override
