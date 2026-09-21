@@ -331,6 +331,8 @@ class _AcceptRideState extends State<AcceptRide>
   double _ridePointerVelocity = 0;
   double _ridePointerLastY = 0;
   int _ridePointerLastMs = 0;
+  bool _ridePointerActive = false;
+  Timer? _rideSheetPositionGuardTimer;
 
   GoogleMapController? _mapController;
   StreamSubscription<DriverLocation>? _positionSubscription;
@@ -417,6 +419,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   @override
   void dispose() {
+    _rideSheetPositionGuardTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
@@ -956,6 +959,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _onRideSheetPointerDown(PointerDownEvent event) {
+    _ridePointerActive = true;
     _ridePointerLastY = event.position.dy;
     _ridePointerLastMs = DateTime.now().millisecondsSinceEpoch;
     _ridePointerVelocity = 0;
@@ -976,9 +980,37 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _onRideSheetPointerEnd(PointerEvent event) {
     _onRideSheetPointerMove(event);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      unawaited(_snapRideSheet());
+    _ridePointerActive = false;
+    _scheduleRideSheetPositionGuard(
+      delay: const Duration(milliseconds: 460),
+    );
+  }
+
+  void _scheduleRideSheetPositionGuard({
+    Duration delay = const Duration(milliseconds: 180),
+  }) {
+    _rideSheetPositionGuardTimer?.cancel();
+    _rideSheetPositionGuardTimer = Timer(delay, () {
+      if (!mounted ||
+          _ridePointerActive ||
+          !_ridePanelController.isAttached) {
+        return;
+      }
+
+      final viewport = MediaQuery.sizeOf(context).height;
+      final collapsed = MoveraSheetMetrics.activeCollapsedHeight +
+          MediaQuery.paddingOf(context).bottom;
+      final snap = MoveraSheetMetrics.snapPoint(
+        viewportHeight: viewport,
+        collapsed: collapsed,
+      );
+      final position = _ridePanelController.panelPosition.clamp(0.0, 1.0);
+      final nearestDistance = math.min(
+        position.abs(),
+        math.min((position - snap).abs(), (1 - position).abs()),
+      );
+      if (nearestDistance <= 0.025) return;
+      unawaited(_snapRideSheet(velocity: 0));
     });
   }
 
@@ -1673,7 +1705,7 @@ class _AcceptRideState extends State<AcceptRide>
             minHeight: collapsed,
             maxHeight: expanded,
             snapPoint: snap,
-            panelSnapping: false,
+            panelSnapping: true,
             defaultPanelState: PanelState.OPEN,
             isDraggable: true,
             color: Colors.transparent,
@@ -1683,9 +1715,18 @@ class _AcceptRideState extends State<AcceptRide>
             margin: EdgeInsets.zero,
             onPanelSlide: (pos) {
               _ridePanelPosition.value = pos;
+              if (!_ridePointerActive) {
+                _scheduleRideSheetPositionGuard();
+              }
             },
-            onPanelOpened: () => _ridePanelPosition.value = 1,
-            onPanelClosed: () => _ridePanelPosition.value = 0,
+            onPanelOpened: () {
+              _rideSheetPositionGuardTimer?.cancel();
+              _ridePanelPosition.value = 1;
+            },
+            onPanelClosed: () {
+              _rideSheetPositionGuardTimer?.cancel();
+              _ridePanelPosition.value = 0;
+            },
             panel: _mapOverlay(
               child: Listener(
                 behavior: HitTestBehavior.translucent,
