@@ -2010,11 +2010,17 @@ class _AcceptRideState extends State<AcceptRide>
                 if (compact)
                   CompactTripDock(
                     key: const ValueKey<String>('active-ride-compact-dock'),
-                    title: _title,
-                    detail: _compactDockDetail,
+                    pickupAddress: widget.pickupAddress,
+                    dropoffAddress: widget.dropoffAddress,
+                    stopCount: widget.stopAddresses.length,
                     etaLabel: _stage == ActiveRideStage.waitingForRider
                         ? _waitLabel
                         : _routeEtaText,
+                    stageLabel: switch (_stage) {
+                      ActiveRideStage.headingToPickup => 'PICKUP',
+                      ActiveRideStage.waitingForRider => 'WAITING',
+                      ActiveRideStage.onTrip => 'ON TRIP',
+                    },
                   )
                 else
                   Expanded(
@@ -2066,7 +2072,9 @@ class _AcceptRideState extends State<AcceptRide>
                           ),
                           const SizedBox(height: 14),
                           _buildProgress(),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 12),
+                          _buildJourneyDetailsCard(),
+                          const SizedBox(height: 12),
                           _buildRiderRow(),
                           const SizedBox(height: 10),
                           _buildCurrentWaybillShortcut(),
@@ -2092,6 +2100,272 @@ class _AcceptRideState extends State<AcceptRide>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildJourneyDetailsCard() {
+    return Container(
+      key: const ValueKey<String>('active-ride-journey-card'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFFFFF),
+            Color(0xFFF8FBFA),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2EAE6)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF18392E).withOpacity(0.055),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDF7F2),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                alignment: Alignment.center,
+                child: SvgPicture.asset(
+                  'assets/icons/movera_route.svg',
+                  width: 17,
+                  height: 17,
+                  colorFilter: const ColorFilter.mode(
+                    _green,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 9),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Trip route',
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.18,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Pickup · stops · drop-off',
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F5F2),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Text(
+                  widget.stopAddresses.isEmpty
+                      ? 'Direct'
+                      : '${widget.stopAddresses.length} stop${widget.stopAddresses.length == 1 ? '' : 's'}',
+                  style: const TextStyle(
+                    color: Color(0xFF557166),
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _journeyPoint(
+            asset: 'assets/icons/movera_pin.svg',
+            label: 'Pickup',
+            address: widget.pickupAddress,
+            accent: const Color(0xFF19865C),
+            isLast: false,
+          ),
+          for (var i = 0; i < widget.stopAddresses.length; i++)
+            _journeyPoint(
+              asset: 'assets/icons/movera_stop.svg',
+              label: 'Stop ${i + 1}',
+              address: widget.stopAddresses[i],
+              accent: const Color(0xFF69A98D),
+              isLast: false,
+            ),
+          _journeyPoint(
+            asset: 'assets/icons/movera_flag.svg',
+            label: 'Drop-off',
+            address: widget.dropoffAddress,
+            accent: const Color(0xFF2D3942),
+            isLast: true,
+          ),
+          const SizedBox(height: 9),
+          Row(
+            children: [
+              _tripMetaChip(
+                icon: Icons.directions_car_filled_outlined,
+                text: widget.category,
+              ),
+              const SizedBox(width: 7),
+              _tripMetaChip(
+                icon: Icons.payments_outlined,
+                text: widget.fare,
+              ),
+              const Spacer(),
+              Text(
+                _stage == ActiveRideStage.waitingForRider
+                    ? _waitLabel
+                    : '$_routeEtaText · $_routeDistanceText',
+                style: const TextStyle(
+                  color: _green,
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _journeyPoint({
+    required String asset,
+    required String label,
+    required String address,
+    required Color accent,
+    required bool isLast,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 34,
+          child: Column(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFDDE7E2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withOpacity(0.10),
+                      blurRadius: 7,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: SvgPicture.asset(
+                  asset,
+                  width: 14,
+                  height: 14,
+                  colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
+                ),
+              ),
+              if (!isLast)
+                Container(
+                  width: 2,
+                  height: 24,
+                  margin: const EdgeInsets.symmetric(vertical: 2),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF8FC5AD),
+                        Color(0xFFDCE7E2),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  address,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 10.5,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tripMetaChip({
+    required IconData icon,
+    required String text,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F6F5),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: const Color(0xFF66756F)),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF5E6C67),
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
