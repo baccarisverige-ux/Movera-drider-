@@ -15,7 +15,6 @@ class NavigationInstructionBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     const ink = Color(0xFF252E3A);
     const muted = Color(0xFF7D898F);
-    const green = Color(0xFF19865C);
     final subtitle = [
       if ((banner.roadName ?? '').isNotEmpty) banner.roadName,
       if ((banner.status ?? '').isNotEmpty) banner.status,
@@ -41,12 +40,12 @@ class NavigationInstructionBanner extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F5EE),
+                color: const Color(0xFFF4F5F6),
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Icon(
                 _iconFor(banner.symbol),
-                color: green,
+                color: ink,
                 size: 26,
               ),
             ),

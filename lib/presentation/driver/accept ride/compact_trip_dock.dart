@@ -27,7 +27,6 @@ class CompactTripDock extends StatelessWidget {
 
   static const _ink = Color(0xFF233039);
   static const _muted = Color(0xFF7D898F);
-  static const _green = Color(0xFF19865C);
 
   @override
   Widget build(BuildContext context) {
@@ -38,10 +37,10 @@ class CompactTripDock extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE6ECE9)),
+          border: Border.all(color: const Color(0xFFE6E8EA)),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF18392E).withOpacity(0.07),
+              color: const Color(0xFF171C20).withOpacity(0.06),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -57,12 +56,12 @@ class CompactTripDock extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFFF8FBFA),
-                    Color(0xFFE9F4EF),
+                    Color(0xFFF7F8F9),
+                    Color(0xFFEEF0F1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: const Color(0xFFDEEAE5)),
+                border: Border.all(color: const Color(0xFFE4E6E8)),
               ),
               child: Stack(
                 fit: StackFit.expand,
@@ -74,14 +73,14 @@ class CompactTripDock extends StatelessWidget {
                     alignment: const Alignment(-0.62, 0.56),
                     child: _routeNode(
                       'assets/icons/movera_pin.svg',
-                      const Color(0xFF19865C),
+                      _ink,
                     ),
                   ),
                   Align(
                     alignment: const Alignment(0.60, -0.54),
                     child: _routeNode(
                       'assets/icons/movera_flag.svg',
-                      const Color(0xFF283640),
+                      _ink,
                     ),
                   ),
                   if (stopAddresses.isNotEmpty)
@@ -94,12 +93,12 @@ class CompactTripDock extends StatelessWidget {
                           color: const Color(0xFFFFFFFF),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFF74B99A),
+                            color: const Color(0xFF252E3A),
                             width: 2,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF19865C).withOpacity(0.16),
+                              color: const Color(0xFF171C20).withOpacity(0.12),
                               blurRadius: 5,
                               offset: const Offset(0, 2),
                             ),
@@ -141,13 +140,13 @@ class CompactTripDock extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF0F6F3),
+                              color: const Color(0xFFF4F5F6),
                               borderRadius: BorderRadius.circular(99),
                             ),
                             child: Text(
                               '${stopAddresses.length} stop${stopAddresses.length == 1 ? '' : 's'}',
                               style: const TextStyle(
-                                color: Color(0xFF5A796C),
+                                color: _ink,
                                 fontSize: 7.5,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -165,7 +164,7 @@ class CompactTripDock extends StatelessWidget {
                             width: 9,
                             height: 9,
                             colorFilter: const ColorFilter.mode(
-                              Color(0xFF69A98D),
+                              _ink,
                               BlendMode.srcIn,
                             ),
                           ),
@@ -178,7 +177,7 @@ class CompactTripDock extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: Color(0xFF658075),
+                                color: _muted,
                                 fontSize: 8.3,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -220,7 +219,7 @@ class CompactTripDock extends StatelessWidget {
               child: onArrived != null
                   ? Material(
                       key: const ValueKey<String>('active-ride-arrived-button'),
-                      color: const Color(0xFF19865C),
+                      color: const Color(0xFF252E3A),
                       borderRadius: BorderRadius.circular(12),
                       child: InkWell(
                         onTap: onArrived,
@@ -249,7 +248,7 @@ class CompactTripDock extends StatelessWidget {
                         Text(
                           etaLabel,
                           style: const TextStyle(
-                            color: _green,
+                            color: _ink,
                             fontSize: 11.5,
                             fontWeight: FontWeight.w900,
                           ),
@@ -259,7 +258,7 @@ class CompactTripDock extends StatelessWidget {
                           riderReply ?? stageLabel,
                           style: TextStyle(
                             color: riderReply != null
-                                ? const Color(0xFF19865C)
+                                ? _ink
                                 : const Color(0xFF8A9599),
                             fontSize: 7.5,
                             fontWeight: FontWeight.w800,
@@ -307,7 +306,7 @@ class _CompactRoutePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final shadow = Paint()
-      ..color = const Color(0xFF315E4D).withOpacity(0.10)
+      ..color = const Color(0xFF171C20).withOpacity(0.08)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 7
       ..strokeCap = StrokeCap.round;
@@ -315,8 +314,8 @@ class _CompactRoutePainter extends CustomPainter {
     final line = Paint()
       ..shader = const LinearGradient(
         colors: [
-          Color(0xFF70B798),
-          Color(0xFF1E7D5C),
+          Color(0xFF9AA0A6),
+          Color(0xFF252E3A),
         ],
       ).createShader(Offset.zero & size)
       ..style = PaintingStyle.stroke

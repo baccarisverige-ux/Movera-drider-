@@ -211,7 +211,6 @@ class _AcceptRideState extends State<AcceptRide>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _panel = Color(0xFFFFFFFF);
-  static const Color _panel2 = Color(0xFFF1F5F3);
   static const Color _canvas = Color(0xFFF4F6F7);
   static const Color _muted = Color(0xFF7D898F);
   static const Color _green = Color(0xFF19865C);
@@ -1913,7 +1912,7 @@ class _AcceptRideState extends State<AcceptRide>
               height: 48,
               width: 48,
               decoration: BoxDecoration(
-                color: waiting ? const Color(0xFFF1F3F4) : _mint,
+                color: const Color(0xFFF4F5F6),
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Icon(
@@ -1922,7 +1921,7 @@ class _AcceptRideState extends State<AcceptRide>
                     : onTrip
                         ? Icons.flag_outlined
                         : Icons.near_me_outlined,
-                color: waiting ? _ink : _green,
+                color: _ink,
                 size: 23,
               ),
             ),
@@ -1959,8 +1958,8 @@ class _AcceptRideState extends State<AcceptRide>
             const SizedBox(width: 8),
             Text(
               waiting ? _waitLabel : _routeEtaText,
-              style: TextStyle(
-                color: waiting ? _ink : _green,
+              style: const TextStyle(
+                color: _ink,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),
@@ -2137,8 +2136,6 @@ class _AcceptRideState extends State<AcceptRide>
                             ],
                           ),
                           const SizedBox(height: 14),
-                          _buildProgress(),
-                          const SizedBox(height: 12),
                           _buildJourneyDetailsCard(),
                           const SizedBox(height: 12),
                           _buildRiderRow(),
@@ -2173,100 +2170,44 @@ class _AcceptRideState extends State<AcceptRide>
     return Container(
       key: const ValueKey<String>('active-ride-journey-card'),
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+      padding: const EdgeInsets.fromLTRB(14, 16, 16, 14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFFFFF),
-            Color(0xFFF8FBFA),
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2EAE6)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF18392E).withOpacity(0.055),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
+        border: Border.all(color: const Color(0xFFE6E8EA)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDF7F2),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                alignment: Alignment.center,
-                child: SvgPicture.asset(
-                  'assets/icons/movera_route.svg',
-                  width: 17,
-                  height: 17,
-                  colorFilter: const ColorFilter.mode(
-                    _green,
-                    BlendMode.srcIn,
-                  ),
+              const Text(
+                'Pickup to drop-off',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
                 ),
               ),
-              const SizedBox(width: 9),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Trip route',
-                      style: TextStyle(
-                        color: _ink,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.18,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Pickup · stops · drop-off',
-                      style: TextStyle(
-                        color: _muted,
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F5F2),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Text(
-                  widget.stopAddresses.isEmpty
-                      ? 'Direct'
-                      : '${widget.stopAddresses.length} stop${widget.stopAddresses.length == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                    color: Color(0xFF557166),
-                    fontSize: 8.5,
-                    fontWeight: FontWeight.w800,
-                  ),
+              const Spacer(),
+              Text(
+                widget.stopAddresses.isEmpty
+                    ? 'Direct'
+                    : '${widget.stopAddresses.length} stop${widget.stopAddresses.length == 1 ? '' : 's'}',
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           _journeyPoint(
             asset: 'assets/icons/movera_pin.svg',
             label: 'Pickup',
             address: widget.pickupAddress,
-            accent: const Color(0xFF19865C),
             isLast: false,
           ),
           for (var i = 0; i < widget.stopAddresses.length; i++)
@@ -2274,36 +2215,42 @@ class _AcceptRideState extends State<AcceptRide>
               asset: 'assets/icons/movera_stop.svg',
               label: 'Stop ${i + 1}',
               address: widget.stopAddresses[i],
-              accent: const Color(0xFF69A98D),
               isLast: false,
             ),
           _journeyPoint(
             asset: 'assets/icons/movera_flag.svg',
             label: 'Drop-off',
             address: widget.dropoffAddress,
-            accent: const Color(0xFF2D3942),
             isLast: true,
           ),
-          const SizedBox(height: 9),
+          const Padding(
+            padding: EdgeInsets.only(top: 12, bottom: 10),
+            child: Divider(height: 1, color: Color(0xFFEEF0F1)),
+          ),
           Row(
             children: [
-              _tripMetaChip(
-                icon: Icons.directions_car_filled_outlined,
-                text: widget.category,
+              Flexible(
+                child: Text(
+                  widget.fare == '—'
+                      ? widget.category
+                      : '${widget.category} · ${widget.fare}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-              const SizedBox(width: 7),
-              _tripMetaChip(
-                icon: Icons.payments_outlined,
-                text: widget.fare,
-              ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 _stage == ActiveRideStage.waitingForRider
                     ? _waitLabel
                     : '$_routeEtaText · $_routeDistanceText',
                 style: const TextStyle(
-                  color: _green,
-                  fontSize: 8.5,
+                  color: _ink,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -2318,116 +2265,75 @@ class _AcceptRideState extends State<AcceptRide>
     required String asset,
     required String label,
     required String address,
-    required Color accent,
     required bool isLast,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 34,
-          child: Column(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFDDE7E2)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withOpacity(0.10),
-                      blurRadius: 7,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: SvgPicture.asset(
-                  asset,
-                  width: 14,
-                  height: 14,
-                  colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
-                ),
-              ),
-              if (!isLast)
-                Container(
-                  width: 2,
-                  height: 24,
-                  margin: const EdgeInsets.symmetric(vertical: 2),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFF8FC5AD),
-                        Color(0xFFDCE7E2),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 2),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 32,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: accent,
-                    fontSize: 8.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF4F5F6),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: SvgPicture.asset(
+                    asset,
+                    width: 16,
+                    height: 16,
+                    colorFilter: const ColorFilter.mode(
+                      _ink,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  address,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 10.5,
-                    height: 1.25,
-                    fontWeight: FontWeight.w700,
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 1.5,
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      color: const Color(0xFFD5D8DB),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _tripMetaChip({
-    required IconData icon,
-    required String text,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F6F5),
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: const Color(0xFF66756F)),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(
-              color: Color(0xFF5E6C67),
-              fontSize: 8,
-              fontWeight: FontWeight.w700,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 16, top: 5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.35,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    address,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 15,
+                      height: 1.25,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -2445,15 +2351,16 @@ class _AcceptRideState extends State<AcceptRide>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: _mint,
-        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFFF3F4F5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE4E6E8)),
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: _green,
+          color: _ink,
           fontSize: 8.5,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w800,
           letterSpacing: 0.7,
         ),
       ),
@@ -2506,9 +2413,9 @@ class _AcceptRideState extends State<AcceptRide>
       constraints: const BoxConstraints(minWidth: 76),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: _panel2,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFDDE7E2)),
+        border: Border.all(color: const Color(0xFFE6E8EA)),
       ),
       child: Column(
         children: [
@@ -2535,113 +2442,13 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  Widget _buildProgress() {
-    final current = switch (_stage) {
-      ActiveRideStage.headingToPickup => 1,
-      ActiveRideStage.waitingForRider => 2,
-      ActiveRideStage.onTrip => 3,
-    };
-
-    final items = const [
-      ('Matched', 'assets/icons/movera_check.svg'),
-      ('Pickup', 'assets/icons/movera_pin.svg'),
-      ('Rider', 'assets/icons/movera_user.svg'),
-      ('Trip', 'assets/icons/movera_route.svg'),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAF9),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _line),
-      ),
-      child: Row(
-        children: List.generate(items.length, (index) {
-          final done = index < current;
-          final active = index == current;
-          final color = done || active ? _green : const Color(0xFFA6B0B4);
-
-          return Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOutCubic,
-                        width: active ? 29 : 24,
-                        height: active ? 29 : 24,
-                        decoration: BoxDecoration(
-                          color: done
-                              ? _green
-                              : active
-                                  ? _mint
-                                  : const Color(0xFFEEF1F2),
-                          shape: BoxShape.circle,
-                          border: active
-                              ? Border.all(color: _green, width: 1.5)
-                              : null,
-                          boxShadow: active
-                              ? [
-                                  BoxShadow(
-                                    color: _green.withOpacity(0.12),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        alignment: Alignment.center,
-                        child: SvgPicture.asset(
-                          items[index].$2,
-                          width: active ? 14 : 12,
-                          height: active ? 14 : 12,
-                          colorFilter: ColorFilter.mode(
-                            done ? Colors.white : color,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        items[index].$1,
-                        style: TextStyle(
-                          color: done || active ? _ink : _muted,
-                          fontSize: 8,
-                          fontWeight:
-                              active ? FontWeight.w800 : FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (index != items.length - 1)
-                  Container(
-                    width: 8,
-                    height: 2,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: done ? _green : const Color(0xFFDDE3E4),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                  ),
-              ],
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
   Widget _buildRiderRow() {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAF9),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: _line),
+        border: Border.all(color: const Color(0xFFE6E8EA)),
       ),
       child: Row(
         children: [
@@ -2652,7 +2459,7 @@ class _AcceptRideState extends State<AcceptRide>
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFD9E4DF)),
+              border: Border.all(color: const Color(0xFFE6E8EA)),
             ),
             child: const CircleAvatar(
               backgroundImage: AssetImage(AppAssets.profileImg),
@@ -2721,12 +2528,6 @@ class _AcceptRideState extends State<AcceptRide>
               );
             },
           ),
-          const SizedBox(width: 6),
-          _riderAction(
-            tooltip: 'Rider profile',
-            icon: Icons.person_outline_rounded,
-            onTap: _showRiderProfile,
-          ),
         ],
       ),
     );
@@ -2740,7 +2541,7 @@ class _AcceptRideState extends State<AcceptRide>
 
         return Material(
           key: const ValueKey<String>('current-waybill-shortcut'),
-          color: const Color(0xFFF8FAF9),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -2754,7 +2555,7 @@ class _AcceptRideState extends State<AcceptRide>
             child: Container(
               padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
               decoration: BoxDecoration(
-                border: Border.all(color: _line),
+                border: Border.all(color: const Color(0xFFE6E8EA)),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -2763,12 +2564,12 @@ class _AcceptRideState extends State<AcceptRide>
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: _mint,
+                      color: const Color(0xFFF4F5F6),
                       borderRadius: BorderRadius.circular(11),
                     ),
                     child: const Icon(
                       Icons.receipt_long_outlined,
-                      color: _green,
+                      color: _ink,
                       size: 17,
                     ),
                   ),
@@ -2821,7 +2622,7 @@ class _AcceptRideState extends State<AcceptRide>
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: _mint,
+        color: const Color(0xFFF4F5F6),
         borderRadius: BorderRadius.circular(13),
         child: InkWell(
           onTap: onTap,
@@ -2829,7 +2630,7 @@ class _AcceptRideState extends State<AcceptRide>
           child: SizedBox(
             width: 37,
             height: 37,
-            child: Icon(icon, color: _green, size: 18),
+            child: Icon(icon, color: _ink, size: 18),
           ),
         ),
       ),
