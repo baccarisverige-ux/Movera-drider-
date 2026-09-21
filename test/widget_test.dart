@@ -452,7 +452,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Exclusive Radar hides Home edge dash and normal Radar restores it', (
+  testWidgets('Exclusive Radar hides Home dash and normal Radar restores it', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -462,15 +462,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1550));
     await tester.pump(const Duration(milliseconds: 2300));
 
-    // Exclusive Radar is map-only: the Home sheet and its edge dash are hidden.
     expect(find.byType(RadarEdgeDash), findsNothing);
-    expect(find.text('Exclusive'), findsOneWidget);
-    expect(find.text('RADAR'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 8500));
     await tester.pump(const Duration(milliseconds: 900));
 
-    // After the exclusive offer ends, the normal Home Radar returns.
     final radarDashes = tester.widgetList<RadarEdgeDash>(
       find.byType(RadarEdgeDash),
     );
@@ -983,8 +979,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Exclusive'), findsOneWidget);
-    expect(find.text('RADAR'), findsOneWidget);
+    expect(find.text('LIVE'), findsNothing);
 
     // Advance in small frames so the async route-preview continuation can
     // install and then fire the 8.5s timeout timer.
@@ -1102,7 +1097,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Exclusive Radar hides Home sheet while the priority offer is active', (
+  testWidgets('Exclusive Radar becomes map-only and hides Home sheet and Radar orb', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1110,22 +1105,19 @@ void main() {
 
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
+
     expect(find.text('Exclusive Radar priority match'), findsOneWidget);
     expect(find.text('Exclusive Radar'), findsOneWidget);
-    expect(find.text('Exclusive'), findsOneWidget);
-    expect(find.text('RADAR'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('trip-radar-touch-target')),
+      findsNothing,
+    );
 
-    var panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     expect(panel.minHeight, 0);
     expect(panel.isDraggable, isFalse);
     expect(panel.panelSnapping, isFalse);
-
-    await tester.pump(const Duration(milliseconds: 8500));
-    await tester.pump(const Duration(milliseconds: 900));
-
-    panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect(panel.minHeight, 108);
-    expect(panel.isDraggable, isTrue);
+    expect(find.byType(RadarEdgeDash), findsNothing);
     _expectNoException(tester);
   });
 
