@@ -340,7 +340,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Outside Radar stays separate and Radar offers survive list open-close', (
+  testWidgets('Exclusive Radar stays separate and Radar offers survive list open-close', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -350,10 +350,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1550));
     expect(find.text('LIVE'), findsOneWidget);
 
-    // Outside-Radar offer uses its own exclusive surface.
+    // Exclusive Radar offer uses its own exclusive surface.
     await tester.pump(const Duration(milliseconds: 2300));
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Outside Radar'), findsOneWidget);
+    expect(find.text('Exclusive Radar'), findsOneWidget);
     expect(find.text('Trip Radar offers'), findsNothing);
     _expectNoException(tester);
 
@@ -363,7 +363,7 @@ void main() {
 
     expect(find.text('Trip Radar offers'), findsOneWidget);
     expect(find.text('1 live'), findsOneWidget);
-    expect(find.text('Outside Radar'), findsNothing);
+    expect(find.text('Exclusive Radar'), findsNothing);
     expect(find.text('Trip found'), findsOneWidget);
     expect(find.text('NEW'), findsOneWidget);
     _expectNoException(tester);
@@ -462,7 +462,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1550));
     await tester.pump(const Duration(milliseconds: 2300));
 
-    // Outside-Radar offer must not turn the Radar dash amber.
+    // Exclusive Radar offer must not turn the Radar dash amber.
     final outsideDashes = tester.widgetList<RadarEdgeDash>(
       find.byType(RadarEdgeDash),
     );
@@ -974,7 +974,7 @@ void main() {
     // Advance beyond the first direct-offer timer. Nothing may appear offline.
     await tester.pump(const Duration(milliseconds: 4200));
     expect(find.text('104,80 kr'), findsNothing);
-    expect(find.text('Directly matched outside Trip Radar'), findsNothing);
+    expect(find.text('Exclusive Radar priority match'), findsNothing);
     expect(find.text('OFF'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -999,7 +999,7 @@ void main() {
     }
 
     expect(find.text('104,80 kr'), findsNothing);
-    expect(find.text('Directly matched outside Trip Radar'), findsNothing);
+    expect(find.text('Exclusive Radar priority match'), findsNothing);
     expect(find.text('LIVE'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -1107,7 +1107,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Outside-radar offer closes when Home sheet expands', (
+  testWidgets('Exclusive Radar hides Home sheet while the priority offer is active', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1115,14 +1115,22 @@ void main() {
 
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
-    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
+    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
+    expect(find.text('Exclusive Radar'), findsOneWidget);
+    expect(find.text('Exclusive'), findsOneWidget);
+    expect(find.text('RADAR'), findsOneWidget);
 
-    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    panel.controller!.open();
-    await _advanceAnimation(tester, const Duration(milliseconds: 820));
+    var panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect(panel.minHeight, 0);
+    expect(panel.isDraggable, isFalse);
+    expect(panel.panelSnapping, isFalse);
 
-    expect(find.text('Directly matched outside Trip Radar'), findsNothing);
-    expect(find.text('104,80 kr'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 8500));
+    await tester.pump(const Duration(milliseconds: 900));
+
+    panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect(panel.minHeight, 108);
+    expect(panel.isDraggable, isTrue);
     _expectNoException(tester);
   });
 
@@ -1241,7 +1249,7 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
+    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
     expect(safetyPosition().bottom, 138);
     _expectNoException(tester);
   });
@@ -1332,7 +1340,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
+    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
 
     final routeButton = find.ancestor(
       of: find.text('Route'),
@@ -1950,9 +1958,9 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
+    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
     expect(find.textContaining('Exclusive offer · '), findsOneWidget);
-    expect(find.text('Outside Radar'), findsOneWidget);
+    expect(find.text('Exclusive Radar'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     _expectNoException(tester);
   });
@@ -1967,7 +1975,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Directly matched outside Trip Radar'), findsOneWidget);
+    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
     _expectNoException(tester);
   });
 
