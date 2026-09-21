@@ -226,11 +226,13 @@ class CompactTripDock extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: 10,
+                            horizontal: 8,
                             vertical: 9,
                           ),
                           child: Text(
                             "I've arrived",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 9,
@@ -247,6 +249,8 @@ class CompactTripDock extends StatelessWidget {
                       children: [
                         Text(
                           etaLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: _ink,
                             fontSize: 11.5,
@@ -256,6 +260,8 @@ class CompactTripDock extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           riderReply ?? stageLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: riderReply != null
                                 ? _ink

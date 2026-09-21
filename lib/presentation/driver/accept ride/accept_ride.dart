@@ -2107,6 +2107,8 @@ class _AcceptRideState extends State<AcceptRide>
                                     const SizedBox(height: 8),
                                     Text(
                                       _title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                         color: _ink,
                                         fontSize: 22,
@@ -2181,16 +2183,20 @@ class _AcceptRideState extends State<AcceptRide>
         children: [
           Row(
             children: [
-              const Text(
-                'Pickup to drop-off',
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
+              const Expanded(
+                child: Text(
+                  'Pickup to drop-off',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 widget.stopAddresses.isEmpty
                     ? 'Direct'
@@ -2229,7 +2235,7 @@ class _AcceptRideState extends State<AcceptRide>
           ),
           Row(
             children: [
-              Flexible(
+              Expanded(
                 child: Text(
                   widget.fare == '—'
                       ? widget.category
@@ -2244,14 +2250,19 @@ class _AcceptRideState extends State<AcceptRide>
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                _stage == ActiveRideStage.waitingForRider
-                    ? _waitLabel
-                    : '$_routeEtaText · $_routeDistanceText',
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w800,
+              Flexible(
+                child: Text(
+                  _stage == ActiveRideStage.waitingForRider
+                      ? _waitLabel
+                      : '$_routeEtaText · $_routeDistanceText',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
