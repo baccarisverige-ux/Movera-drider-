@@ -198,7 +198,7 @@ void main() {
 
   test('sheet spring is critically damped with no bounce', () {
     expect(MoveraSheetMetrics.collapsedHeight, 108);
-    expect(MoveraSheetMetrics.activeCollapsedHeight, 148);
+    expect(MoveraSheetMetrics.activeCollapsedHeight, 164);
     expect(MoveraSheetMetrics.middleFraction, 0.46);
     expect(MoveraSheetMetrics.expandedFraction, 0.90);
     expect(MoveraSheetMetrics.springMass, 1.0);
