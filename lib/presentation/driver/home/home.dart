@@ -115,7 +115,6 @@ class _DriverHomeState extends State<DriverHome>
   bool _sheetPointerActive = false;
   double _mainPanelPosition = 0;
   final ValueNotifier<double> _panelSlidePosition = ValueNotifier<double>(0);
-  bool _hasScheduledRideOffers = true;
 
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
   static const Duration _radarOfferLifetime = Duration(milliseconds: 30000);
