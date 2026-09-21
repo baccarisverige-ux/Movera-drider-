@@ -10,14 +10,14 @@ class CompactTripDock extends StatelessWidget {
     super.key,
     required this.pickupAddress,
     required this.dropoffAddress,
-    required this.stopCount,
+    required this.stopAddresses,
     required this.etaLabel,
     required this.stageLabel,
   });
 
   final String pickupAddress;
   final String dropoffAddress;
-  final int stopCount;
+  final List<String> stopAddresses;
   final String etaLabel;
   final String stageLabel;
 
@@ -30,7 +30,7 @@ class CompactTripDock extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 7, 14, 2),
       child: Container(
-        height: 57,
+        height: 63,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
@@ -80,7 +80,7 @@ class CompactTripDock extends StatelessWidget {
                       const Color(0xFF283640),
                     ),
                   ),
-                  if (stopCount > 0)
+                  if (stopAddresses.isNotEmpty)
                     Align(
                       alignment: const Alignment(0.02, -0.02),
                       child: Container(
@@ -129,7 +129,7 @@ class CompactTripDock extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (stopCount > 0) ...[
+                        if (stopAddresses.isNotEmpty) ...[
                           const SizedBox(width: 5),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -141,7 +141,7 @@ class CompactTripDock extends StatelessWidget {
                               borderRadius: BorderRadius.circular(99),
                             ),
                             child: Text(
-                              '${stopCount} stop${stopCount == 1 ? '' : 's'}',
+                              '${stopAddresses.length} stop${stopAddresses.length == 1 ? '' : 's'}',
                               style: const TextStyle(
                                 color: Color(0xFF5A796C),
                                 fontSize: 7.5,
@@ -152,7 +152,38 @@ class CompactTripDock extends StatelessWidget {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    if (stopAddresses.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          SvgPicture.asset(
+                            'assets/icons/movera_stop.svg',
+                            width: 9,
+                            height: 9,
+                            colorFilter: const ColorFilter.mode(
+                              Color(0xFF69A98D),
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              stopAddresses.length == 1
+                                  ? 'via ${stopAddresses.first}'
+                                  : 'via ${stopAddresses.first} +${stopAddresses.length - 1}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF658075),
+                                fontSize: 8.3,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 2),
                     Row(
                       children: [
                         const Icon(
@@ -168,7 +199,7 @@ class CompactTripDock extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: _muted,
-                              fontSize: 9.5,
+                              fontSize: 9.3,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
