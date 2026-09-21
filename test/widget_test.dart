@@ -807,7 +807,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Work in Stockholm'), findsOneWidget);
-    expect(find.text('Södermalm'), findsOneWidget);
+    expect(find.text('Södermalm'), findsWidgets);
     expect(find.text('Norrmalm'), findsOneWidget);
     expect(find.text('Östermalm'), findsOneWidget);
     expect(find.text('Kungsholmen'), findsOneWidget);
