@@ -3572,13 +3572,17 @@ class _SlideRideAction extends StatefulWidget {
     super.key,
     required this.semanticsKey,
     required this.label,
-    required this.icon,
+    required this.confirmedLabel,
+    required this.iconAsset,
+    required this.accent,
     required this.onConfirmed,
   });
 
   final Key semanticsKey;
   final String label;
-  final IconData icon;
+  final String confirmedLabel;
+  final String iconAsset;
+  final Color accent;
   final VoidCallback onConfirmed;
 
   @override
@@ -3586,8 +3590,8 @@ class _SlideRideAction extends StatefulWidget {
 }
 
 class _SlideRideActionState extends State<_SlideRideAction> {
-  static const double _height = 54;
-  static const double _thumb = 46;
+  static const double _height = 62;
+  static const double _thumb = 54;
   static const double _trigger = 0.78;
 
   double _fraction = 0;
@@ -3597,7 +3601,9 @@ class _SlideRideActionState extends State<_SlideRideAction> {
   @override
   void didUpdateWidget(covariant _SlideRideAction oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.label == widget.label && oldWidget.icon == widget.icon) {
+    if (oldWidget.label == widget.label &&
+        oldWidget.iconAsset == widget.iconAsset &&
+        oldWidget.accent == widget.accent) {
       return;
     }
     _fraction = 0;
@@ -3627,12 +3633,14 @@ class _SlideRideActionState extends State<_SlideRideAction> {
         _dragging = false;
         _fraction = 1;
       });
+      HapticFeedback.mediumImpact();
       widget.onConfirmed();
     } else {
       setState(() {
         _dragging = false;
         _fraction = 0;
       });
+      HapticFeedback.selectionClick();
     }
   }
 
@@ -3653,83 +3661,154 @@ class _SlideRideActionState extends State<_SlideRideAction> {
             onHorizontalDragCancel: _finish,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xFF252E3A),
-                borderRadius: BorderRadius.circular(17),
+                gradient: const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0xFF1B282E),
+                    Color(0xFF25313B),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(21),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.06),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF172027).withOpacity(0.17),
+                    blurRadius: 16,
+                    offset: const Offset(0, 7),
+                  ),
+                ],
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Positioned.fill(
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(17),
+                      borderRadius: BorderRadius.circular(21),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: AnimatedContainer(
                           duration: _dragging
                               ? Duration.zero
-                              : const Duration(milliseconds: 180),
+                              : const Duration(milliseconds: 240),
                           curve: Curves.easeOutCubic,
                           width: constraints.maxWidth *
-                              math.min(1.0, _fraction + 0.08),
+                              math.min(1.0, _fraction + 0.10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF19865C).withOpacity(0.28),
+                            gradient: LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                widget.accent.withOpacity(0.44),
+                                widget.accent.withOpacity(0.14),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 54),
-                    child: Text(
-                      _confirmed ? 'Confirmed' : widget.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.15,
+                  Positioned(
+                    left: 64,
+                    right: 58,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      child: Text(
+                        _confirmed ? widget.confirmedLabel : widget.label,
+                        key: ValueKey<String>(
+                          _confirmed ? widget.confirmedLabel : widget.label,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.8,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.18,
+                        ),
                       ),
                     ),
                   ),
                   AnimatedPositioned(
                     duration: _dragging
                         ? Duration.zero
-                        : const Duration(milliseconds: 180),
+                        : const Duration(milliseconds: 240),
                     curve: Curves.easeOutCubic,
                     left: 4 + (maxTravel * _fraction),
                     top: 4,
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
                       width: _thumb,
                       height: _thumb,
                       decoration: BoxDecoration(
-                        color: _confirmed
-                            ? const Color(0xFF74D6A8)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(14),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: _confirmed
+                              ? [
+                                  widget.accent,
+                                  widget.accent.withOpacity(0.82),
+                                ]
+                              : const [
+                                  Color(0xFFFFFFFF),
+                                  Color(0xFFF0F6F3),
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: _confirmed
+                              ? Colors.white.withOpacity(0.12)
+                              : const Color(0xFFE0E7E4),
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.12),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
+                            color: const Color(0xFF0C1814).withOpacity(0.18),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                      child: Icon(
-                        _confirmed ? Icons.check_rounded : widget.icon,
-                        color: const Color(0xFF252E3A),
-                        size: 20,
-                      ),
+                      alignment: Alignment.center,
+                      child: _confirmed
+                          ? const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 23,
+                            )
+                          : SvgPicture.asset(
+                              widget.iconAsset,
+                              width: 22,
+                              height: 22,
+                              colorFilter: const ColorFilter.mode(
+                                Color(0xFF26333A),
+                                BlendMode.srcIn,
+                              ),
+                            ),
                     ),
                   ),
                   if (!_confirmed)
-                    const Positioned(
+                    Positioned(
                       right: 12,
-                      child: Icon(
-                        Icons.chevron_right_rounded,
-                        color: Color(0xFF96A0A5),
-                        size: 20,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: Color(0xFF627078),
+                            size: 16,
+                          ),
+                          Transform.translate(
+                            offset: Offset(-5, 0),
+                            child: Icon(
+                              Icons.chevron_right_rounded,
+                              color: Color(0xFF8C979C),
+                              size: 16,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -3741,5 +3820,3 @@ class _SlideRideActionState extends State<_SlideRideAction> {
     );
   }
 }
-
-
