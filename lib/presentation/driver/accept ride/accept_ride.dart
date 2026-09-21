@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
@@ -222,8 +221,9 @@ class _AcceptRideState extends State<AcceptRide> {
   late final WaybillRepository _waybills;
 
   GoogleMapController? _mapController;
-  StreamSubscription<Position>? _positionSubscription;
-  final ActiveRideController _rideLifecycle = ActiveRideController();
+  StreamSubscription<DriverLocation>? _positionSubscription;
+  late final ActiveRideController _rideLifecycle =
+      ActiveRideController(tripId: widget.offerId);
   ActiveRideStage get _stage => _rideLifecycle.stage;
   set _stage(ActiveRideStage value) {
     _rideLifecycle.transitionTo(value);
@@ -395,10 +395,10 @@ class _AcceptRideState extends State<AcceptRide> {
   }
 
   Future<void> _applyDriverPosition(
-    Position position, {
+    DriverLocation location, {
     bool forceRoute = false,
   }) async {
-    final next = LatLng(position.latitude, position.longitude);
+    final next = location.point.toLatLng();
     if (!mounted) return;
 
     setState(() {
@@ -424,11 +424,8 @@ class _AcceptRideState extends State<AcceptRide> {
     final lastAt = _lastRouteAt;
 
     if (!force && lastOrigin != null && lastAt != null) {
-      final movedMeters = Geolocator.distanceBetween(
-        lastOrigin.latitude,
-        lastOrigin.longitude,
-        _driverPosition.latitude,
-        _driverPosition.longitude,
+      final movedMeters = GeoPoint.fromLatLng(lastOrigin).distanceMetersTo(
+        GeoPoint.fromLatLng(_driverPosition),
       );
 
       if (movedMeters < 20 &&
@@ -650,11 +647,8 @@ class _AcceptRideState extends State<AcceptRide> {
       return;
     }
 
-    final metersToDropoff = Geolocator.distanceBetween(
-      _driverPosition.latitude,
-      _driverPosition.longitude,
-      widget.dropoffPosition.latitude,
-      widget.dropoffPosition.longitude,
+    final metersToDropoff = GeoPoint.fromLatLng(_driverPosition).distanceMetersTo(
+      GeoPoint.fromLatLng(widget.dropoffPosition),
     );
 
     // Demo behavior: no UI is shown while scanning. An offer becomes visible

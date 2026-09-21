@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
 import 'package:movera/core/admin/driver_home_config_repository.dart';
@@ -100,7 +99,7 @@ class _DriverHomeState extends State<DriverHome>
   bool _updatePromptShown = false;
 
   GoogleMapController? _mapController;
-  StreamSubscription<Position>? _driverLocationSubscription;
+  StreamSubscription<DriverLocation>? _driverLocationSubscription;
   bool _hasLiveDriverLocation = false;
   BitmapDescriptor _driverVehicleIcon =
       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
@@ -298,13 +297,14 @@ class _DriverHomeState extends State<DriverHome>
     }
   }
 
-  void _applyDriverLocation(Position position) {
+  void _applyDriverLocation(DriverLocation location) {
     if (!mounted) return;
 
-    final next = LatLng(position.latitude, position.longitude);
-    final heading = position.heading.isFinite && position.heading >= 0
-        ? position.heading
-        : _driverHeading;
+    final next = location.point.toLatLng();
+    final heading =
+        location.headingDegrees.isFinite && location.headingDegrees >= 0
+            ? location.headingDegrees
+            : _driverHeading;
     setState(() {
       _driverPosition = next;
       _driverHeading = heading;

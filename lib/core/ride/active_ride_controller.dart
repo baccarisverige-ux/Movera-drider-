@@ -1,17 +1,23 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
 
-enum ActiveRideStage {
-  headingToPickup,
-  waitingForRider,
-  onTrip,
-}
+import 'package:flutter/foundation.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
+
+export 'package:movera/core/ride/active_ride_repository.dart' show ActiveRideStage;
 
 /// Single source of truth for the lifecycle stage of one active ride.
 ///
 /// Terminal outcomes are tracked separately so presentation switches only need
-/// to render the three live stages. Backend persistence/recovery can attach to
-/// this controller without moving lifecycle rules back into widgets.
+/// to render the three live stages. Persistence attaches here so screens do
+/// not own ride recovery.
 class ActiveRideController extends ChangeNotifier {
+  ActiveRideController({
+    this.tripId,
+    ActiveRideRepository? repository,
+  }) : _repository = repository ?? MemoryActiveRideRepository();
+
+  final String? tripId;
+  final ActiveRideRepository _repository;
   ActiveRideStage _stage = ActiveRideStage.headingToPickup;
   bool _completed = false;
   bool _cancelled = false;
@@ -36,6 +42,7 @@ class ActiveRideController extends ChangeNotifier {
 
     _stage = next;
     notifyListeners();
+    _persist();
     return true;
   }
 
@@ -43,6 +50,7 @@ class ActiveRideController extends ChangeNotifier {
     if (terminal || _stage != ActiveRideStage.onTrip) return false;
     _completed = true;
     notifyListeners();
+    unawaited(_repository.clear());
     return true;
   }
 
@@ -50,6 +58,25 @@ class ActiveRideController extends ChangeNotifier {
     if (terminal) return false;
     _cancelled = true;
     notifyListeners();
+    unawaited(_repository.clear());
     return true;
+  }
+
+  Future<void> restore() async {
+    final stored = await _repository.read();
+    if (stored == null) return;
+    if (tripId != null && stored.tripId != tripId) return;
+    _stage = stored.stage;
+    notifyListeners();
+  }
+
+  void _persist() {
+    final id = tripId;
+    if (id == null) return;
+    unawaited(
+      _repository.save(
+        PersistedActiveRide(tripId: id, stage: _stage),
+      ),
+    );
   }
 }

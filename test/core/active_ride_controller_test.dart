@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
 
 void main() {
   test('active ride only allows valid forward lifecycle transitions', () {
@@ -40,5 +41,32 @@ void main() {
     expect(ride.complete(), isTrue);
     expect(ride.complete(), isFalse);
     expect(ride.cancelled, isFalse);
+  });
+
+  test('active ride persists stage through the repository', () async {
+    final store = MemoryActiveRideRepository();
+    final ride = ActiveRideController(
+      tripId: 'nearby-1',
+      repository: store,
+    );
+
+    expect(ride.transitionTo(ActiveRideStage.waitingForRider), isTrue);
+    await Future<void>.delayed(Duration.zero);
+
+    final restored = ActiveRideController(
+      tripId: 'nearby-1',
+      repository: store,
+    );
+    await restored.restore();
+    expect(restored.stage, ActiveRideStage.waitingForRider);
+
+    expect(restored.cancel(), isTrue);
+    await Future<void>.delayed(Duration.zero);
+    final afterCancel = ActiveRideController(
+      tripId: 'nearby-1',
+      repository: store,
+    );
+    await afterCancel.restore();
+    expect(afterCancel.stage, ActiveRideStage.headingToPickup);
   });
 }

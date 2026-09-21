@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -51,6 +53,7 @@ class _MoveraAppState extends State<MoveraApp> {
     _routing = RoadRouteService();
     _dispatch = DemoDispatchRepository();
     _homeConfig = const LocalDriverHomeConfigRepository();
+    unawaited(_session.restore());
   }
 
   @override

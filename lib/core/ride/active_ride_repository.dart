@@ -1,4 +1,8 @@
-import 'package:movera/core/ride/active_ride_controller.dart';
+enum ActiveRideStage {
+  headingToPickup,
+  waitingForRider,
+  onTrip,
+}
 
 class PersistedActiveRide {
   const PersistedActiveRide({
@@ -18,9 +22,8 @@ class PersistedActiveRide {
 
 /// Persistence boundary for active-trip recovery after app restart.
 ///
-/// Memory-only controller state is not durable. Backend is the source of
-/// truth once connected; this interface exists so recovery can be added
-/// without rewriting screens.
+/// Memory-only controller state is not durable. This interface exists so
+/// recovery can attach without rewriting screens. No backend is implied.
 abstract interface class ActiveRideRepository {
   Future<PersistedActiveRide?> read();
 
