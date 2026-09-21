@@ -86,6 +86,7 @@ class _DriverHomeState extends State<DriverHome>
   late final AnimationController _goOnlinePulseController;
   late final AnimationController _radarSweepController;
   Timer? _onlineTransitionTimer;
+  Timer? _homeSheetPositionGuardTimer;
   Timer? _offerSimulationTimer;
   Timer? _directOfferTimer;
   Timer? _outsideOfferTimeoutTimer;
@@ -1290,9 +1291,36 @@ class _DriverHomeState extends State<DriverHome>
     if (_mainPanelPosition <= 0.001) {
       _setMapGesturesBlocked(false);
     }
-    // SlidingUpPanel owns direct finger-release snapping on Home.
-    // The custom spring is reserved for radar/programmatic movement so
-    // two settle animations never fight each other.
+    // Let SlidingUpPanel finish its native release animation first. iOS web
+    // can occasionally interrupt that settle and leave the sheet between
+    // collapsed / middle / open, so a delayed guard normalizes the position.
+    _scheduleHomeSheetPositionGuard(
+      delay: const Duration(milliseconds: 460),
+    );
+  }
+
+  void _scheduleHomeSheetPositionGuard({
+    Duration delay = const Duration(milliseconds: 180),
+  }) {
+    _homeSheetPositionGuardTimer?.cancel();
+    _homeSheetPositionGuardTimer = Timer(delay, () {
+      if (!mounted ||
+          _outsideRadarOffer != null ||
+          _sheetPointerActive ||
+          !_panelController.isAttached) {
+        return;
+      }
+
+      final position = _panelController.panelPosition.clamp(0.0, 1.0);
+      final snap = _homeSnapPoint(context);
+      final nearestDistance = math.min(
+        position.abs(),
+        math.min((position - snap).abs(), (1 - position).abs()),
+      );
+
+      if (nearestDistance <= 0.025) return;
+      unawaited(_snapHomeSheet(velocity: 0));
+    });
   }
 
   Future<void> _openDriverSheet() async {
@@ -1453,6 +1481,9 @@ class _DriverHomeState extends State<DriverHome>
               onPanelSlide: (double pos) {
                 _mainPanelPosition = pos;
                 _panelSlidePosition.value = pos;
+                if (!_sheetPointerActive) {
+                  _scheduleHomeSheetPositionGuard();
+                }
                 if (pos > 0.04) {
                   _closeHomeFloatingPopupsForSheet();
                 }
@@ -1467,12 +1498,14 @@ class _DriverHomeState extends State<DriverHome>
                 }
               },
               onPanelOpened: () {
+                _homeSheetPositionGuardTimer?.cancel();
                 _mainPanelPosition = 1;
                 _panelSlidePosition.value = 1;
                 _closeHomeFloatingPopupsForSheet();
                 _setMapGesturesBlocked(true);
               },
               onPanelClosed: () {
+                _homeSheetPositionGuardTimer?.cancel();
                 _mainPanelPosition = 0;
                 _panelSlidePosition.value = 0;
                 _sheetPointerActive = false;
@@ -4913,6 +4946,7 @@ class _DriverHomeState extends State<DriverHome>
 
   @override
   void dispose() {
+    _homeSheetPositionGuardTimer?.cancel();
     _goOnlinePulseController.dispose();
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
