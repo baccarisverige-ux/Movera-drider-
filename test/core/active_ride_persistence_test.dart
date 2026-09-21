@@ -23,6 +23,10 @@ void main() {
       pickupAddress: 'Kungsgatan 42, Stockholm',
       pickupArea: 'Stockholm',
       dropoffAddress: 'Hornstull, Stockholm',
+      stopAddresses: const <String>[
+        'Vasagatan 10, Stockholm',
+        'Liljeholmen, Stockholm',
+      ],
       pickupLat: 59.3343,
       pickupLng: 18.0615,
       dropoffLat: 59.3157,
@@ -52,6 +56,10 @@ void main() {
     expect(decoded.isFresh, isTrue);
     expect(decoded.riderName, 'Angelica');
     expect(decoded.pickupLat, 59.3343);
+    expect(decoded.stopAddresses, <String>[
+      'Vasagatan 10, Stockholm',
+      'Liljeholmen, Stockholm',
+    ]);
     expect(decoded.next?.tripId, 'on-trip-radar-demo-1');
     expect(decoded.next?.riderName, 'Maya');
   });
@@ -159,6 +167,7 @@ void main() {
       pickupAddress: 'Kungsgatan 42, Stockholm',
       pickupArea: 'Stockholm',
       dropoffAddress: 'Hornstull, Stockholm',
+      stopAddresses: const <String>['Vasagatan 10, Stockholm'],
       pickupLat: 59.3343,
       pickupLng: 18.0615,
       dropoffLat: 59.3157,
@@ -173,6 +182,7 @@ void main() {
     expect(ride.fare, '104,80 kr');
     expect(ride.pickupAddress, 'Kungsgatan 42, Stockholm');
     expect(ride.dropoffAddress, 'Hornstull, Stockholm');
+    expect(ride.stopAddresses, <String>['Vasagatan 10, Stockholm']);
     expect(ride.pickupPosition.latitude, 59.3343);
     expect(ride.dropoffPosition.longitude, 18.0335);
     expect(ride.initialWaitSeconds, 42);
