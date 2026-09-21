@@ -1051,7 +1051,6 @@ class _DriverHomeState extends State<DriverHome>
       const Duration(milliseconds: 850),
       () {
         if (!mounted) return;
-        setState(() => _homeRadarMatchNotice = null);
         _acceptRadarHomeOffer(offer);
       },
     );
@@ -1166,17 +1165,9 @@ class _DriverHomeState extends State<DriverHome>
     _radarOfferTwoTimer?.cancel();
     _radarOfferThreeTimer?.cancel();
 
-    setState(() {
-      _outsideRadarOffer = null;
-      _radarHomeOffers.clear();
-      _pendingRadarHomeOffers.clear();
-      _hasRideOffers = false;
-    });
-    _clearDirectOfferRoute();
-
     Navigator.push(
       context,
-      BottomToTopTransition(
+      ActiveRideTransition(
         AcceptRide(
           offerId: offer.id,
           fare: offer.fare,
@@ -1195,6 +1186,19 @@ class _DriverHomeState extends State<DriverHome>
         ),
       ),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _outsideRadarOffer = null;
+        _radarHomeOffers.clear();
+        _pendingRadarHomeOffers.clear();
+        _hasRideOffers = false;
+        _isDirectOfferRoutePreview = false;
+        _directOfferRouteMarkers = {};
+        _directOfferRoutePolylines = {};
+      });
+    });
   }
 
   void _acceptRadarHomeOffer(_HomeDirectOffer offer) {
@@ -1206,17 +1210,9 @@ class _DriverHomeState extends State<DriverHome>
     _radarOfferTwoTimer?.cancel();
     _radarOfferThreeTimer?.cancel();
 
-    setState(() {
-      _outsideRadarOffer = null;
-      _radarHomeOffers.clear();
-      _pendingRadarHomeOffers.clear();
-      _hasRideOffers = false;
-    });
-    _clearDirectOfferRoute();
-
     Navigator.push(
       context,
-      BottomToTopTransition(
+      ActiveRideTransition(
         AcceptRide(
           offerId: offer.id,
           fare: offer.fare,
@@ -1235,6 +1231,19 @@ class _DriverHomeState extends State<DriverHome>
         ),
       ),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _outsideRadarOffer = null;
+        _radarHomeOffers.clear();
+        _pendingRadarHomeOffers.clear();
+        _hasRideOffers = false;
+        _isDirectOfferRoutePreview = false;
+        _directOfferRouteMarkers = {};
+        _directOfferRoutePolylines = {};
+      });
+    });
   }
 
   void _showAccountActivationDialog() {
