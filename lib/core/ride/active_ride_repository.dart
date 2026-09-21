@@ -91,6 +91,7 @@ class PersistedActiveRide {
     this.pickupAddress,
     this.pickupArea,
     this.dropoffAddress,
+    this.stopAddresses = const <String>[],
     this.pickupLat,
     this.pickupLng,
     this.dropoffLat,
@@ -114,6 +115,7 @@ class PersistedActiveRide {
   final String? pickupAddress;
   final String? pickupArea;
   final String? dropoffAddress;
+  final List<String> stopAddresses;
   final double? pickupLat;
   final double? pickupLng;
   final double? dropoffLat;
@@ -150,6 +152,7 @@ class PersistedActiveRide {
       pickupAddress: pickupAddress,
       pickupArea: pickupArea,
       dropoffAddress: dropoffAddress,
+      stopAddresses: stopAddresses,
       pickupLat: pickupLat,
       pickupLng: pickupLng,
       dropoffLat: dropoffLat,
@@ -176,6 +179,7 @@ class PersistedActiveRide {
         if (pickupAddress != null) 'pickupAddress': pickupAddress,
         if (pickupArea != null) 'pickupArea': pickupArea,
         if (dropoffAddress != null) 'dropoffAddress': dropoffAddress,
+        if (stopAddresses.isNotEmpty) 'stopAddresses': stopAddresses,
         if (pickupLat != null) 'pickupLat': pickupLat,
         if (pickupLng != null) 'pickupLng': pickupLng,
         if (dropoffLat != null) 'dropoffLat': dropoffLat,
@@ -207,6 +211,10 @@ class PersistedActiveRide {
       pickupAddress: json['pickupAddress'] as String?,
       pickupArea: json['pickupArea'] as String?,
       dropoffAddress: json['dropoffAddress'] as String?,
+      stopAddresses: (json['stopAddresses'] as List?)
+              ?.whereType<String>()
+              .toList(growable: false) ??
+          const <String>[],
       pickupLat: (json['pickupLat'] as num?)?.toDouble(),
       pickupLng: (json['pickupLng'] as num?)?.toDouble(),
       dropoffLat: (json['dropoffLat'] as num?)?.toDouble(),
