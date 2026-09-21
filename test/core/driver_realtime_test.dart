@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/realtime/driver_realtime.dart';
@@ -57,6 +59,21 @@ void main() {
     expect(seen.last.message, "I'm on the way");
     await sub.cancel();
     bus.dispose();
+  });
+
+  test('collapsed active ride keeps the explicit arrival action wired', () {
+    final rideSource = File(
+      'lib/presentation/driver/accept ride/accept_ride.dart',
+    ).readAsStringSync();
+    final dockSource = File(
+      'lib/presentation/driver/accept ride/compact_trip_dock.dart',
+    ).readAsStringSync();
+
+    expect(rideSource.contains('_confirmPickupArrival'), isTrue);
+    expect(rideSource.contains('DriverRealtimeKind.driverArrived'), isTrue);
+    expect(rideSource.contains('onArrived: _stage == ActiveRideStage.headingToPickup'), isTrue);
+    expect(dockSource.contains("active-ride-arrived-button"), isTrue);
+    expect(dockSource.contains("I've arrived"), isTrue);
   });
 
   test('reconnect replays the last event for the trip', () async {
