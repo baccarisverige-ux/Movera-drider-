@@ -15,6 +15,9 @@ import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
+import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
+import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
+import 'package:movera/presentation/driver/sheets/movera_snap_sheet_controller.dart';
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
@@ -235,6 +238,10 @@ class _AcceptRideState extends State<AcceptRide>
   late final NavigationController _navigation;
   final PanelController _ridePanelController = PanelController();
   final ValueNotifier<double> _ridePanelPosition = ValueNotifier<double>(1);
+  late final MoveraSnapSheetController _snapSheet;
+  double _ridePointerVelocity = 0;
+  double _ridePointerLastY = 0;
+  int _ridePointerLastMs = 0;
 
   GoogleMapController? _mapController;
   StreamSubscription<DriverLocation>? _positionSubscription;
@@ -289,6 +296,10 @@ class _AcceptRideState extends State<AcceptRide>
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat();
+    _snapSheet = MoveraSnapSheetController(
+      panel: _ridePanelController,
+      vsync: this,
+    );
     _startLiveLocation();
   }
 
@@ -304,6 +315,7 @@ class _AcceptRideState extends State<AcceptRide>
     _rideLifecycle.dispose();
     _navigation.removeListener(_onNavigationChanged);
     _navigation.dispose();
+    _snapSheet.dispose();
     _ridePanelPosition.dispose();
     _mapController = null;
     super.dispose();
@@ -593,13 +605,18 @@ class _AcceptRideState extends State<AcceptRide>
     }
 
     try {
+      final insets = MapOverlayInsets.forActiveRide(
+        safeTop: MediaQuery.paddingOf(context).top,
+        collapsedSheet: MoveraSheetMetrics.activeCollapsedHeight +
+            MediaQuery.paddingOf(context).bottom,
+      );
       await controller.animateCamera(
         CameraUpdate.newLatLngBounds(
           LatLngBounds(
             southwest: LatLng(minLat, minLng),
             northeast: LatLng(maxLat, maxLng),
           ),
-          100,
+          insets.boundsPadding,
         ),
       );
     } catch (_) {}
@@ -708,6 +725,56 @@ class _AcceptRideState extends State<AcceptRide>
         onPointerCancel: (_) => _setMapGesturesBlocked(false),
         child: child,
       ),
+    );
+  }
+
+  void _onRideSheetPointerDown(PointerDownEvent event) {
+    _ridePointerLastY = event.position.dy;
+    _ridePointerLastMs = DateTime.now().millisecondsSinceEpoch;
+    _ridePointerVelocity = 0;
+    _snapSheet.stopSpring();
+    _setMapGesturesBlocked(true);
+  }
+
+  void _onRideSheetPointerMove(PointerEvent event) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (_ridePointerLastMs != 0) {
+      final dt = math.max(1, now - _ridePointerLastMs);
+      _ridePointerVelocity =
+          (event.position.dy - _ridePointerLastY) / dt * 1000;
+    }
+    _ridePointerLastY = event.position.dy;
+    _ridePointerLastMs = now;
+  }
+
+  void _onRideSheetPointerEnd(PointerEvent event) {
+    _onRideSheetPointerMove(event);
+    unawaited(_snapRideSheet());
+  }
+
+  double _rideExpandedHeight(BuildContext context) {
+    final viewport = MediaQuery.sizeOf(context).height;
+    final collapsed = MoveraSheetMetrics.activeCollapsedHeight +
+        MediaQuery.paddingOf(context).bottom;
+    final bannerReserve = MediaQuery.paddingOf(context).top + 96;
+    return math.min(
+      MoveraSheetMetrics.expandedHeight(viewport),
+      math.max(collapsed + 160, viewport - bannerReserve),
+    );
+  }
+
+  Future<void> _snapRideSheet({double? velocity}) async {
+    if (!_ridePanelController.isAttached) return;
+    final viewport = MediaQuery.sizeOf(context).height;
+    final collapsed = MoveraSheetMetrics.activeCollapsedHeight +
+        MediaQuery.paddingOf(context).bottom;
+    _snapSheet.rangePx = _rideExpandedHeight(context) - collapsed;
+    await _snapSheet.snapToNearest(
+      snapPoint: MoveraSheetMetrics.snapPoint(
+        viewportHeight: viewport,
+        collapsed: collapsed,
+      ),
+      velocityPxPerSec: velocity ?? _ridePointerVelocity,
     );
   }
 
@@ -1340,6 +1407,11 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
+  String get _compactDockDetail =>
+      _stage == ActiveRideStage.onTrip
+          ? widget.dropoffAddress
+          : widget.pickupAddress;
+
   @override
   Widget build(BuildContext context) {
     return LayoutViewport(
@@ -1350,7 +1422,8 @@ class _AcceptRideState extends State<AcceptRide>
       body: LayoutBuilder(
         builder: (context, constraints) {
           final viewport = constraints.maxHeight;
-          final collapsed = MoveraSheetMetrics.activeCollapsedHeight;
+          final collapsed = MoveraSheetMetrics.activeCollapsedHeight +
+              MediaQuery.paddingOf(context).bottom;
           final safeTop = MediaQuery.paddingOf(context).top;
           final bannerReserve = safeTop + 96;
           final expanded = math.min(
@@ -1367,8 +1440,9 @@ class _AcceptRideState extends State<AcceptRide>
             minHeight: collapsed,
             maxHeight: expanded,
             snapPoint: snap,
-            panelSnapping: true,
+            panelSnapping: false,
             defaultPanelState: PanelState.OPEN,
+            isDraggable: true,
             color: Colors.transparent,
             boxShadow: const [],
             backdropEnabled: false,
@@ -1379,7 +1453,16 @@ class _AcceptRideState extends State<AcceptRide>
             },
             onPanelOpened: () => _ridePanelPosition.value = 1,
             onPanelClosed: () => _ridePanelPosition.value = 0,
-            panel: _mapOverlay(child: _buildRidePanel()),
+            panel: _mapOverlay(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _onRideSheetPointerDown,
+                onPointerMove: _onRideSheetPointerMove,
+                onPointerUp: _onRideSheetPointerEnd,
+                onPointerCancel: _onRideSheetPointerEnd,
+                child: _buildRidePanel(),
+              ),
+            ),
             body: Stack(
               fit: StackFit.expand,
               children: [
@@ -1405,10 +1488,10 @@ class _AcceptRideState extends State<AcceptRide>
                     rotateGesturesEnabled: !_blockMapGestures,
                     tiltGesturesEnabled: !_blockMapGestures,
                     mapType: MapType.normal,
-                    padding: EdgeInsets.only(
-                      top: safeTop + 78,
-                      bottom: collapsed - 12,
-                    ),
+                    padding: MapOverlayInsets.forActiveRide(
+                      safeTop: safeTop,
+                      collapsedSheet: collapsed,
+                    ).edgeInsets,
                     onCameraMove: _onCameraMove,
                     onMapCreated: (controller) {
                       _mapController = controller;
@@ -1440,34 +1523,22 @@ class _AcceptRideState extends State<AcceptRide>
                     ),
                   ),
                 ),
-                Positioned.fill(
-                  child: ValueListenableBuilder<double>(
-                  valueListenable: _ridePanelPosition,
-                  builder: (context, pos, _) {
-                    final panelHeight =
-                        collapsed + ((expanded - collapsed) * pos);
-                    return Stack(
-                      children: [
-                        Positioned(
-                          right: 14,
-                          bottom: panelHeight + 16,
-                          child: _mapOverlay(child: _buildMapControls()),
-                        ),
-                        if (_stage == ActiveRideStage.onTrip &&
-                            _onTripRadarState ==
-                                _OnTripRadarState.offerAvailable)
-                          Positioned(
-                            left: 10,
-                            bottom: panelHeight + 56,
-                            child: _mapOverlay(
-                              child: _buildOnTripRadarOfferButton(),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                Positioned(
+                  key: const ValueKey<String>('active-ride-map-controls'),
+                  right: 14,
+                  bottom: collapsed + 16,
+                  child: _mapOverlay(child: _buildMapControls()),
                 ),
-                ),
+                if (_stage == ActiveRideStage.onTrip &&
+                    _onTripRadarState == _OnTripRadarState.offerAvailable)
+                  Positioned(
+                    key: const ValueKey<String>('on-trip-radar-layer'),
+                    left: 10,
+                    bottom: collapsed + 88,
+                    child: _mapOverlay(
+                      child: _buildOnTripRadarOfferButton(),
+                    ),
+                  ),
               ],
             ),
           );
@@ -1481,126 +1552,91 @@ class _AcceptRideState extends State<AcceptRide>
   Widget _buildNavigationCard() {
     final onTrip = _stage == ActiveRideStage.onTrip;
     final waiting = _stage == ActiveRideStage.waitingForRider;
-    final eyebrow = waiting
-        ? 'PICKUP'
+    final title = waiting
+        ? 'Pickup'
         : onTrip
-            ? 'DROP-OFF'
-            : 'TO PICKUP';
-    final headline = waiting
-        ? widget.pickupAddress
+            ? 'Drop-off'
+            : 'Heading to pickup';
+    final subtitle = waiting
+        ? 'Waiting for rider · ${widget.pickupAddress}'
         : onTrip
-            ? widget.dropoffAddress
-            : widget.pickupAddress;
+            ? '${widget.dropoffAddress} · $_routeEtaText'
+            : '${widget.pickupAddress} · $_routeEtaText';
+    final pad = MediaQuery.paddingOf(context);
 
-    return Container(
+    return Material(
       key: const ValueKey<String>('active-ride-navigation-card'),
-      padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _line),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF172027).withOpacity(0.12),
-            blurRadius: 22,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 48,
-            width: 48,
-            decoration: BoxDecoration(
-              color: waiting ? const Color(0xFFF1F3F4) : _mint,
-              borderRadius: BorderRadius.circular(15),
+      color: const Color(0xFFFCFDFC),
+      elevation: 10,
+      shadowColor: const Color(0x33172027),
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16 + pad.left,
+          10 + pad.top,
+          16 + pad.right,
+          12,
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 48,
+              width: 48,
+              decoration: BoxDecoration(
+                color: waiting ? const Color(0xFFF1F3F4) : _mint,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(
+                waiting
+                    ? Icons.location_on_outlined
+                    : onTrip
+                        ? Icons.flag_outlined
+                        : Icons.near_me_outlined,
+                color: waiting ? _ink : _green,
+                size: 23,
+              ),
             ),
-            child: Icon(
-              waiting
-                  ? Icons.location_on_outlined
-                  : onTrip
-                      ? Icons.flag_outlined
-                      : Icons.near_me_outlined,
-              color: waiting ? _ink : _green,
-              size: 23,
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  eyebrow,
-                  style: TextStyle(
-                    color: waiting ? _muted : _green,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  headline,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.35,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  waiting
-                      ? widget.pickupArea
-                      : onTrip
-                          ? 'Live route to destination'
-                          : '${widget.pickupArea} · $_routeEtaText',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            const SizedBox(width: 8),
+            Text(
+              waiting ? _waitLabel : _routeEtaText,
+              style: TextStyle(
+                color: waiting ? _ink : _green,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          const SizedBox(width: 9),
-          Container(
-            constraints: const BoxConstraints(minWidth: 62),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: waiting ? const Color(0xFFF3F5F6) : _mint,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  waiting ? _waitLabel : _routeEtaText,
-                  style: TextStyle(
-                    color: waiting ? _ink : _green,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  waiting ? 'WAIT' : _routeDistanceText,
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1700,34 +1736,13 @@ class _AcceptRideState extends State<AcceptRide>
                   ),
                 ),
                 if (compact)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _ink,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          _stage == ActiveRideStage.waitingForRider
-                              ? _waitLabel
-                              : _routeEtaText,
-                          style: const TextStyle(
-                            color: _green,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
+                  CompactTripDock(
+                    key: const ValueKey<String>('active-ride-compact-dock'),
+                    title: _title,
+                    detail: _compactDockDetail,
+                    etaLabel: _stage == ActiveRideStage.waitingForRider
+                        ? _waitLabel
+                        : _routeEtaText,
                   )
                 else
                   Expanded(

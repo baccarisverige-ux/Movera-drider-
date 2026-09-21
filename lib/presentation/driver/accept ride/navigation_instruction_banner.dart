@@ -16,93 +16,84 @@ class NavigationInstructionBanner extends StatelessWidget {
     const ink = Color(0xFF252E3A);
     const muted = Color(0xFF7D898F);
     const green = Color(0xFF19865C);
+    final subtitle = [
+      banner.distanceLabel,
+      if ((banner.roadName ?? '').isNotEmpty) banner.roadName,
+      if ((banner.status ?? '').isNotEmpty) banner.status,
+    ].whereType<String>().where((item) => item.isNotEmpty).join(' · ');
+    final pad = MediaQuery.paddingOf(context);
 
-    return SafeArea(
-      bottom: false,
+    return Material(
+      key: const ValueKey<String>('active-ride-navigation-card'),
+      color: const Color(0xFFFCFDFC),
+      elevation: 10,
+      shadowColor: const Color(0x33172027),
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
-        child: Material(
-          key: const ValueKey<String>('active-ride-navigation-card'),
-          color: Colors.white,
-          elevation: 10,
-          shadowColor: const Color(0x33172027),
-          borderRadius: BorderRadius.circular(18),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE6F5EE),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    _iconFor(banner.symbol),
-                    color: green,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        banner.primary,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: ink,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        banner.distanceLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: green,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if ((banner.roadName ?? '').isNotEmpty ||
-                          (banner.status ?? '').isNotEmpty) ...[
-                        const SizedBox(height: 1),
-                        Text(
-                          banner.status ?? banner.roadName ?? '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: muted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if ((etaLabel ?? '').isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Text(
-                      etaLabel!,
-                      style: const TextStyle(
-                        color: ink,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                      ),
+        padding: EdgeInsets.fromLTRB(
+          16 + pad.left,
+          10 + pad.top,
+          16 + pad.right,
+          12,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F5EE),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(
+                _iconFor(banner.symbol),
+                color: green,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    banner.primary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: ink,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
                     ),
                   ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            if ((etaLabel ?? '').isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(
+                  etaLabel!,
+                  style: const TextStyle(
+                    color: ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

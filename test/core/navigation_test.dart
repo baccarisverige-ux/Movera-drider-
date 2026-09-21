@@ -8,6 +8,7 @@ import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/routing/osrm_route_parser.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/routing/route_repository.dart';
+import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
 import 'package:movera/widgets/movera_sheet_metrics.dart';
 
 void main() {
@@ -175,6 +176,32 @@ void main() {
       ),
       0,
     );
+  });
+
+  test('sheet spring and collapsed heights match the overlay contract', () {
+    expect(MoveraSheetMetrics.collapsedHeight, 108);
+    expect(MoveraSheetMetrics.activeCollapsedHeight, 148);
+    expect(MoveraSheetMetrics.middleFraction, 0.46);
+    expect(MoveraSheetMetrics.expandedFraction, 0.90);
+    expect(MoveraSheetMetrics.springMass, 1.0);
+    expect(MoveraSheetMetrics.springStiffness, 320);
+    expect(MoveraSheetMetrics.springDamping, 32);
+  });
+
+  test('map overlay insets keep fitted routes in the visible map', () {
+    final home = MapOverlayInsets.forHome(
+      safeTop: 47,
+      obscuredBottom: 188,
+      hasTopBanner: true,
+    );
+    expect(home.top, 47 + 68);
+    expect(home.bottom, 188 + 18);
+    expect(home.boundsPadding, inInclusiveRange(36, 72));
+
+    final ride = MapOverlayInsets.forActiveRide(safeTop: 47);
+    expect(ride.top, 47 + 76);
+    expect(ride.bottom, MoveraSheetMetrics.activeCollapsedHeight + 10);
+    expect(ride.boundsPadding, inInclusiveRange(36, 72));
   });
 }
 

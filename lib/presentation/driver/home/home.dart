@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
@@ -42,6 +41,9 @@ import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/movera_radar_orb.dart';
 import 'package:movera/widgets/movera_sheet_metrics.dart';
+import 'package:movera/presentation/driver/sheets/movera_snap_sheet_controller.dart';
+import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
+import 'package:movera/presentation/driver/overlays/trip_status_banner.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -123,7 +125,7 @@ class _DriverHomeState extends State<DriverHome>
   double _sheetPointerLastY = 0;
   int _sheetPointerLastMs = 0;
   double _lastSnapHapticAt = -1;
-  AnimationController? _sheetSpringController;
+  late final MoveraSnapSheetController _snapSheet;
   bool showRideRequests = false;
   bool isAccountActivated = true;
   bool _isGoingOnline = false;
@@ -270,6 +272,7 @@ class _DriverHomeState extends State<DriverHome>
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat();
+    _snapSheet = MoveraSnapSheetController(panel: _panelController, vsync: this);
     _loadMarkers();
     _prepareDriverVehicleMarker();
     _startDriverLocation();
@@ -613,6 +616,18 @@ class _DriverHomeState extends State<DriverHome>
 
     if (!mounted) return;
 
+    final media = MediaQuery.of(context);
+    final offerObscured = _isDirectOfferRoutePreview ||
+        _outsideRadarOffer != null ||
+        _radarHomeOffers.isNotEmpty;
+    final insets = MapOverlayInsets.forHome(
+      safeTop: media.padding.top,
+      obscuredBottom: offerObscured
+          ? 188
+          : MoveraSheetMetrics.collapsedHeight,
+      hasTopBanner: _homeRadarMatchNotice != null,
+    );
+
     if (roadPoints.length >= 2) {
       setState(() {
         _directOfferRoutePolylines = {
@@ -631,7 +646,7 @@ class _DriverHomeState extends State<DriverHome>
 
     await _fitPoints(
       roadPoints.isNotEmpty ? roadPoints : <LatLng>[pickup, dropoff],
-      padding: 82,
+      padding: insets.boundsPadding,
     );
   }
 
@@ -1287,6 +1302,7 @@ class _DriverHomeState extends State<DriverHome>
     if (_mainPanelPosition <= 0.001) {
       _setMapGesturesBlocked(false);
     }
+    unawaited(_snapHomeSheet());
   }
 
   Future<void> _openDriverSheet() async {
@@ -1320,6 +1336,8 @@ class _DriverHomeState extends State<DriverHome>
 
   Future<void> _snapHomeSheet({double? velocity}) async {
     if (!_panelController.isAttached) return;
+    _snapSheet.rangePx =
+        _homeExpandedHeight(context) - MoveraSheetMetrics.collapsedHeight;
     final snap = _homeSnapPoint(context);
     final target = MoveraSheetMetrics.targetPosition(
       position: _panelController.panelPosition,
@@ -1330,7 +1348,7 @@ class _DriverHomeState extends State<DriverHome>
       unawaited(HapticFeedback.lightImpact());
       _lastSnapHapticAt = target;
     }
-    await _springPanelTo(
+    await _snapSheet.springTo(
       target,
       velocityPxPerSec: velocity ?? _sheetPointerVelocity,
     );
@@ -1339,38 +1357,10 @@ class _DriverHomeState extends State<DriverHome>
   Future<void> _springPanelTo(
     double target, {
     double velocityPxPerSec = 0,
-  }) async {
-    if (!_panelController.isAttached) return;
-    final start = _panelController.panelPosition;
-    if ((start - target).abs() < 0.003) {
-      _panelController.panelPosition = target;
-      return;
-    }
-
-    _sheetSpringController?.dispose();
-    final controller = AnimationController.unbounded(vsync: this);
-    _sheetSpringController = controller;
-    final range =
+  }) {
+    _snapSheet.rangePx =
         _homeExpandedHeight(context) - MoveraSheetMetrics.collapsedHeight;
-    final velocity = range <= 0 ? 0.0 : -velocityPxPerSec / range;
-    final simulation = SpringSimulation(
-      MoveraSheetMetrics.spring,
-      start,
-      target,
-      velocity,
-    );
-    controller.addListener(() {
-      if (!_panelController.isAttached) return;
-      _panelController.panelPosition = controller.value.clamp(0.0, 1.0);
-    });
-    try {
-      await controller.animateWith(simulation);
-    } finally {
-      if (identical(_sheetSpringController, controller)) {
-        controller.dispose();
-        _sheetSpringController = null;
-      }
-    }
+    return _snapSheet.springTo(target, velocityPxPerSec: velocityPxPerSec);
   }
 
   @override
@@ -1451,7 +1441,7 @@ class _DriverHomeState extends State<DriverHome>
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: true,
-              panelSnapping: true,
+              panelSnapping: false,
               snapPoint: _homeSnapPoint(context),
               defaultPanelState: PanelState.CLOSED,
               maxHeight: _homeExpandedHeight(context),
@@ -1589,6 +1579,15 @@ class _DriverHomeState extends State<DriverHome>
             buildingsEnabled: true,
             indoorViewEnabled: false,
             mapType: MapType.normal,
+            padding: MapOverlayInsets.forHome(
+              safeTop: MediaQuery.paddingOf(context).top,
+              obscuredBottom: (_isDirectOfferRoutePreview ||
+                      _outsideRadarOffer != null ||
+                      _radarHomeOffers.isNotEmpty)
+                  ? 188
+                  : MoveraSheetMetrics.collapsedHeight,
+              hasTopBanner: _homeRadarMatchNotice != null,
+            ).edgeInsets,
             onMapCreated: (GoogleMapController controller) {
               _mapController = controller;
               if (_hasLiveDriverLocation) {
@@ -2054,9 +2053,9 @@ class _DriverHomeState extends State<DriverHome>
             ),
           if (!isDestinationPanel && _homeRadarMatchNotice != null)
             Positioned(
-              left: 14,
-              right: 14,
-              top: MediaQuery.paddingOf(context).top + 8,
+              left: 0,
+              right: 0,
+              top: 0,
               child: _buildHomeRadarMatchNotice(_homeRadarMatchNotice!),
             ),
 
@@ -2076,71 +2075,21 @@ class _DriverHomeState extends State<DriverHome>
             ? const Color(0xFFD99B24)
             : const Color(0xFFC75B62);
 
-    return Material(
+    return TripStatusBanner(
       key: const ValueKey<String>('home-radar-match-notice'),
-      color: const Color(0xFFFCFDFC),
-      elevation: 12,
-      shadowColor: Colors.black.withOpacity(0.18),
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
-        child: Row(
-          children: [
-            Container(
-              height: 36,
-              width: 36,
-              decoration: BoxDecoration(
-                color: accent.withOpacity(0.11),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: isMatching
-                    ? SizedBox(
-                        height: 17,
-                        width: 17,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          color: accent,
-                        ),
-                      )
-                    : Icon(
-                        isSuccess
-                            ? Icons.check_rounded
-                            : Icons.person_off_outlined,
-                        color: accent,
-                        size: 19,
-                      ),
-              ),
+      title: notice.title,
+      subtitle: notice.message,
+      accent: accent,
+      busy: isMatching,
+      leading: isMatching
+          ? null
+          : Icon(
+              isSuccess
+                  ? Icons.check_rounded
+                  : Icons.person_off_outlined,
+              color: accent,
+              size: 22,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    notice.title,
-                    style: const TextStyle(
-                      color: Color(0xFF252E3A),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    notice.message,
-                    style: const TextStyle(
-                      color: Color(0xFF7D898F),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -2989,8 +2938,7 @@ class _DriverHomeState extends State<DriverHome>
 
   void _onRadarSheetDragUpdate(DragUpdateDetails details) {
     if (!_panelController.isAttached) return;
-    _sheetSpringController?.dispose();
-    _sheetSpringController = null;
+    _snapSheet.stopSpring();
     final range = _homeExpandedHeight(context) - MoveraSheetMetrics.collapsedHeight;
     if (range <= 0) return;
     final next = (_panelController.panelPosition - details.delta.dy / range)
@@ -4726,7 +4674,7 @@ class _DriverHomeState extends State<DriverHome>
     _driverLocationSubscription?.cancel();
     _radarSweepController.dispose();
     _panelSlidePosition.dispose();
-    _sheetSpringController?.dispose();
+    _snapSheet.dispose();
     _mapController = null;
     _driverSession.removeListener(_onDriverSessionChanged);
     if (_ownsDriverSession) {

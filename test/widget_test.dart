@@ -571,6 +571,12 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 1500));
     expect(find.text('Trip matched'), findsOneWidget);
+    final notice = tester.getRect(
+      find.byKey(const ValueKey<String>('radar-match-notice')),
+    );
+    expect(notice.top, closeTo(0, 0.5));
+    expect(notice.left, closeTo(0, 0.5));
+    expect(notice.width, closeTo(375, 1));
     _expectNoException(tester);
 
     await tester.pump(const Duration(milliseconds: 900));
@@ -1814,6 +1820,7 @@ void main() {
     expect(panel.maxHeight, closeTo(812 * 0.90, 0.5));
     expect(panel.snapPoint, isNotNull);
     expect(panel.snapPoint!, inInclusiveRange(0.08, 0.92));
+    expect(panel.panelSnapping, isFalse);
     _expectNoException(tester);
   });
 
@@ -1836,8 +1843,22 @@ void main() {
     );
 
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect(panel.minHeight, 132);
+    expect(panel.minHeight, 148);
     expect(panel.snapPoint, isNotNull);
+    expect(panel.panelSnapping, isFalse);
+
+    final banner = tester.getRect(
+      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
+    );
+    expect(banner.top, closeTo(0, 0.5));
+    expect(banner.left, closeTo(0, 0.5));
+    expect(banner.width, closeTo(375, 1));
+
+    final mapControls = find.byKey(
+      const ValueKey<String>('active-ride-map-controls'),
+    );
+    expect(mapControls, findsOneWidget);
+    final openY = tester.getTopLeft(mapControls).dy;
 
     await _collapseActiveRideSheet(tester);
     expect(find.text('Heading to pickup'), findsOneWidget);
@@ -1846,9 +1867,15 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.byKey(const ValueKey<String>('active-ride-compact-dock')),
+      findsOneWidget,
+    );
+    expect(find.text('Odlarvägen 22'), findsWidgets);
+    expect(
       find.byKey(const ValueKey<String>('active-ride-navigation-card')),
       findsOneWidget,
     );
+    expect(tester.getTopLeft(mapControls).dy, closeTo(openY, 0.5));
     _expectNoException(tester);
   });
 
@@ -1891,6 +1918,7 @@ void main() {
     );
     expect(radar, findsOneWidget);
     expect(tester.getSize(radar), const Size(88, 88));
+    expect(tester.getTopLeft(radar).dx, lessThan(40));
     _expectNoException(tester);
   });
 }

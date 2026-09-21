@@ -10,6 +10,7 @@ import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
+import 'package:movera/presentation/driver/overlays/trip_status_banner.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 
@@ -357,9 +358,9 @@ class _RideRequestsState extends State<RideRequests> {
           ),
           if (_matchNotice != null)
             Positioned(
-              left: 14,
-              right: 14,
-              top: MediaQuery.paddingOf(context).top + 8,
+              left: 0,
+              right: 0,
+              top: 0,
               child: _buildMatchNotice(_matchNotice!),
             ),
         ],
@@ -863,71 +864,21 @@ class _RideRequestsState extends State<RideRequests> {
             ? const Color(0xFFD99B24)
             : const Color(0xFFC75B62);
 
-    return Material(
+    return TripStatusBanner(
       key: const ValueKey<String>('radar-match-notice'),
-      color: const Color(0xFFFCFDFC),
-      elevation: 12,
-      shadowColor: Colors.black.withOpacity(0.18),
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
-        child: Row(
-          children: [
-            Container(
-              height: 36,
-              width: 36,
-              decoration: BoxDecoration(
-                color: accent.withOpacity(0.11),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: isMatching
-                    ? SizedBox(
-                        height: 17,
-                        width: 17,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          color: accent,
-                        ),
-                      )
-                    : Icon(
-                        isSuccess
-                            ? Icons.check_rounded
-                            : Icons.person_off_outlined,
-                        color: accent,
-                        size: 19,
-                      ),
-              ),
+      title: notice.title,
+      subtitle: notice.message,
+      accent: accent,
+      busy: isMatching,
+      leading: isMatching
+          ? null
+          : Icon(
+              isSuccess
+                  ? Icons.check_rounded
+                  : Icons.person_off_outlined,
+              color: accent,
+              size: 22,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    notice.title,
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    notice.message,
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
