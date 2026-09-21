@@ -168,7 +168,7 @@ class _DriverHomeState extends State<DriverHome>
     id: 'home-direct-close',
     category: 'Comfort',
     reason: 'Exclusive nearby offer',
-    detail: 'Directly matched outside Trip Radar',
+    detail: 'Exclusive Radar priority match',
     fare: '104,80 kr',
     rating: '4.96',
     pickupMinutes: 3,
@@ -185,7 +185,7 @@ class _DriverHomeState extends State<DriverHome>
     id: 'home-direct-expanded',
     category: 'Premium',
     reason: 'Extended coverage offer',
-    detail: 'Direct match beyond your active radar radius',
+    detail: 'Exclusive Radar extended match',
     fare: '176,20 kr',
     rating: '4.98',
     pickupMinutes: 8,
@@ -538,6 +538,17 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
+  double _homeMapObscuredBottom(BuildContext context) {
+    if (_outsideRadarOffer != null) {
+      final height = MediaQuery.sizeOf(context).height;
+      return math.min(440.0, height * 0.54);
+    }
+    if (_isDirectOfferRoutePreview || _radarHomeOffers.isNotEmpty) {
+      return 188;
+    }
+    return MoveraSheetMetrics.collapsedHeight;
+  }
+
   Future<void> _previewDirectOfferRoute(
     LatLng pickup,
     LatLng dropoff,
@@ -596,14 +607,9 @@ class _DriverHomeState extends State<DriverHome>
     if (!mounted) return;
 
     final media = MediaQuery.of(context);
-    final offerObscured = _isDirectOfferRoutePreview ||
-        _outsideRadarOffer != null ||
-        _radarHomeOffers.isNotEmpty;
     final insets = MapOverlayInsets.forHome(
       safeTop: media.padding.top,
-      obscuredBottom: offerObscured
-          ? 188
-          : MoveraSheetMetrics.collapsedHeight,
+      obscuredBottom: _homeMapObscuredBottom(context),
       hasTopBanner: _homeRadarMatchNotice != null,
     );
 
@@ -1174,7 +1180,7 @@ class _DriverHomeState extends State<DriverHome>
           offerId: offer.id,
           fare: offer.fare,
           category: offer.category,
-          matchedVia: 'Movera direct match',
+          matchedVia: 'Exclusive Radar',
           waybillRepository: _waybills,
           sessionController: _driverSession,
           locationRepository: _driverLocationService,
@@ -1433,11 +1439,13 @@ class _DriverHomeState extends State<DriverHome>
               backdropTapClosesPanel: false,
               controller: _panelController,
               margin: EdgeInsets.all(0),
-              minHeight: MoveraSheetMetrics.collapsedHeight,
+              minHeight: _outsideRadarOffer != null
+                  ? 0
+                  : MoveraSheetMetrics.collapsedHeight,
               padding: EdgeInsets.zero,
               boxShadow: [],
-              isDraggable: true,
-              panelSnapping: true,
+              isDraggable: _outsideRadarOffer == null,
+              panelSnapping: _outsideRadarOffer == null,
               snapPoint: _homeSnapPoint(context),
               defaultPanelState: PanelState.CLOSED,
               maxHeight: _homeExpandedHeight(context),
@@ -1475,36 +1483,40 @@ class _DriverHomeState extends State<DriverHome>
                 }
                 _setMapGesturesBlocked(false);
               },
-              collapsed: PointerInterceptor(
-                child: Listener(
-                  behavior: HitTestBehavior.opaque,
-                  onPointerDown: _onSheetPointerDown,
-                  onPointerMove: _onSheetPointerMove,
-                  onPointerUp: _onSheetPointerEnd,
-                  onPointerCancel: _onSheetPointerEnd,
-                  child: DriverSheetNav.collapsedDock(
-                    context: context,
-                    scaffoldKey: _scaffoldKey,
-                    isOnline: _isOnline,
-                    hasRideOffers:
-                        _hasRideOffers || _radarHomeOffers.isNotEmpty,
-                    hasScheduledRideOffers: _hasScheduledRideOffers,
-                    goOnlinePulseController: _goOnlinePulseController,
-                    onOpenScheduledRides: _openScheduledRides,
-                  ),
-                ),
-              ),
+              collapsed: _outsideRadarOffer != null
+                  ? const SizedBox.shrink()
+                  : PointerInterceptor(
+                      child: Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: _onSheetPointerDown,
+                        onPointerMove: _onSheetPointerMove,
+                        onPointerUp: _onSheetPointerEnd,
+                        onPointerCancel: _onSheetPointerEnd,
+                        child: DriverSheetNav.collapsedDock(
+                          context: context,
+                          scaffoldKey: _scaffoldKey,
+                          isOnline: _isOnline,
+                          hasRideOffers:
+                              _hasRideOffers || _radarHomeOffers.isNotEmpty,
+                          hasScheduledRideOffers: _hasScheduledRideOffers,
+                          goOnlinePulseController: _goOnlinePulseController,
+                          onOpenScheduledRides: _openScheduledRides,
+                        ),
+                      ),
+                    ),
 
-              panelBuilder: (ScrollController sc) => PointerInterceptor(
-                child: Listener(
-                  behavior: HitTestBehavior.opaque,
-                  onPointerDown: _onSheetPointerDown,
-                  onPointerMove: _onSheetPointerMove,
-                  onPointerUp: _onSheetPointerEnd,
-                  onPointerCancel: _onSheetPointerEnd,
-                  child: panelColumn(sc),
-                ),
-              ),
+              panelBuilder: (ScrollController sc) => _outsideRadarOffer != null
+                  ? const SizedBox.shrink()
+                  : PointerInterceptor(
+                      child: Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: _onSheetPointerDown,
+                        onPointerMove: _onSheetPointerMove,
+                        onPointerUp: _onSheetPointerEnd,
+                        onPointerCancel: _onSheetPointerEnd,
+                        child: panelColumn(sc),
+                      ),
+                    ),
               body: AbsorbPointer(
                 absorbing: _blockMapGestures,
                 child: body(),
@@ -1571,11 +1583,7 @@ class _DriverHomeState extends State<DriverHome>
             mapType: MapType.normal,
             padding: MapOverlayInsets.forHome(
               safeTop: MediaQuery.paddingOf(context).top,
-              obscuredBottom: (_isDirectOfferRoutePreview ||
-                      _outsideRadarOffer != null ||
-                      _radarHomeOffers.isNotEmpty)
-                  ? 188
-                  : MoveraSheetMetrics.collapsedHeight,
+              obscuredBottom: _homeMapObscuredBottom(context),
               hasTopBanner: _homeRadarMatchNotice != null,
             ).edgeInsets,
             onMapCreated: (GoogleMapController controller) {
@@ -2773,7 +2781,7 @@ class _DriverHomeState extends State<DriverHome>
                             const SizedBox(width: 8),
                             const Flexible(
                               child: Text(
-                                'Outside Radar',
+                                'Exclusive Radar',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -3421,6 +3429,26 @@ class _DriverHomeState extends State<DriverHome>
         _radarSweepController,
       ]),
       builder: (context, child) {
+        final exclusive = _outsideRadarOffer;
+        if (exclusive != null) {
+          return _buildRadarOrb(
+            title: "Exclusive",
+            status: "RADAR",
+            subtitle: "Priority offer",
+            active: true,
+            offer: true,
+            exclusive: true,
+            pulse: _goOnlinePulseController.value,
+            sweep: _radarSweepController.value,
+            onTap: () => unawaited(
+              _previewDirectOfferRoute(
+                exclusive.pickupPosition,
+                exclusive.dropoffPosition,
+              ),
+            ),
+          );
+        }
+
         final radarOfferCount = _radarHomeOffers.length;
         final pendingRadarCount = _pendingRadarHomeOffers.length;
         final hasRadarOffer =
@@ -3454,6 +3482,7 @@ class _DriverHomeState extends State<DriverHome>
     bool active = false,
     bool loading = false,
     bool offer = false,
+    bool exclusive = false,
     double pulse = 0,
     double sweep = 0,
   }) {
@@ -3465,6 +3494,7 @@ class _DriverHomeState extends State<DriverHome>
       active: active,
       loading: loading,
       offer: offer,
+      exclusive: exclusive,
       pulse: pulse,
       sweep: sweep,
     );
