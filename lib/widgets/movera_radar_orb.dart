@@ -11,7 +11,6 @@ class MoveraRadarOrb extends StatelessWidget {
     this.active = false,
     this.loading = false,
     this.offer = false,
-    this.exclusive = false,
     this.pulse = 0,
     this.sweep = 0,
     this.size = 104,
@@ -26,7 +25,6 @@ class MoveraRadarOrb extends StatelessWidget {
   final bool active;
   final bool loading;
   final bool offer;
-  final bool exclusive;
   final double pulse;
   final double sweep;
   final double size;
@@ -38,38 +36,28 @@ class MoveraRadarOrb extends StatelessWidget {
     const mint = Color(0xFF58E5A6);
     const detectedGold = Color(0xFFFFD166);
     const detectedAmber = Color(0xFFFFA94D);
-    const exclusiveBlue = Color(0xFF4E8DFF);
-    const exclusiveViolet = Color(0xFF8A6CFF);
-    final accent = exclusive
-        ? (Color.lerp(exclusiveBlue, exclusiveViolet, pulse) ?? exclusiveBlue)
-        : offer
-            ? (Color.lerp(detectedGold, detectedAmber, pulse) ?? detectedGold)
-            : mint;
+    final accent = offer
+        ? Color.lerp(detectedGold, detectedAmber, pulse) ?? detectedGold
+        : mint;
     final glowStrength = !active
         ? 0.08
         : loading
             ? 0.10 + (pulse * 0.14)
-            : exclusive
-                ? 0.20 + (pulse * 0.34)
-                : offer
-                    ? 0.14 + (pulse * 0.26)
-                    : 0.11 + (pulse * 0.16);
+            : offer
+                ? 0.14 + (pulse * 0.26)
+                : 0.11 + (pulse * 0.16);
     final ringScale = !active
         ? 1.0
         : loading
             ? 0.96 + (pulse * 0.07)
-            : exclusive
-                ? 0.80 + (pulse * 0.28)
-                : offer
-                    ? 0.84 + (pulse * 0.22)
-                    : 0.91 + (pulse * 0.12);
+            : offer
+                ? 0.84 + (pulse * 0.22)
+                : 0.91 + (pulse * 0.12);
     final secondWaveScale = !active
         ? 1.0
         : loading
             ? 0.90 + ((1 - pulse) * 0.10)
-            : exclusive
-                ? 0.80 + ((1 - pulse) * 0.22)
-                : 0.86 + ((1 - pulse) * 0.16);
+            : 0.86 + ((1 - pulse) * 0.16);
     final s = size / 104;
     final hit = touchSize ?? size;
 
@@ -113,14 +101,10 @@ class MoveraRadarOrb extends StatelessWidget {
                         height: 96 * s,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: accent.withOpacity(
-                            exclusive ? 0.07 : offer ? 0.045 : 0.025,
-                          ),
+                          color: accent.withOpacity(offer ? 0.045 : 0.025),
                           border: Border.all(
-                            color: accent.withOpacity(
-                              exclusive ? 0.60 : offer ? 0.42 : 0.20,
-                            ),
-                            width: exclusive ? 1.55 : offer ? 1.35 : 1.0,
+                            color: accent.withOpacity(offer ? 0.42 : 0.20),
+                            width: offer ? 1.35 : 1.0,
                           ),
                         ),
                       ),
@@ -182,32 +166,6 @@ class MoveraRadarOrb extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (active && exclusive)
-                    Transform.rotate(
-                      angle: (1 - sweep) * 6.283185307179586,
-                      child: SizedBox(
-                        width: 86 * s,
-                        height: 86 * s,
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Container(
-                            width: 2.2,
-                            height: 22 * s,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(4),
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  accent.withOpacity(0),
-                                  accent.withOpacity(0.88),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                   Material(
                     color: Colors.transparent,
                     elevation: 16,
@@ -219,34 +177,21 @@ class MoveraRadarOrb extends StatelessWidget {
                       height: 73 * s,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: exclusive
-                            ? const RadialGradient(
-                                center: Alignment(-0.24, -0.32),
-                                radius: 0.98,
-                                colors: [
-                                  Color(0xE06F7EA6),
-                                  Color(0xE04D5F89),
-                                  Color(0xED303B59),
-                                ],
-                                stops: [0, 0.58, 1],
-                              )
-                            : const RadialGradient(
-                                center: Alignment(-0.24, -0.32),
-                                radius: 0.98,
-                                colors: [
-                                  Color(0xD98F999C),
-                                  Color(0xD9727D80),
-                                  Color(0xE05A6468),
-                                ],
-                                stops: [0, 0.58, 1],
-                              ),
+                        gradient: const RadialGradient(
+                          center: Alignment(-0.24, -0.32),
+                          radius: 0.98,
+                          colors: [
+                            Color(0xD98F999C),
+                            Color(0xD9727D80),
+                            Color(0xE05A6468),
+                          ],
+                          stops: [0, 0.58, 1],
+                        ),
                         border: Border.all(
-                          color: exclusive
-                              ? accent.withOpacity(0.95)
-                              : offer
-                                  ? accent.withOpacity(0.82)
-                                  : const Color(0xD9E7ECEE),
-                          width: exclusive ? 2.1 : offer ? 1.9 : 1.6,
+                          color: offer
+                              ? accent.withOpacity(0.82)
+                              : const Color(0xD9E7ECEE),
+                          width: offer ? 1.9 : 1.6,
                         ),
                       ),
                       child: InkWell(
