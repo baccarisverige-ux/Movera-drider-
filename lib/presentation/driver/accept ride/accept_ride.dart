@@ -3794,15 +3794,15 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                       right: 12,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(
+                        children: [
+                          const Icon(
                             Icons.chevron_right_rounded,
                             color: Color(0xFF627078),
                             size: 16,
                           ),
                           Transform.translate(
-                            offset: Offset(-5, 0),
-                            child: Icon(
+                            offset: const Offset(-5, 0),
+                            child: const Icon(
                               Icons.chevron_right_rounded,
                               color: Color(0xFF8C979C),
                               size: 16,
