@@ -53,6 +53,7 @@ class _MoveraAppState extends State<MoveraApp> {
       designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: true,
+      useInheritedMediaQuery: true,
       builder: (_, child) {
         return GetMaterialApp(
           title: 'Movera Driver',
