@@ -452,7 +452,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Radar edge dash ignores outside offers and alerts on Radar offers', (
+  testWidgets('Exclusive Radar hides Home edge dash and normal Radar restores it', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -462,21 +462,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1550));
     await tester.pump(const Duration(milliseconds: 2300));
 
-    // Exclusive Radar offer must not turn the Radar dash amber.
-    final outsideDashes = tester.widgetList<RadarEdgeDash>(
-      find.byType(RadarEdgeDash),
-    );
-    expect(outsideDashes, isNotEmpty);
-    expect(
-      outsideDashes.every(
-        (dash) => dash.color == const Color(0xFF2FBE7B),
-      ),
-      isTrue,
-    );
+    // Exclusive Radar is map-only: the Home sheet and its edge dash are hidden.
+    expect(find.byType(RadarEdgeDash), findsNothing);
+    expect(find.text('Exclusive'), findsOneWidget);
+    expect(find.text('RADAR'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 8500));
     await tester.pump(const Duration(milliseconds: 900));
 
+    // After the exclusive offer ends, the normal Home Radar returns.
     final radarDashes = tester.widgetList<RadarEdgeDash>(
       find.byType(RadarEdgeDash),
     );
@@ -989,7 +983,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('LIVE'), findsOneWidget);
+    expect(find.text('Exclusive'), findsOneWidget);
+    expect(find.text('RADAR'), findsOneWidget);
 
     // Advance in small frames so the async route-preview continuation can
     // install and then fire the 8.5s timeout timer.
