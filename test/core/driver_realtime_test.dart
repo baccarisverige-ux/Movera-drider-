@@ -76,6 +76,22 @@ void main() {
     expect(dockSource.contains("I've arrived"), isTrue);
   });
 
+  test('active ride consumes rider cancellation as rider-owned terminal state', () {
+    final source = File(
+      'lib/presentation/driver/accept ride/accept_ride.dart',
+    ).readAsStringSync();
+
+    expect(
+      source.contains('case DriverRealtimeKind.riderCancelled'),
+      isTrue,
+    );
+    expect(
+      source.contains('TripStatus.cancelledByRider'),
+      isTrue,
+    );
+    expect(source.contains('showRiderCancelledSheet'), isTrue);
+  });
+
   test('reconnect replays the last event for the trip', () async {
     final bus = MemoryDriverRealtime();
     bus.emit(
