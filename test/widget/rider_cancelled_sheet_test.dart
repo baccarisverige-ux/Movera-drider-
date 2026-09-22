@@ -50,4 +50,55 @@ void main() {
       },
     );
   }
+
+  testWidgets('rider cancellation cannot be dismissed from the barrier', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: FilledButton(
+                onPressed: () => showRiderCancelledSheet(
+                  context,
+                  riderName: 'Rider',
+                  wasOnTrip: true,
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('rider-cancelled-mid-trip')),
+      findsOneWidget,
+    );
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('rider-cancelled-mid-trip')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('rider-cancelled-acknowledge'),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('rider-cancelled-mid-trip')),
+      findsNothing,
+    );
+  });
 }
