@@ -24,21 +24,23 @@ class ActiveRideController extends ChangeNotifier {
   final ActiveRideRepository _repository;
   PersistedActiveRide Function(ActiveRideStage stage)? snapshotBuilder;
   ActiveRideStage _stage;
-  bool _completed = false;
-  bool _cancelled = false;
+  TripStatus? _terminalStatus;
 
   ActiveRideStage get stage => _stage;
-  bool get completed => _completed;
-  bool get cancelled => _cancelled;
-  bool get terminal => _completed || _cancelled;
+  TripStatus? get terminalStatus => _terminalStatus;
+  bool get completed => _terminalStatus == TripStatus.completed;
+  bool get cancelled =>
+      _terminalStatus == TripStatus.cancelledByRider ||
+      _terminalStatus == TripStatus.cancelledByDriver ||
+      _terminalStatus == TripStatus.cancelledByAdmin ||
+      _terminalStatus == TripStatus.noShow ||
+      _terminalStatus == TripStatus.expired ||
+      _terminalStatus == TripStatus.failed;
+  bool get terminal => _terminalStatus != null;
 
-  /// Canonical P1 status derived from the live stage and terminal flags.
+  /// Canonical P1 status derived from the live stage and terminal outcome.
   /// Does not replace [ActiveRideStage] in UI.
-  TripStatus get tripStatus {
-    if (_cancelled) return TripStatus.cancelledByDriver;
-    if (_completed) return TripStatus.completed;
-    return _stage.tripStatus;
-  }
+  TripStatus get tripStatus => _terminalStatus ?? _stage.tripStatus;
 
   bool transitionTo(ActiveRideStage next) {
     if (terminal) return false;
@@ -61,18 +63,29 @@ class ActiveRideController extends ChangeNotifier {
 
   bool complete() {
     if (terminal || _stage != ActiveRideStage.onTrip) return false;
-    _completed = true;
+    _terminalStatus = TripStatus.completed;
     notifyListeners();
     unawaited(_repository.clear());
     return true;
   }
 
-  bool cancel() {
-    if (terminal) return false;
-    _cancelled = true;
+  bool cancel({
+    TripStatus status = TripStatus.cancelledByDriver,
+  }) {
+    if (terminal || !_isCancellationTerminal(status)) return false;
+    _terminalStatus = status;
     notifyListeners();
     unawaited(_repository.clear());
     return true;
+  }
+
+  bool _isCancellationTerminal(TripStatus status) {
+    return status == TripStatus.cancelledByRider ||
+        status == TripStatus.cancelledByDriver ||
+        status == TripStatus.cancelledByAdmin ||
+        status == TripStatus.noShow ||
+        status == TripStatus.expired ||
+        status == TripStatus.failed;
   }
 
   /// Write the current live snapshot. Safe to call from lifecycle pauses.
