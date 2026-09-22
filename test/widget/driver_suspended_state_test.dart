@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:movera/widgets/layout_viewport.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -50,8 +52,16 @@ void main() {
     final session = DriverSessionController()..suspend();
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: DriverHome(sessionController: session),
+      LayoutViewport(
+        child: ScreenUtilInit(
+          designSize: const Size(375, 812),
+          minTextAdapt: true,
+          splitScreenMode: true,
+          useInheritedMediaQuery: true,
+          builder: (_, __) => MaterialApp(
+            home: DriverHome(sessionController: session),
+          ),
+        ),
       ),
     );
     await tester.pump(const Duration(milliseconds: 180));
