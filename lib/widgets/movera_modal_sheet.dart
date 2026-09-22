@@ -14,14 +14,15 @@ Future<T?> showMoveraModalSheet<T>({
   double heightFactor = 0.78,
   Color barrierColor = const Color(0x59000000),
   Color backgroundColor = Colors.transparent,
+  bool barrierDismissible = true,
 }) {
   final surface = LayoutViewport.surfaceSize(context);
   final height = surface.height * heightFactor;
 
   return showGeneralDialog<T>(
     context: context,
-    barrierDismissible: true,
-    barrierLabel: 'Dismiss',
+    barrierDismissible: barrierDismissible,
+    barrierLabel: barrierDismissible ? 'Dismiss' : null,
     barrierColor: barrierColor,
     transitionDuration: Duration.zero,
     pageBuilder: (sheetContext, animation, secondaryAnimation) {

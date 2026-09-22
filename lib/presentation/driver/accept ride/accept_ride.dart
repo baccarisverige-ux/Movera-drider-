@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/geo/geo_point_maps.dart';
 import 'package:movera/core/routing/route_maps.dart';
@@ -24,6 +25,7 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
+import 'package:movera/presentation/driver/accept%20ride/rider_cancelled_sheet.dart';
 import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
 import 'package:movera/presentation/driver/sheets/movera_snap_sheet_controller.dart';
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
@@ -351,6 +353,7 @@ class _AcceptRideState extends State<AcceptRide>
   late final DriverRealtime _realtime;
   late final bool _ownsRealtime;
   bool _riderOnTheWay = false;
+  bool _handlingRiderCancellation = false;
   Timer? _nextTripRadarDemoTimer;
   Timer? _nextTripRadarMatchTimer;
   DateTime? _lastGpsAppliedAt;
@@ -619,23 +622,68 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _onRealtimeEvent(DriverRealtimeEvent event) {
     if (!mounted || event.tripId != widget.offerId) return;
-    if (event.kind != DriverRealtimeKind.riderOnTheWay) return;
-    setState(() => _riderOnTheWay = true);
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(
-        content: Text(
-          event.message?.trim().isNotEmpty == true
-              ? event.message!
-              : '${widget.riderName} is on the way',
-        ),
-        backgroundColor: _ink,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-      ),
+
+    switch (event.kind) {
+      case DriverRealtimeKind.riderOnTheWay:
+        if (_rideLifecycle.terminal) return;
+        setState(() => _riderOnTheWay = true);
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(
+              event.message?.trim().isNotEmpty == true
+                  ? event.message!
+                  : '${widget.riderName} is on the way',
+            ),
+            backgroundColor: _ink,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        );
+      case DriverRealtimeKind.riderCancelled:
+        unawaited(_handleRiderCancelled());
+      case DriverRealtimeKind.tripProjection:
+      case DriverRealtimeKind.location:
+      case DriverRealtimeKind.driverArrived:
+        return;
+    }
+  }
+
+  Future<void> _handleRiderCancelled() async {
+    if (!mounted ||
+        _handlingRiderCancellation ||
+        _rideLifecycle.terminal) {
+      return;
+    }
+
+    _handlingRiderCancellation = true;
+    final wasOnTrip = _stage == ActiveRideStage.onTrip;
+
+    _waitTimer?.cancel();
+    _nextTripRadarDemoTimer?.cancel();
+    _nextTripRadarMatchTimer?.cancel();
+    _pauseLiveUpdates();
+
+    if (!_rideLifecycle.cancel(status: TripStatus.cancelledByRider)) {
+      _handlingRiderCancellation = false;
+      return;
+    }
+    _waybills.discardCurrent();
+
+    await showRiderCancelledSheet(
+      context,
+      riderName: widget.riderName,
+      wasOnTrip: wasOnTrip,
     );
+    if (!mounted) return;
+
+    widget.sessionController?.stayOnlineAfterTrip();
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
   }
 
   void _confirmPickupArrival() {
