@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
+import 'package:movera/core/contracts/trip_status.dart';
 
 void main() {
   test('active ride only allows valid forward lifecycle transitions', () {
@@ -30,6 +31,28 @@ void main() {
       ride.transitionTo(ActiveRideStage.waitingForRider),
       isFalse,
     );
+  });
+
+  test('rider cancellation preserves the canonical actor', () {
+    final ride = ActiveRideController();
+
+    expect(
+      ride.cancel(status: TripStatus.cancelledByRider),
+      isTrue,
+    );
+    expect(ride.cancelled, isTrue);
+    expect(ride.terminal, isTrue);
+    expect(ride.terminalStatus, TripStatus.cancelledByRider);
+    expect(ride.tripStatus, TripStatus.cancelledByRider);
+    expect(ride.cancel(), isFalse);
+  });
+
+  test('cancel rejects non-terminal lifecycle statuses', () {
+    final ride = ActiveRideController();
+
+    expect(ride.cancel(status: TripStatus.inTrip), isFalse);
+    expect(ride.terminal, isFalse);
+    expect(ride.tripStatus, TripStatus.driverToPickup);
   });
 
   test('complete is idempotent and rejects double completion', () {
