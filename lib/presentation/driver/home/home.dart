@@ -29,6 +29,7 @@ import 'package:movera/presentation/driver/destination%20mode/destination_picker
 import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
+import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
 import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
@@ -3296,6 +3297,10 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _goOnline() {
+    if (_driverSession.isSuspended) {
+      unawaited(showDriverSuspendedSheet(context));
+      return;
+    }
     if (!isAccountActivated) {
       _showAccountActivationDialog();
       return;
@@ -3433,12 +3438,25 @@ class _DriverHomeState extends State<DriverHome>
     return AnimatedBuilder(
       animation: _goOnlinePulseController,
       builder: (context, child) {
+        final suspended = _driverSession.isSuspended;
         return _buildRadarOrb(
-          title: isAccountActivated ? "Radar" : "Pending",
-          status: isAccountActivated ? "OFF" : "LOCKED",
-          subtitle: isAccountActivated ? "Tap to scan" : "Activation required",
+          title: suspended
+              ? "Account"
+              : isAccountActivated
+              ? "Radar"
+              : "Pending",
+          status: suspended
+              ? "PAUSED"
+              : isAccountActivated
+              ? "OFF"
+              : "LOCKED",
+          subtitle: suspended
+              ? "Tap for details"
+              : isAccountActivated
+              ? "Tap to scan"
+              : "Activation required",
           onTap: _goOnline,
-          pulse: _goOnlinePulseController.value,
+          pulse: suspended ? 0 : _goOnlinePulseController.value,
         );
       },
     );
