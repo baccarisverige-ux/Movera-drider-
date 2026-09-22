@@ -32,10 +32,7 @@ class ActiveRideController extends ChangeNotifier {
   bool get cancelled =>
       _terminalStatus == TripStatus.cancelledByRider ||
       _terminalStatus == TripStatus.cancelledByDriver ||
-      _terminalStatus == TripStatus.cancelledByAdmin ||
-      _terminalStatus == TripStatus.noShow ||
-      _terminalStatus == TripStatus.expired ||
-      _terminalStatus == TripStatus.failed;
+      _terminalStatus == TripStatus.cancelledByAdmin;
   bool get terminal => _terminalStatus != null;
 
   /// Canonical P1 status derived from the live stage and terminal outcome.
@@ -82,10 +79,7 @@ class ActiveRideController extends ChangeNotifier {
   bool _isCancellationTerminal(TripStatus status) {
     return status == TripStatus.cancelledByRider ||
         status == TripStatus.cancelledByDriver ||
-        status == TripStatus.cancelledByAdmin ||
-        status == TripStatus.noShow ||
-        status == TripStatus.expired ||
-        status == TripStatus.failed;
+        status == TripStatus.cancelledByAdmin;
   }
 
   /// Write the current live snapshot. Safe to call from lifecycle pauses.
