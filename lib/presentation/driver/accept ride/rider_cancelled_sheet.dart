@@ -19,6 +19,7 @@ Future<void> showRiderCancelledSheet(
     context: context,
     heightFactor: wasOnTrip ? 0.56 : 0.50,
     barrierColor: const Color(0x730D1519),
+    barrierDismissible: false,
     builder: (sheetContext) => RiderCancelledSheet(
       riderName: riderName,
       wasOnTrip: wasOnTrip,
