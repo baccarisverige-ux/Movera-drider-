@@ -43,7 +43,7 @@ class MapOverlayInsets {
     double collapsedSheet = MoveraSheetMetrics.activeCollapsedHeight,
   }) {
     return MapOverlayInsets(
-      top: safeTop + 76,
+      top: safeTop + 118,
       bottom: collapsedSheet + 10,
       left: 32,
       right: 56,

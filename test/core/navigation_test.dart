@@ -258,7 +258,7 @@ void main() {
     expect(home.boundsPadding, inInclusiveRange(36, 72));
 
     final ride = MapOverlayInsets.forActiveRide(safeTop: 47);
-    expect(ride.top, 47 + 76);
+    expect(ride.top, 47 + 118);
     expect(ride.bottom, MoveraSheetMetrics.activeCollapsedHeight + 10);
     expect(ride.boundsPadding, inInclusiveRange(36, 72));
   });

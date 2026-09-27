@@ -25,7 +25,6 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
-import 'package:movera/presentation/driver/accept%20ride/next_stop_blind.dart';
 import 'package:movera/presentation/driver/accept%20ride/rider_cancelled_sheet.dart';
 import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
 import 'package:movera/presentation/driver/sheets/movera_snap_sheet_controller.dart';
@@ -1126,7 +1125,7 @@ class _AcceptRideState extends State<AcceptRide>
     final viewport = MediaQuery.sizeOf(context).height;
     final collapsed = MoveraSheetMetrics.activeCollapsedHeight +
         MediaQuery.paddingOf(context).bottom;
-    final bannerReserve = MediaQuery.paddingOf(context).top + 96;
+    final bannerReserve = MediaQuery.paddingOf(context).top + 130;
     return math.min(
       MoveraSheetMetrics.expandedHeight(viewport),
       math.max(collapsed + 160, viewport - bannerReserve),
@@ -1827,19 +1826,6 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
-  Color get _nextStopGlow {
-    switch (_stage) {
-      case ActiveRideStage.headingToPickup:
-        return const Color(0xFFFFC14D);
-      case ActiveRideStage.waitingForRider:
-        return const Color(0xFF7ED0FF);
-      case ActiveRideStage.onTrip:
-        return widget.stopAddresses.isEmpty
-            ? const Color(0xFFFFB089)
-            : const Color(0xFFD2C4FF);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutViewport(
@@ -1853,7 +1839,7 @@ class _AcceptRideState extends State<AcceptRide>
           final collapsed = MoveraSheetMetrics.activeCollapsedHeight +
               MediaQuery.paddingOf(context).bottom;
           final safeTop = MediaQuery.paddingOf(context).top;
-          final bannerReserve = safeTop + 96;
+          final bannerReserve = safeTop + 130;
           final expanded = math.min(
             MoveraSheetMetrics.expandedHeight(viewport),
             math.max(collapsed + 160, viewport - bannerReserve),
@@ -1949,6 +1935,9 @@ class _AcceptRideState extends State<AcceptRide>
                           etaLabel: _stage == ActiveRideStage.waitingForRider
                               ? _waitLabel
                               : _routeEtaText,
+                          eyebrow: _nextStopEyebrow,
+                          detail: _nextStopDetail,
+                          address: _nextStopAddress,
                         );
                       },
                     ),
@@ -1988,87 +1977,18 @@ class _AcceptRideState extends State<AcceptRide>
         : onTrip
             ? 'Drop-off'
             : 'Heading to pickup';
-    final subtitle = waiting
-        ? 'Waiting for rider · ${widget.pickupAddress}'
-        : onTrip
-            ? '${widget.dropoffAddress} · $_routeEtaText'
-            : '${widget.pickupAddress} · $_routeEtaText';
-    final pad = MediaQuery.paddingOf(context);
 
-    return Material(
-      key: const ValueKey<String>('active-ride-navigation-card'),
-      color: const Color(0xFFFCFDFC),
-      elevation: 10,
-      shadowColor: const Color(0x33172027),
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          16 + pad.left,
-          10 + pad.top,
-          16 + pad.right,
-          12,
-        ),
-        child: Row(
-          children: [
-            Container(
-              height: 48,
-              width: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F5F6),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Icon(
-                waiting
-                    ? Icons.location_on_outlined
-                    : onTrip
-                        ? Icons.flag_outlined
-                        : Icons.near_me_outlined,
-                color: _ink,
-                size: 23,
-              ),
-            ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              waiting ? _waitLabel : _routeEtaText,
-              style: const TextStyle(
-                color: _ink,
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return NavigationInstructionBanner(
+      etaLabel: waiting ? _waitLabel : _routeEtaText,
+      eyebrow: _nextStopEyebrow,
+      title: title,
+      detail: _nextStopDetail,
+      address: _nextStopAddress,
+      icon: waiting
+          ? Icons.location_on_outlined
+          : onTrip
+              ? Icons.flag_outlined
+              : Icons.near_me_outlined,
     );
   }
 
@@ -2250,14 +2170,6 @@ class _AcceptRideState extends State<AcceptRide>
                         ],
                       ),
                     ),
-                  ),
-                if (compact)
-                  NextStopBlind(
-                    key: const ValueKey<String>('active-ride-next-stop-blind'),
-                    eyebrow: _nextStopEyebrow,
-                    address: _nextStopAddress,
-                    detail: _nextStopDetail,
-                    glow: _nextStopGlow,
                   ),
                 if (compact) const Spacer(),
                 Container(
