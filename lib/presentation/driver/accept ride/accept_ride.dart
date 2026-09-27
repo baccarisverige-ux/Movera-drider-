@@ -25,6 +25,7 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
+import 'package:movera/presentation/driver/accept%20ride/next_stop_blind.dart';
 import 'package:movera/presentation/driver/accept%20ride/rider_cancelled_sheet.dart';
 import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
 import 'package:movera/presentation/driver/sheets/movera_snap_sheet_controller.dart';
@@ -1786,6 +1787,59 @@ class _AcceptRideState extends State<AcceptRide>
           ? widget.dropoffAddress
           : widget.pickupAddress;
 
+  String get _onwardAddress => widget.stopAddresses.isNotEmpty
+      ? widget.stopAddresses.first
+      : widget.dropoffAddress;
+
+  String get _nextStopEyebrow {
+    switch (_stage) {
+      case ActiveRideStage.headingToPickup:
+        return 'NEXT STOP';
+      case ActiveRideStage.waitingForRider:
+        return 'UP NEXT';
+      case ActiveRideStage.onTrip:
+        return widget.stopAddresses.isEmpty ? 'DROP-OFF' : 'NEXT STOP';
+    }
+  }
+
+  String get _nextStopAddress {
+    switch (_stage) {
+      case ActiveRideStage.headingToPickup:
+        return widget.pickupAddress;
+      case ActiveRideStage.waitingForRider:
+      case ActiveRideStage.onTrip:
+        return _onwardAddress;
+    }
+  }
+
+  String get _nextStopDetail {
+    switch (_stage) {
+      case ActiveRideStage.headingToPickup:
+        return 'Pick up ${widget.riderName}';
+      case ActiveRideStage.waitingForRider:
+        return _riderOnTheWay
+            ? '${widget.riderName} is on the way'
+            : 'Hold for ${widget.riderName}';
+      case ActiveRideStage.onTrip:
+        if (widget.stopAddresses.isEmpty) return widget.riderName;
+        if (widget.stopAddresses.length == 1) return 'Then drop-off';
+        return 'Stop 1 of ${widget.stopAddresses.length}';
+    }
+  }
+
+  Color get _nextStopGlow {
+    switch (_stage) {
+      case ActiveRideStage.headingToPickup:
+        return const Color(0xFFFFC14D);
+      case ActiveRideStage.waitingForRider:
+        return const Color(0xFF7ED0FF);
+      case ActiveRideStage.onTrip:
+        return widget.stopAddresses.isEmpty
+            ? const Color(0xFFFFB089)
+            : const Color(0xFFD2C4FF);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutViewport(
@@ -2196,6 +2250,14 @@ class _AcceptRideState extends State<AcceptRide>
                         ],
                       ),
                     ),
+                  ),
+                if (compact)
+                  NextStopBlind(
+                    key: const ValueKey<String>('active-ride-next-stop-blind'),
+                    eyebrow: _nextStopEyebrow,
+                    address: _nextStopAddress,
+                    detail: _nextStopDetail,
+                    glow: _nextStopGlow,
                   ),
                 if (compact) const Spacer(),
                 Container(
