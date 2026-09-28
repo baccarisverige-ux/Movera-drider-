@@ -325,29 +325,21 @@ class _RadarOnOff extends StatelessWidget {
     return Material(
       key: const ValueKey<String>('on-trip-radar-switch'),
       color: Colors.white,
-      elevation: 0,
-      borderRadius: BorderRadius.circular(12),
+      elevation: 3,
+      shadowColor: const Color(0x1F172027),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF7F8F9),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE6E8EA)),
-          ),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                on ? 'ON' : 'OFF',
-                style: const TextStyle(
-                  color: ink,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.4,
-                ),
+              Icon(
+                on ? Icons.sensors_rounded : Icons.sensors_off_rounded,
+                size: 16,
+                color: ink,
               ),
               const SizedBox(width: 6),
               AnimatedContainer(
