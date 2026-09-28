@@ -165,7 +165,7 @@ class AcceptRide extends StatefulWidget {
   State<AcceptRide> createState() => _AcceptRideState();
 }
 
-enum _OnTripRadarState { off, scanning, offerAvailable, matching, secured }
+enum _OnTripRadarState { off, scanning, offerAvailable, matching, secured, stopped }
 
 class _NextTripRadarOffer {
   const _NextTripRadarOffer({
@@ -1172,6 +1172,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _startOnTripRadar() {
+    if (_onTripRadarState == _OnTripRadarState.stopped) return;
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
 
@@ -1183,6 +1184,17 @@ class _AcceptRideState extends State<AcceptRide>
     });
 
     _maybeScheduleOnTripRadarDemoOffer();
+  }
+
+  void _stopOnTripRadar() {
+    _nextTripRadarDemoTimer?.cancel();
+    _nextTripRadarMatchTimer?.cancel();
+    if (!mounted || _stage != ActiveRideStage.onTrip) return;
+    if (_onTripRadarState == _OnTripRadarState.secured) return;
+    setState(() {
+      _onTripRadarState = _OnTripRadarState.stopped;
+      _nextTripRadarOffer = null;
+    });
   }
 
   void _maybeScheduleOnTripRadarDemoOffer() {
@@ -1335,7 +1347,7 @@ class _AcceptRideState extends State<AcceptRide>
                           ),
                           const SizedBox(height: 14),
                           _nextTripLocationRow(
-                            color: _green,
+                            color: _ink,
                             label: 'Pickup',
                             address: offer.pickup,
                           ),
@@ -1713,6 +1725,42 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
+  Widget _buildStopRadarButton() {
+    return Material(
+      key: const ValueKey<String>('on-trip-radar-stop'),
+      color: Colors.white,
+      elevation: 3,
+      shadowColor: const Color(0xFF172027).withOpacity(0.12),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: _stopOnTripRadar,
+        borderRadius: BorderRadius.circular(16),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.sensors_off_rounded,
+                size: 16,
+                color: Color(0xFF1C242C),
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Stop radar',
+                style: TextStyle(
+                  color: Color(0xFF1C242C),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildOnTripRadarOfferButton() {
     if (_stage != ActiveRideStage.onTrip ||
         _onTripRadarState != _OnTripRadarState.offerAvailable ||
@@ -1949,6 +1997,20 @@ class _AcceptRideState extends State<AcceptRide>
                   bottom: collapsed + 16,
                   child: _mapOverlay(child: _buildMapControls()),
                 ),
+                if (_stage == ActiveRideStage.onTrip &&
+                    (_onTripRadarState == _OnTripRadarState.scanning ||
+                        _onTripRadarState ==
+                            _OnTripRadarState.offerAvailable))
+                  Positioned(
+                    key: const ValueKey<String>('on-trip-radar-stop-layer'),
+                    left: 14,
+                    bottom: collapsed +
+                        (_onTripRadarState ==
+                                _OnTripRadarState.offerAvailable
+                            ? 184
+                            : 16),
+                    child: _mapOverlay(child: _buildStopRadarButton()),
+                  ),
                 if (_stage == ActiveRideStage.onTrip &&
                     _onTripRadarState == _OnTripRadarState.offerAvailable)
                   Positioned(

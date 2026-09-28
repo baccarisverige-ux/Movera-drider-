@@ -92,6 +92,7 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _directOfferTimer;
   Timer? _outsideOfferTimeoutTimer;
   Timer? _expandedDirectOfferTimer;
+  Timer? _reservationOfferTimer;
   Timer? _radarOfferTwoTimer;
   Timer? _radarOfferThreeTimer;
   Timer? _homeRadarMatchResolutionTimer;
@@ -148,6 +149,7 @@ class _DriverHomeState extends State<DriverHome>
   final List<_HomeDirectOffer> _radarHomeOffers = <_HomeDirectOffer>[];
   final List<_HomeDirectOffer> _pendingRadarHomeOffers = <_HomeDirectOffer>[];
   bool _destinationModeActive = false;
+  bool _soonReservationReady = false;
   String? _destinationAddress;
   LatLng? _destinationPosition;
 
@@ -198,6 +200,24 @@ class _DriverHomeState extends State<DriverHome>
     dropoff: 'Solna centrum, Solna',
     pickupPosition: LatLng(59.3449, 18.0472),
     dropoffPosition: LatLng(59.3603, 18.0009),
+  );
+
+  static const _HomeDirectOffer _soonReservationOffer = _HomeDirectOffer(
+    id: 'home-reservation-soon',
+    category: 'Comfort',
+    reason: 'Reservation',
+    detail: 'No driver signed · leaving soon',
+    fare: '126,75 kr',
+    rating: '4.94',
+    pickupMinutes: 16,
+    pickupKm: 2.1,
+    tripMinutes: 19,
+    tripKm: 9.4,
+    pickup: 'Gamla vägen, Stockholm',
+    dropoff: 'Solna centrum, Solna',
+    pickupPosition: LatLng(59.3362, 18.0714),
+    dropoffPosition: LatLng(59.3603, 18.0009),
+    reservation: true,
   );
 
   static const _HomeDirectOffer _radarHomeOffer = _HomeDirectOffer(
@@ -718,6 +738,7 @@ class _DriverHomeState extends State<DriverHome>
 
     await _refreshDestinationRoadRoute();
     await _fitDestinationRoute();
+    _maybeShowSoonReservation();
 
     if (!_isOnline && !_isGoingOnline) {
       _goOnline();
@@ -792,6 +813,18 @@ class _DriverHomeState extends State<DriverHome>
     return '${firstPart.substring(0, 21)}…';
   }
 
+  void _maybeShowSoonReservation() {
+    if (!_soonReservationReady || !mounted || !_isOnline) return;
+    final offer = _soonReservationOffer;
+    if (offer.driverSigned || offer.pickupMinutes > 30) return;
+    if (!_directOfferFollowsDestination(offer)) return;
+
+    _showOutsideRadarOffer(offer);
+    if (_outsideRadarOffer?.id == offer.id) {
+      _soonReservationReady = false;
+    }
+  }
+
   bool _directOfferFollowsDestination(_HomeDirectOffer offer) {
     if (!_destinationModeActive) return true;
     final destination = _destinationPosition;
@@ -840,6 +873,8 @@ class _DriverHomeState extends State<DriverHome>
         _pendingRadarHomeOffers.isNotEmpty ||
         _hasRideOffers ||
         !_directOfferFollowsDestination(offer) ||
+        (offer.reservation &&
+            (offer.driverSigned || offer.pickupMinutes > 30)) ||
         _mainPanelPosition > 0.04 ||
         isPanelOpen) {
       return;
@@ -998,6 +1033,9 @@ class _DriverHomeState extends State<DriverHome>
     if (_radarHomeOffers.isEmpty && _pendingRadarHomeOffers.isNotEmpty) {
       _releasePendingRadarOffers();
     }
+    if (_radarHomeOffers.isEmpty && _pendingRadarHomeOffers.isEmpty) {
+      _maybeShowSoonReservation();
+    }
   }
 
   _HomeRadarMatchState _homeRadarStateFor(String id) =>
@@ -1142,6 +1180,8 @@ class _DriverHomeState extends State<DriverHome>
   void _cancelAllOfferTimers() {
     _outsideOfferTimeoutTimer?.cancel();
     _outsideOfferTimeoutTimer = null;
+    _reservationOfferTimer?.cancel();
+    _reservationOfferTimer = null;
     _homeRadarMatchResolutionTimer?.cancel();
     _homeRadarNoticeTimer?.cancel();
     _homeRadarExternalClaimTimer?.cancel();
@@ -1173,7 +1213,7 @@ class _DriverHomeState extends State<DriverHome>
           offerId: offer.id,
           fare: offer.fare,
           category: offer.category,
-          matchedVia: 'Exclusive Radar',
+          matchedVia: offer.reservation ? 'Reservation' : 'Exclusive Radar',
           waybillRepository: _waybills,
           sessionController: _driverSession,
           locationRepository: _driverLocationService,
@@ -1771,14 +1811,17 @@ class _DriverHomeState extends State<DriverHome>
                                       height: ResSize.h * 30,
                                       width: ResSize.h * 30,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFF0F5F2),
+                                        color: const Color(0xFFF4F5F6),
                                         borderRadius:
                                             BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: const Color(0xFFE6E8EA),
+                                        ),
                                       ),
                                       child: const Icon(
                                         Icons.near_me_rounded,
                                         size: 16,
-                                        color: Color(0xFF315E4D),
+                                        color: Color(0xFF1C242C),
                                       ),
                                     ),
                                     SizedBox(width: ResSize.w * 8),
@@ -1789,11 +1832,12 @@ class _DriverHomeState extends State<DriverHome>
                                             CrossAxisAlignment.start,
                                         children: [
                                           const Text(
-                                            'Destination',
+                                            'On your way',
                                             style: TextStyle(
-                                              color: Color(0xFF7D898F),
+                                              color: Color(0xFF1C242C),
                                               fontSize: 9,
-                                              fontWeight: FontWeight.w700,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.3,
                                             ),
                                           ),
                                           Text(
@@ -2242,11 +2286,11 @@ class _DriverHomeState extends State<DriverHome>
               ),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Trip Radar offers',
                     style: TextStyle(
                       color: Color(0xFF252E3A),
@@ -2257,10 +2301,12 @@ class _DriverHomeState extends State<DriverHome>
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Stable list · refresh when new trips arrive',
+                    _destinationModeActive
+                        ? 'On your way · same direction only'
+                        : 'Stable list · refresh when new trips arrive',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Color(0xFF7C888E),
                       fontSize: 9.5,
                       fontWeight: FontWeight.w600,
@@ -2435,26 +2481,35 @@ class _DriverHomeState extends State<DriverHome>
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3DE),
+                        color: const Color(0xFFF4F5F6),
                         borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE6E8EA)),
                       ),
                       child: const Text(
                         'RADAR',
                         style: TextStyle(
-                          color: Color(0xFFB87512),
+                          color: Color(0xFF1C242C),
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.7,
                         ),
                       ),
                     ),
+                    if (_destinationModeActive) ...[
+                      const SizedBox(width: 7),
+                      _homeBadge('On your way'),
+                    ],
                     const SizedBox(width: 7),
-                    Text(
-                      offer.category,
-                      style: const TextStyle(
-                        color: Color(0xFF657178),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
+                    Flexible(
+                      child: Text(
+                        offer.category,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF657178),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     const Spacer(),
@@ -2707,6 +2762,14 @@ class _DriverHomeState extends State<DriverHome>
                       ),
                     ),
                     const SizedBox(width: 7),
+                    if (_destinationModeActive) ...[
+                      _homeBadge('On your way'),
+                      const SizedBox(width: 7),
+                    ],
+                    if (offer.reservation && !offer.driverSigned) ...[
+                      _homeBadge('Reservation'),
+                      const SizedBox(width: 7),
+                    ],
                     Flexible(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -2798,6 +2861,8 @@ class _DriverHomeState extends State<DriverHome>
                     final seconds = (remaining *
                             (_outsideOfferLifetime.inMilliseconds / 1000))
                         .ceil();
+                    final reservation =
+                        offer.reservation && !offer.driverSigned;
 
                     return Column(
                       children: [
@@ -2805,29 +2870,31 @@ class _DriverHomeState extends State<DriverHome>
                           children: [
                             const Icon(
                               Icons.timer_outlined,
-                              color: alertCoral,
+                              color: Color(0xFF1C242C),
                               size: 14,
                             ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                'Exclusive offer · ${seconds}s',
+                                reservation
+                                    ? 'Reservation · ${seconds}s'
+                                    : 'Exclusive offer · ${seconds}s',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  color: Color(0xFFB84F3D),
+                                  color: Color(0xFF1C242C),
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Flexible(
+                            Flexible(
                               child: Text(
-                                'Exclusive Radar',
+                                reservation ? 'Outside radar' : 'Exclusive Radar',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Color(0xFF8A9499),
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w600,
@@ -2915,6 +2982,26 @@ class _DriverHomeState extends State<DriverHome>
           ),
         );
       },
+    );
+  }
+
+  Widget _homeBadge(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C242C),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 
@@ -3321,6 +3408,7 @@ class _DriverHomeState extends State<DriverHome>
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
       _pendingRadarHomeOffers.clear();
+      _soonReservationReady = false;
     });
     _clearDirectOfferRoute();
     unawaited(_startDriverLocation(moveCamera: true));
@@ -3383,6 +3471,15 @@ class _DriverHomeState extends State<DriverHome>
             _showOutsideRadarOffer(_expandedDirectOffer);
           },
         );
+
+        _soonReservationReady = true;
+        _reservationOfferTimer = Timer(
+          const Duration(milliseconds: 40000),
+          () {
+            if (!mounted || !_isOnline) return;
+            _maybeShowSoonReservation();
+          },
+        );
       },
     );
   }
@@ -3407,6 +3504,7 @@ class _DriverHomeState extends State<DriverHome>
       _destinationPosition = null;
       _destinationRouteMarkers = {};
       _destinationRoutePolylines = {};
+      _soonReservationReady = false;
     });
     _clearDirectOfferRoute();
     await _closeDriverSheet();
@@ -5093,6 +5191,8 @@ class _HomeDirectOffer {
   final String dropoff;
   final LatLng pickupPosition;
   final LatLng dropoffPosition;
+  final bool reservation;
+  final bool driverSigned;
 
   const _HomeDirectOffer({
     required this.id,
@@ -5109,5 +5209,7 @@ class _HomeDirectOffer {
     required this.dropoff,
     required this.pickupPosition,
     required this.dropoffPosition,
+    this.reservation = false,
+    this.driverSigned = false,
   });
 }

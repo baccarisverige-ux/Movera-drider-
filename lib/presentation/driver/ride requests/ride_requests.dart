@@ -515,15 +515,26 @@ class _RideRequestsState extends State<RideRequests> {
         key: const ValueKey<String>('radar-destination-filter'),
         padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
         decoration: BoxDecoration(
-          color: const Color(0xFFE7F5EE),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE6E8EA)),
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.near_me_rounded,
-              color: _green,
-              size: 17,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C242C),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'On your way',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
