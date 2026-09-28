@@ -55,6 +55,7 @@ Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
   final confirm = find.text('Confirm finish');
   if (confirm.evaluate().isEmpty) return;
   await tester.tap(confirm);
+  await tester.pump();
   await tester.pump(const Duration(milliseconds: 1100));
 }
 
