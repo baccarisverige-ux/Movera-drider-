@@ -15,6 +15,7 @@ class CompactTripDock extends StatelessWidget {
     required this.stageLabel,
     this.onArrived,
     this.riderReply,
+    this.onWaitTap,
   });
 
   final String pickupAddress;
@@ -24,6 +25,7 @@ class CompactTripDock extends StatelessWidget {
   final String stageLabel;
   final VoidCallback? onArrived;
   final String? riderReply;
+  final VoidCallback? onWaitTap;
 
   static const _ink = Color(0xFF233039);
   static const _muted = Color(0xFF7D898F);
@@ -243,7 +245,10 @@ class CompactTripDock extends StatelessWidget {
                         ),
                       ),
                     )
-                  : Column(
+                  : GestureDetector(
+                      onTap: onWaitTap,
+                      behavior: HitTestBehavior.opaque,
+                      child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -272,6 +277,7 @@ class CompactTripDock extends StatelessWidget {
                           ),
                         ),
                       ],
+                    ),
                     ),
             ),
           ],

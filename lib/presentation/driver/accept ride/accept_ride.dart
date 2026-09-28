@@ -24,6 +24,7 @@ import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
+import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
 import 'package:movera/presentation/driver/accept%20ride/rider_cancelled_sheet.dart';
 import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
@@ -1667,6 +1668,11 @@ class _AcceptRideState extends State<AcceptRide>
     return '$minutes:$seconds';
   }
 
+  void _openWaitingTime() {
+    if (_stage != ActiveRideStage.waitingForRider) return;
+    showWaitingTimeSheet(context, readSeconds: () => _waitSeconds);
+  }
+
   String get _title {
     switch (_stage) {
       case ActiveRideStage.headingToPickup:
@@ -1853,6 +1859,10 @@ class _AcceptRideState extends State<AcceptRide>
                           radarSwitch: _stage == ActiveRideStage.onTrip,
                           radarOn: _onTripRadarOn,
                           onRadarToggle: _toggleOnTripRadar,
+                          waitSeconds: _stage == ActiveRideStage.waitingForRider
+                              ? _waitSeconds
+                              : null,
+                          onWaitTap: _openWaitingTime,
                         );
                       },
                     ),
@@ -1909,6 +1919,8 @@ class _AcceptRideState extends State<AcceptRide>
       radarSwitch: onTrip,
       radarOn: _onTripRadarOn,
       onRadarToggle: _toggleOnTripRadar,
+      waitSeconds: waiting ? _waitSeconds : null,
+      onWaitTap: _openWaitingTime,
     );
   }
 
@@ -2028,6 +2040,9 @@ class _AcceptRideState extends State<AcceptRide>
                         ? _confirmPickupArrival
                         : null,
                     riderReply: _riderOnTheWay ? 'RIDER ON THE WAY' : null,
+                    onWaitTap: _stage == ActiveRideStage.waitingForRider
+                        ? _openWaitingTime
+                        : null,
                   )
                 else
                   Expanded(
@@ -2193,7 +2208,11 @@ class _AcceptRideState extends State<AcceptRide>
               ),
               const SizedBox(width: 8),
               Flexible(
-                child: Text(
+                child: GestureDetector(
+                  onTap: _stage == ActiveRideStage.waitingForRider
+                      ? _openWaitingTime
+                      : null,
+                  child: Text(
                   _stage == ActiveRideStage.waitingForRider
                       ? _waitLabel
                       : '$_routeEtaText · $_routeDistanceText',
@@ -2205,6 +2224,7 @@ class _AcceptRideState extends State<AcceptRide>
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
                   ),
+                ),
                 ),
               ),
             ],
@@ -2355,42 +2375,53 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Widget _buildEtaTile() {
-    final main = _stage == ActiveRideStage.waitingForRider
-        ? _waitLabel
-        : _routeEtaText;
-    final sub = _stage == ActiveRideStage.waitingForRider
-        ? 'WAITING'
-        : _routeDistanceText;
+    final waiting = _stage == ActiveRideStage.waitingForRider;
+    final main = waiting ? _waitLabel : _routeEtaText;
+    final sub = waiting ? 'WAITING' : _routeDistanceText;
 
-    return Container(
-      constraints: const BoxConstraints(minWidth: 76),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: waiting ? _openWaitingTime : null,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE6E8EA)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            main,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-            ),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 76),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE6E8EA)),
           ),
-          const SizedBox(height: 2),
-          Text(
-            sub,
-            style: const TextStyle(
-              color: _muted,
-              fontSize: 8,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
+          child: waiting
+              ? WaitingClock(
+                  seconds: _waitSeconds,
+                  diameter: 64,
+                  onTap: _openWaitingTime,
+                )
+              : Column(
+                  children: [
+                    Text(
+                      main,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      sub,
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:movera/core/routing/route_instruction.dart';
+import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
 
 /// Top ride tab. Maneuver on the first line, the next stop scrolling beneath it.
 class NavigationInstructionBanner extends StatelessWidget {
@@ -15,6 +16,8 @@ class NavigationInstructionBanner extends StatelessWidget {
     this.radarSwitch = false,
     this.radarOn = false,
     this.onRadarToggle,
+    this.waitSeconds,
+    this.onWaitTap,
   });
 
   /// Height under the status bar, used to keep the route out from under the tab.
@@ -30,6 +33,8 @@ class NavigationInstructionBanner extends StatelessWidget {
   final bool radarSwitch;
   final bool radarOn;
   final VoidCallback? onRadarToggle;
+  final int? waitSeconds;
+  final VoidCallback? onWaitTap;
 
   static const _ink = Color(0xFF1C242C);
   static const _muted = Color(0xFF7D898F);
@@ -128,7 +133,14 @@ class NavigationInstructionBanner extends StatelessWidget {
                     onTap: onRadarToggle,
                   ),
                 ],
-                if (eta.isNotEmpty) ...[
+                if (waitSeconds != null) ...[
+                  const SizedBox(width: 8),
+                  WaitingClock(
+                    seconds: waitSeconds!,
+                    diameter: 46,
+                    onTap: onWaitTap,
+                  ),
+                ] else if (eta.isNotEmpty) ...[
                   const SizedBox(width: 10),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 88),
