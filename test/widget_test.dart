@@ -1585,30 +1585,14 @@ void main() {
       find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
       findsOneWidget,
     );
+    expect(find.text('Accept'), findsOneWidget);
+    expect(find.text('Deny'), findsOneWidget);
     expect(find.textContaining('Dropping off'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('on-trip-radar-offer-sheet')),
       findsNothing,
     );
-    _expectNoException(tester);
-
-    await _collapseActiveRideSheet(tester);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
-    );
-    await tester.pump(const Duration(milliseconds: 260));
-
-    expect(
-      find.byKey(const ValueKey<String>('on-trip-radar-offer-sheet')),
-      findsOneWidget,
-    );
     expect(find.text('Available after your current drop-off'), findsOneWidget);
-    expect(
-      find.text(
-        'Silent Radar does not change your map, route or current-trip controls.',
-      ),
-      findsOneWidget,
-    );
     _expectNoException(tester);
   });
 
@@ -1689,11 +1673,6 @@ void main() {
     await _slideActiveRideAction(tester);
 
     await tester.pump(const Duration(milliseconds: 2400));
-    await _collapseActiveRideSheet(tester);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
-    );
-    await tester.pump(const Duration(milliseconds: 260));
 
     final matchNext =
         find.byKey(const ValueKey<String>('on-trip-radar-match-next'));
@@ -1751,11 +1730,6 @@ void main() {
     await _slideActiveRideAction(tester);
     await _slideActiveRideAction(tester);
     await tester.pump(const Duration(milliseconds: 2400));
-    await _collapseActiveRideSheet(tester);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('on-trip-radar-offer-button')),
-    );
-    await tester.pump(const Duration(milliseconds: 260));
 
     final matchNext =
         find.byKey(const ValueKey<String>('on-trip-radar-match-next'));
@@ -2138,7 +2112,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('On-trip Radar orb is smaller with an accessible touch target', (
+  testWidgets('On-trip ride appears on screen with accept and deny', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -2149,14 +2123,14 @@ void main() {
     await _slideActiveRideAction(tester);
     await _slideActiveRideAction(tester);
     await tester.pump(const Duration(milliseconds: 2400));
-    await _collapseActiveRideSheet(tester);
 
-    final radar = find.byKey(
+    final ride = find.byKey(
       const ValueKey<String>('on-trip-radar-offer-button'),
     );
-    expect(radar, findsOneWidget);
-    expect(tester.getSize(radar), const Size(88, 88));
-    expect(tester.getTopLeft(radar).dx, lessThan(40));
+    expect(ride, findsOneWidget);
+    expect(tester.getSize(ride).width, greaterThan(200));
+    expect(find.text('Accept'), findsOneWidget);
+    expect(find.text('Deny'), findsOneWidget);
     _expectNoException(tester);
   });
 

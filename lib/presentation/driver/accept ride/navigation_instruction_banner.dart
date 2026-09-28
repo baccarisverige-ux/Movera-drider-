@@ -313,15 +313,51 @@ double _scrollPhase(double t) {
   return Curves.easeInOut.transform((t - 0.16) / 0.68);
 }
 
-class _RadarOnOff extends StatelessWidget {
+class _RadarOnOff extends StatefulWidget {
   const _RadarOnOff({required this.on, required this.onTap});
 
   final bool on;
   final VoidCallback? onTap;
 
   @override
+  State<_RadarOnOff> createState() => _RadarOnOffState();
+}
+
+class _RadarOnOffState extends State<_RadarOnOff>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    if (widget.on) _pulse.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RadarOnOff oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.on && !_pulse.isAnimating) {
+      _pulse.repeat();
+    } else if (!widget.on && _pulse.isAnimating) {
+      _pulse.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     const ink = Color(0xFF1C242C);
+    const quiet = Color(0xFFB7BFC4);
+    final on = widget.on;
     return Material(
       key: const ValueKey<String>('on-trip-radar-switch'),
       color: Colors.white,
@@ -329,17 +365,36 @@ class _RadarOnOff extends StatelessWidget {
       shadowColor: const Color(0x1F172027),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                on ? Icons.sensors_rounded : Icons.sensors_off_rounded,
-                size: 16,
-                color: ink,
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (on)
+                      AnimatedBuilder(
+                        animation: _pulse,
+                        builder: (context, _) {
+                          return CustomPaint(
+                            size: const Size(18, 18),
+                            painter: _RadarPulsePainter(_pulse.value),
+                          );
+                        },
+                      ),
+                    Icon(
+                      on ? Icons.sensors_rounded : Icons.sensors_off_rounded,
+                      size: 16,
+                      color: on ? ink : quiet,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(width: 6),
               AnimatedContainer(
@@ -357,7 +412,7 @@ class _RadarOnOff extends StatelessWidget {
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: on ? Colors.white : ink,
+                      color: on ? Colors.white : quiet,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -369,4 +424,27 @@ class _RadarOnOff extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RadarPulsePainter extends CustomPainter {
+  _RadarPulsePainter(this.t);
+
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    for (var i = 0; i < 2; i++) {
+      final phase = (t + i * 0.5) % 1;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..color = const Color(0xFF1C242C).withOpacity((1 - phase) * 0.55);
+      canvas.drawCircle(center, 3 + phase * 7, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RadarPulsePainter oldDelegate) =>
+      oldDelegate.t != t;
 }

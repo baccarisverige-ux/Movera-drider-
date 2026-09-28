@@ -34,7 +34,6 @@ import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/movera_modal_sheet.dart';
-import 'package:movera/widgets/movera_radar_orb.dart';
 import 'package:movera/widgets/movera_sheet_metrics.dart';
 import 'package:movera/widgets/movera_vehicle_marker.dart';
 import 'package:movera/widgets/navigation_transition.dart';
@@ -368,6 +367,7 @@ class _AcceptRideState extends State<AcceptRide>
   int _waitSeconds = 0;
   _OnTripRadarState _onTripRadarState = _OnTripRadarState.off;
   _NextTripRadarOffer? _nextTripRadarOffer;
+  bool _onTripRadarDeclined = false;
 
   LatLng _driverPosition = _fallbackDriverPosition;
   List<GeoPoint> _roadGeoPoints = <GeoPoint>[];
@@ -1202,6 +1202,7 @@ class _AcceptRideState extends State<AcceptRide>
       _stopOnTripRadar();
       return;
     }
+    _onTripRadarDeclined = false;
     setState(() => _onTripRadarState = _OnTripRadarState.off);
     _startOnTripRadar();
   }
@@ -1271,6 +1272,7 @@ class _AcceptRideState extends State<AcceptRide>
     if (!mounted ||
         _stage != ActiveRideStage.onTrip ||
         _onTripRadarState != _OnTripRadarState.scanning ||
+        _onTripRadarDeclined ||
         (_nextTripRadarDemoTimer?.isActive ?? false)) {
       return;
     }
@@ -1305,348 +1307,178 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  Future<void> _openNextTripRadar() async {
-    if (_stage != ActiveRideStage.onTrip) return;
-
+  void _acceptNextTripRadar() {
     final offer = _nextTripRadarOffer;
-    if (offer == null) return;
-
-    await showMoveraModalSheet<void>(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.22),
-      heightFactor: 0.82,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final secured =
-                _onTripRadarState == _OnTripRadarState.secured;
-            final matching =
-                _onTripRadarState == _OnTripRadarState.matching;
-
-            return MoveraModalSheet(
-              key: const ValueKey<String>('on-trip-radar-offer-sheet'),
-              heightFactor: 0.82,
-              color: const Color(0xFFF9FBFA),
-              radius: 28,
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                    Center(
-                      child: Container(
-                        width: 42,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD7DEDB),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        _moveraRadarMark(size: 42),
-                        const SizedBox(width: 11),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Next trip',
-                                style: TextStyle(
-                                  color: _ink,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              const Text(
-                                'Available after your current drop-off',
-                                style: TextStyle(
-                                  color: _muted,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (widget.destinationModeActive) ...[
-                                SizedBox(height: 6),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      color: _ink,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      child: Text(
-                                        'On your way',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        Text(
-                          offer.fare,
-                          style: const TextStyle(
-                            color: _ink,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: _line),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              _nextTripMeta(
-                                icon: Icons.local_taxi_outlined,
-                                text: offer.category,
-                              ),
-                              const SizedBox(width: 12),
-                              _nextTripMeta(
-                                icon: Icons.star_rounded,
-                                text: offer.rating.toStringAsFixed(2),
-                              ),
-                              const SizedBox(width: 12),
-                              _nextTripMeta(
-                                icon: Icons.schedule_rounded,
-                                text: '${offer.pickupMinutes} min pickup',
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          _nextTripLocationRow(
-                            color: _ink,
-                            label: 'Pickup',
-                            address: offer.pickup,
-                          ),
-                          const SizedBox(height: 10),
-                          _nextTripLocationRow(
-                            color: _ink,
-                            label: '${offer.tripMinutes} min trip',
-                            address: offer.dropoff,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.volume_off_outlined,
-                          color: Color(0xFF7D898F),
-                          size: 17,
-                        ),
-                        SizedBox(width: 7),
-                        Expanded(
-                          child: Text(
-                            'Silent Radar does not change your map, route or current-trip controls.',
-                            style: TextStyle(
-                              color: _muted,
-                              fontSize: 9.5,
-                              height: 1.35,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
-                      child: SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: FilledButton(
-                        key: const ValueKey<String>(
-                          'on-trip-radar-match-next',
-                        ),
-                        onPressed: secured || matching
-                            ? null
-                            : () {
-                                setState(() {
-                                  _onTripRadarState =
-                                      _OnTripRadarState.matching;
-                                });
-                                setSheetState(() {});
-
-                                _nextTripRadarMatchTimer?.cancel();
-                                _nextTripRadarMatchTimer = Timer(
-                                  const Duration(milliseconds: 900),
-                                  () {
-                                    if (!mounted ||
-                                        _stage != ActiveRideStage.onTrip) {
-                                      return;
-                                    }
-                                    setState(() {
-                                      _onTripRadarState =
-                                          _OnTripRadarState.secured;
-                                    });
-                                    _waybills.secureNext(
-                                      _buildNextWaybill(offer),
-                                    );
-                                    _rideLifecycle.persistNow();
-                                    if (sheetContext.mounted) {
-                                      setSheetState(() {});
-                                    }
-                                    Future<void>.delayed(
-                                      const Duration(milliseconds: 550),
-                                      () {
-                                        if (sheetContext.mounted) {
-                                          Navigator.pop(sheetContext);
-                                        }
-                                      },
-                                    );
-                                  },
-                                );
-                              },
-                        style: FilledButton.styleFrom(
-                          elevation: 0,
-                          backgroundColor: _ink,
-                          disabledBackgroundColor: secured
-                              ? const Color(0xFFE6F5EE)
-                              : const Color(0xFFE3E7E8),
-                          foregroundColor: Colors.white,
-                          disabledForegroundColor:
-                              secured ? _green : const Color(0xFF7D898F),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: matching
-                            ? const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 15,
-                                    height: 15,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Color(0xFF7D898F),
-                                    ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Matching…',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Text(
-                                secured
-                                    ? 'Next trip secured'
-                                    : 'Match next trip',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                      ),
-                    ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
+    if (offer == null || _stage != ActiveRideStage.onTrip) return;
+    if (_onTripRadarState == _OnTripRadarState.secured ||
+        _onTripRadarState == _OnTripRadarState.matching) {
+      return;
+    }
+    setState(() => _onTripRadarState = _OnTripRadarState.matching);
+    _nextTripRadarMatchTimer?.cancel();
+    _nextTripRadarMatchTimer = Timer(const Duration(milliseconds: 900), () {
+      if (!mounted || _stage != ActiveRideStage.onTrip) return;
+      setState(() => _onTripRadarState = _OnTripRadarState.secured);
+      _waybills.secureNext(_buildNextWaybill(offer));
+      _rideLifecycle.persistNow();
+    });
   }
 
-  Widget _moveraRadarMark({double size = 34}) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: _mint,
-        borderRadius: BorderRadius.circular(size * 0.32),
-        border: Border.all(
-          color: const Color(0xFFD3E9DF),
+  void _denyNextTripRadar() {
+    if (_stage != ActiveRideStage.onTrip) return;
+    if (_onTripRadarState == _OnTripRadarState.secured ||
+        _onTripRadarState == _OnTripRadarState.matching) {
+      return;
+    }
+    _nextTripRadarDemoTimer?.cancel();
+    _nextTripRadarMatchTimer?.cancel();
+    setState(() {
+      _onTripRadarDeclined = true;
+      _nextTripRadarOffer = null;
+      _onTripRadarState = _OnTripRadarState.scanning;
+    });
+  }
+
+  Widget _buildIncomingRideCard() {
+    final offer = _nextTripRadarOffer;
+    final matching = _onTripRadarState == _OnTripRadarState.matching;
+    if (offer == null) return const SizedBox.shrink();
+
+    return Material(
+      key: const ValueKey<String>('on-trip-radar-offer-button'),
+      color: Colors.white,
+      elevation: 8,
+      shadowColor: const Color(0x24172027),
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Next trip',
+                    style: TextStyle(
+                      color: _ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+                Text(
+                  offer.fare,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            const Text(
+              'Available after your current drop-off',
+              style: TextStyle(
+                color: _muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (widget.destinationModeActive) ...[
+              const SizedBox(height: 8),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  color: _ink,
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    'On your way',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            Text(
+              offer.pickup,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              offer.dropoff,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    key: const ValueKey<String>('on-trip-radar-deny'),
+                    onPressed: matching ? null : _denyNextTripRadar,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _ink,
+                      side: const BorderSide(color: Color(0xFFD5DCDF)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text(
+                      'Deny',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    key: const ValueKey<String>('on-trip-radar-match-next'),
+                    onPressed: matching ? null : _acceptNextTripRadar,
+                    style: FilledButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: _ink,
+                      disabledBackgroundColor: const Color(0xFFE3E7E8),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(
+                      matching ? 'Matching…' : 'Accept',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: size * 0.55,
-            height: size * 0.55,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _green.withOpacity(0.26),
-                width: 1,
-              ),
-            ),
-          ),
-          Container(
-            width: size * 0.31,
-            height: size * 0.31,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _green.withOpacity(0.48),
-                width: 1,
-              ),
-            ),
-          ),
-          Positioned(
-            top: size * 0.20,
-            right: size * 0.22,
-            child: Container(
-              width: size * 0.12,
-              height: size * 0.12,
-              decoration: const BoxDecoration(
-                color: _green,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Text(
-            'M',
-            style: TextStyle(
-              color: _green,
-              fontSize: size * 0.27,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1673,8 +1505,6 @@ class _AcceptRideState extends State<AcceptRide>
         children: [
           Row(
             children: [
-              _moveraRadarMark(size: 34),
-              const SizedBox(width: 9),
               const Expanded(
                 child: Text(
                   'Next trip secured',
@@ -1823,36 +1653,6 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  Widget _buildOnTripRadarOfferButton() {
-    if (_stage != ActiveRideStage.onTrip ||
-        _onTripRadarState != _OnTripRadarState.offerAvailable ||
-        _nextTripRadarOffer == null) {
-      return const SizedBox.shrink();
-    }
-
-    return AnimatedBuilder(
-      animation: Listenable.merge([
-        _radarPulseController,
-        _radarSweepController,
-      ]),
-      builder: (context, child) {
-        return MoveraRadarOrb(
-          title: 'Trip found',
-          status: 'NEW',
-          subtitle: 'Tap for Radar',
-          active: true,
-          offer: true,
-          pulse: _radarPulseController.value,
-          sweep: _radarSweepController.value,
-          onTap: _openNextTripRadar,
-          size: 68,
-          touchSize: 88,
-          touchKey: const ValueKey<String>('on-trip-radar-offer-button'),
-        );
-      },
-    );
-  }
-
   void _startWaitTimer() {
     _waitTimer?.cancel();
     _waitTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -1959,7 +1759,9 @@ class _AcceptRideState extends State<AcceptRide>
             collapsed: collapsed,
           );
 
-          return SlidingUpPanel(
+          return Stack(
+            children: [
+              SlidingUpPanel(
             controller: _ridePanelController,
             minHeight: collapsed,
             maxHeight: expanded,
@@ -2062,18 +1864,20 @@ class _AcceptRideState extends State<AcceptRide>
                   bottom: collapsed + 16,
                   child: _mapOverlay(child: _buildMapControls()),
                 ),
-                if (_stage == ActiveRideStage.onTrip &&
-                    _onTripRadarState == _OnTripRadarState.offerAvailable)
-                  Positioned(
-                    key: const ValueKey<String>('on-trip-radar-layer'),
-                    left: 10,
-                    bottom: collapsed + 88,
-                    child: _mapOverlay(
-                      child: _buildOnTripRadarOfferButton(),
-                    ),
-                  ),
               ],
             ),
+              ),
+              if (_stage == ActiveRideStage.onTrip &&
+                  (_onTripRadarState == _OnTripRadarState.offerAvailable ||
+                      _onTripRadarState == _OnTripRadarState.matching))
+                Positioned(
+                  key: const ValueKey<String>('on-trip-radar-layer'),
+                  left: 12,
+                  right: 12,
+                  top: safeTop + NavigationInstructionBanner.belowSafeExtent + 8,
+                  child: _buildIncomingRideCard(),
+                ),
+            ],
           );
         },
       ),
