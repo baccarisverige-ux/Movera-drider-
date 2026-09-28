@@ -50,6 +50,14 @@ Future<void> _advanceAnimation(
   await tester.pump(duration);
 }
 
+Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 220));
+  final confirm = find.text('Confirm finish');
+  if (confirm.evaluate().isEmpty) return;
+  await tester.tap(confirm);
+  await tester.pump(const Duration(milliseconds: 320));
+}
+
 Future<void> _slideActiveRideAction(WidgetTester tester) async {
   final action =
       find.byKey(const ValueKey<String>('active-ride-primary-action'));
@@ -1397,6 +1405,7 @@ void main() {
     _expectNoException(tester);
 
     await _slideActiveRideAction(tester);
+    await _confirmShortTripIfAsked(tester);
 
     expect(find.byType(DriverRideCompleted), findsOneWidget);
     _expectNoException(tester);
@@ -1521,7 +1530,7 @@ void main() {
     await _slideActiveRideAction(tester);
     await _slideActiveRideAction(tester);
     await _slideActiveRideAction(tester);
-    await tester.pump(const Duration(milliseconds: 520));
+    await _confirmShortTripIfAsked(tester);
 
     expect(find.byType(DriverRideCompleted), findsOneWidget);
     await tester.tap(find.text('Done'));
@@ -1741,7 +1750,7 @@ void main() {
     expect(find.text('Next trip secured'), findsWidgets);
 
     await _slideActiveRideAction(tester);
-    await tester.pump(const Duration(milliseconds: 520));
+    await _confirmShortTripIfAsked(tester);
     expect(find.byType(DriverRideCompleted), findsOneWidget);
 
     await tester.tap(find.text('Done'));

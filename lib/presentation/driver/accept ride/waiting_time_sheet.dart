@@ -11,20 +11,29 @@ const int _noShowSeconds = 300;
 Future<void> showWaitingTimeSheet(
   BuildContext context, {
   required int Function() readSeconds,
+  VoidCallback? onNoShow,
 }) {
   return showMoveraModalSheet<void>(
     context: context,
     heightFactor: 0.92,
     builder: (sheetContext) {
-      return WaitingTimeSheet(readSeconds: readSeconds);
+      return WaitingTimeSheet(
+        readSeconds: readSeconds,
+        onNoShow: onNoShow,
+      );
     },
   );
 }
 
 class WaitingTimeSheet extends StatefulWidget {
-  const WaitingTimeSheet({super.key, required this.readSeconds});
+  const WaitingTimeSheet({
+    super.key,
+    required this.readSeconds,
+    this.onNoShow,
+  });
 
   final int Function() readSeconds;
+  final VoidCallback? onNoShow;
 
   @override
   State<WaitingTimeSheet> createState() => _WaitingTimeSheetState();
@@ -140,6 +149,7 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
                   title: 'Wait time',
                   detail: 'Added to the fare when this trip is completed.',
                   value: '12,26 kr / min',
+                  tone: const Color(0xFF146B45),
                   state: seconds < _graceSeconds
                       ? _PhaseState.later
                       : _PhaseState.now,
@@ -149,10 +159,39 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
                   title: 'No-show',
                   detail: 'Can be applied if the rider has not arrived.',
                   value: '65,00 kr',
+                  tone: const Color(0xFF9E2B33),
                   state: seconds < _noShowSeconds
                       ? _PhaseState.later
                       : _PhaseState.now,
                 ),
+                if (seconds >= _noShowSeconds && widget.onNoShow != null) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      key: const ValueKey<String>('waiting-no-show-cancel'),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        widget.onNoShow?.call();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF9E2B33),
+                        side: const BorderSide(color: Color(0xFF9E2B33)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel for no-show',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 const Text(
                   'Amounts can change with taxes and fees.',
@@ -202,12 +241,14 @@ class _PhaseCard extends StatelessWidget {
     required this.detail,
     required this.value,
     required this.state,
+    this.tone = const Color(0xFF1C242C),
   });
 
   final String title;
   final String detail;
   final String value;
   final _PhaseState state;
+  final Color tone;
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +267,7 @@ class _PhaseCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: active ? ink : const Color(0xFFE6E8EA),
+          color: active ? tone : const Color(0xFFE6E8EA),
           width: active ? 1.4 : 1,
         ),
       ),
@@ -273,7 +314,7 @@ class _PhaseCard extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: active ? ink : muted,
+                  color: active ? tone : muted,
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.4,
@@ -380,6 +421,7 @@ class _WaitingClockState extends State<WaitingClock>
   @override
   Widget build(BuildContext context) {
     final label = _clockLabel(widget.seconds);
+    final tone = _waitTone(widget.seconds);
     final clock = AnimatedBuilder(
       animation: _hand,
       builder: (context, _) {
@@ -388,6 +430,7 @@ class _WaitingClockState extends State<WaitingClock>
           painter: _ClockPainter(
             seconds: widget.seconds,
             hand: _hand.value,
+            tone: tone,
           ),
           child: SizedBox(
             width: widget.diameter,
@@ -410,7 +453,7 @@ class _WaitingClockState extends State<WaitingClock>
                   label,
                   key: ValueKey<String>(label),
                   style: TextStyle(
-                    color: const Color(0xFF1C242C),
+                    color: tone,
                     fontSize: widget.diameter * 0.24,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.4,
@@ -443,10 +486,15 @@ String _clockLabel(int seconds) {
 }
 
 class _ClockPainter extends CustomPainter {
-  _ClockPainter({required this.seconds, required this.hand});
+  _ClockPainter({
+    required this.seconds,
+    required this.hand,
+    required this.tone,
+  });
 
   final int seconds;
   final double hand;
+  final Color tone;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -467,7 +515,7 @@ class _ClockPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = size.width < 70 ? 2.2 : 3.2
       ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFF1C242C);
+      ..color = tone;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi / 2,
@@ -480,7 +528,7 @@ class _ClockPainter extends CustomPainter {
     final inner = radius * 0.62;
     final outer = radius * 0.86;
     final handPaint = Paint()
-      ..color = const Color(0xFF1C242C).withOpacity(0.85)
+      ..color = tone.withOpacity(0.9)
       ..strokeWidth = size.width < 70 ? 1.4 : 2
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(
@@ -492,5 +540,13 @@ class _ClockPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ClockPainter oldDelegate) =>
-      oldDelegate.seconds != seconds || oldDelegate.hand != hand;
+      oldDelegate.seconds != seconds ||
+      oldDelegate.hand != hand ||
+      oldDelegate.tone != tone;
+}
+
+Color _waitTone(int seconds) {
+  if (seconds >= _noShowSeconds) return const Color(0xFF9E2B33);
+  if (seconds >= _graceSeconds) return const Color(0xFF146B45);
+  return const Color(0xFF1C242C);
 }

@@ -266,6 +266,13 @@ class _AcceptRideState extends State<AcceptRide>
     ),
   ];
 
+  static const _TripCancellationReason _noShowReason = _TripCancellationReason(
+    code: 'rider_no_show',
+    title: 'Rider did not arrive',
+    subtitle: 'Five minutes have passed and the rider is not here',
+    icon: Icons.person_off_outlined,
+  );
+
   static const List<_TripCancellationReason> _onTripCancellationReasons = [
     _TripCancellationReason(
       code: 'rider_requested_early_end',
@@ -366,6 +373,7 @@ class _AcceptRideState extends State<AcceptRide>
   DateTime? _lastSnapshotAt;
   bool _liveUpdatesPaused = false;
   int _waitSeconds = 0;
+  DateTime? _onTripStartedAt;
   _OnTripRadarState _onTripRadarState = _OnTripRadarState.off;
   _NextTripRadarOffer? _nextTripRadarOffer;
   bool _onTripRadarDeclined = false;
@@ -993,6 +1001,7 @@ class _AcceptRideState extends State<AcceptRide>
         _waitTimer?.cancel();
         _nextTripRadarDemoTimer?.cancel();
         _nextTripRadarMatchTimer?.cancel();
+        _onTripStartedAt = DateTime.now();
         _onTripRadarState = _OnTripRadarState.scanning;
         _nextTripRadarOffer = null;
         if (mounted) setState(() {});
@@ -1002,52 +1011,153 @@ class _AcceptRideState extends State<AcceptRide>
         return;
 
       case ActiveRideStage.onTrip:
-        if (!_rideLifecycle.complete()) {
+        if (_tripEndedTooQuickly) {
           _stageTransitioning = false;
+          unawaited(_askBeforeShortFinish());
           return;
         }
-        _waitTimer?.cancel();
-        _nextTripRadarDemoTimer?.cancel();
-        _nextTripRadarMatchTimer?.cancel();
-        _waybills.completeCurrent();
-        final offer = _nextTripRadarOffer;
-        final queuedNext =
-            _onTripRadarState == _OnTripRadarState.secured && offer != null;
-        final nextRide = queuedNext
-            ? AcceptRide(
-                offerId: offer.id,
-                riderName: offer.riderName,
-                riderRating: offer.rating,
-                fare: offer.fare,
-                category: offer.category,
-                matchedVia: 'Movera Radar',
-                pickupAddress: offer.pickup,
-                pickupArea: offer.pickup.split(',').last.trim(),
-                dropoffAddress: offer.dropoff,
-                pickupPosition: offer.pickupPosition,
-                dropoffPosition: offer.dropoffPosition,
-                locationRepository: widget.locationRepository,
-                routeRepository: widget.routeRepository,
-                waybillRepository: _waybills,
-                sessionController: widget.sessionController,
-                activeRideRepository: widget.activeRideRepository,
-                destinationModeActive: widget.destinationModeActive,
-                destinationAddress: widget.destinationAddress,
-                destinationPosition: widget.destinationPosition,
-              )
-            : null;
-        final navigator = Navigator.of(context);
-        final completedPage = DriverRideCompleted(
+        _completeCurrentTrip();
+        return;
+    }
+  }
+
+  bool get _tripEndedTooQuickly {
+    final started = _onTripStartedAt;
+    if (started == null) return false;
+    return DateTime.now().difference(started) < const Duration(seconds: 90);
+  }
+
+  Future<void> _askBeforeShortFinish() async {
+    final finish = await showMoveraModalSheet<bool>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.32),
+      heightFactor: 0.42,
+      builder: (sheetContext) {
+        return MoveraModalSheet(
+          key: const ValueKey<String>('short-trip-finish-sheet'),
+          heightFactor: 0.42,
+          color: Colors.white,
+          radius: 28,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'This ride just started',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Very little time has passed since pickup. Go back if the rider is still with you, or confirm that the trip is finished.',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 13,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(sheetContext, false),
+                    style: FilledButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: _ink,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Go back to the ride',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(sheetContext, true),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _ink,
+                      side: const BorderSide(color: Color(0xFFD5DCDF)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Confirm finish',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (finish != true || !mounted || _stage != ActiveRideStage.onTrip) return;
+    _completeCurrentTrip();
+  }
+
+  void _completeCurrentTrip() {
+    if (_stageTransitioning || !mounted || _rideLifecycle.terminal) return;
+    _stageTransitioning = true;
+    if (!_rideLifecycle.complete()) {
+      _stageTransitioning = false;
+      return;
+    }
+    _waitTimer?.cancel();
+    _nextTripRadarDemoTimer?.cancel();
+    _nextTripRadarMatchTimer?.cancel();
+    _waybills.completeCurrent();
+    final offer = _nextTripRadarOffer;
+    final queuedNext =
+        _onTripRadarState == _OnTripRadarState.secured && offer != null;
+    final nextRide = queuedNext
+        ? AcceptRide(
+            offerId: offer.id,
+            riderName: offer.riderName,
+            riderRating: offer.rating,
+            fare: offer.fare,
+            category: offer.category,
+            matchedVia: 'Movera Radar',
+            pickupAddress: offer.pickup,
+            pickupArea: offer.pickup.split(',').last.trim(),
+            dropoffAddress: offer.dropoff,
+            pickupPosition: offer.pickupPosition,
+            dropoffPosition: offer.dropoffPosition,
+            locationRepository: widget.locationRepository,
+            routeRepository: widget.routeRepository,
+            waybillRepository: _waybills,
+            sessionController: widget.sessionController,
+            activeRideRepository: widget.activeRideRepository,
+            destinationModeActive: widget.destinationModeActive,
+            destinationAddress: widget.destinationAddress,
+            destinationPosition: widget.destinationPosition,
+          )
+        : null;
+    Navigator.of(context).pushReplacement(
+      BottomToTopTransition(
+        DriverRideCompleted(
           waybillRepository: _waybills,
           sessionController: widget.sessionController,
           activeRideRepository: widget.activeRideRepository,
           nextRide: nextRide,
-        );
-        navigator.pushReplacement(
-          BottomToTopTransition(completedPage),
-        );
-        return;
-    }
+        ),
+      ),
+    );
   }
 
   void _unlockStageAfterFrame() {
@@ -1670,7 +1780,14 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _openWaitingTime() {
     if (_stage != ActiveRideStage.waitingForRider) return;
-    showWaitingTimeSheet(context, readSeconds: () => _waitSeconds);
+    showWaitingTimeSheet(
+      context,
+      readSeconds: () => _waitSeconds,
+      onNoShow: () {
+        if (_waitSeconds < 300 || !mounted) return;
+        _confirmCancellationReason(_noShowReason);
+      },
+    );
   }
 
   String get _title {
@@ -2623,9 +2740,9 @@ class _AcceptRideState extends State<AcceptRide>
 
   Widget _buildPrimaryAction() {
     final accent = switch (_stage) {
-      ActiveRideStage.headingToPickup => const Color(0xFF1A8B64),
-      ActiveRideStage.waitingForRider => const Color(0xFF2A7D67),
-      ActiveRideStage.onTrip => const Color(0xFF176B51),
+      ActiveRideStage.headingToPickup => const Color(0xFF1C242C),
+      ActiveRideStage.waitingForRider => const Color(0xFF146B45),
+      ActiveRideStage.onTrip => const Color(0xFF1B3F6F),
     };
 
     return Row(
@@ -2945,8 +3062,11 @@ class _AcceptRideState extends State<AcceptRide>
 
   Future<void> _showCancellationReasons() async {
     final isOnTrip = _stage == ActiveRideStage.onTrip;
-    final reasons =
-        isOnTrip ? _onTripCancellationReasons : _preTripCancellationReasons;
+    final reasons = isOnTrip
+        ? _onTripCancellationReasons
+        : _stage == ActiveRideStage.waitingForRider && _waitSeconds >= 300
+            ? <_TripCancellationReason>[_noShowReason, ..._preTripCancellationReasons]
+            : _preTripCancellationReasons;
 
     final reason = await showMoveraModalSheet<_TripCancellationReason>(
       context: context,
@@ -3530,12 +3650,12 @@ class _SlideRideActionState extends State<_SlideRideAction> {
             onHorizontalDragCancel: _finish,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
-                    Color(0xFF1B282E),
-                    Color(0xFF25313B),
+                    widget.accent,
+                    Color.lerp(widget.accent, Colors.white, 0.16)!,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(21),
@@ -3664,16 +3784,16 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.chevron_right_rounded,
-                            color: Color(0xFF627078),
+                            color: Colors.white.withOpacity(0.72),
                             size: 16,
                           ),
                           Transform.translate(
                             offset: const Offset(-5, 0),
-                            child: const Icon(
+                            child: Icon(
                               Icons.chevron_right_rounded,
-                              color: Color(0xFF8C979C),
+                              color: Colors.white.withOpacity(0.4),
                               size: 16,
                             ),
                           ),

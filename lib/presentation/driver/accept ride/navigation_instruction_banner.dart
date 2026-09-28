@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
@@ -72,14 +74,14 @@ class NavigationInstructionBanner extends StatelessWidget {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
+                    color: const Color(0xFFF7F8F9),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: _line),
                   ),
-                  child: Icon(
-                    symbol == null ? icon : _iconFor(symbol),
-                    color: _ink,
-                    size: 24,
+                  alignment: Alignment.center,
+                  child: CustomPaint(
+                    size: const Size(22, 22),
+                    painter: _CuePainter(symbol: symbol, icon: icon),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -182,33 +184,124 @@ class NavigationInstructionBanner extends StatelessWidget {
       ),
     );
   }
+}
 
-  IconData _iconFor(NavigationBannerSymbol symbol) {
-    switch (symbol) {
-      case NavigationBannerSymbol.left:
-      case NavigationBannerSymbol.sharpLeft:
-        return Icons.turn_left_rounded;
-      case NavigationBannerSymbol.right:
-      case NavigationBannerSymbol.sharpRight:
-        return Icons.turn_right_rounded;
-      case NavigationBannerSymbol.slightLeft:
-        return Icons.turn_slight_left_rounded;
-      case NavigationBannerSymbol.slightRight:
-        return Icons.turn_slight_right_rounded;
-      case NavigationBannerSymbol.uTurn:
-        return Icons.u_turn_left_rounded;
-      case NavigationBannerSymbol.roundabout:
-        return Icons.roundabout_left_rounded;
-      case NavigationBannerSymbol.arrive:
-        return Icons.flag_rounded;
-      case NavigationBannerSymbol.merge:
-        return Icons.merge_rounded;
-      case NavigationBannerSymbol.exit:
-        return Icons.exit_to_app_rounded;
-      case NavigationBannerSymbol.straight:
-        return Icons.arrow_upward_rounded;
+/// Thin navigation cue. Drawn, not a stock flag or turn glyph.
+class _CuePainter extends CustomPainter {
+  _CuePainter({required this.symbol, required this.icon});
+
+  final NavigationBannerSymbol? symbol;
+  final IconData icon;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF1C242C)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final fill = Paint()
+      ..color = const Color(0xFF1C242C)
+      ..style = PaintingStyle.fill;
+    final s = size.width / 22;
+    Offset p(double x, double y) => Offset(x * s, y * s);
+
+    void arrowHead(Offset tip, double angle) {
+      const spread = 0.62;
+      const length = 5.2;
+      canvas.drawLine(
+        tip,
+        tip + Offset(math.cos(angle + spread), math.sin(angle + spread)) * length * s,
+        paint,
+      );
+      canvas.drawLine(
+        tip,
+        tip + Offset(math.cos(angle - spread), math.sin(angle - spread)) * length * s,
+        paint,
+      );
     }
+
+    void stemTurn({required bool left, double bend = 1}) {
+      final path = Path()
+        ..moveTo(p(left ? 6 : 16, 18).dx, p(11, 18).dy)
+        ..lineTo(p(11, 18).dx, p(11, 11).dy)
+        ..quadraticBezierTo(
+          p(11, 6).dx,
+          p(11, 6).dy,
+          p(left ? 11 - 5 * bend : 11 + 5 * bend, 6).dx,
+          p(6, 6).dy,
+        );
+      canvas.drawPath(path, paint);
+      final tip = p(left ? 5 : 17, 6);
+      arrowHead(tip, left ? math.pi : 0);
+    }
+
+    final kind = symbol;
+    if (kind == NavigationBannerSymbol.left ||
+        kind == NavigationBannerSymbol.sharpLeft) {
+      stemTurn(left: true);
+      return;
+    }
+    if (kind == NavigationBannerSymbol.right ||
+        kind == NavigationBannerSymbol.sharpRight) {
+      stemTurn(left: false);
+      return;
+    }
+    if (kind == NavigationBannerSymbol.slightLeft) {
+      stemTurn(left: true, bend: 0.55);
+      return;
+    }
+    if (kind == NavigationBannerSymbol.slightRight) {
+      stemTurn(left: false, bend: 0.55);
+      return;
+    }
+    if (kind == NavigationBannerSymbol.uTurn) {
+      final path = Path()
+        ..moveTo(p(15, 18).dx, p(15, 18).dy)
+        ..lineTo(p(15, 8).dx, p(15, 8).dy)
+        ..arcToPoint(p(7, 8), radius: Radius.circular(4 * s), clockwise: false)
+        ..lineTo(p(7, 13).dx, p(7, 13).dy);
+      canvas.drawPath(path, paint);
+      arrowHead(p(7, 14), math.pi / 2);
+      return;
+    }
+    if (kind == NavigationBannerSymbol.roundabout) {
+      canvas.drawCircle(p(11, 11), 5.2 * s, paint);
+      canvas.drawLine(p(11, 18), p(11, 16), paint);
+      arrowHead(p(16.2, 8), -0.7);
+      return;
+    }
+    if (kind == NavigationBannerSymbol.merge) {
+      canvas.drawLine(p(6, 17), p(11, 6), paint);
+      canvas.drawLine(p(16, 17), p(11, 10), paint);
+      arrowHead(p(11, 5), -math.pi / 2);
+      return;
+    }
+    if (kind == NavigationBannerSymbol.exit) {
+      canvas.drawLine(p(8, 17), p(8, 7), paint);
+      canvas.drawLine(p(8, 11), p(16, 6), paint);
+      arrowHead(p(16, 5.5), -0.55);
+      return;
+    }
+    if (kind == NavigationBannerSymbol.arrive || icon == Icons.flag_outlined) {
+      canvas.drawCircle(p(11, 11), 6.2 * s, paint);
+      canvas.drawCircle(p(11, 11), 1.7 * s, fill);
+      return;
+    }
+    if (icon == Icons.location_on_outlined) {
+      canvas.drawCircle(p(11, 8.5), 3.3 * s, paint);
+      canvas.drawCircle(p(11, 8.5), 1.15 * s, fill);
+      canvas.drawLine(p(11, 12), p(11, 18), paint);
+      return;
+    }
+    canvas.drawLine(p(11, 17), p(11, 6), paint);
+    arrowHead(p(11, 5), -math.pi / 2);
   }
+
+  @override
+  bool shouldRepaint(covariant _CuePainter oldDelegate) =>
+      oldDelegate.symbol != symbol || oldDelegate.icon != icon;
 }
 
 class _NextStopLine extends StatefulWidget {
