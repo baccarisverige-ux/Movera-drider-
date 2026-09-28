@@ -22,6 +22,7 @@ import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
+import 'package:movera/widgets/movera_line_icon.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
@@ -2527,8 +2528,8 @@ class _DriverHomeState extends State<DriverHome>
                         child: const SizedBox(
                           width: 30,
                           height: 30,
-                          child: Icon(
-                            Icons.close_rounded,
+                          child: MoveraLineIcon(
+                            mark: MoveraMark.close,
                             color: Color(0xFF89949A),
                             size: 18,
                           ),
@@ -2555,8 +2556,8 @@ class _DriverHomeState extends State<DriverHome>
                       ),
                     ),
                     const Spacer(),
-                    const Icon(
-                      Icons.star_rounded,
+                    const MoveraLineIcon(
+                      mark: MoveraMark.star,
                       color: Color(0xFFD7A02C),
                       size: 15,
                     ),
@@ -2601,10 +2602,8 @@ class _DriverHomeState extends State<DriverHome>
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          claimed
-                              ? Icons.lock_outline_rounded
-                              : Icons.sync_rounded,
+                        MoveraLineIcon(
+                          mark: claimed ? MoveraMark.lock : MoveraMark.sync,
                           size: 15,
                           color: claimed
                               ? const Color(0xFF7D898F)
@@ -2641,10 +2640,14 @@ class _DriverHomeState extends State<DriverHome>
                                 offer.pickupPosition,
                                 offer.dropoffPosition,
                               ),
-                      icon: const Icon(Icons.alt_route_rounded, size: 16),
+                      icon: const MoveraLineIcon(
+                        mark: MoveraMark.route,
+                        size: 16,
+                        color: Color(0xFF1C242C),
+                      ),
                       label: const Text('Route'),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF315E4D),
+                        foregroundColor: const Color(0xFF1C242C),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 8,
@@ -2806,8 +2809,8 @@ class _DriverHomeState extends State<DriverHome>
                       child: const SizedBox(
                         width: 34,
                         height: 34,
-                        child: Icon(
-                          Icons.close_rounded,
+                        child: MoveraLineIcon(
+                          mark: MoveraMark.close,
                           color: Color(0xFF7D898F),
                           size: 20,
                         ),
@@ -2834,8 +2837,8 @@ class _DriverHomeState extends State<DriverHome>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(
-                      Icons.star_rounded,
+                    const MoveraLineIcon(
+                      mark: MoveraMark.star,
                       color: Color(0xFFD7A02C),
                       size: 16,
                     ),
@@ -2875,8 +2878,8 @@ class _DriverHomeState extends State<DriverHome>
                       children: [
                         Row(
                           children: [
-                            const Icon(
-                              Icons.timer_outlined,
+                            const MoveraLineIcon(
+                              mark: MoveraMark.timer,
                               color: Color(0xFF1C242C),
                               size: 14,
                             ),
@@ -2949,10 +2952,14 @@ class _DriverHomeState extends State<DriverHome>
                         offer.pickupPosition,
                         offer.dropoffPosition,
                       ),
-                      icon: const Icon(Icons.alt_route_rounded, size: 17),
+                      icon: const MoveraLineIcon(
+                        mark: MoveraMark.route,
+                        size: 17,
+                        color: Color(0xFF1C242C),
+                      ),
                       label: const Text('Route'),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColor.primary,
+                        foregroundColor: const Color(0xFF1C242C),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 8,
@@ -3159,12 +3166,12 @@ class _DriverHomeState extends State<DriverHome>
                   height: 34,
                   width: 34,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE6F5EE),
+                    color: const Color(0xFFF4F5F6),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.insights_rounded,
-                    color: Color(0xFF19865C),
+                  child: const MoveraLineIcon(
+                    mark: MoveraMark.insights,
+                    color: Color(0xFF1C242C),
                     size: 18,
                   ),
                 ),
@@ -3202,15 +3209,15 @@ class _DriverHomeState extends State<DriverHome>
                         Text(
                           'History',
                           style: TextStyle(
-                            color: Color(0xFF19865C),
+                            color: Color(0xFF1C242C),
                             fontSize: 10.5,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         SizedBox(width: 3),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: Color(0xFF19865C),
+                        MoveraLineIcon(
+                          mark: MoveraMark.arrow,
+                          color: Color(0xFF1C242C),
                           size: 10,
                         ),
                       ],
@@ -3263,9 +3270,9 @@ class _DriverHomeState extends State<DriverHome>
                         color: const Color(0xFFD7EBE1),
                       ),
                     ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_outlined,
-                      color: Color(0xFF19865C),
+                    child: const MoveraLineIcon(
+                      mark: MoveraMark.wallet,
+                      color: Color(0xFF1C242C),
                       size: 17,
                     ),
                   ),
@@ -3309,13 +3316,13 @@ class _DriverHomeState extends State<DriverHome>
             ),
             const SizedBox(height: 4),
             _premiumActivityRow(
-              icon: Icons.local_taxi_outlined,
+              mark: MoveraMark.car,
               title: "3 rides",
               subtitle: "Completed today",
             ),
-            const Divider(height: 1, color: Color(0xFFE6F5EE)),
+            const Divider(height: 1, color: Color(0xFFE6E8EA)),
             _premiumActivityRow(
-              icon: Icons.route_outlined,
+              mark: MoveraMark.route,
               title: "Central Station → Södermalm",
               subtitle: "Last trip • Comfort • 21:42",
               trailing: "126 kr",
@@ -3327,7 +3334,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Widget _premiumActivityRow({
-    required IconData icon,
+    required MoveraMark mark,
     required String title,
     required String subtitle,
     String? trailing,
@@ -3339,9 +3346,9 @@ class _DriverHomeState extends State<DriverHome>
           SizedBox(
             height: 28,
             width: 28,
-            child: Icon(
-              icon,
-              color: const Color(0xFF69757B),
+            child: MoveraLineIcon(
+              mark: mark,
+              color: const Color(0xFF1C242C),
               size: 18,
             ),
           ),
@@ -3854,9 +3861,9 @@ class _DriverHomeState extends State<DriverHome>
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
                               color: const Color(0xFFE8EFEC),
-                              child: const Icon(
-                                Icons.event_outlined,
-                                color: Color(0xFF19865C),
+                              child: const MoveraLineIcon(
+                                mark: MoveraMark.calendar,
+                                color: Color(0xFF1C242C),
                                 size: 34,
                               ),
                             ),
@@ -3886,13 +3893,13 @@ class _DriverHomeState extends State<DriverHome>
                         ),
                         const SizedBox(height: 14),
                         _eventDetailRow(
-                          icon: Icons.calendar_today_outlined,
+                          mark: MoveraMark.calendar,
                           title: event.dateLabel,
                           subtitle: event.timeLabel,
                         ),
                         const SizedBox(height: 10),
                         _eventDetailRow(
-                          icon: Icons.place_outlined,
+                          mark: MoveraMark.place,
                           title: event.location,
                           subtitle: 'Area',
                         ),
@@ -3919,9 +3926,9 @@ class _DriverHomeState extends State<DriverHome>
                             children: [
                               const Row(
                                 children: [
-                                  Icon(
-                                    Icons.bolt_rounded,
-                                    color: Color(0xFF74D6A8),
+                                  MoveraLineIcon(
+                                    mark: MoveraMark.bolt,
+                                    color: Colors.white,
                                     size: 19,
                                   ),
                                   SizedBox(width: 8),
@@ -3989,7 +3996,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Widget _eventDetailRow({
-    required IconData icon,
+    required MoveraMark mark,
     required String title,
     required String subtitle,
   }) {
@@ -3999,12 +4006,12 @@ class _DriverHomeState extends State<DriverHome>
           width: 37,
           height: 37,
           decoration: BoxDecoration(
-            color: const Color(0xFFEAF5EF),
+            color: const Color(0xFFF4F5F6),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF19865C),
+          child: MoveraLineIcon(
+            mark: mark,
+            color: const Color(0xFF1C242C),
             size: 18,
           ),
         ),
@@ -4041,13 +4048,13 @@ class _DriverHomeState extends State<DriverHome>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF5EF),
+        color: const Color(0xFFF4F5F6),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         text,
         style: const TextStyle(
-          color: Color(0xFF19865C),
+          color: Color(0xFF1C242C),
           fontSize: 8.5,
           fontWeight: FontWeight.w900,
           letterSpacing: 0.6,
@@ -4078,9 +4085,10 @@ class _DriverHomeState extends State<DriverHome>
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                         color: const Color(0xFFE8EFEC),
-                        child: const Icon(
-                          Icons.event_outlined,
-                          color: Color(0xFF19865C),
+                        child: const MoveraLineIcon(
+                          mark: MoveraMark.calendar,
+                          color: Color(0xFF1C242C),
+                          size: 24,
                         ),
                       ),
                     ),
@@ -4110,10 +4118,10 @@ class _DriverHomeState extends State<DriverHome>
                     const SizedBox(height: 7),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
+                        const MoveraLineIcon(
+                          mark: MoveraMark.calendar,
                           size: 13,
-                          color: Color(0xFF19865C),
+                          color: Color(0xFF1C242C),
                         ),
                         const SizedBox(width: 5),
                         Expanded(
@@ -4133,8 +4141,8 @@ class _DriverHomeState extends State<DriverHome>
                     const SizedBox(height: 5),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.place_outlined,
+                        const MoveraLineIcon(
+                          mark: MoveraMark.place,
                           size: 13,
                           color: Color(0xFF8D989D),
                         ),
@@ -4165,24 +4173,24 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _performanceSummaryCard() {
     final performance = _adminHomeConfig.performance;
-    final metrics = <({String label, String value, IconData icon})>[
+    final metrics = <({String label, String value, MoveraMark icon})>[
       if (performance.showRating)
         (
           label: 'Rating',
           value: performance.rating.toStringAsFixed(2),
-          icon: Icons.star_rounded,
+          icon: MoveraMark.star,
         ),
       if (performance.showAcceptanceRate)
         (
           label: 'Acceptance',
           value: '${performance.acceptanceRate.toStringAsFixed(0)}%',
-          icon: Icons.check_rounded,
+          icon: MoveraMark.check,
         ),
       if (performance.showCancellationRate)
         (
           label: 'Cancellation',
           value: '${performance.cancellationRate.toStringAsFixed(1)}%',
-          icon: Icons.close_rounded,
+          icon: MoveraMark.close,
         ),
     ];
 
@@ -4282,8 +4290,8 @@ class _DriverHomeState extends State<DriverHome>
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.location_city_rounded,
+                child: const MoveraLineIcon(
+                  mark: MoveraMark.city,
                   color: Color(0xFFE8F6EF),
                   size: 20,
                 ),
@@ -4351,8 +4359,8 @@ class _DriverHomeState extends State<DriverHome>
                       color: Colors.white.withOpacity(0.12),
                     ),
                   ),
-                  child: const Icon(
-                    Icons.trending_up_rounded,
+                  child: const MoveraLineIcon(
+                    mark: MoveraMark.trend,
                     color: Color(0xFFBCE7D2),
                     size: 18,
                   ),
@@ -4436,10 +4444,10 @@ class _DriverHomeState extends State<DriverHome>
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: const Color(0xFFDFE9E4)),
                       ),
-                      child: const Icon(
-                        Icons.explore_outlined,
+                      child: const MoveraLineIcon(
+                        mark: MoveraMark.explore,
                         size: 15,
-                        color: Color(0xFF1B7D5C),
+                        color: Color(0xFF1C242C),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -4672,13 +4680,13 @@ class _DriverHomeState extends State<DriverHome>
   Widget _performanceCell({
     required String label,
     required String value,
-    required IconData icon,
+    required MoveraMark icon,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
+        MoveraLineIcon(
+          mark: icon,
           size: 15,
           color: const Color(0xFF6B777C),
         ),
@@ -4710,8 +4718,8 @@ class _DriverHomeState extends State<DriverHome>
   Widget _lastWaybillCard(WaybillRecord last) {
     return _sheetAlertCard(
       key: const ValueKey<String>('home-sheet-last-waybill'),
-      icon: Icons.receipt_long_outlined,
-      iconColor: const Color(0xFF315E4D),
+      mark: MoveraMark.receipt,
+      iconColor: const Color(0xFF1C242C),
       title: 'Last waybill',
       subtitle: '${last.service} · ${last.fare} · ${last.dropoff}',
       onTap: () {
@@ -4819,8 +4827,8 @@ class _DriverHomeState extends State<DriverHome>
                       if (_adminHomeConfig.scheduledRides.enabled) ...[
                         const SizedBox(height: 10),
                         _sheetAlertCard(
-                          icon: Icons.event_available_outlined,
-                          iconColor: const Color(0xFF7E8A93),
+                          mark: MoveraMark.calendar,
+                          iconColor: const Color(0xFF1C242C),
                           title: _adminHomeConfig.scheduledRides.title,
                           subtitle: _adminHomeConfig.scheduledRides.subtitle,
                           onTap: _openScheduledRides,
@@ -4930,7 +4938,7 @@ class _DriverHomeState extends State<DriverHome>
 
   Widget _sheetAlertCard({
     Key? key,
-    required IconData icon,
+    required MoveraMark mark,
     required Color iconColor,
     required String title,
     String? subtitle,
@@ -4954,7 +4962,11 @@ class _DriverHomeState extends State<DriverHome>
                   color: iconColor,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: AppColor.white, size: 24),
+                child: MoveraLineIcon(
+                  mark: mark,
+                  color: AppColor.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 13),
               Expanded(

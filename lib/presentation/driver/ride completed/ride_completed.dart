@@ -7,7 +7,7 @@ import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
-import 'package:movera/widgets/navigation_transition.dart';
+import 'package:movera/widgets/movera_line_icon.dart';
 
 class DriverRideCompleted extends StatefulWidget {
   const DriverRideCompleted({
@@ -334,10 +334,14 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                   title: 'Last waybill',
                 );
               },
-              icon: const Icon(Icons.receipt_long_outlined, size: 16),
+              icon: const MoveraLineIcon(
+                mark: MoveraMark.receipt,
+                size: 16,
+                color: Color(0xFF1C242C),
+              ),
               label: const Text('Open'),
               style: TextButton.styleFrom(
-                foregroundColor: _green,
+                foregroundColor: _ink,
                 textStyle: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,

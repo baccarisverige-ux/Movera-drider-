@@ -37,7 +37,7 @@ import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/movera_modal_sheet.dart';
 import 'package:movera/widgets/movera_sheet_metrics.dart';
 import 'package:movera/widgets/movera_vehicle_marker.dart';
-import 'package:movera/widgets/navigation_transition.dart';
+import 'package:movera/widgets/movera_line_icon.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
@@ -212,7 +212,7 @@ class _TripCancellationReason {
   final String code;
   final String title;
   final String subtitle;
-  final IconData icon;
+  final MoveraMark icon;
 }
 
 class _AcceptRideState extends State<AcceptRide>
@@ -232,37 +232,37 @@ class _AcceptRideState extends State<AcceptRide>
       code: 'rider_requested_cancel',
       title: 'Rider requested cancellation',
       subtitle: 'The rider asked not to continue with this pickup',
-      icon: Icons.person_off_outlined,
+      icon: MoveraMark.user,
     ),
     _TripCancellationReason(
       code: 'rider_not_at_pickup',
       title: 'Rider not at pickup',
       subtitle: 'You arrived but could not find or reach the rider',
-      icon: Icons.location_off_outlined,
+      icon: MoveraMark.pin,
     ),
     _TripCancellationReason(
       code: 'unsafe_pickup',
       title: 'Pickup is unsafe or inaccessible',
       subtitle: 'You cannot stop or complete the pickup safely',
-      icon: Icons.warning_amber_rounded,
+      icon: MoveraMark.warning,
     ),
     _TripCancellationReason(
       code: 'vehicle_issue_before_start',
       title: 'Vehicle problem',
       subtitle: 'A vehicle issue prevents the trip from starting',
-      icon: Icons.car_repair_outlined,
+      icon: MoveraMark.car,
     ),
     _TripCancellationReason(
       code: 'driver_emergency_before_start',
       title: 'Personal emergency',
       subtitle: 'An urgent situation prevents you from continuing',
-      icon: Icons.emergency_outlined,
+      icon: MoveraMark.bolt,
     ),
     _TripCancellationReason(
       code: 'other_before_start',
       title: 'Other reason',
       subtitle: 'Another issue prevents this pickup',
-      icon: Icons.more_horiz_rounded,
+      icon: MoveraMark.more,
     ),
   ];
 
@@ -270,7 +270,7 @@ class _AcceptRideState extends State<AcceptRide>
     code: 'rider_no_show',
     title: 'Rider did not arrive',
     subtitle: 'Five minutes have passed and the rider is not here',
-    icon: Icons.person_off_outlined,
+    icon: MoveraMark.user,
   );
 
   static const List<_TripCancellationReason> _onTripCancellationReasons = [
@@ -278,43 +278,43 @@ class _AcceptRideState extends State<AcceptRide>
       code: 'rider_requested_early_end',
       title: 'Rider asked to end the trip',
       subtitle: 'The rider wants to leave before the destination',
-      icon: Icons.person_outline_rounded,
+      icon: MoveraMark.user,
     ),
     _TripCancellationReason(
       code: 'safety_concern_on_trip',
       title: 'Safety concern',
       subtitle: 'Continuing the trip may be unsafe',
-      icon: Icons.shield_outlined,
+      icon: MoveraMark.shield,
     ),
     _TripCancellationReason(
       code: 'vehicle_issue_on_trip',
       title: 'Vehicle problem',
       subtitle: 'A vehicle issue makes it unsafe to continue',
-      icon: Icons.car_repair_outlined,
+      icon: MoveraMark.car,
     ),
     _TripCancellationReason(
       code: 'accident_or_road_emergency',
       title: 'Accident or road emergency',
       subtitle: 'An incident or emergency prevents continuing',
-      icon: Icons.report_gmailerrorred_rounded,
+      icon: MoveraMark.warning,
     ),
     _TripCancellationReason(
       code: 'rider_behavior',
       title: 'Rider behavior',
       subtitle: 'The rider’s behavior requires the trip to end',
-      icon: Icons.record_voice_over_outlined,
+      icon: MoveraMark.message,
     ),
     _TripCancellationReason(
       code: 'trip_or_destination_issue',
       title: 'Trip or destination issue',
       subtitle: 'A trip detail or destination problem prevents continuing',
-      icon: Icons.alt_route_rounded,
+      icon: MoveraMark.route,
     ),
     _TripCancellationReason(
       code: 'other_on_trip',
       title: 'Other reason',
       subtitle: 'Another issue requires the trip to end early',
-      icon: Icons.more_horiz_rounded,
+      icon: MoveraMark.more,
     ),
   ];
 
@@ -1674,13 +1674,14 @@ class _AcceptRideState extends State<AcceptRide>
                     );
                   }
                 },
-                icon: const Icon(
-                  Icons.receipt_long_outlined,
+                icon: const MoveraLineIcon(
+                  mark: MoveraMark.receipt,
                   size: 15,
+                  color: Color(0xFF1C242C),
                 ),
                 label: const Text('Waybill'),
                 style: TextButton.styleFrom(
-                  foregroundColor: _green,
+                  foregroundColor: _ink,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 6,
@@ -2605,7 +2606,7 @@ class _AcceptRideState extends State<AcceptRide>
           const SizedBox(width: 7),
           _riderAction(
             tooltip: 'Call rider',
-            icon: Icons.call_outlined,
+            mark: MoveraMark.phone,
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -2622,7 +2623,7 @@ class _AcceptRideState extends State<AcceptRide>
           const SizedBox(width: 6),
           _riderAction(
             tooltip: 'Message rider',
-            icon: Icons.chat_bubble_outline_rounded,
+            mark: MoveraMark.message,
             onTap: () {
               Navigator.push(
                 context,
@@ -2718,7 +2719,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   Widget _riderAction({
     required String tooltip,
-    required IconData icon,
+    required MoveraMark mark,
     required VoidCallback onTap,
   }) {
     return Tooltip(
@@ -2732,7 +2733,7 @@ class _AcceptRideState extends State<AcceptRide>
           child: SizedBox(
             width: 37,
             height: 37,
-            child: Icon(icon, color: _ink, size: 18),
+            child: MoveraLineIcon(mark: mark, color: _ink, size: 18),
           ),
         ),
       ),
@@ -2924,7 +2925,7 @@ class _AcceptRideState extends State<AcceptRide>
                   const SizedBox(height: 16),
                   _optionTile(
                     key: const ValueKey<String>('current-trip-waybill-option'),
-                    icon: Icons.receipt_long_outlined,
+                    icon: MoveraMark.receipt,
                     title: 'Current waybill',
                     subtitle:
                         '${widget.pickupAddress} → ${widget.dropoffAddress}',
@@ -2944,7 +2945,7 @@ class _AcceptRideState extends State<AcceptRide>
                       _waybills.next != null)
                     _optionTile(
                       key: const ValueKey<String>('next-trip-waybill-option'),
-                      icon: Icons.radar_rounded,
+                      icon: MoveraMark.route,
                       title: 'Next trip waybill',
                       subtitle: _waybills.next!.dropoff,
                       onTap: () {
@@ -2957,7 +2958,7 @@ class _AcceptRideState extends State<AcceptRide>
                       },
                     ),
                   _optionTile(
-                    icon: Icons.shield_outlined,
+                    icon: MoveraMark.shield,
                     title: 'Safety toolkit',
                     subtitle: 'Share trip, record audio or get help',
                     onTap: () {
@@ -2968,8 +2969,8 @@ class _AcceptRideState extends State<AcceptRide>
                   _optionTile(
                     key: const ValueKey<String>('active-ride-cancel-option'),
                     icon: _stage == ActiveRideStage.onTrip
-                        ? Icons.stop_circle_outlined
-                        : Icons.close_rounded,
+                        ? MoveraMark.warning
+                        : MoveraMark.close,
                     title: _stage == ActiveRideStage.onTrip
                         ? 'End trip early'
                         : 'Cancel trip',
@@ -2992,7 +2993,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   Widget _optionTile({
     Key? key,
-    required IconData icon,
+    required MoveraMark icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
@@ -3014,12 +3015,12 @@ class _AcceptRideState extends State<AcceptRide>
                 decoration: BoxDecoration(
                   color: danger
                       ? const Color(0xFFFFECEE)
-                      : const Color(0xFFEAF1EE),
+                      : const Color(0xFFF4F5F6),
                   borderRadius: BorderRadius.circular(13),
                 ),
-                child: Icon(
-                  icon,
-                  color: danger ? _danger : const Color(0xFF315E4D),
+                child: MoveraLineIcon(
+                  mark: icon,
+                  color: danger ? _danger : _ink,
                   size: 19,
                 ),
               ),
@@ -3152,8 +3153,8 @@ class _AcceptRideState extends State<AcceptRide>
                                         : const Color(0xFFF0F3F2),
                                     borderRadius: BorderRadius.circular(13),
                                   ),
-                                  child: Icon(
-                                    reason.icon,
+                                  child: MoveraLineIcon(
+                                    mark: reason.icon,
                                     color: isOnTrip
                                         ? _danger
                                         : const Color(0xFF58656C),
