@@ -1031,15 +1031,15 @@ class _AcceptRideState extends State<AcceptRide>
     final finish = await showMoveraModalSheet<bool>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.32),
-      heightFactor: 0.42,
+      heightFactor: 0.5,
       builder: (sheetContext) {
         return MoveraModalSheet(
           key: const ValueKey<String>('short-trip-finish-sheet'),
-          heightFactor: 0.42,
+          heightFactor: 0.5,
           color: Colors.white,
           radius: 28,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1047,22 +1047,23 @@ class _AcceptRideState extends State<AcceptRide>
                   'This ride just started',
                   style: TextStyle(
                     color: _ink,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.4,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Very little time has passed since pickup. Go back if the rider is still with you, or confirm that the trip is finished.',
-                  style: TextStyle(
-                    color: _muted,
-                    fontSize: 13,
-                    height: 1.4,
-                    fontWeight: FontWeight.w600,
+                const Expanded(
+                  child: Text(
+                    'Very little time has passed since pickup. Go back if the rider is still with you, or confirm that the trip is finished.',
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 13,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                const Spacer(),
                 SizedBox(
                   width: double.infinity,
                   height: 48,
