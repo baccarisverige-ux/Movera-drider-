@@ -1224,6 +1224,9 @@ class _DriverHomeState extends State<DriverHome>
           dropoffAddress: offer.dropoff,
           pickupPosition: offer.pickupPosition,
           dropoffPosition: offer.dropoffPosition,
+          destinationModeActive: _destinationModeActive,
+          destinationAddress: _destinationAddress,
+          destinationPosition: _destinationPosition,
         ),
       ),
     );
@@ -1269,6 +1272,9 @@ class _DriverHomeState extends State<DriverHome>
           dropoffAddress: offer.dropoff,
           pickupPosition: offer.pickupPosition,
           dropoffPosition: offer.dropoffPosition,
+          destinationModeActive: _destinationModeActive,
+          destinationAddress: _destinationAddress,
+          destinationPosition: _destinationPosition,
         ),
       ),
     );
@@ -1483,6 +1489,7 @@ class _DriverHomeState extends State<DriverHome>
                 RideRequests(
                   destinationModeActive: _destinationModeActive,
                   destinationAddress: _destinationAddress,
+                  destinationPosition: _destinationPosition,
                   sessionController: _driverSession,
                   waybillRepository: _waybills,
                   locationRepository: _driverLocationService,

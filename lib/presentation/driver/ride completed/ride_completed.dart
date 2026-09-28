@@ -46,14 +46,15 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
   }
 
   void _finish() {
-    widget.sessionController?.stayOnlineAfterTrip();
     final navigator = Navigator.of(context);
     final nextRide = widget.nextRide ?? _rideFromQueuedWaybill();
     if (nextRide != null) {
+      widget.sessionController?.stayOnlineAfterTrip();
       _waybills.promoteNextToCurrent();
       navigator.pushReplacement(BottomToTopTransition(nextRide));
       return;
     }
+    widget.sessionController?.setOnline(false);
     if (navigator.canPop()) {
       navigator.popUntil((route) => route.isFirst);
       return;
@@ -62,7 +63,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
     navigator.pushReplacement(
       BottomToTopTransition(
         DriverHome(
-          initialOnline: true,
+          initialOnline: false,
           waybillRepository: _waybills,
           sessionController: widget.sessionController,
           activeRideRepository: widget.activeRideRepository,

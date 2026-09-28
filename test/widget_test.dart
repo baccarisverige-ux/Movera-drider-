@@ -1495,7 +1495,7 @@ void main() {
     },
   );
 
-  testWidgets('Completing a trip returns to the same online Home session', (
+  testWidgets('Completing a trip returns home with radar offline', (
     WidgetTester tester,
   ) async {
     WaybillStore.reset();
@@ -1528,8 +1528,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 420));
 
     expect(find.byType(DriverHome), findsOneWidget);
+    expect(find.text('OFF'), findsOneWidget);
+    expect(find.text('Go offline'), findsNothing);
     await _openPanel(tester);
-    expect(find.text('Go offline'), findsOneWidget);
     await tester.ensureVisible(find.text('Last waybill'));
     expect(find.text('Last waybill'), findsOneWidget);
     expect(

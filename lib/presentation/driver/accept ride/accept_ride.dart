@@ -66,6 +66,9 @@ class AcceptRide extends StatefulWidget {
     this.initialStage = ActiveRideStage.headingToPickup,
     this.initialWaitSeconds = 0,
     this.restoredSnapshot,
+    this.destinationModeActive = false,
+    this.destinationAddress,
+    this.destinationPosition,
   });
 
   final String offerId;
@@ -90,6 +93,9 @@ class AcceptRide extends StatefulWidget {
   final ActiveRideStage initialStage;
   final int initialWaitSeconds;
   final PersistedActiveRide? restoredSnapshot;
+  final bool destinationModeActive;
+  final String? destinationAddress;
+  final LatLng? destinationPosition;
 
   factory AcceptRide.fromQueuedWaybill(
     WaybillRecord record, {
@@ -1024,6 +1030,9 @@ class _AcceptRideState extends State<AcceptRide>
                 waybillRepository: _waybills,
                 sessionController: widget.sessionController,
                 activeRideRepository: widget.activeRideRepository,
+                destinationModeActive: widget.destinationModeActive,
+                destinationAddress: widget.destinationAddress,
+                destinationPosition: widget.destinationPosition,
               )
             : null;
         final navigator = Navigator.of(context);
@@ -1186,6 +1195,67 @@ class _AcceptRideState extends State<AcceptRide>
     _maybeScheduleOnTripRadarDemoOffer();
   }
 
+  void _toggleOnTripRadar() {
+    if (_stage != ActiveRideStage.onTrip) return;
+    if (_onTripRadarState == _OnTripRadarState.secured) return;
+    if (_onTripRadarOn) {
+      _stopOnTripRadar();
+      return;
+    }
+    setState(() => _onTripRadarState = _OnTripRadarState.off);
+    _startOnTripRadar();
+  }
+
+  bool get _onTripRadarOn =>
+      _onTripRadarState == _OnTripRadarState.scanning ||
+      _onTripRadarState == _OnTripRadarState.offerAvailable ||
+      _onTripRadarState == _OnTripRadarState.matching ||
+      _onTripRadarState == _OnTripRadarState.secured;
+
+  bool _dropoffFollowsDestination(LatLng dropoff) {
+    if (!widget.destinationModeActive) return true;
+    final destination = widget.destinationPosition;
+    if (destination == null) return true;
+
+    final latitudeRadians = _driverPosition.latitude * math.pi / 180;
+    final longitudeScale = math.cos(latitudeRadians);
+    final destinationX =
+        (destination.longitude - _driverPosition.longitude) * longitudeScale;
+    final destinationY = destination.latitude - _driverPosition.latitude;
+    final offerX = (dropoff.longitude - _driverPosition.longitude) * longitudeScale;
+    final offerY = dropoff.latitude - _driverPosition.latitude;
+    final destinationLength = math.sqrt(
+      destinationX * destinationX + destinationY * destinationY,
+    );
+    final offerLength = math.sqrt(offerX * offerX + offerY * offerY);
+    if (destinationLength == 0 || offerLength == 0) return true;
+    final cosine = (destinationX * offerX + destinationY * offerY) /
+        (destinationLength * offerLength);
+    return cosine >= 0.45;
+  }
+
+  _NextTripRadarOffer _onTripRadarOfferForDestination() {
+    if (!widget.destinationModeActive) return _demoNextTripOffer;
+    final destination = widget.destinationPosition;
+    if (destination == null) return _demoNextTripOffer;
+    final address = widget.destinationAddress?.trim();
+    return _NextTripRadarOffer(
+      id: 'on-trip-radar-on-your-way',
+      category: _demoNextTripOffer.category,
+      fare: _demoNextTripOffer.fare,
+      rating: _demoNextTripOffer.rating,
+      pickupMinutes: _demoNextTripOffer.pickupMinutes,
+      tripMinutes: _demoNextTripOffer.tripMinutes,
+      riderName: _demoNextTripOffer.riderName,
+      pickup: _demoNextTripOffer.pickup,
+      dropoff: address == null || address.isEmpty
+          ? 'Along your destination'
+          : address,
+      pickupPosition: _demoNextTripOffer.pickupPosition,
+      dropoffPosition: destination,
+    );
+  }
+
   void _stopOnTripRadar() {
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
@@ -1226,7 +1296,9 @@ class _AcceptRideState extends State<AcceptRide>
         }
 
         setState(() {
-          _nextTripRadarOffer = _demoNextTripOffer;
+          final offer = _onTripRadarOfferForDestination();
+          if (!_dropoffFollowsDestination(offer.dropoffPosition)) return;
+          _nextTripRadarOffer = offer;
           _onTripRadarState = _OnTripRadarState.offerAvailable;
         });
       },
@@ -1280,11 +1352,11 @@ class _AcceptRideState extends State<AcceptRide>
                       children: [
                         _moveraRadarMark(size: 42),
                         const SizedBox(width: 11),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Next trip',
                                 style: TextStyle(
                                   color: _ink,
@@ -1293,8 +1365,8 @@ class _AcceptRideState extends State<AcceptRide>
                                   letterSpacing: -0.3,
                                 ),
                               ),
-                              SizedBox(height: 2),
-                              Text(
+                              const SizedBox(height: 2),
+                              const Text(
                                 'Available after your current drop-off',
                                 style: TextStyle(
                                   color: _muted,
@@ -1302,6 +1374,32 @@ class _AcceptRideState extends State<AcceptRide>
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
+                              if (widget.destinationModeActive) ...[
+                                SizedBox(height: 6),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: _ink,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      child: Text(
+                                        'On your way',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -1725,42 +1823,6 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  Widget _buildStopRadarButton() {
-    return Material(
-      key: const ValueKey<String>('on-trip-radar-stop'),
-      color: Colors.white,
-      elevation: 3,
-      shadowColor: const Color(0xFF172027).withOpacity(0.12),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: _stopOnTripRadar,
-        borderRadius: BorderRadius.circular(16),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.sensors_off_rounded,
-                size: 16,
-                color: Color(0xFF1C242C),
-              ),
-              SizedBox(width: 6),
-              Text(
-                'Stop radar',
-                style: TextStyle(
-                  color: Color(0xFF1C242C),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildOnTripRadarOfferButton() {
     if (_stage != ActiveRideStage.onTrip ||
         _onTripRadarState != _OnTripRadarState.offerAvailable ||
@@ -1986,6 +2048,9 @@ class _AcceptRideState extends State<AcceptRide>
                           eyebrow: _nextStopEyebrow,
                           detail: _nextStopDetail,
                           address: _nextStopAddress,
+                          radarSwitch: _stage == ActiveRideStage.onTrip,
+                          radarOn: _onTripRadarOn,
+                          onRadarToggle: _toggleOnTripRadar,
                         );
                       },
                     ),
@@ -1997,20 +2062,6 @@ class _AcceptRideState extends State<AcceptRide>
                   bottom: collapsed + 16,
                   child: _mapOverlay(child: _buildMapControls()),
                 ),
-                if (_stage == ActiveRideStage.onTrip &&
-                    (_onTripRadarState == _OnTripRadarState.scanning ||
-                        _onTripRadarState ==
-                            _OnTripRadarState.offerAvailable))
-                  Positioned(
-                    key: const ValueKey<String>('on-trip-radar-stop-layer'),
-                    left: 14,
-                    bottom: collapsed +
-                        (_onTripRadarState ==
-                                _OnTripRadarState.offerAvailable
-                            ? 184
-                            : 16),
-                    child: _mapOverlay(child: _buildStopRadarButton()),
-                  ),
                 if (_stage == ActiveRideStage.onTrip &&
                     _onTripRadarState == _OnTripRadarState.offerAvailable)
                   Positioned(
@@ -2051,6 +2102,9 @@ class _AcceptRideState extends State<AcceptRide>
           : onTrip
               ? Icons.flag_outlined
               : Icons.near_me_outlined,
+      radarSwitch: onTrip,
+      radarOn: _onTripRadarOn,
+      onRadarToggle: _toggleOnTripRadar,
     );
   }
 

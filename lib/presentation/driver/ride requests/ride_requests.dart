@@ -20,6 +20,7 @@ class RideRequests extends StatefulWidget {
   final ValueChanged<bool>? onCloseRides;
   final bool destinationModeActive;
   final String? destinationAddress;
+  final LatLng? destinationPosition;
   final DriverSessionController? sessionController;
   final WaybillRepository? waybillRepository;
   final DriverLocationRepository? locationRepository;
@@ -32,6 +33,7 @@ class RideRequests extends StatefulWidget {
     this.onCloseRides,
     this.destinationModeActive = false,
     this.destinationAddress,
+    this.destinationPosition,
     this.sessionController,
     this.waybillRepository,
     this.locationRepository,
@@ -258,6 +260,9 @@ class _RideRequestsState extends State<RideRequests> {
           dropoffAddress: trip.dropoff,
           pickupPosition: trip.pickupPosition,
           dropoffPosition: trip.dropoffPosition,
+          destinationModeActive: widget.destinationModeActive,
+          destinationAddress: widget.destinationAddress,
+          destinationPosition: widget.destinationPosition,
         );
 
         navigator.push(ActiveRideTransition(ride));

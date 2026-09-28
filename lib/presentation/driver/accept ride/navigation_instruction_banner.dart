@@ -12,6 +12,9 @@ class NavigationInstructionBanner extends StatelessWidget {
     this.detail = '',
     this.address = '',
     this.icon = Icons.near_me_outlined,
+    this.radarSwitch = false,
+    this.radarOn = false,
+    this.onRadarToggle,
   });
 
   /// Height under the status bar, used to keep the route out from under the tab.
@@ -24,6 +27,9 @@ class NavigationInstructionBanner extends StatelessWidget {
   final String detail;
   final String address;
   final IconData icon;
+  final bool radarSwitch;
+  final bool radarOn;
+  final VoidCallback? onRadarToggle;
 
   static const _ink = Color(0xFF1C242C);
   static const _muted = Color(0xFF7D898F);
@@ -115,6 +121,13 @@ class NavigationInstructionBanner extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (radarSwitch) ...[
+                  const SizedBox(width: 8),
+                  _RadarOnOff(
+                    on: radarOn,
+                    onTap: onRadarToggle,
+                  ),
+                ],
                 if (eta.isNotEmpty) ...[
                   const SizedBox(width: 10),
                   ConstrainedBox(
@@ -298,4 +311,70 @@ double _scrollPhase(double t) {
   if (t < 0.16) return 0;
   if (t > 0.84) return 1;
   return Curves.easeInOut.transform((t - 0.16) / 0.68);
+}
+
+class _RadarOnOff extends StatelessWidget {
+  const _RadarOnOff({required this.on, required this.onTap});
+
+  final bool on;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const ink = Color(0xFF1C242C);
+    return Material(
+      key: const ValueKey<String>('on-trip-radar-switch'),
+      color: Colors.white,
+      elevation: 0,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F8F9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE6E8EA)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                on ? 'ON' : 'OFF',
+                style: const TextStyle(
+                  color: ink,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
+                ),
+              ),
+              const SizedBox(width: 6),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 28,
+                height: 16,
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: on ? ink : const Color(0xFFE6E8EA),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Align(
+                  alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: on ? Colors.white : ink,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
