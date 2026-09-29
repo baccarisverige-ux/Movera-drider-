@@ -34,7 +34,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFD2D8DC), borderRadius: BorderRadius.circular(8)))),
                 const SizedBox(height: 20),
-                const Text('New support ticket', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF20282E))),
+                const Text('Local ticket draft', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF20282E))),
                 const SizedBox(height: 18),
                 DropdownButtonFormField<String>(
                   initialValue: category,
@@ -54,7 +54,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                     if (subject.text.trim().isEmpty || message.text.trim().isEmpty) return;
                     Navigator.pop(sheetContext, _Ticket(subject.text.trim(), message.text.trim(), 'OPEN', false));
                   },
-                  child: const Text('Create ticket', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: const Text('Save draft in demo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 )),
               ]),
             ),
@@ -83,11 +83,11 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
     backgroundColor: const Color(0xFFF2F4F5),
     appBar: AppBar(
       backgroundColor: const Color(0xFFF2F4F5), surfaceTintColor: Colors.transparent,
-      title: const Text('Support Inbox', style: TextStyle(fontWeight: FontWeight.w800)), centerTitle: true,
+      title: const Text('Support demo', style: TextStyle(fontWeight: FontWeight.w800)), centerTitle: true,
     ),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: _newTicket, backgroundColor: const Color(0xFF202A30), foregroundColor: Colors.white,
-      icon: const Icon(Icons.add_rounded), label: const Text('New ticket', style: TextStyle(fontWeight: FontWeight.w700)),
+      icon: const Icon(Icons.add_rounded), label: const Text('Draft local ticket', style: TextStyle(fontWeight: FontWeight.w700)),
     ),
     body: ListView(padding: const EdgeInsets.fromLTRB(16, 14, 16, 100), children: [
       Container(
@@ -96,8 +96,8 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
         child: const Row(children: [
           _SupportIcon(), SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Movera Support', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-            SizedBox(height: 3), Text('Usually replies within a few hours', style: TextStyle(color: Color(0xFFBFC8CD), fontSize: 12)),
+            Text('Local support preview', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+            SizedBox(height: 3), Text('Messages stay on this screen; no ticket is sent.', style: TextStyle(color: Color(0xFFBFC8CD), fontSize: 12)),
           ])),
           CircleAvatar(radius: 5, backgroundColor: Color(0xFF2FBE7B)),
         ]),
