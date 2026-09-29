@@ -1392,7 +1392,7 @@ class _DriverHomeState extends State<DriverHome>
             children: [
               TextButton(
                 onPressed: _openActivationDocuments,
-                child: const Text('Account documents',
+                child: const Text('Contact support',
                   style: TextStyle(color: Colors.white, fontSize: 18,
                     fontWeight: FontWeight.w800)),
               ),
