@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:movera/core/history/trip_history.dart';
+import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/presentation/driver/ride%20history/history%20detail/history_detail.dart';
 
 class DriverRideHistory extends StatefulWidget {
@@ -22,124 +23,77 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
   _HistoryView _view = _HistoryView.overview;
   _HistoryPeriod _period = _HistoryPeriod.week;
 
-  static const List<_HistoryRide> _rides = [
-    _HistoryRide(
-      id: 'ride-001',
-      day: 'Today',
-      time: '14:42',
-      category: 'Comfort',
-      pickup: 'Central Station',
-      dropoff: 'Södermalm',
-      distance: '6.8 km',
-      duration: '18 min',
-      earnings: '126 kr',
-      riderName: 'Angelica Holm',
-    ),
-    _HistoryRide(
-      id: 'ride-002',
-      day: 'Today',
-      time: '12:18',
-      category: 'Movera',
-      pickup: 'Vasastan',
-      dropoff: 'Solna centrum',
-      distance: '8.1 km',
-      duration: '22 min',
-      earnings: '94 kr',
-      riderName: 'Maya Lind',
-    ),
-    _HistoryRide(
-      id: 'ride-003',
-      day: 'Today',
-      time: '09:26',
-      category: 'Comfort',
-      pickup: 'Östermalm',
-      dropoff: 'Kungsholmen',
-      distance: '5.4 km',
-      duration: '16 min',
-      earnings: '83.25 kr',
-      riderName: 'Erik Nordin',
-    ),
-    _HistoryRide(
-      id: 'ride-004',
-      day: 'Yesterday',
-      time: '20:11',
-      category: 'Premium',
-      pickup: 'Stockholm Central',
-      dropoff: 'Bromma',
-      distance: '10.2 km',
-      duration: '27 min',
-      earnings: '174 kr',
-      riderName: 'Sofia Berg',
-    ),
-    _HistoryRide(
-      id: 'ride-005',
-      day: 'Yesterday',
-      time: '17:36',
-      category: 'Movera',
-      pickup: 'Liljeholmen',
-      dropoff: 'Hammarby Sjöstad',
-      distance: '7.7 km',
-      duration: '21 min',
-      earnings: '118 kr',
-      riderName: 'Noah Ek',
-    ),
-    _HistoryRide(
-      id: 'ride-006',
-      day: 'Fri, Sep 18',
-      time: '15:08',
-      category: 'Comfort',
-      pickup: 'Kista',
-      dropoff: 'Sundbyberg',
-      distance: '9.3 km',
-      duration: '24 min',
-      earnings: '139 kr',
-      riderName: 'Linnea Åberg',
-    ),
-  ];
+  List<_HistoryRide> _rides = <_HistoryRide>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      final records = await PrefsTripHistoryRepository().list();
+      if (!mounted) return;
+      setState(() => _rides = records.map((record) {
+        final at = record.completedAt;
+        return _HistoryRide(
+          id: record.tripId,
+          day: at == null ? 'Previous' : '${at.day}/${at.month}/${at.year}',
+          time: at == null ? '' : '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}',
+          category: record.category,
+          pickup: record.pickup,
+          dropoff: record.dropoff,
+          distance: record.distance,
+          duration: record.duration,
+          earnings: record.fare,
+          riderName: record.riderName,
+          completedAt: at,
+        );
+      }).toList());
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not load ride history.'),
+      ));
+    }
+  }
+
+  List<_HistoryRide> get _periodRidesList {
+    final now = DateTime.now();
+    return _rides.where((ride) {
+      final at = ride.completedAt;
+      if (at == null) return false;
+      return switch (_period) {
+        _HistoryPeriod.today => at.year == now.year && at.month == now.month && at.day == now.day,
+        _HistoryPeriod.week => now.difference(at).inDays < 7 && !at.isAfter(now),
+        _HistoryPeriod.month => at.year == now.year && at.month == now.month,
+      };
+    }).toList();
+  }
 
   String get _periodLabel {
     switch (_period) {
       case _HistoryPeriod.today:
         return 'Today';
       case _HistoryPeriod.week:
-        return '14 Sep – 20 Sep';
+        return 'Last 7 days';
       case _HistoryPeriod.month:
-        return 'September';
+        final now = DateTime.now();
+        return '${now.month}/${now.year}';
     }
   }
 
   String get _periodEarnings {
-    switch (_period) {
-      case _HistoryPeriod.today:
-        return '183.25 kr';
-      case _HistoryPeriod.week:
-        return '1 482.75 kr';
-      case _HistoryPeriod.month:
-        return '5 924.40 kr';
-    }
+    final total = _periodRidesList.fold<double>(0, (sum, ride) {
+      final amount = ride.earnings.replaceAll(RegExp(r'[^0-9,\.]'), '').replaceAll(',', '.');
+      return sum + (double.tryParse(amount) ?? 0);
+    });
+    return '${total.toStringAsFixed(2)} kr';
   }
 
-  String get _periodRides {
-    switch (_period) {
-      case _HistoryPeriod.today:
-        return '3';
-      case _HistoryPeriod.week:
-        return '11';
-      case _HistoryPeriod.month:
-        return '43';
-    }
-  }
-
-  String get _periodHours {
-    switch (_period) {
-      case _HistoryPeriod.today:
-        return '3 h 14 m';
-      case _HistoryPeriod.week:
-        return '8 h 26 m';
-      case _HistoryPeriod.month:
-        return '36 h 48 m';
-    }
-  }
+  String get _periodRides => _periodRidesList.length.toString();
+  String get _periodHours => '—';
 
   void _showOverview() {
     if (_view == _HistoryView.overview) return;
@@ -261,11 +215,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
   }
 
   Widget _buildOverview() {
-    final visibleRideCount = _period == _HistoryPeriod.today
-        ? 3
-        : _period == _HistoryPeriod.week
-            ? 11
-            : 43;
+    final visibleRideCount = _periodRidesList.length;
 
     return ListView(
       key: const ValueKey<String>('history-overview'),
@@ -349,9 +299,12 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
           ],
         ),
         const SizedBox(height: 3),
-        _HistoryRideCard(ride: _rides[0], compact: true),
-        const SizedBox(height: 8),
-        _HistoryRideCard(ride: _rides[1], compact: true),
+        if (_periodRidesList.isEmpty)
+          const Padding(padding: EdgeInsets.all(18), child: Text('No completed rides in this period.')),
+        for (final ride in _periodRidesList.take(2)) ...[
+          _HistoryRideCard(ride: ride, compact: true),
+          const SizedBox(height: 8),
+        ],
         const SizedBox(height: 10),
         SizedBox(
           height: 48,
@@ -380,7 +333,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
 
   Widget _buildAllRides() {
     final groups = <String, List<_HistoryRide>>{};
-    for (final ride in _rides) {
+    for (final ride in _periodRidesList) {
       groups.putIfAbsent(ride.day, () => <_HistoryRide>[]).add(ride);
     }
 
@@ -544,7 +497,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
                   ),
                   const SizedBox(height: 5),
                   const Text(
-                    'Net earnings',
+                    'Recorded fares',
                     style: TextStyle(
                       color: _green,
                       fontSize: 10.5,
@@ -581,29 +534,11 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
         borderRadius: BorderRadius.circular(19),
         border: Border.all(color: _line),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          _BreakdownRow(label: 'Ride earnings', value: '1 724.15 kr'),
-          SizedBox(height: 10),
-          _BreakdownRow(
-            label: 'Tips',
-            value: '+84.00 kr',
-            valueColor: _green,
-          ),
-          SizedBox(height: 10),
-          _BreakdownRow(
-            label: 'Movera service fee',
-            value: '−325.40 kr',
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 11),
-            child: Divider(height: 1, color: _line),
-          ),
-          _BreakdownRow(
-            label: 'Net earnings',
-            value: '1 482.75 kr',
-            strong: true,
-          ),
+          _BreakdownRow(label: 'Recorded fares', value: _periodEarnings, strong: true),
+          const SizedBox(height: 10),
+          const _BreakdownRow(label: 'Tips and fees', value: 'Not available'),
         ],
       ),
     );
@@ -938,6 +873,7 @@ class _HistoryRide {
     required this.duration,
     required this.earnings,
     required this.riderName,
+    this.completedAt,
   });
 
   final String id;
@@ -950,4 +886,5 @@ class _HistoryRide {
   final String duration;
   final String earnings;
   final String riderName;
+  final DateTime? completedAt;
 }

@@ -23,34 +23,12 @@ class DriverRideHistoryDetail extends StatefulWidget {
 
 class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
   final PanelController _panelController = PanelController();
-  // ignore: unused_field
-  GoogleMapController? _mapController;
-  // ignore: prefer_final_fields
-  Set<Marker> _markers = {};
-
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(59.3293, 18.0686),
     zoom: 14.0,
   );
 
   TripHistoryRecord get _ride => widget.record;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadMarkers();
-  }
-
-  void _loadMarkers() {
-    _markers.add(
-      Marker(
-        markerId: MarkerId('driver_location'),
-        position: LatLng(59.3293, 18.0686),
-        infoWindow: InfoWindow(title: 'Your Location'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,8 +57,8 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
             children: [
               CustomGoogleMap(
                 initialPosition: _initialPosition,
-                markers: _markers,
-                myLocationEnabled: true,
+                markers: const <Marker>{},
+                myLocationEnabled: false,
                 myLocationButtonEnabled: false,
                 zoomControlsEnabled: false,
                 mapToolbarEnabled: false,
@@ -89,10 +67,18 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                 buildingsEnabled: true,
                 indoorViewEnabled: false,
                 mapType: MapType.normal,
-                onMapCreated: (GoogleMapController controller) {
-                  _mapController = controller;
-                },
                 onTap: (LatLng position) {},
+              ),
+              const Positioned(
+                top: 100,
+                left: 16,
+                right: 16,
+                child: SafeArea(
+                  child: Text('Illustrative map · archived route unavailable',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Color(0xFF252E3A),
+                      fontSize: 12, fontWeight: FontWeight.w700)),
+                ),
               ),
               SizedBox(
                 height: MediaQuery.of(context).size.height,

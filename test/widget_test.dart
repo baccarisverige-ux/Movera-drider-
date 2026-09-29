@@ -3,10 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/main.dart';
 import 'package:movera/core/geo/geo_point.dart';
+import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/core/realtime/driver_realtime.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/waybill/waybill.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
@@ -114,6 +116,27 @@ void _invokeTooltipAction(WidgetTester tester, String tooltip) {
       .widgetList<InkWell>(taps)
       .firstWhere((widget) => widget.onTap != null);
   action.onTap!.call();
+}
+
+Future<void> seedCompletedRideForHistory() async {
+  SharedPreferences.setMockInitialValues({});
+  await PrefsTripHistoryRepository().archive(
+    WaybillRecord(
+      tripId: 'ride-001',
+      statusLabel: 'Completed',
+      issuedAt: DateTime.now(),
+      fare: '126.75 kr',
+      service: 'Comfort',
+      riderName: 'Rider',
+      pickup: 'Central Station',
+      dropoff: 'Södermalm',
+      source: 'Radar',
+      driverName: 'Driver',
+      vehicle: 'Vehicle',
+      licensePlate: 'ABC 123',
+      passengerCapacity: 4,
+    ),
+  );
 }
 
 void main() {
@@ -1177,6 +1200,7 @@ void main() {
   testWidgets('History exposes overview and full rides list on narrow phone', (
     WidgetTester tester,
   ) async {
+    await seedCompletedRideForHistory();
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(320, 700));
     await tester.pumpWidget(
@@ -1185,7 +1209,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 120));
 
     expect(find.text('Earnings & history'), findsOneWidget);
-    expect(find.text('1 482.75 kr'), findsWidgets);
+    expect(find.text('126.75 kr'), findsWidgets);
     _expectNoException(tester);
 
     await tester.drag(
@@ -1226,6 +1250,7 @@ void main() {
   testWidgets('History Today period aligns with Home daily summary', (
     WidgetTester tester,
   ) async {
+    await seedCompletedRideForHistory();
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(375, 812));
     await tester.pumpWidget(
@@ -1236,8 +1261,8 @@ void main() {
     await tester.tap(find.text('Today'));
     await tester.pump(const Duration(milliseconds: 260));
 
-    expect(find.text('183.25 kr'), findsOneWidget);
-    expect(find.text('3'), findsOneWidget);
+    expect(find.text('126.75 kr'), findsWidgets);
+    expect(find.text('1'), findsWidgets);
     _expectNoException(tester);
   });
 

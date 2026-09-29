@@ -15,6 +15,7 @@ class TripHistoryRecord {
     this.duration = '',
     this.tip = '0 kr',
     this.paymentMethod = 'Wallet',
+    this.completedAt,
   });
 
   final String tripId;
@@ -28,6 +29,7 @@ class TripHistoryRecord {
   final String duration;
   final String tip;
   final String paymentMethod;
+  final DateTime? completedAt;
 }
 
 abstract interface class TripHistoryRepository {
