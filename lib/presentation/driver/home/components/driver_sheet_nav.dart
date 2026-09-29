@@ -18,8 +18,10 @@ class DriverSheetNav {
     required AnimationController goOnlinePulseController,
     required VoidCallback onOpenScheduledRides,
     double notchDepth = 58,
+    bool inactive = false,
   }) {
     final safeBottom = MediaQuery.paddingOf(context).bottom;
+    const sheetRed = Color(0xFF8E2E28);
 
     return Stack(
       clipBehavior: Clip.none,
@@ -30,20 +32,26 @@ class DriverSheetNav {
             notchDepth: notchDepth,
             cornerRadius: 24,
           ),
-          color: const Color(0xFFFCFDFD),
+          color: inactive ? sheetRed : const Color(0xFFFCFDFD),
           elevation: 8,
           shadowColor: const Color(0x3311181C),
           clipBehavior: Clip.antiAlias,
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFFFFFFF),
-                  Color(0xFFF8FAFA),
-                  Color(0xFFF1F4F5),
-                ],
+                colors: inactive
+                    ? const [
+                        Color(0xFFA13A33),
+                        Color(0xFF8E2E28),
+                        Color(0xFF7A2722),
+                      ]
+                    : const [
+                        Color(0xFFFFFFFF),
+                        Color(0xFFF8FAFA),
+                        Color(0xFFF1F4F5),
+                      ],
               ),
             ),
             child: Padding(
@@ -62,6 +70,7 @@ class DriverSheetNav {
                           asset: AppAssets.navLayoutGrid,
                           tooltip: 'Menu',
                           onTap: () => scaffoldKey.currentState?.openDrawer(),
+                          iconColor: inactive ? Colors.white : null,
                         ),
                         _dockAction(
                           asset: AppAssets.navCreditCard,
@@ -74,6 +83,7 @@ class DriverSheetNav {
                               ),
                             );
                           },
+                          iconColor: inactive ? Colors.white : null,
                         ),
                       ],
                     ),
@@ -93,6 +103,7 @@ class DriverSheetNav {
                               ),
                             );
                           },
+                          iconColor: inactive ? Colors.white : null,
                         ),
                         AnimatedBuilder(
                           animation: goOnlinePulseController,
@@ -103,6 +114,7 @@ class DriverSheetNav {
                               onTap: onOpenScheduledRides,
                               hasAlert: hasScheduledRideOffers,
                               pulse: goOnlinePulseController.value,
+                              iconColor: inactive ? Colors.white : null,
                             );
                           },
                         ),
@@ -218,9 +230,10 @@ class DriverSheetNav {
     required VoidCallback onTap,
     bool hasAlert = false,
     double pulse = 0,
+    Color? iconColor,
   }) {
-    final iconColor =
-        hasAlert ? const Color(0xFF19865C) : const Color(0xFF303A3F);
+    final resolvedIcon =
+        iconColor ?? (hasAlert ? const Color(0xFF19865C) : const Color(0xFF303A3F));
     return Expanded(
       child: Tooltip(
         message: tooltip,
@@ -251,7 +264,7 @@ class DriverSheetNav {
                       width: 22,
                       height: 22,
                       colorFilter: ColorFilter.mode(
-                        iconColor,
+                        resolvedIcon,
                         BlendMode.srcIn,
                       ),
                     ),

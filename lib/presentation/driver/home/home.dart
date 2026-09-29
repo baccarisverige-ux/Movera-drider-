@@ -1317,68 +1317,42 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _activationSupportTab() {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF8E2E28),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF8E2E28).withOpacity(0.28),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: InkWell(
+  Widget _activationSheet() {
+    return ColoredBox(
+      color: const Color(0xFF8E2E28),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 36),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
                 onTap: _openActivationDocuments,
-                borderRadius: BorderRadius.circular(12),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Contact support',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Account is not active yet',
-                        style: TextStyle(
-                          color: Color(0xFFF3D2CF),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                child: const Text(
+                  'Contact support',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
                   ),
                 ),
               ),
-            ),
-            TextButton(
-              onPressed: _skipActivationDemo,
-              child: const Text(
-                'Skip demo',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+              TextButton(
+                onPressed: _skipActivationDemo,
+                child: const Text(
+                  'Skip demo',
+                  style: TextStyle(
+                    color: Color(0xFFF6D7D4),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1667,6 +1641,7 @@ class _DriverHomeState extends State<DriverHome>
                           hasScheduledRideOffers: _hasScheduledRideOffers,
                           goOnlinePulseController: _goOnlinePulseController,
                           onOpenScheduledRides: _openScheduledRides,
+                          inactive: _activationHold && !isAccountActivated,
                         ),
                       ),
                     ),
@@ -1680,7 +1655,9 @@ class _DriverHomeState extends State<DriverHome>
                         onPointerMove: _onSheetPointerMove,
                         onPointerUp: _onSheetPointerEnd,
                         onPointerCancel: _onSheetPointerEnd,
-                        child: panelColumn(sc),
+                        child: _activationHold && !isAccountActivated
+                            ? _activationSheet()
+                            : panelColumn(sc),
                       ),
                     ),
               body: AbsorbPointer(
@@ -2069,22 +2046,6 @@ class _DriverHomeState extends State<DriverHome>
                   ),
                 ),
               ),
-            ),
-          if (_activationHold && !isAccountActivated)
-            ValueListenableBuilder<double>(
-              valueListenable: _panelSlidePosition,
-              builder: (context, panelPosition, _) {
-                final maxPanelHeight = _homeExpandedHeight(context);
-                const minPanelHeight = MoveraSheetMetrics.collapsedHeight;
-                final currentPanelHeight = minPanelHeight +
-                    ((maxPanelHeight - minPanelHeight) * panelPosition);
-                return Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: currentPanelHeight + 12,
-                  child: _activationSupportTab(),
-                );
-              },
             ),
           if (!isDestinationPanel &&
               _mainPanelPosition <= 0.04 &&
