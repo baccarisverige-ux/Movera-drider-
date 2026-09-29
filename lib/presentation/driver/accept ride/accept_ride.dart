@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
+import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/core/geo/geo_point_maps.dart';
 import 'package:movera/core/routing/route_maps.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
@@ -396,6 +397,7 @@ class _AcceptRideState extends State<AcceptRide>
   bool _hasLiveLocation = false;
   bool _routeLoading = false;
   bool _stageTransitioning = false;
+  bool _completionInFlight = false;
   bool _blockMapGestures = false;
   bool _cameraProgrammatic = false;
   DateTime? _lastCameraFollowAt;
@@ -1148,7 +1150,7 @@ class _AcceptRideState extends State<AcceptRide>
           unawaited(_askBeforeShortFinish());
           return;
         }
-        _completeCurrentTrip();
+        unawaited(_completeCurrentTrip());
         return;
     }
   }
@@ -1241,13 +1243,30 @@ class _AcceptRideState extends State<AcceptRide>
       },
     );
     if (finish != true || !mounted || _stage != ActiveRideStage.onTrip) return;
-    _completeCurrentTrip();
+    unawaited(_completeCurrentTrip());
   }
 
-  void _completeCurrentTrip() {
-    if (_stageTransitioning || !mounted || _rideLifecycle.terminal) return;
+  Future<void> _completeCurrentTrip() async {
+    if (_completionInFlight || !mounted || _rideLifecycle.terminal) return;
+    _completionInFlight = true;
     _stageTransitioning = true;
+    try {
+      await PrefsTripHistoryRepository().archive(
+        _waybills.current ?? _buildCurrentWaybill(),
+      );
+    } catch (_) {
+      _completionInFlight = false;
+      _stageTransitioning = false;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not save the trip. Please try again.'),
+        ));
+      }
+      return;
+    }
+    if (!mounted) return;
     if (!_rideLifecycle.complete()) {
+      _completionInFlight = false;
       _stageTransitioning = false;
       return;
     }
