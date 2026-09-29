@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -126,6 +127,24 @@ void main() {
     );
     await store.clear();
     expect(await store.read(), isNull);
+  });
+
+  test('a previous trip clear cannot delete a newly accepted trip', () async {
+    SharedPreferences.setMockInitialValues({});
+    final loadGate = Completer<SharedPreferences>();
+    final store = PrefsActiveRideRepository(load: () => loadGate.future);
+
+    final oldSave = store.save(const PersistedActiveRide(
+      tripId: 'trip-A', stage: ActiveRideStage.onTrip,
+    ));
+    final oldClear = store.clear();
+    final newSave = store.save(const PersistedActiveRide(
+      tripId: 'trip-B', stage: ActiveRideStage.headingToPickup,
+    ));
+    loadGate.complete(await SharedPreferences.getInstance());
+    await Future.wait([oldSave, oldClear, newSave]);
+
+    expect((await store.read())?.tripId, 'trip-B');
   });
 
   test('controller restore skips a stale snapshot', () async {
