@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/ride/prefs_active_ride_repository.dart';
+import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,6 +28,10 @@ void main() {
       stopAddresses: const <String>[
         'Vasagatan 10, Stockholm',
         'Liljeholmen, Stockholm',
+      ],
+      stopPoints: const <GeoPoint>[
+        GeoPoint(59.3300, 18.0580),
+        GeoPoint(59.3100, 18.0220),
       ],
       pickupLat: 59.3343,
       pickupLng: 18.0615,
@@ -69,6 +74,10 @@ void main() {
     expect(decoded.stopIndex, 1);
     expect(decoded.paidStopWait, isTrue);
     expect(decoded.startedAt, DateTime.utc(2026, 9, 29, 12));
+    expect(decoded.stopPoints, const <GeoPoint>[
+      GeoPoint(59.3300, 18.0580),
+      GeoPoint(59.3100, 18.0220),
+    ]);
   });
 
   test('stale snapshots older than six hours are not fresh', () {
@@ -193,6 +202,7 @@ void main() {
       pickupArea: 'Stockholm',
       dropoffAddress: 'Hornstull, Stockholm',
       stopAddresses: const <String>['Vasagatan 10, Stockholm'],
+      stopPoints: const <GeoPoint>[GeoPoint(59.3300, 18.0580)],
       pickupLat: 59.3343,
       pickupLng: 18.0615,
       dropoffLat: 59.3157,
@@ -208,6 +218,7 @@ void main() {
     expect(ride.pickupAddress, 'Kungsgatan 42, Stockholm');
     expect(ride.dropoffAddress, 'Hornstull, Stockholm');
     expect(ride.stopAddresses, <String>['Vasagatan 10, Stockholm']);
+    expect(ride.stopPositions.single.latitude, 59.3300);
     expect(ride.pickupPosition.latitude, 59.3343);
     expect(ride.dropoffPosition.longitude, 18.0335);
     expect(ride.initialWaitSeconds, 42);
