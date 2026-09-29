@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:movera/widgets/movera_line_icon.dart';
 
 /// Collapsed Active Ride route summary.
 ///
@@ -16,6 +17,9 @@ class CompactTripDock extends StatelessWidget {
     this.onArrived,
     this.riderReply,
     this.onWaitTap,
+    this.riderName,
+    this.onCall,
+    this.onMessage,
   });
 
   final String pickupAddress;
@@ -26,6 +30,9 @@ class CompactTripDock extends StatelessWidget {
   final VoidCallback? onArrived;
   final String? riderReply;
   final VoidCallback? onWaitTap;
+  final String? riderName;
+  final VoidCallback? onCall;
+  final VoidCallback? onMessage;
 
   static const _ink = Color(0xFF233039);
   static const _muted = Color(0xFF7D898F);
@@ -114,7 +121,7 @@ class CompactTripDock extends StatelessWidget {
             const SizedBox(width: 4),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 7),
+                padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +164,8 @@ class CompactTripDock extends StatelessWidget {
                         ],
                       ],
                     ),
-                    if (stopAddresses.isNotEmpty) ...[
+                    if (stopAddresses.isNotEmpty &&
+                        (riderName == null || riderName!.trim().isEmpty)) ...[
                       const SizedBox(height: 2),
                       Row(
                         children: [
@@ -211,6 +219,37 @@ class CompactTripDock extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (riderName != null && riderName!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              riderName!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _ink,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.15,
+                              ),
+                            ),
+                          ),
+                          _dockAction(
+                            mark: MoveraMark.phone,
+                            tooltip: 'Call rider',
+                            onTap: onCall,
+                          ),
+                          const SizedBox(width: 4),
+                          _dockAction(
+                            mark: MoveraMark.message,
+                            tooltip: 'Message rider',
+                            onTap: onMessage,
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -281,6 +320,35 @@ class CompactTripDock extends StatelessWidget {
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _dockAction({
+    required MoveraMark mark,
+    required String tooltip,
+    required VoidCallback? onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: const Color(0xFFF4F5F6),
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: Center(
+              child: MoveraLineIcon(
+                mark: mark,
+                size: 12,
+                color: _ink,
+              ),
+            ),
+          ),
         ),
       ),
     );

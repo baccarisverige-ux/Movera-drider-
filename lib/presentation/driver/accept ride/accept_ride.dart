@@ -22,6 +22,7 @@ import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
+import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
@@ -2369,6 +2370,27 @@ class _AcceptRideState extends State<AcceptRide>
                     onWaitTap: _stage == ActiveRideStage.waitingForRider
                         ? _openWaitingTime
                         : null,
+                    riderName: widget.riderName,
+                    onCall: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            'Phone integration will call the rider.',
+                          ),
+                          backgroundColor: _ink,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      );
+                    },
+                    onMessage: () {
+                      Navigator.push(
+                        context,
+                        BottomToTopTransition(const Chat()),
+                      );
+                    },
                   )
                 else
                   Expanded(
