@@ -128,18 +128,18 @@ class _PreferencesState extends State<Preferences> {
         top: false,
         child: Column(
           children: [
+            _buildSummary(),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                children: [
-                  _buildSummary(),
-                  const SizedBox(height: 14),
-                  for (var index = 0; index < _categories.length; index++) ...[
-                    _buildCategory(index),
-                    if (index != _categories.length - 1)
-                      const SizedBox(height: 10),
-                  ],
-                ],
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 0.92,
+                ),
+                itemCount: _categories.length,
+                itemBuilder: (context, index) => _buildCategory(index),
               ),
             ),
             _buildSaveArea(),
@@ -150,71 +150,31 @@ class _PreferencesState extends State<Preferences> {
   }
 
   Widget _buildSummary() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 15, 12, 15),
-      decoration: BoxDecoration(
-        color: _ink,
-        borderRadius: BorderRadius.circular(21),
-        boxShadow: [
-          BoxShadow(
-            color: _ink.withOpacity(0.14),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 10, 12, 4),
       child: Row(
         children: [
-          Container(
-            height: 43,
-            width: 43,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const MoveraLineIcon(
-              mark: MoveraMark.explore,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$_selectedCount of 7 active',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'You can change this at any time',
-                  style: TextStyle(
-                    color: Color(0xFFB9C2C7),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            child: Text(
+              '$_selectedCount of 7 active',
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           TextButton(
             onPressed: _toggleAll,
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF75D7B0),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              foregroundColor: _ink,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(
               _selectedCount == _categories.length ? 'Clear' : 'Select all',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
             ),
           ),
         ],
@@ -247,15 +207,35 @@ class _PreferencesState extends State<Preferences> {
               width: selected ? 1.2 : 1,
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                height: 46,
-                width: 46,
+              Align(
+                alignment: Alignment.topRight,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  height: 22,
+                  width: 22,
+                  decoration: BoxDecoration(
+                    color: selected ? _ink : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected ? _ink : const Color(0xFFC9D0D3),
+                      width: 1.3,
+                    ),
+                  ),
+                  child: selected
+                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                      : null,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                height: 42,
+                width: 42,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF4F5F6),
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: MoveraLineIcon(
                   mark: category.icon,
@@ -263,79 +243,40 @@ class _PreferencesState extends State<Preferences> {
                   size: 20,
                 ),
               ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            category.title,
-                            style: const TextStyle(
-                              color: _ink,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        if (category.badge != null) ...[
-                          const SizedBox(width: 7),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F5),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              category.badge!,
-                              style: const TextStyle(
-                                color: _ink,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.4,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      category.subtitle,
-                      style: const TextStyle(
-                        color: _muted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 10),
+              Text(
+                category.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(width: 10),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                height: 25,
-                width: 25,
-                decoration: BoxDecoration(
-                  color: selected ? _ink : Colors.transparent,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: selected ? _ink : const Color(0xFFC9D0D3),
-                    width: 1.4,
+              if (category.badge != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  category.badge!,
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4,
                   ),
                 ),
-                child: selected
-                    ? const Icon(
-                        Icons.check_rounded,
-                        color: Colors.white,
-                        size: 17,
-                      )
-                    : null,
+              ],
+              const SizedBox(height: 3),
+              Text(
+                category.subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 11,
+                  height: 1.2,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
