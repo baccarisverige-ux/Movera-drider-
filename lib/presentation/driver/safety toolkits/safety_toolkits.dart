@@ -25,11 +25,6 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
   static const Color _line = Color(0xFFE5E9EB);
   static const Color _canvas = Color(0xFFF4F6F7);
 
-  bool _isRecording = false;
-  bool _tripSharing = false;
-  bool _pinRequired = true;
-  bool _autoShare = false;
-  bool _rideCheck = true;
   String? _status;
 
   void _showMessage(String message) {
@@ -85,19 +80,11 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
   }
 
   void _toggleRecording() {
-    setState(() {
-      _isRecording = !_isRecording;
-      _status = _isRecording
-          ? 'Audio recording started. The file stays on this device.'
-          : 'Audio recording saved on this device.';
-    });
+    _showMessage('Audio recording is unavailable in this demo.');
   }
 
   void _shareTrip() {
-    setState(() {
-      _tripSharing = true;
-      _status = 'Trip sharing is ready for your trusted contacts.';
-    });
+    _showMessage('Trip sharing is unavailable in this demo.');
   }
 
   Future<void> _openPreferences() {
@@ -107,12 +94,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return StatefulBuilder(
-          builder: (context, setSheetState) {
-            void update(VoidCallback change) {
-              setState(change);
-              setSheetState(() {});
-            }
-
+          builder: (context, _) {
             return SafeArea(
               top: false,
               child: Container(
@@ -152,7 +134,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
                               ),
                               SizedBox(height: 3),
                               Text(
-                                'Set how Movera protects every trip',
+                                'Preview only. These safeguards are not active.',
                                 style: TextStyle(
                                   color: _muted,
                                   fontSize: 11,
@@ -173,31 +155,25 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
                     _preferenceTile(
                       icon: Icons.pin_outlined,
                       title: 'PIN verification',
-                      subtitle: 'Confirm the correct rider before starting',
-                      value: _pinRequired,
-                      onChanged: (value) {
-                        update(() => _pinRequired = value);
-                      },
+                      subtitle: 'Unavailable without account verification',
+                      value: false,
+                      onChanged: null,
                     ),
                     const SizedBox(height: 10),
                     _preferenceTile(
                       icon: Icons.ios_share_outlined,
                       title: 'Automatic trip sharing',
-                      subtitle: 'Share active trips with trusted contacts',
-                      value: _autoShare,
-                      onChanged: (value) {
-                        update(() => _autoShare = value);
-                      },
+                      subtitle: 'Unavailable without a sharing service',
+                      value: false,
+                      onChanged: null,
                     ),
                     const SizedBox(height: 10),
                     _preferenceTile(
                       icon: Icons.route_outlined,
                       title: 'RideCheck alerts',
-                      subtitle: 'Detect unusual stops or route changes',
-                      value: _rideCheck,
-                      onChanged: (value) {
-                        update(() => _rideCheck = value);
-                      },
+                      subtitle: 'Unavailable without route monitoring',
+                      value: false,
+                      onChanged: null,
                     ),
                   ],
                 ),
@@ -214,7 +190,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
     required String title,
     required String subtitle,
     required bool value,
-    required ValueChanged<bool> onChanged,
+    required ValueChanged<bool>? onChanged,
   }) {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
@@ -342,11 +318,8 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
                 const SizedBox(width: 9),
                 Expanded(
                   child: _SafetyToolButton(
-                    icon: _isRecording
-                        ? Icons.stop_circle_outlined
-                        : Icons.mic_outlined,
-                    label: _isRecording ? 'Stop audio' : 'Record audio',
-                    active: _isRecording,
+                    icon: Icons.mic_outlined,
+                    label: 'Record audio',
                     onTap: _toggleRecording,
                   ),
                 ),
@@ -355,7 +328,6 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
                   child: _SafetyToolButton(
                     icon: Icons.ios_share_outlined,
                     label: 'Share trip',
-                    active: _tripSharing,
                     onTap: _shareTrip,
                   ),
                 ),
@@ -430,7 +402,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
                             ),
                             SizedBox(height: 3),
                             Text(
-                              'PIN, trip sharing and RideCheck',
+                              'Unavailable in this demo',
                               style: TextStyle(
                                 color: _muted,
                                 fontSize: 10,

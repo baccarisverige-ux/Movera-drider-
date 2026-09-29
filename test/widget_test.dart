@@ -1312,9 +1312,9 @@ void main() {
 
     await tester.tap(find.text('Record audio'));
     await tester.pump();
-    expect(find.text('Stop audio'), findsOneWidget);
+    expect(find.text('Stop audio'), findsNothing);
     expect(
-      find.text('Audio recording started. The file stays on this device.'),
+      find.text('Audio recording is unavailable in this demo.'),
       findsOneWidget,
     );
     _expectNoException(tester);
@@ -1322,7 +1322,7 @@ void main() {
     await tester.tap(find.text('Share trip'));
     await tester.pump();
     expect(
-      find.text('Trip sharing is ready for your trusted contacts.'),
+      find.text('Trip sharing is unavailable in this demo.'),
       findsOneWidget,
     );
     _expectNoException(tester);
