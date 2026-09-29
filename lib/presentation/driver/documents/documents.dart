@@ -6,7 +6,6 @@ class DriverDocuments extends StatelessWidget {
   const DriverDocuments({super.key});
 
   static const Color _ink = Color(0xFF252E3A);
-  static const Color _muted = Color(0xFF7D898F);
   static const Color _line = Color(0xFFE6E8EA);
 
   @override
@@ -56,7 +55,7 @@ class DriverDocuments extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Stockholm',
+                  'Stockholm · Trips',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -66,7 +65,7 @@ class DriverDocuments extends StatelessWidget {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Trips with a car · all of Sweden',
+                  'Can earn in: All of Sweden',
                   style: TextStyle(
                     color: Color(0xFFD5DCE0),
                     fontSize: 12,
@@ -78,34 +77,46 @@ class DriverDocuments extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           const Text(
-            'Driver',
+            'Driver requirements',
             style: TextStyle(
               color: _ink,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 8),
           _group(context, const [
-            _Doc('Terms', 'Accepted', true),
-            _Doc('Information session', 'Done', true),
-            _Doc('Driving licence', 'On file', true),
-            _Doc('Profile photo', 'On file', true),
-            _Doc('Tax details', 'On file', true),
+            _Doc('Terms and Conditions', 'Completed', true),
+            _Doc('Virtual information session', 'Completed', true),
+            _Doc('Driver’s License', 'Completed', true),
+            _Doc('Profile photo', 'Completed', true),
+            _Doc(
+              'Registration certificate from Bolagsverket (for AB, KB or HB) or register extract from Skatteverket (in the case of a sole proprietorship) (NOT needed if you deliver for a Fleet Partner)',
+              'Completed',
+              true,
+            ),
+            _Doc('Taxi Driver License', 'Completed', true),
+            _Doc('Taxi Traffic Permit', 'Completed', true),
+            _Doc('Tax settings', 'Completed', true),
+            _Doc('Bank statement', 'Completed', true),
           ]),
           const SizedBox(height: 18),
           const Text(
-            'Mercedes-Benz C200',
+            'Mercedes-Benz E 220 USD89R',
             style: TextStyle(
               color: _ink,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 8),
           _group(context, const [
-            _Doc('Registration', 'On file', true),
-            _Doc('Insurance', 'Needs a new copy', false),
+            _Doc(
+              'Vehicle Registration Certificate (Front Page)',
+              'Completed',
+              true,
+            ),
+            _Doc('Insurance Letter', 'Completed', true),
           ]),
         ],
       ),
@@ -133,6 +144,7 @@ class DriverDocuments extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Text(
@@ -140,16 +152,23 @@ class DriverDocuments extends StatelessWidget {
                         style: const TextStyle(
                           color: _ink,
                           fontSize: 14,
+                          height: 1.3,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                    Text(
-                      items[i].status,
-                      style: TextStyle(
-                        color: items[i].ready ? _muted : const Color(0xFFB84F3D),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(width: 10),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Text(
+                        items[i].status,
+                        style: TextStyle(
+                          color: items[i].ready
+                              ? const Color(0xFF1F7A4D)
+                              : const Color(0xFFB84F3D),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 4),
