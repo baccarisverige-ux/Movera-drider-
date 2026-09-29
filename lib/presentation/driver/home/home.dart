@@ -27,6 +27,7 @@ import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
+import 'package:movera/presentation/driver/documents/documents.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
@@ -1314,6 +1315,76 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
+  void _skipActivationDemo() {
+    setState(() {
+      isAccountActivated = true;
+      _activationHold = false;
+    });
+    if (_panelController.isAttached) {
+      unawaited(_snapSheet.springTo(0));
+    }
+  }
+
+  void _openActivationDocuments() {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const DriverDocuments()),
+    );
+  }
+
+  Widget _inactiveSheetFace() {
+    return PhysicalShape(
+      clipper: const RadarSheetClipper(
+        notchWidth: 126,
+        notchDepth: 58,
+        cornerRadius: 24,
+      ),
+      color: const Color(0xFF8E2E28),
+      elevation: 8,
+      shadowColor: const Color(0x3311181C),
+      clipBehavior: Clip.antiAlias,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 72),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: _openActivationDocuments,
+                behavior: HitTestBehavior.opaque,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                  child: Text(
+                    'Contact support',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _skipActivationDemo,
+                child: const Text(
+                  'Skip demo',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   bool hideMainPanel = false;
   // Add this method to open destination panel
   void openDestinationPanel() {
@@ -1613,7 +1684,9 @@ class _DriverHomeState extends State<DriverHome>
                         onPointerMove: _onSheetPointerMove,
                         onPointerUp: _onSheetPointerEnd,
                         onPointerCancel: _onSheetPointerEnd,
-                        child: panelColumn(sc),
+                        child: _activationHold && !isAccountActivated
+                            ? _inactiveSheetFace()
+                            : panelColumn(sc),
                       ),
                     ),
               body: AbsorbPointer(
@@ -3414,7 +3487,7 @@ class _DriverHomeState extends State<DriverHome>
       setState(() => _activationHold = true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_panelController.isAttached) return;
-        unawaited(_snapSheet.springTo(0.16));
+        unawaited(_snapSheet.springTo(0.28));
       });
       return;
     }
