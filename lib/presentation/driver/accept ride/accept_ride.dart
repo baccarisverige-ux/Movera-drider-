@@ -680,6 +680,7 @@ class _AcceptRideState extends State<AcceptRide>
     final target = _arrivalTarget;
     if (target == null) return false;
     if (_arrivalDemo) return true;
+    if (!_hasLiveLocation) return false;
     return GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
           GeoPointMaps.fromLatLng(target),
         ) <=
@@ -764,6 +765,12 @@ class _AcceptRideState extends State<AcceptRide>
     if (_arrivalTarget == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('This stop needs a verified map location before arrival.'),
+      ));
+      return;
+    }
+    if (!_arrivalDemo && !_hasLiveLocation) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Location unavailable. Enable location to confirm arrival.'),
       ));
       return;
     }
