@@ -121,7 +121,7 @@ class CompactTripDock extends StatelessWidget {
             const SizedBox(width: 4),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
+                padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,7 +220,7 @@ class CompactTripDock extends StatelessWidget {
                       ],
                     ),
                     if (riderName != null && riderName!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 1),
                       Row(
                         children: [
                           Expanded(
@@ -339,8 +339,8 @@ class CompactTripDock extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: SizedBox(
-            width: 22,
-            height: 22,
+            width: 20,
+            height: 20,
             child: Center(
               child: MoveraLineIcon(
                 mark: mark,
