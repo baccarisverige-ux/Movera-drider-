@@ -57,7 +57,7 @@ class CompactTripDock extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 72,
+              width: 48,
               margin: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -237,13 +237,13 @@ class CompactTripDock extends StatelessWidget {
               ),
             ),
             if (riderName != null && riderName!.trim().isNotEmpty) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               _dockAction(
                 icon: Icons.call_outlined,
                 tooltip: 'Call rider',
                 onTap: onCall,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               _dockAction(
                 icon: Icons.chat_bubble_outline_rounded,
                 tooltip: 'Message rider',
@@ -335,8 +335,8 @@ class CompactTripDock extends StatelessWidget {
           onTap: onTap,
           customBorder: const CircleBorder(),
           child: SizedBox(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
             child: Icon(icon, size: 18, color: _ink),
           ),
         ),
