@@ -71,7 +71,7 @@ void main() {
 
     expect(rideSource.contains('_confirmPickupArrival'), isTrue);
     expect(rideSource.contains('DriverRealtimeKind.driverArrived'), isTrue);
-    expect(rideSource.contains('onArrived: _stage == ActiveRideStage.headingToPickup'), isTrue);
+    expect(rideSource.contains('onArrived: _arrivalTarget != null'), isTrue);
     expect(dockSource.contains("active-ride-arrived-button"), isTrue);
     expect(dockSource.contains("I've arrived"), isTrue);
   });
