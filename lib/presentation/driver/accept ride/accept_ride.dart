@@ -22,7 +22,6 @@ import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
-import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
@@ -370,6 +369,8 @@ class _AcceptRideState extends State<AcceptRide>
   bool _handlingRiderCancellation = false;
   Timer? _nextTripRadarDemoTimer;
   Timer? _nextTripRadarMatchTimer;
+  Timer? _nextTripOfferExpiry;
+  static const Duration _onTripOfferLifetime = Duration(milliseconds: 8500);
   DateTime? _lastGpsAppliedAt;
   DateTime? _lastSnapshotAt;
   bool _liveUpdatesPaused = false;
@@ -460,6 +461,7 @@ class _AcceptRideState extends State<AcceptRide>
     }
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
+    _nextTripOfferExpiry?.cancel();
     _radarPulseController.dispose();
     _radarSweepController.dispose();
     _positionSubscription?.cancel();
@@ -1373,6 +1375,7 @@ class _AcceptRideState extends State<AcceptRide>
   void _stopOnTripRadar() {
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
+    _nextTripOfferExpiry?.cancel();
     if (!mounted || _stage != ActiveRideStage.onTrip) return;
     if (_onTripRadarState == _OnTripRadarState.secured) return;
     setState(() {
@@ -1416,9 +1419,43 @@ class _AcceptRideState extends State<AcceptRide>
           _nextTripRadarOffer = offer;
           _onTripRadarState = _OnTripRadarState.offerAvailable;
         });
+        _armOnTripOfferExpiry();
+        _hideRideSheetForOffer();
       },
     );
   }
+
+  void _armOnTripOfferExpiry() {
+    _nextTripOfferExpiry?.cancel();
+    if (_onTripRadarState != _OnTripRadarState.offerAvailable) return;
+    _nextTripOfferExpiry = Timer(_onTripOfferLifetime, () {
+      if (!mounted || _onTripRadarState != _OnTripRadarState.offerAvailable) {
+        return;
+      }
+      _denyNextTripRadar();
+    });
+  }
+
+  void _hideRideSheetForOffer() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_ridePanelController.isAttached) return;
+      if (_onTripRadarState == _OnTripRadarState.offerAvailable) {
+        _ridePanelController.close();
+      }
+    });
+  }
+
+  void _restoreRideSheet() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_ridePanelController.isAttached) return;
+      _ridePanelController.open();
+    });
+  }
+
+  bool get _incomingOfferOpen =>
+      _stage == ActiveRideStage.onTrip &&
+      _onTripRadarState == _OnTripRadarState.offerAvailable &&
+      _nextTripRadarOffer != null;
 
   void _acceptNextTripRadar() {
     final offer = _nextTripRadarOffer;
@@ -1428,6 +1465,8 @@ class _AcceptRideState extends State<AcceptRide>
       return;
     }
     setState(() => _onTripRadarState = _OnTripRadarState.matching);
+    _nextTripOfferExpiry?.cancel();
+    _restoreRideSheet();
     _nextTripRadarMatchTimer?.cancel();
     _nextTripRadarMatchTimer = Timer(const Duration(milliseconds: 900), () {
       if (!mounted || _stage != ActiveRideStage.onTrip) return;
@@ -1445,122 +1484,241 @@ class _AcceptRideState extends State<AcceptRide>
     }
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
+    _nextTripOfferExpiry?.cancel();
     setState(() {
       _onTripRadarDeclined = true;
       _nextTripRadarOffer = null;
       _onTripRadarState = _OnTripRadarState.scanning;
     });
+    _restoreRideSheet();
   }
 
   Widget _buildIncomingRideCard() {
     final offer = _nextTripRadarOffer;
-    final matching = _onTripRadarState == _OnTripRadarState.matching;
     if (offer == null) return const SizedBox.shrink();
+    const alertCoral = Color(0xFFFF765C);
 
     return Material(
       key: const ValueKey<String>('on-trip-radar-offer-button'),
-      color: Colors.white,
-      elevation: 8,
-      shadowColor: const Color(0x24172027),
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      color: Colors.transparent,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: alertCoral.withOpacity(0.55), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: alertCoral.withOpacity(0.12),
+              blurRadius: 22,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: const Color(0xFF11181C).withOpacity(0.14),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Expanded(
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE9EEF1),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
                   child: Text(
-                    'Next trip',
-                    style: TextStyle(
+                    offer.category,
+                    style: const TextStyle(
                       color: _ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ),
-                Text(
-                  offer.fare,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              'Available after your current drop-off',
-              style: TextStyle(
-                color: _muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (widget.destinationModeActive) ...[
-              const SizedBox(height: 8),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  color: _ink,
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    'On your way',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-              ),
-            ],
-            const SizedBox(height: 10),
-            Text(
-              offer.pickup,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _ink,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
+                if (widget.destinationModeActive) ...[
+                  const SizedBox(width: 7),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _ink,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: const Text(
+                      'On your way',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: alertCoral.withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: const Text(
+                      'After this drop-off',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xFFB84F3D),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              offer.dropoff,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+            const SizedBox(height: 11),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Flexible(
+                  child: Text(
+                    offer.fare,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 30,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.9,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const MoveraLineIcon(
+                  mark: MoveraMark.star,
+                  color: Color(0xFFD7A02C),
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  offer.rating.toStringAsFixed(2),
+                  style: const TextStyle(
+                    color: Color(0xFF6F7B82),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            const Text(
+              'Available after your current drop-off',
+              style: TextStyle(
                 color: _muted,
-                fontSize: 12,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w600,
               ),
             ),
+            const SizedBox(height: 10),
+            TweenAnimationBuilder<double>(
+              key: ValueKey<String>('on-trip-offer-${offer.id}'),
+              tween: Tween<double>(begin: 1, end: 0),
+              duration: _onTripOfferLifetime,
+              builder: (context, remaining, _) {
+                final seconds =
+                    (remaining * (_onTripOfferLifetime.inMilliseconds / 1000))
+                        .ceil();
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        const MoveraLineIcon(
+                          mark: MoveraMark.timer,
+                          color: _ink,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Exclusive offer · ${seconds}s',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ink,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Flexible(
+                          child: Text(
+                            'On this ride',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Color(0xFF8A9499),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
+                        minHeight: 3,
+                        value: remaining,
+                        backgroundColor: const Color(0xFFF0E8E5),
+                        valueColor:
+                            const AlwaysStoppedAnimation<Color>(alertCoral),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
             const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFE4E8EA)),
+            const SizedBox(height: 11),
+            _offerLocationRow(
+              color: const Color(0xFF215277),
+              title: '${offer.pickupMinutes} min away',
+              subtitle: offer.pickup,
+            ),
+            const SizedBox(height: 9),
+            _offerLocationRow(
+              color: _ink,
+              title: '${offer.tripMinutes} min trip',
+              subtitle: offer.dropoff,
+            ),
+            const SizedBox(height: 13),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     key: const ValueKey<String>('on-trip-radar-deny'),
-                    onPressed: matching ? null : _denyNextTripRadar,
+                    onPressed: _denyNextTripRadar,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _ink,
                       side: const BorderSide(color: Color(0xFFD5DCDF)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      minimumSize: const Size(0, 42),
                     ),
                     child: const Text(
                       'Deny',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
                     ),
                   ),
                 ),
@@ -1568,23 +1726,19 @@ class _AcceptRideState extends State<AcceptRide>
                 Expanded(
                   child: FilledButton(
                     key: const ValueKey<String>('on-trip-radar-match-next'),
-                    onPressed: matching ? null : _acceptNextTripRadar,
+                    onPressed: _acceptNextTripRadar,
                     style: FilledButton.styleFrom(
                       elevation: 0,
-                      backgroundColor: _ink,
-                      disabledBackgroundColor: const Color(0xFFE3E7E8),
+                      backgroundColor: const Color(0xFF252E3A),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      minimumSize: const Size(0, 42),
                     ),
-                    child: Text(
-                      matching ? 'Matching…' : 'Accept',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    child: const Text(
+                      'Accept',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
                     ),
                   ),
                 ),
@@ -1593,6 +1747,57 @@ class _AcceptRideState extends State<AcceptRide>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _offerLocationRow({
+    required Color color,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          margin: const EdgeInsets.only(top: 3),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2.5),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1885,16 +2090,17 @@ class _AcceptRideState extends State<AcceptRide>
             collapsed: collapsed,
           );
 
+          final offerOpen = _incomingOfferOpen;
           return Stack(
             children: [
               SlidingUpPanel(
             controller: _ridePanelController,
-            minHeight: collapsed,
-            maxHeight: expanded,
+            minHeight: offerOpen ? 0 : collapsed,
+            maxHeight: offerOpen ? 1 : expanded,
             snapPoint: snap,
             panelSnapping: true,
             defaultPanelState: PanelState.OPEN,
-            isDraggable: true,
+            isDraggable: !offerOpen,
             color: Colors.transparent,
             boxShadow: const [],
             backdropEnabled: false,
@@ -1914,7 +2120,9 @@ class _AcceptRideState extends State<AcceptRide>
               _rideSheetPositionGuardTimer?.cancel();
               _ridePanelPosition.value = 0;
             },
-            panel: _mapOverlay(
+            panel: offerOpen
+                ? const SizedBox.shrink()
+                : _mapOverlay(
               child: Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: _onRideSheetPointerDown,
@@ -1997,14 +2205,12 @@ class _AcceptRideState extends State<AcceptRide>
               ],
             ),
               ),
-              if (_stage == ActiveRideStage.onTrip &&
-                  (_onTripRadarState == _OnTripRadarState.offerAvailable ||
-                      _onTripRadarState == _OnTripRadarState.matching))
+              if (offerOpen)
                 Positioned(
                   key: const ValueKey<String>('on-trip-radar-layer'),
                   left: 12,
                   right: 12,
-                  top: safeTop + NavigationInstructionBanner.belowSafeExtent + 8,
+                  bottom: MediaQuery.paddingOf(context).bottom + 12,
                   child: _buildIncomingRideCard(),
                 ),
             ],
@@ -2210,8 +2416,6 @@ class _AcceptRideState extends State<AcceptRide>
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              _buildEtaTile(),
                             ],
                           ),
                           const SizedBox(height: 14),
@@ -2324,27 +2528,6 @@ class _AcceptRideState extends State<AcceptRide>
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: GestureDetector(
-                  onTap: _stage == ActiveRideStage.waitingForRider
-                      ? _openWaitingTime
-                      : null,
-                  child: Text(
-                  _stage == ActiveRideStage.waitingForRider
-                      ? _waitLabel
-                      : '$_routeEtaText · $_routeDistanceText',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
                 ),
               ),
             ],
@@ -2494,58 +2677,6 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  Widget _buildEtaTile() {
-    final waiting = _stage == ActiveRideStage.waitingForRider;
-    final main = waiting ? _waitLabel : _routeEtaText;
-    final sub = waiting ? 'WAITING' : _routeDistanceText;
-
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: waiting ? _openWaitingTime : null,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 76),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE6E8EA)),
-          ),
-          child: waiting
-              ? WaitingClock(
-                  seconds: _waitSeconds,
-                  diameter: 64,
-                  onTap: _openWaitingTime,
-                )
-              : Column(
-                  children: [
-                    Text(
-                      main,
-                      style: const TextStyle(
-                        color: _ink,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      sub,
-                      style: const TextStyle(
-                        color: _muted,
-                        fontSize: 8,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildRiderRow() {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
@@ -2603,34 +2734,6 @@ class _AcceptRideState extends State<AcceptRide>
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 7),
-          _riderAction(
-            tooltip: 'Call rider',
-            mark: MoveraMark.phone,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Phone integration will call the rider.'),
-                  backgroundColor: _ink,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 6),
-          _riderAction(
-            tooltip: 'Message rider',
-            mark: MoveraMark.message,
-            onTap: () {
-              Navigator.push(
-                context,
-                BottomToTopTransition(const Chat()),
-              );
-            },
           ),
         ],
       ),
@@ -2715,29 +2818,6 @@ class _AcceptRideState extends State<AcceptRide>
           ),
         );
       },
-    );
-  }
-
-  Widget _riderAction({
-    required String tooltip,
-    required MoveraMark mark,
-    required VoidCallback onTap,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: const Color(0xFFF4F5F6),
-        borderRadius: BorderRadius.circular(13),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(13),
-          child: SizedBox(
-            width: 37,
-            height: 37,
-            child: MoveraLineIcon(mark: mark, color: _ink, size: 18),
-          ),
-        ),
-      ),
     );
   }
 
