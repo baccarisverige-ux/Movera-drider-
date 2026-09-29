@@ -27,7 +27,6 @@ import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
-import 'package:movera/presentation/driver/documents/documents.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
@@ -143,6 +142,7 @@ class _DriverHomeState extends State<DriverHome>
   bool isAccountActivated = true;
   bool _activationHold = false;
   Color? _sheetTone;
+  bool _sheetToneShown = false;
   Timer? _sheetToneTimer;
   late final DriverSessionController _driverSession;
   late final bool _ownsDriverSession;
@@ -1304,69 +1304,14 @@ class _DriverHomeState extends State<DriverHome>
 
   void _flashSheet(Color color) {
     _sheetToneTimer?.cancel();
-    setState(() => _sheetTone = color);
+    setState(() {
+      _sheetTone = color;
+      _sheetToneShown = true;
+    });
     _sheetToneTimer = Timer(const Duration(seconds: 2), () {
       if (!mounted) return;
-      setState(() => _sheetTone = null);
+      setState(() => _sheetToneShown = false);
     });
-  }
-
-  void _skipActivationDemo() {
-    setState(() {
-      isAccountActivated = true;
-      _activationHold = false;
-    });
-    if (_panelController.isAttached) {
-      unawaited(_snapSheet.springTo(0));
-    }
-  }
-
-  void _openActivationDocuments() {
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (_) => const DriverDocuments()),
-    );
-  }
-
-  Widget _activationSheet() {
-    return ColoredBox(
-      color: const Color(0xFF8E2E28),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 36),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: _openActivationDocuments,
-                child: const Text(
-                  'Contact support',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: _skipActivationDemo,
-                child: const Text(
-                  'Skip demo',
-                  style: TextStyle(
-                    color: Color(0xFFF6D7D4),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   bool hideMainPanel = false;
@@ -1653,7 +1598,8 @@ class _DriverHomeState extends State<DriverHome>
                           goOnlinePulseController: _goOnlinePulseController,
                           onOpenScheduledRides: _openScheduledRides,
                           inactive: _activationHold && !isAccountActivated,
-                          tone: _sheetTone,
+                          tone: _mainPanelPosition <= 0.04 ? _sheetTone : null,
+                          toneShown: _mainPanelPosition <= 0.04 && _sheetToneShown,
                         ),
                       ),
                     ),
@@ -1667,9 +1613,7 @@ class _DriverHomeState extends State<DriverHome>
                         onPointerMove: _onSheetPointerMove,
                         onPointerUp: _onSheetPointerEnd,
                         onPointerCancel: _onSheetPointerEnd,
-                        child: _activationHold && !isAccountActivated
-                            ? _activationSheet()
-                            : panelColumn(sc),
+                        child: panelColumn(sc),
                       ),
                     ),
               body: AbsorbPointer(
@@ -4814,14 +4758,12 @@ class _DriverHomeState extends State<DriverHome>
             notchDepth: 58,
             cornerRadius: 24,
           ),
-          color: _sheetTone ?? const Color(0xFFFCFDFD),
+          color: const Color(0xFFFCFDFD),
           elevation: 8,
           shadowColor: const Color(0x3311181C),
           clipBehavior: Clip.antiAlias,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 420),
-            curve: Curves.easeOutCubic,
-            color: _sheetTone ?? const Color(0xFFFCFDFD),
+          child: Container(
+            color: const Color(0xFFFCFDFD),
             child: Column(
               children: [
                 const SizedBox(height: 88),

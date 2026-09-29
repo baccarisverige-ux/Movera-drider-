@@ -20,11 +20,12 @@ class DriverSheetNav {
     double notchDepth = 58,
     bool inactive = false,
     Color? tone,
+    bool toneShown = false,
   }) {
     final safeBottom = MediaQuery.paddingOf(context).bottom;
     const sheetRed = Color(0xFF8E2E28);
-    final flashed = !inactive && tone != null;
-    final iconTint = inactive || flashed ? Colors.white : null;
+    final tinted = inactive || (tone != null && toneShown);
+    final iconTint = tinted ? Colors.white : null;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -35,15 +36,11 @@ class DriverSheetNav {
             notchDepth: notchDepth,
             cornerRadius: 24,
           ),
-          color: inactive
-              ? sheetRed
-              : tone ?? const Color(0xFFFCFDFD),
+          color: inactive ? sheetRed : const Color(0xFFFCFDFD),
           elevation: 8,
           shadowColor: const Color(0x3311181C),
           clipBehavior: Clip.antiAlias,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 420),
-            curve: Curves.easeOutCubic,
+          child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -54,12 +51,6 @@ class DriverSheetNav {
                         Color(0xFF8E2E28),
                         Color(0xFF7A2722),
                       ]
-                    : flashed
-                        ? [
-                            Color.lerp(tone, Colors.white, 0.12)!,
-                            tone!,
-                            Color.lerp(tone, Colors.black, 0.12)!,
-                          ]
                     : const [
                         Color(0xFFFFFFFF),
                         Color(0xFFF8FAFA),
@@ -67,7 +58,19 @@ class DriverSheetNav {
                       ],
               ),
             ),
-            child: Padding(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: AnimatedOpacity(
+                      opacity: !inactive && tone != null && toneShown ? 1 : 0,
+                      duration: const Duration(milliseconds: 380),
+                      curve: Curves.easeOutCubic,
+                      child: ColoredBox(color: tone ?? Colors.transparent),
+                    ),
+                  ),
+                ),
+                Padding(
               padding: EdgeInsets.fromLTRB(
                 10,
                 15,
@@ -136,6 +139,8 @@ class DriverSheetNav {
                   ),
                 ],
               ),
+                ),
+              ],
             ),
           ),
         ),
