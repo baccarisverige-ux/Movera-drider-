@@ -1,16 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:movera/constants/appassets.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/presentation/driver/add%20vehicle/upload%20photos/upload_photos.dart';
-import 'package:movera/widgets/color_picker.dart';
-import 'package:movera/widgets/custom_btn.dart';
-import 'package:movera/widgets/dropdown.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
-import 'package:movera/widgets/custom_textfield.dart';
-import 'package:movera/widgets/navigation_transition.dart';
-import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AddVehicle extends StatefulWidget {
   const AddVehicle({super.key});
@@ -20,234 +9,677 @@ class AddVehicle extends StatefulWidget {
 }
 
 class _AddVehicleState extends State<AddVehicle> {
-  final TextEditingController _makeController = TextEditingController(
-    text: 'Toyota',
-  );
-  final TextEditingController _modelController = TextEditingController(
-    text: 'Mark X',
-  );
-  final TextEditingController _yearController = TextEditingController();
-  final TextEditingController _plateController = TextEditingController(
-    text: 'AQS - 140',
-  );
-  final TextEditingController _vehicleTypePrimaryController =
-      TextEditingController(text: 'Luxury');
-  final TextEditingController _vehicleTypeSecondaryController =
-      TextEditingController(text: 'Luxury');
-  final TextEditingController _colorController = TextEditingController();
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _muted = Color(0xFF7D898F);
+  static const Color _line = Color(0xFFE6E8EA);
 
-  // Example dropdown data; replace with your real lists if needed.
-  final List<String> vehicleTypes = const [
-    'Luxury',
-    'Standard',
-    'Economy',
-    'SUV',
-  ];
+  final TextEditingController _make = TextEditingController();
+  final TextEditingController _model = TextEditingController();
+  final TextEditingController _plate = TextEditingController();
+  String? _year;
+
+  @override
+  void initState() {
+    super.initState();
+    _make.addListener(_refresh);
+    _model.addListener(_refresh);
+    _plate.addListener(_refresh);
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
-    _makeController.dispose();
-    _modelController.dispose();
-    _yearController.dispose();
-    _plateController.dispose();
-    _vehicleTypePrimaryController.dispose();
-    _vehicleTypeSecondaryController.dispose();
-    _colorController.dispose();
+    _make.dispose();
+    _model.dispose();
+    _plate.dispose();
     super.dispose();
+  }
+
+  bool get _ready =>
+      _make.text.trim().isNotEmpty &&
+      _model.text.trim().isNotEmpty &&
+      _year != null &&
+      _plate.text.trim().isNotEmpty;
+
+  Future<void> _pickYear() async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final years = List<String>.generate(37, (index) => '${2026 - index}');
+        return ListView(
+          children: [
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'Year',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            for (final year in years)
+              ListTile(
+                title: Text(year),
+                onTap: () => Navigator.pop(context, year),
+              ),
+          ],
+        );
+      },
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _year = picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final showModel = _make.text.trim().isNotEmpty;
+    final showYear = showModel && _model.text.trim().isNotEmpty;
+    final showPlate = showYear && _year != null;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_rounded, color: _ink),
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+              children: [
+                const Text(
+                  'Vehicle requirements',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'To drive with Movera, you need a vehicle that is 1990 or newer, and not salvaged.',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 16,
+                    height: 1.35,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                const Text(
+                  'Enter your vehicle information',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _field(
+                  label: 'Make',
+                  child: TextField(
+                    controller: _make,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: _input('Search by make'),
+                  ),
+                ),
+                if (showModel) ...[
+                  const SizedBox(height: 16),
+                  _field(
+                    label: 'Model',
+                    child: TextField(
+                      controller: _model,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: _input('Search by model'),
+                    ),
+                  ),
+                ],
+                if (showYear) ...[
+                  const SizedBox(height: 16),
+                  _field(
+                    label: 'Year',
+                    child: InkWell(
+                      onTap: _pickYear,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InputDecorator(
+                        decoration: _input('Select...'),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _year ?? 'Select...',
+                                style: TextStyle(
+                                  color: _year == null ? _muted : _ink,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: _muted,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (showPlate) ...[
+                  const SizedBox(height: 16),
+                  _field(
+                    label: 'License plate number',
+                    child: TextField(
+                      controller: _plate,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: _input(''),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                const Text(
+                  '* Required',
+                  style: TextStyle(
+                    color: Color(0xFFB84F3D),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: _ready
+                    ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => VehicleDocuments(
+                              make: _make.text.trim(),
+                              model: _model.text.trim(),
+                              year: _year!,
+                              plate: _plate.text.trim(),
+                            ),
+                          ),
+                        );
+                      }
+                    : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: _ink,
+                  disabledBackgroundColor: const Color(0xFFE8EAEC),
+                  disabledForegroundColor: const Color(0xFFB0B6BA),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _field({required String label, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text.rich(
+          TextSpan(
+            text: label,
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+            children: const [
+              TextSpan(
+                text: ' *',
+                style: TextStyle(color: Color(0xFFB84F3D)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+
+  InputDecoration _input(String hint) {
+    return InputDecoration(
+      hintText: hint.isEmpty ? null : hint,
+      hintStyle: const TextStyle(color: _muted, fontWeight: FontWeight.w500),
+      filled: true,
+      fillColor: const Color(0xFFF4F6F7),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _ink, width: 1.4),
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _line),
+      ),
+    );
+  }
+}
+
+class VehicleDocuments extends StatefulWidget {
+  const VehicleDocuments({
+    super.key,
+    required this.make,
+    required this.model,
+    required this.year,
+    required this.plate,
+  });
+
+  final String make;
+  final String model;
+  final String year;
+  final String plate;
+
+  @override
+  State<VehicleDocuments> createState() => _VehicleDocumentsState();
+}
+
+class _VehicleDocumentsState extends State<VehicleDocuments> {
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _line = Color(0xFFE6E8EA);
+
+  bool _registrationDone = false;
+  bool _insuranceDone = false;
+
+  String get _name => '${widget.make} ${widget.model}'.toUpperCase();
+
+  Future<void> _openPhoto({
+    required String title,
+    required List<String> checks,
+    required bool registration,
+  }) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _VehiclePhotoPage(title: title, checks: checks),
+      ),
+    );
+    if (saved != true || !mounted) return;
+    setState(() {
+      if (registration) {
+        _registrationDone = true;
+      } else {
+        _insuranceDone = true;
+      }
+    });
+  }
+
+  Future<void> _confirmRemove() async {
+    final remove = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Permanently remove vehicle?',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'This will permanently remove $_name from your account.',
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 15,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _ink,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Keep vehicle',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFC4473A),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Remove vehicle',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (remove == true && mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              50.height,
-              Transform.translate(
-                offset: Offset(ResSize.w * -12, 0),
-                child: IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: Icon(
-                    Icons.arrow_back_ios_rounded,
-                    color: AppColor.title,
-                    size: ResSize.h * 20,
-                  ),
-                ),
-              ),
-              16.height,
-              TextWidget(
-                text: 'Add Vehicle',
-                color: AppColor.title,
-                fontSize: 22,
-                fontWeight: fwExtraBold,
-              ),
-              9.height,
-              TextWidget(
-                text: 'Add Vehicle details for verification',
-                color: AppColor.subtitle,
-                fontSize: 14,
-                fontWeight: fwMedium,
-              ),
-              28.height,
-              _buildLabel('Vehicle make'),
-              8.height,
-              customTextfield(
-                borderColor: Colors.transparent,
-                borderWidth: 0,
-                fillColor: Color(0xffF6F8FA),
-                controller: _makeController,
-                hint: 'Toyota',
-                suffixWidget: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Transform.scale(
-                    scale: 0.7,
-                    child: Image.asset(
-                      AppAssets.vehicle,
-                      height: ResSize.h * 18,
-                    ),
-                  ),
-                ),
-              ),
-              16.height,
-              _buildLabel('Vehicle model'),
-              8.height,
-              customTextfield(
-                borderColor: Colors.transparent,
-                borderWidth: 0,
-                fillColor: Color(0xffF6F8FA),
-                controller: _modelController,
-                hint: 'Mark X',
-                suffixWidget: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Transform.scale(
-                    scale: 0.7,
-                    child: Image.asset(
-                      AppAssets.vehicle,
-                      height: ResSize.h * 18,
-                    ),
-                  ),
-                ),
-              ),
-              16.height,
-              _buildLabel('Vehicle year'),
-              8.height,
-              customTextfield(
-                borderColor: Colors.transparent,
-                borderWidth: 0,
-                fillColor: Color(0xffF6F8FA),
-                controller: _yearController,
-                hint: 'select model year',
-                keyboardType: TextInputType.number,
-                ontap: () async {
-                  final now = DateTime.now().year;
-                  final picked = await showDialog<int>(
-                    context: context,
-                    builder: (dialogContext) {
-                      return SimpleDialog(
-                        title: const Text('Vehicle year'),
-                        children: [
-                          for (var year = now; year >= now - 20; year--)
-                            SimpleDialogOption(
-                              onPressed: () =>
-                                  Navigator.pop(dialogContext, year),
-                              child: Text('$year'),
-                            ),
-                        ],
-                      );
-                    },
-                  );
-                  if (picked != null && mounted) {
-                    _yearController.text = '$picked';
-                  }
-                },
-                suffixWidget: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Transform.scale(
-                    scale: 0.8,
-                    child: Image.asset(AppAssets.model, height: ResSize.h * 22),
-                  ),
-                ),
-              ),
-              16.height,
-              _buildLabel('License plate number'),
-              8.height,
-              customTextfield(
-                borderColor: Colors.transparent,
-                borderWidth: 0,
-                fillColor: Color(0xffF6F8FA),
-                keyboardType: TextInputType.number,
-                controller: _plateController,
-                hint: 'AQS - 140',
-              ),
-              16.height,
-              _buildLabel('Vehicle type'),
-              8.height,
-              AppDropdownField(
-                controller: _vehicleTypePrimaryController,
-                hint: 'Luxury',
-                items: vehicleTypes,
-              ),
-              16.height,
-              _buildLabel('Vehicle type'),
-              8.height,
-              AppDropdownField(
-                controller: _vehicleTypeSecondaryController,
-                hint: 'Luxury',
-                items: vehicleTypes,
-              ),
-              16.height,
-              _buildLabel('Color'),
-              8.height,
-              customTextfield(
-                borderColor: Colors.transparent,
-                borderWidth: 0,
-                fillColor: Color(0xffF6F8FA),
-                controller: _colorController,
-                hint: 'Select color',
-                readOnly: true,
-                ontap: () {
-                  ColorPickerDialog.show((selectedColor) {
-                    _colorController.text = selectedColor;
-                  });
-                },
-                suffixWidget: Padding(
-                  padding: EdgeInsets.only(right: ResSize.w * 12),
-                  child: Icon(
-                    Icons.color_lens_outlined,
-                    size: ResSize.h * 22,
-                    color: AppColor.hintText,
-                  ),
-                ),
-              ),
-              20.height,
-              CustomButton(
-                centerContent: "Continue",
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    BottomToTopTransition(const UploadVehiclePhotos()),
-                  );
-                },
-              ),
-              50.height,
-            ],
-          ),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        children: [
+          Text(
+            _name,
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Please provide the following documents for this vehicle.',
+            style: TextStyle(
+              color: _ink,
+              fontSize: 16,
+              height: 1.35,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 22),
+          _docRow(
+            title: 'Vehicle Registration Certificate (Front Page)',
+            note: _registrationDone ? 'Completed' : 'Recommended next step',
+            noteColor: _registrationDone
+                ? const Color(0xFF1F7A4D)
+                : const Color(0xFF3D5A80),
+            onTap: () => _openPhoto(
+              title:
+                  'Take a photo of your Vehicle Registration Certificate (Front Page)',
+              checks: const [
+                'The document should be blue, black and white.',
+                'All four corners are visible.',
+              ],
+              registration: true,
+            ),
+          ),
+          const Divider(height: 1, color: _line),
+          _docRow(
+            title: 'Insurance Letter',
+            note: _insuranceDone ? 'Completed' : null,
+            noteColor: const Color(0xFF1F7A4D),
+            onTap: () => _openPhoto(
+              title: 'Take a photo of your Insurance Letter',
+              checks: const [
+                'The document shows the car’s registration number and that it is registered as a taxi.',
+                'The start and end dates of the insurance are visible.',
+              ],
+              registration: false,
+            ),
+          ),
+          const SizedBox(height: 22),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: TextButton(
+              onPressed: _confirmRemove,
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFF4F6F7),
+                foregroundColor: const Color(0xFFC4473A),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'Remove vehicle',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildLabel(String text) {
-    return TextWidget(
-      text: text,
-      color: AppColor.title,
-      fontSize: 16,
-      fontWeight: fwMedium,
+  Widget _docRow({
+    required String title,
+    required VoidCallback onTap,
+    String? note,
+    Color? noteColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (note != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      note,
+                      style: TextStyle(
+                        color: noteColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFFB0B8BC)),
+          ],
+        ),
+      ),
     );
   }
 }
 
-// Reusable dropdown field styled to match customTextfield
+class _VehiclePhotoPage extends StatelessWidget {
+  const _VehiclePhotoPage({required this.title, required this.checks});
+
+  final String title;
+  final List<String> checks;
+
+  static const Color _ink = Color(0xFF252E3A);
+
+  Future<void> _take(BuildContext context) async {
+    try {
+      final file = await ImagePicker().pickImage(source: ImageSource.camera);
+      if (!context.mounted) return;
+      if (file != null) Navigator.pop(context, true);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Camera is not available in this preview.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_rounded, color: _ink),
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 30,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.7,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  height: 220,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F6F7),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE6E8EA)),
+                  ),
+                  child: const Icon(
+                    Icons.description_outlined,
+                    color: Color(0xFF8A949A),
+                    size: 54,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                const Text(
+                  'Before uploading the image, check the following:',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final check in checks)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('•  ', style: TextStyle(color: _ink)),
+                        Expanded(
+                          child: Text(
+                            check,
+                            style: const TextStyle(
+                              color: _ink,
+                              fontSize: 15,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: () => _take(context),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _ink,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Take photo',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

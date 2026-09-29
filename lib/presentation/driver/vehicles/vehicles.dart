@@ -1,173 +1,154 @@
 import 'package:flutter/material.dart';
-import 'package:movera/constants/appassets.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/models/onboarding.dart';
 import 'package:movera/presentation/driver/add%20vehicle/add_vehicle.dart';
-import 'package:movera/widgets/custom_btn.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
-import 'package:movera/widgets/navigation_transition.dart';
-import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
 
-// ignore: must_be_immutable
 class DriverVehicles extends StatelessWidget {
-  DriverVehicles({super.key});
-  List<OnBoardingModel> vehicles = [
-    OnBoardingModel(
-      image: AppAssets.vehicle1,
-      title: "2022 Mercedes-Benz C200",
-      subTitle: "LA-319",
-    ),
-    OnBoardingModel(
-      image: AppAssets.vehicle2,
-      title: "2024 BMW i7 Electric Sedan",
-      subTitle: "WA-319",
-    ),
-    OnBoardingModel(
-      image: AppAssets.vehicle1,
-      title: "2022 Mercedes-Benz C200",
-      subTitle: "LA-319",
-    ),
-  ];
+  const DriverVehicles({super.key});
+
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _muted = Color(0xFF7D898F);
+  static const Color _line = Color(0xFFE6E8EA);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F6F7),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: AppColor.white,
+        backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
-          icon: Icon(
-            Icons.arrow_back_ios_rounded,
-            color: AppColor.title,
-            size: ResSize.h * 18,
-          ),
+          icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
-        centerTitle: true,
-        title: TextWidget(
-          text: 'Vehicle',
-          color: AppColor.title,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
+        title: const Text(
+          'Vehicles',
+          style: TextStyle(
+            color: _ink,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.push(context, TopToBottomTransition(AddVehicle()));
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(builder: (_) => const AddVehicle()),
+              );
             },
-            icon: Image.asset(AppAssets.addVehicle, height: ResSize.h * 25),
+            icon: const Icon(Icons.add_rounded, color: _ink),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        physics: BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...List.generate(vehicles.length, (index) {
-              return Column(
-                children: [
-                  Container(
-                    height: ResSize.h * 6,
-                    width: double.infinity,
-                    color: const Color(0xFFFAFAFA),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '2022 Mercedes-Benz E 220',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 26,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
                   ),
-                  vehicleCard(
-                    context,
-                    title: vehicles[index].title,
-                    image: vehicles[index].image,
-                    subTitle: vehicles[index].subTitle,
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'USD89R',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
-                ],
-              );
-            }),
-            22.height,
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget vehicleCard(BuildContext context, {String? image, title, subTitle}) {
-    return SizedBox(
-      // padding: EdgeInsets.symmetric(vertical: ResSize.h * 12),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: ResSize.h * 156,
-              width: double.infinity,
-              child: Stack(
-                children: [
-                  Align(
-                    alignment: Alignment.center,
-                    child: Image.asset(image!, height: ResSize.h * 146),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Trips only',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Padding(
-                      padding: EdgeInsets.only(top: ResSize.h * 20),
-                      child: Container(
-                        height: ResSize.h * 35,
-                        width: ResSize.w * 35,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: Color(0xffEAEAEA),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.more_vert_rounded,
-                            color: AppColor.title,
-                            size: ResSize.h * 20,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => const VehicleDocuments(
+                            make: 'Mercedes-Benz',
+                            model: 'E 220',
+                            year: '2022',
+                            plate: 'USD89R',
                           ),
                         ),
+                      );
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFF4F6F7),
+                      foregroundColor: _ink,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
+                    child: const Text(
+                      'Manage vehicles',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            33.height,
-            TextWidget(
-              text: title,
-              color: AppColor.title,
-              fontSize: 20,
-              fontWeight: fwSemiBold,
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            decoration: BoxDecoration(
+              color: _ink,
+              borderRadius: BorderRadius.circular(20),
             ),
-            2.height,
-            TextWidget(
-              text: subTitle,
-              color: AppColor.subtitle,
-              fontSize: 16,
-              fontWeight: fwMedium,
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Explore vehicle opportunities',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Connect with a fleet partner or browse rental or purchase offers if you need another vehicle.',
+                  style: TextStyle(
+                    color: Color(0xFFD5DCE0),
+                    fontSize: 13,
+                    height: 1.35,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            5.height,
-            TextWidget(
-              text: "Trip only",
-              color: AppColor.subtitle,
-              fontSize: 16,
-              fontWeight: fwMedium,
-            ),
-            22.height,
-            CustomButton(
-              centerContent: "Manage Vehicle",
-              btncolor: Color(0xffF0F0F0),
-              textColor: AppColor.title,
-              borderRadius: 8,
-              fontSize: 16,
-              onPressed: () {
-                Navigator.push(context, TopToBottomTransition(AddVehicle()));
-              },
-            ),
-            22.height,
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
