@@ -2218,6 +2218,16 @@ void main() {
     expect(banner.width, closeTo(375, 1));
     _expectNoException(tester);
   });
+  testWidgets('Pickup slide names an arrival action', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+    expect(find.text('Slide to arrive at pickup'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('active-ride-arrived-button')), findsOneWidget);
+    _expectNoException(tester);
+  });
+
   testWidgets('A stop without coordinates cannot be marked arrived', (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(375, 812));
