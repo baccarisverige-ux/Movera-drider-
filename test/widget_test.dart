@@ -1597,12 +1597,17 @@ void main() {
     );
     expect(find.text('Accept'), findsOneWidget);
     expect(find.text('Deny'), findsOneWidget);
-    expect(find.textContaining('Dropping off'), findsOneWidget);
+    expect(find.textContaining('Dropping off'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('on-trip-radar-offer-sheet')),
       findsNothing,
     );
     expect(find.text('Available after your current drop-off'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('on-trip-radar-deny')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.textContaining('Dropping off'), findsOneWidget);
     _expectNoException(tester);
   });
 
