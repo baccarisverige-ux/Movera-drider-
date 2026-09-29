@@ -489,7 +489,12 @@ void main() {
     _expectNoException(tester);
 
     await tester.pump(const Duration(milliseconds: 4300));
-    expect(find.byKey(const ValueKey<String>('radar-offer-nearby-4')), findsOneWidget);
+    expect(find.text('Matched by another driver'), findsOneWidget);
+    expect(find.text('Matched'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('radar-offer-nearby-4')),
+      findsOneWidget,
+    );
     _expectNoException(tester);
   });
 
