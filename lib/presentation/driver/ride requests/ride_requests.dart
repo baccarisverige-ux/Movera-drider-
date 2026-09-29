@@ -53,7 +53,7 @@ class _RideRequestsState extends State<RideRequests> {
   static const Color _line = Color(0xFFE4E8EA);
   static const Color _green = Color(0xFF19865C);
   static const Color _mint = Color(0xFF58E5A6);
-  static const int _maxVisibleRadarOffers = 10;
+  static const int _maxVisibleRadarOffers = 4;
 
   Timer? _matchNoticeTimer;
   late final DispatchRepository _dispatch;

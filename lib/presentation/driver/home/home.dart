@@ -112,6 +112,8 @@ class _DriverHomeState extends State<DriverHome>
   late final RouteRepository _roadRouteService;
   late final WaybillRepository _waybills;
   late final DispatchRepository _dispatch;
+  StreamSubscription<List<RideOffer>>? _radarSubscription;
+  List<RideOffer> _latestDispatchOffers = const <RideOffer>[];
   late final bool _ownsDispatch;
   late final DriverHomeAdminConfig _adminHomeConfig;
   static const String _currentAppVersion = '1.0.0';
@@ -932,7 +934,7 @@ class _DriverHomeState extends State<DriverHome>
       return;
     }
 
-    _scheduleRadarOfferExpiry(offer);
+    // Dispatch owns offer expiry and claim state for both Home and Radar.
 
     if (_outsideRadarOffer != null) {
       setState(() {
@@ -1011,7 +1013,7 @@ class _DriverHomeState extends State<DriverHome>
       _hasRideOffers = _radarHomeOffers.isNotEmpty;
     });
 
-    _scheduleHomeRadarExternalClaimDemo();
+    _dispatch.refreshOffers();
   }
 
   void _releasePendingRadarOffers() {
@@ -1068,19 +1070,55 @@ class _DriverHomeState extends State<DriverHome>
       );
     });
 
-    _homeRadarMatchResolutionTimer?.cancel();
-    _homeRadarMatchResolutionTimer = Timer(
-      const Duration(milliseconds: 1450),
-      () {
-        if (!mounted || _homeRadarMatchingOfferId != offer.id) return;
+    unawaited(_claimHomeRadarOffer(offer));
+  }
 
-        if (offer.id == 'home-radar-match-2') {
+  Future<void> _claimHomeRadarOffer(_HomeDirectOffer offer) async {
+    final result = await _dispatch.claimOffer(offer.id);
+    if (!mounted || _homeRadarMatchingOfferId != offer.id) return;
+    if (result.isSuccess) {
+      _resolveHomeRadarMatchWon(offer);
+    } else {
+      _resolveHomeRadarMatchLost(offer);
+    }
+  }
+
+  void _watchDispatchRadar() {
+    _radarSubscription?.cancel();
+    _radarSubscription = _dispatch.watchNearbyOffers().listen((offers) {
+      if (!mounted || !_isOnline) return;
+      _latestDispatchOffers = offers;
+      final ids = offers.map((item) => item.id).toSet();
+      for (final offer in [..._radarHomeOffers, ..._pendingRadarHomeOffers]) {
+        if (!ids.contains(offer.id) &&
+            _homeRadarStateFor(offer.id) == _HomeRadarMatchState.available) {
           _resolveHomeRadarMatchLost(offer);
-        } else {
-          _resolveHomeRadarMatchWon(offer);
         }
-      },
-    );
+      }
+    });
+  }
+
+  void _showDispatchOfferAt(int index) {
+    final offers = _latestDispatchOffers.where((offer) => offer.isNearby &&
+        (!_destinationModeActive || offer.followsDestination)).toList();
+    if (index >= offers.length) return;
+    final offer = offers[index];
+    _showRadarHomeOffer(_HomeDirectOffer(
+      id: offer.id,
+      category: offer.category,
+      reason: 'Trip Radar match',
+      detail: 'Detected in your live radar coverage',
+      fare: offer.fare,
+      rating: offer.rating,
+      pickupMinutes: offer.pickupMinutes,
+      pickupKm: offer.pickupKm,
+      tripMinutes: offer.tripMinutes,
+      tripKm: offer.tripKm,
+      pickup: offer.pickup,
+      dropoff: offer.dropoff,
+      pickupPosition: offer.pickupPosition.toLatLng(),
+      dropoffPosition: offer.dropoffPosition.toLatLng(),
+    ));
   }
 
   void _resolveHomeRadarMatchWon(_HomeDirectOffer offer) {
@@ -3520,6 +3558,7 @@ class _DriverHomeState extends State<DriverHome>
         setState(() {
           _driverSession.completeGoingOnline();
         });
+        _watchDispatchRadar();
 
         // Frontend demo only. Outside-Radar offers remain exclusive and
         // never enter the Trip Radar list.
@@ -3537,7 +3576,7 @@ class _DriverHomeState extends State<DriverHome>
           const Duration(milliseconds: 11500),
           () {
             if (!mounted || !_isOnline) return;
-            _showRadarHomeOffer(_radarHomeOffer);
+            _showDispatchOfferAt(0);
           },
         );
 
@@ -3545,7 +3584,7 @@ class _DriverHomeState extends State<DriverHome>
           const Duration(milliseconds: 14500),
           () {
             if (!mounted || !_isOnline) return;
-            _showRadarHomeOffer(_radarHomeOffer2);
+            _showDispatchOfferAt(1);
           },
         );
 
@@ -3553,7 +3592,7 @@ class _DriverHomeState extends State<DriverHome>
           const Duration(milliseconds: 17500),
           () {
             if (!mounted || !_isOnline) return;
-            _showRadarHomeOffer(_radarHomeOffer3);
+            _showDispatchOfferAt(2);
           },
         );
 
@@ -3585,6 +3624,9 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Future<void> _goOffline() async {
+    unawaited(_radarSubscription?.cancel() ?? Future<void>.value());
+    _radarSubscription = null;
+    _latestDispatchOffers = const <RideOffer>[];
     _flashSheet(const Color(0xFF8E2E28));
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
@@ -5176,6 +5218,7 @@ class _DriverHomeState extends State<DriverHome>
 
   @override
   void dispose() {
+    _radarSubscription?.cancel();
     _homeSheetPositionGuardTimer?.cancel();
     _sheetToneTimer?.cancel();
     _goOnlinePulseController.dispose();

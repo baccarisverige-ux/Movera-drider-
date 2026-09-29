@@ -451,7 +451,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3100));
     expect(find.text('Refresh · 1 new'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-2')),
+      find.byKey(const ValueKey<String>('radar-offer-nearby-2')),
       findsNothing,
     );
     _expectNoException(tester);
@@ -460,7 +460,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3100));
     expect(find.text('Refresh · 2 new'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-3')),
+      find.byKey(const ValueKey<String>('radar-offer-nearby-4')),
       findsNothing,
     );
     _expectNoException(tester);
@@ -483,14 +483,13 @@ void main() {
     await tester.drag(radarList, const Offset(0, -360));
     await tester.pump(const Duration(milliseconds: 160));
     expect(
-      find.byKey(const ValueKey<String>('radar-offer-home-radar-match-3')),
+      find.byKey(const ValueKey<String>('radar-offer-nearby-4')),
       findsOneWidget,
     );
     _expectNoException(tester);
 
     await tester.pump(const Duration(milliseconds: 4300));
-    expect(find.text('Matched by another driver'), findsOneWidget);
-    expect(find.text('Matched'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('radar-offer-nearby-4')), findsOneWidget);
     _expectNoException(tester);
   });
 
