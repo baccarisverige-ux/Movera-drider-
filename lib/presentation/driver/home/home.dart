@@ -1014,6 +1014,7 @@ class _DriverHomeState extends State<DriverHome>
     });
 
     _dispatch.refreshOffers();
+    _scheduleHomeRadarExternalClaimDemo();
   }
 
   void _releasePendingRadarOffers() {
@@ -1183,11 +1184,12 @@ class _DriverHomeState extends State<DriverHome>
 
     _HomeDirectOffer? offer;
     for (final item in _radarHomeOffers) {
-      if (item.id == 'home-radar-match-3') {
+      if (item.id == 'home-radar-match-3' || item.id == 'nearby-3') {
         offer = item;
         break;
       }
     }
+    offer ??= _radarHomeOffers.isEmpty ? null : _radarHomeOffers.last;
     if (offer == null ||
         _homeRadarStateFor(offer.id) != _HomeRadarMatchState.available) {
       return;
