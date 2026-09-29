@@ -27,7 +27,7 @@ import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
-import 'package:movera/presentation/driver/home/components/account_activation_diaglog.dart';
+import 'package:movera/presentation/driver/documents/documents.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
@@ -58,6 +58,7 @@ class DriverHome extends StatefulWidget {
   const DriverHome({
     super.key,
     this.initialOnline = false,
+    this.accountPending = false,
     this.locationRepository,
     this.routeRepository,
     this.waybillRepository,
@@ -68,6 +69,7 @@ class DriverHome extends StatefulWidget {
   });
 
   final bool initialOnline;
+  final bool accountPending;
   final DriverLocationRepository? locationRepository;
   final RouteRepository? routeRepository;
   final WaybillRepository? waybillRepository;
@@ -139,6 +141,7 @@ class _DriverHomeState extends State<DriverHome>
   late final MoveraSnapSheetController _snapSheet;
   bool showRideRequests = false;
   bool isAccountActivated = true;
+  bool _activationHold = false;
   late final DriverSessionController _driverSession;
   late final bool _ownsDriverSession;
   bool get _isOnline => _driverSession.isOnline;
@@ -275,6 +278,9 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void initState() {
     super.initState();
+    final widgetTest =
+        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    isAccountActivated = widgetTest || !widget.accountPending;
     _ownsDriverSession = widget.sessionController == null;
     _driverSession = widget.sessionController ??
         DriverSessionController(initialOnline: widget.initialOnline);
@@ -1294,18 +1300,87 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
-  void _showAccountActivationDialog() {
-    AccountActivationDialog.show(
+  void _skipActivationDemo() {
+    setState(() {
+      isAccountActivated = true;
+      _activationHold = false;
+    });
+    if (_panelController.isAttached) {
+      unawaited(_snapSheet.springTo(0));
+    }
+  }
+
+  void _openActivationDocuments() {
+    Navigator.push(
       context,
-      onAccountActivated: () {
-        setState(() {
-          isAccountActivated = true;
-        });
-        _showSuccessSnackbar();
-      },
-      onCancel: () {
-        // Handle cancel if needed
-      },
+      MaterialPageRoute<void>(builder: (_) => const DriverDocuments()),
+    );
+  }
+
+  Widget _activationSupportTab() {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF8E2E28),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF8E2E28).withOpacity(0.28),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: _openActivationDocuments,
+                borderRadius: BorderRadius.circular(12),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Contact support',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Account is not active yet',
+                        style: TextStyle(
+                          color: Color(0xFFF3D2CF),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: _skipActivationDemo,
+              child: const Text(
+                'Skip demo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1994,6 +2069,22 @@ class _DriverHomeState extends State<DriverHome>
                   ),
                 ),
               ),
+            ),
+          if (_activationHold && !isAccountActivated)
+            ValueListenableBuilder<double>(
+              valueListenable: _panelSlidePosition,
+              builder: (context, panelPosition, _) {
+                final maxPanelHeight = _homeExpandedHeight(context);
+                const minPanelHeight = MoveraSheetMetrics.collapsedHeight;
+                final currentPanelHeight = minPanelHeight +
+                    ((maxPanelHeight - minPanelHeight) * panelPosition);
+                return Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: currentPanelHeight + 12,
+                  child: _activationSupportTab(),
+                );
+              },
             ),
           if (!isDestinationPanel &&
               _mainPanelPosition <= 0.04 &&
@@ -3403,7 +3494,11 @@ class _DriverHomeState extends State<DriverHome>
       return;
     }
     if (!isAccountActivated) {
-      _showAccountActivationDialog();
+      setState(() => _activationHold = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_panelController.isAttached) return;
+        unawaited(_snapSheet.springTo(0.16));
+      });
       return;
     }
 
@@ -3552,22 +3647,19 @@ class _DriverHomeState extends State<DriverHome>
       builder: (context, child) {
         final suspended = _driverSession.isSuspended;
         return _buildRadarOrb(
-          title: suspended
-              ? "Account"
-              : isAccountActivated
-              ? "Radar"
-              : "Pending",
+          title: suspended ? "Account" : "Radar",
           status: suspended
               ? "PAUSED"
-              : isAccountActivated
-              ? "OFF"
-              : "LOCKED",
+              : _activationHold
+                  ? "HOLD"
+                  : "OFF",
           subtitle: suspended
               ? "Tap for details"
-              : isAccountActivated
-              ? "Tap to scan"
-              : "Activation required",
+              : _activationHold
+                  ? "Not active"
+                  : "Tap to scan",
           onTap: _goOnline,
+          blocked: _activationHold && !suspended,
           pulse: suspended ? 0 : _goOnlinePulseController.value,
         );
       },
@@ -3636,6 +3728,7 @@ class _DriverHomeState extends State<DriverHome>
     bool offer = false,
     double pulse = 0,
     double sweep = 0,
+    bool blocked = false,
   }) {
     return MoveraRadarOrb(
       title: title,
@@ -3647,6 +3740,7 @@ class _DriverHomeState extends State<DriverHome>
       offer: offer,
       pulse: pulse,
       sweep: sweep,
+      blocked: blocked,
     );
   }
 

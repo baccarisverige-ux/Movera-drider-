@@ -92,6 +92,7 @@ class _MoveraAppState extends State<MoveraApp> {
               );
             },
             home: DriverHome(
+              accountPending: true,
               sessionController: _session,
               waybillRepository: _waybills,
               locationRepository: _location,

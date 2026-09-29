@@ -13,6 +13,7 @@ class MoveraRadarOrb extends StatelessWidget {
     this.offer = false,
     this.pulse = 0,
     this.sweep = 0,
+    this.blocked = false,
     this.size = 104,
     this.touchSize,
     this.touchKey = const ValueKey<String>('trip-radar-touch-target'),
@@ -27,6 +28,7 @@ class MoveraRadarOrb extends StatelessWidget {
   final bool offer;
   final double pulse;
   final double sweep;
+  final bool blocked;
   final double size;
   final double? touchSize;
   final Key touchKey;
@@ -36,9 +38,12 @@ class MoveraRadarOrb extends StatelessWidget {
     const mint = Color(0xFF58E5A6);
     const detectedGold = Color(0xFFFFD166);
     const detectedAmber = Color(0xFFFFA94D);
-    final accent = offer
-        ? Color.lerp(detectedGold, detectedAmber, pulse) ?? detectedGold
-        : mint;
+    const holdRed = Color(0xFFE15B4A);
+    final accent = blocked
+        ? holdRed
+        : offer
+            ? Color.lerp(detectedGold, detectedAmber, pulse) ?? detectedGold
+            : mint;
     final glowStrength = !active
         ? 0.08
         : loading
@@ -177,15 +182,21 @@ class MoveraRadarOrb extends StatelessWidget {
                       height: 73 * s,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const RadialGradient(
-                          center: Alignment(-0.24, -0.32),
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.24, -0.32),
                           radius: 0.98,
-                          colors: [
-                            Color(0xD98F999C),
-                            Color(0xD9727D80),
-                            Color(0xE05A6468),
-                          ],
-                          stops: [0, 0.58, 1],
+                          colors: blocked
+                              ? const [
+                                  Color(0xD9C45A52),
+                                  Color(0xD98E3A34),
+                                  Color(0xE05C2420),
+                                ]
+                              : const [
+                                  Color(0xD98F999C),
+                                  Color(0xD9727D80),
+                                  Color(0xE05A6468),
+                                ],
+                          stops: const [0, 0.58, 1],
                         ),
                         border: Border.all(
                           color: offer
