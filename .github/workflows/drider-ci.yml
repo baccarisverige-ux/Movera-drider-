@@ -15,8 +15,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: drider-ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # One group per commit and event so a base-branch update cannot cancel
+  # the head run and leave a red cancelled check on the pull request.
+  group: drider-ci-${{ github.workflow }}-${{ github.sha }}-${{ github.event_name }}
+  cancel-in-progress: false
 
 jobs:
   verify:
