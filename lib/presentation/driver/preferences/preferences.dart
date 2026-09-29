@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:movera/widgets/movera_line_icon.dart';
 
 class Preferences extends StatefulWidget {
   const Preferences({super.key});
@@ -14,43 +13,43 @@ class _PreferencesState extends State<Preferences> {
   static const Color _line = Color(0xFFE5E9EB);
   static const Color _canvas = Color(0xFFF4F6F7);
 
+  static const Color _green = Color(0xFF1C6B45);
+
   final List<_DriverCategory> _categories = const [
     _DriverCategory(
       title: 'Movera',
       subtitle: 'Affordable everyday rides',
-      icon: MoveraMark.car,
-      badge: 'RECOMMENDED',
+      image: 'assets/images/prefs/movera.jpg',
     ),
     _DriverCategory(
       title: 'Comfort',
       subtitle: 'Newer cars with extra legroom',
-      icon: MoveraMark.user,
+      image: 'assets/images/prefs/comfort.jpg',
     ),
     _DriverCategory(
       title: 'Premium',
       subtitle: 'Premium cars and elevated service',
-      icon: MoveraMark.star,
+      image: 'assets/images/prefs/premium.jpg',
     ),
     _DriverCategory(
       title: 'Priority',
       subtitle: 'Faster pickup requests',
-      icon: MoveraMark.bolt,
-      badge: 'FASTER',
+      image: 'assets/images/prefs/priority.jpg',
     ),
     _DriverCategory(
       title: 'Movera XL',
       subtitle: 'Larger groups of up to 6 riders',
-      icon: MoveraMark.city,
+      image: 'assets/images/prefs/xl.jpg',
     ),
     _DriverCategory(
       title: 'Electric',
       subtitle: 'Quiet and fossil-free rides',
-      icon: MoveraMark.trend,
+      image: 'assets/images/prefs/electric.jpg',
     ),
     _DriverCategory(
       title: 'Movera Pet',
       subtitle: 'Pet-friendly ride requests',
-      icon: MoveraMark.shield,
+      image: 'assets/images/prefs/pet.jpg',
     ),
   ];
 
@@ -136,7 +135,7 @@ class _PreferencesState extends State<Preferences> {
                   crossAxisCount: 2,
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
-                  childAspectRatio: 0.92,
+                  childAspectRatio: 0.78,
                 ),
                 itemCount: _categories.length,
                 itemBuilder: (context, index) => _buildCategory(index),
@@ -151,33 +150,60 @@ class _PreferencesState extends State<Preferences> {
 
   Widget _buildSummary() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 12, 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '$_selectedCount of 7 active',
-              style: const TextStyle(
-                color: _ink,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _line),
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 36,
+              width: 36,
+              decoration: const BoxDecoration(
+                color: _green,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$_selectedCount of 7 active',
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const Text(
+                    'You can change this at any time',
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          TextButton(
-            onPressed: _toggleAll,
-            style: TextButton.styleFrom(
-              foregroundColor: _ink,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            Container(width: 1, height: 28, color: _line),
+            TextButton(
+              onPressed: _toggleAll,
+              style: TextButton.styleFrom(foregroundColor: _green),
+              child: Text(
+                _selectedCount == _categories.length ? 'Clear' : 'All',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+              ),
             ),
-            child: Text(
-              _selectedCount == _categories.length ? 'Clear' : 'Select all',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -199,86 +225,68 @@ class _PreferencesState extends State<Preferences> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(19),
-            border: Border.all(
-              color: selected ? _ink : _line,
-              width: selected ? 1.2 : 1,
-            ),
+            border: Border.all(color: _line),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  height: 22,
-                  width: 22,
-                  decoration: BoxDecoration(
-                    color: selected ? _ink : Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: selected ? _ink : const Color(0xFFC9D0D3),
-                      width: 1.3,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 10, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    height: 22,
+                    width: 22,
+                    decoration: BoxDecoration(
+                      color: selected ? _green : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected ? _green : const Color(0xFFD5DADD),
+                        width: 1.4,
+                      ),
+                    ),
+                    child: selected
+                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                        : null,
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(6, 0, 18, 6),
+                    child: Image.asset(
+                      category.image,
+                      fit: BoxFit.contain,
                     ),
                   ),
-                  child: selected
-                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
-                      : null,
                 ),
-              ),
-              const Spacer(),
-              Container(
-                height: 42,
-                width: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F5F6),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: MoveraLineIcon(
-                  mark: category.icon,
-                  color: _ink,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                category.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              if (category.badge != null) ...[
-                const SizedBox(height: 4),
                 Text(
-                  category.badge!,
+                  category.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  category.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: _muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
+                    fontSize: 11,
+                    height: 1.2,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
-              const SizedBox(height: 3),
-              Text(
-                category.subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: _muted,
-                  fontSize: 11,
-                  height: 1.2,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -303,7 +311,7 @@ class _PreferencesState extends State<Preferences> {
         child: FilledButton(
           onPressed: _selectedCount == 0 ? null : _save,
           style: FilledButton.styleFrom(
-            backgroundColor: _ink,
+            backgroundColor: const Color(0xFF16382C),
             disabledBackgroundColor: const Color(0xFFD6DBDE),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
@@ -326,12 +334,10 @@ class _DriverCategory {
   const _DriverCategory({
     required this.title,
     required this.subtitle,
-    required this.icon,
-    this.badge,
+    required this.image,
   });
 
   final String title;
   final String subtitle;
-  final MoveraMark icon;
-  final String? badge;
+  final String image;
 }
