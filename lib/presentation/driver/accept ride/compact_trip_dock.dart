@@ -14,6 +14,8 @@ class CompactTripDock extends StatelessWidget {
     required this.etaLabel,
     required this.stageLabel,
     this.onArrived,
+    this.arrivedEnabled = false,
+    this.onArrivedBlocked,
     this.riderReply,
     this.onWaitTap,
     this.riderName,
@@ -27,6 +29,8 @@ class CompactTripDock extends StatelessWidget {
   final String etaLabel;
   final String stageLabel;
   final VoidCallback? onArrived;
+  final bool arrivedEnabled;
+  final VoidCallback? onArrivedBlocked;
   final String? riderReply;
   final VoidCallback? onWaitTap;
   final String? riderName;
@@ -256,13 +260,15 @@ class CompactTripDock extends StatelessWidget {
               child: onArrived != null
                   ? Material(
                       key: const ValueKey<String>('active-ride-arrived-button'),
-                      color: const Color(0xFF252E3A),
+                      color: arrivedEnabled
+                          ? const Color(0xFF252E3A)
+                          : const Color(0xFFE6E8EA),
                       borderRadius: BorderRadius.circular(12),
                       child: InkWell(
-                        onTap: onArrived,
+                        onTap: arrivedEnabled ? onArrived : onArrivedBlocked,
                         borderRadius: BorderRadius.circular(12),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 9,
                           ),
@@ -271,7 +277,9 @@ class CompactTripDock extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Colors.white,
+                              color: arrivedEnabled
+                                  ? Colors.white
+                                  : const Color(0xFF98A1A6),
                               fontSize: 9,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -0.05,

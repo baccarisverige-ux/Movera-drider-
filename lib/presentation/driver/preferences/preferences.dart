@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movera/widgets/movera_line_icon.dart';
 
 class Preferences extends StatefulWidget {
   const Preferences({super.key});
@@ -10,7 +11,6 @@ class Preferences extends StatefulWidget {
 class _PreferencesState extends State<Preferences> {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _muted = Color(0xFF7D898F);
-  static const Color _green = Color(0xFF19865C);
   static const Color _line = Color(0xFFE5E9EB);
   static const Color _canvas = Color(0xFFF4F6F7);
 
@@ -18,39 +18,39 @@ class _PreferencesState extends State<Preferences> {
     _DriverCategory(
       title: 'Movera',
       subtitle: 'Affordable everyday rides',
-      icon: Icons.local_taxi_outlined,
+      icon: MoveraMark.car,
       badge: 'RECOMMENDED',
     ),
     _DriverCategory(
       title: 'Comfort',
       subtitle: 'Newer cars with extra legroom',
-      icon: Icons.airline_seat_recline_extra_rounded,
+      icon: MoveraMark.user,
     ),
     _DriverCategory(
       title: 'Premium',
       subtitle: 'Premium cars and elevated service',
-      icon: Icons.workspace_premium_outlined,
+      icon: MoveraMark.star,
     ),
     _DriverCategory(
       title: 'Priority',
       subtitle: 'Faster pickup requests',
-      icon: Icons.bolt_rounded,
+      icon: MoveraMark.bolt,
       badge: 'FASTER',
     ),
     _DriverCategory(
       title: 'Movera XL',
       subtitle: 'Larger groups of up to 6 riders',
-      icon: Icons.airport_shuttle_outlined,
+      icon: MoveraMark.city,
     ),
     _DriverCategory(
       title: 'Electric',
       subtitle: 'Quiet and fossil-free rides',
-      icon: Icons.electric_car_outlined,
+      icon: MoveraMark.trend,
     ),
     _DriverCategory(
       title: 'Movera Pet',
       subtitle: 'Pet-friendly ride requests',
-      icon: Icons.pets_outlined,
+      icon: MoveraMark.shield,
     ),
   ];
 
@@ -172,10 +172,10 @@ class _PreferencesState extends State<Preferences> {
               color: Colors.white.withOpacity(0.10),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.tune_rounded,
+            child: const MoveraLineIcon(
+              mark: MoveraMark.explore,
               color: Colors.white,
-              size: 22,
+              size: 20,
             ),
           ),
           const SizedBox(width: 12),
@@ -243,8 +243,8 @@ class _PreferencesState extends State<Preferences> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(19),
             border: Border.all(
-              color: selected ? const Color(0xFFBFDCCD) : _line,
-              width: selected ? 1.3 : 1,
+              color: selected ? _ink : _line,
+              width: selected ? 1.2 : 1,
             ),
           ),
           child: Row(
@@ -254,15 +254,13 @@ class _PreferencesState extends State<Preferences> {
                 height: 46,
                 width: 46,
                 decoration: BoxDecoration(
-                  color: selected
-                      ? const Color(0xFFE6F5EE)
-                      : const Color(0xFFEEF1F2),
+                  color: const Color(0xFFF4F5F6),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: Icon(
-                  category.icon,
-                  color: selected ? _green : const Color(0xFF78848A),
-                  size: 23,
+                child: MoveraLineIcon(
+                  mark: category.icon,
+                  color: _ink,
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 13),
@@ -290,13 +288,13 @@ class _PreferencesState extends State<Preferences> {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE6F5EE),
+                              color: const Color(0xFFF3F4F5),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               category.badge!,
                               style: const TextStyle(
-                                color: _green,
+                                color: _ink,
                                 fontSize: 8,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.4,
@@ -324,10 +322,10 @@ class _PreferencesState extends State<Preferences> {
                 height: 25,
                 width: 25,
                 decoration: BoxDecoration(
-                  color: selected ? _green : Colors.transparent,
+                  color: selected ? _ink : Colors.transparent,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: selected ? _green : const Color(0xFFC9D0D3),
+                    color: selected ? _ink : const Color(0xFFC9D0D3),
                     width: 1.4,
                   ),
                 ),
@@ -393,6 +391,6 @@ class _DriverCategory {
 
   final String title;
   final String subtitle;
-  final IconData icon;
+  final MoveraMark icon;
   final String? badge;
 }

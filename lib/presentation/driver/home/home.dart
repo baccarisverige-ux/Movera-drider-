@@ -1961,6 +1961,40 @@ class _DriverHomeState extends State<DriverHome>
                 );
               },
             ),
+          if (!isDestinationPanel)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              left: 16,
+              bottom: 138,
+              child: _buildDriverLocationButton(),
+            ),
+          if (!isDestinationPanel)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              right: 16,
+              bottom: 138,
+              child: Material(
+                color: AppColor.white,
+                elevation: 4,
+                shadowColor: const Color(0xFF1D2730).withOpacity(0.16),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  onTap: () => showSafetyToolKitSheet(context),
+                  customBorder: const CircleBorder(),
+                  child: const SizedBox(
+                    height: 42,
+                    width: 42,
+                    child: Icon(
+                      Icons.shield_outlined,
+                      color: Color(0xFF3F4A50),
+                      size: 17,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           if (!isDestinationPanel &&
               _mainPanelPosition <= 0.04 &&
               _outsideRadarOffer != null &&
@@ -2110,40 +2144,6 @@ class _DriverHomeState extends State<DriverHome>
               ),
             ),
           ],
-          if (!isDestinationPanel)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutCubic,
-              left: 16,
-              bottom: 138,
-              child: _buildDriverLocationButton(),
-            ),
-          if (!isDestinationPanel)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutCubic,
-              right: 16,
-              bottom: 138,
-              child: Material(
-                color: AppColor.white,
-                elevation: 4,
-                shadowColor: const Color(0xFF1D2730).withOpacity(0.16),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  onTap: () => showSafetyToolKitSheet(context),
-                  customBorder: const CircleBorder(),
-                  child: const SizedBox(
-                    height: 42,
-                    width: 42,
-                    child: Icon(
-                      Icons.shield_outlined,
-                      color: Color(0xFF3F4A50),
-                      size: 17,
-                    ),
-                  ),
-                ),
-              ),
-            ),
           if (!isDestinationPanel && _homeRadarMatchNotice != null)
             Positioned(
               left: 0,

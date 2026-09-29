@@ -1,9 +1,5 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/analytics/analytics.dart';
 import 'package:movera/presentation/driver/auth/starter/starter.dart';
 import 'package:movera/presentation/driver/documents/documents.dart';
@@ -12,210 +8,140 @@ import 'package:movera/presentation/driver/profile/legal_document.dart';
 import 'package:movera/presentation/driver/settings/settings.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/presentation/driver/vehicles/vehicles.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
-import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
 
 class DriverProfile extends StatelessWidget {
   const DriverProfile({super.key});
 
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _muted = Color(0xFF7D898F);
+  static const Color _line = Color(0xFFE6E8EA);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              8.height,
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-
-                    icon: Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: AppColor.title,
-                      size: 20 * ResSize.h,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        RightToLeftTransition(Settings()),
-                      );
-                    },
-                    icon: Image.asset(
-                      AppAssets.setting,
-                      height: ResSize.h * 20,
-                    ),
-                  ),
-                ],
-              ),
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 64 * ResSize.h,
-                    backgroundImage: const AssetImage(AppAssets.profileImg),
-                    backgroundColor: const Color(0xFFECECEC),
-                  ),
-                  Container(
-                    height: ResSize.h * 36,
-                    width: ResSize.w * 36,
-                    decoration: BoxDecoration(
-                      color: AppColor.title,
-                      borderRadius: BorderRadius.circular(20 * ResSize.w),
-                      border: Border.all(color: Colors.white, width: 1),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Image.asset(AppAssets.camera),
-                    ),
-                  ),
-                ],
-              ),
-              18.height,
-              TextWidget(
-                text: 'Andrew Johns',
-                fontSize: 18,
-                color: AppColor.title,
-                fontWeight: fwBold,
-              ),
-              TextWidget(
-                text: 'Joined since 2024',
-                fontSize: 14,
-                color: AppColor.subtitle,
-                fontWeight: fwNormal,
-              ),
-              30.height,
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-                child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      RightToLeftTransition(DriverVehicles()),
-                    );
-                  },
-
-                  child: _vehiclesCard(),
-                ),
-              ),
-              18.height,
-              _menuItem(
-                icon: AppAssets.analytics,
-                title: 'Analytics',
-                onTap: () {
-                  Navigator.push(context, RightToLeftTransition(Analytics()));
-                },
-              ),
-              _menuItem(
-                icon: AppAssets.myBank,
-                title: 'My bank',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    RightToLeftTransition(const MyBank()),
-                  );
-                },
-              ),
-              _menuItem(
-                icon: AppAssets.document,
-                title: 'Documents',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    RightToLeftTransition(DriverDocuments()),
-                  );
-                },
-              ),
-              _menuItem(
-                icon: AppAssets.privacyPolicy,
-                title: 'Privacy policy',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    RightToLeftTransition(LegalDocumentScreen.privacy),
-                  );
-                },
-              ),
-              _menuItem(
-                icon: AppAssets.privacyPolicy,
-                title: 'Terms of service',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    RightToLeftTransition(LegalDocumentScreen.terms),
-                  );
-                },
-              ),
-              _menuItem(
-                icon: AppAssets.helpCenter,
-                title: 'Help center',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    RightToLeftTransition(const SupportInboxScreen()),
-                  );
-                },
-              ),
-              _logoutItem(context),
-              24.height,
-            ],
+      backgroundColor: const Color(0xFFF4F6F7),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_rounded, color: _ink),
+        ),
+        titleSpacing: 0,
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: _ink,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _vehiclesCard() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: ResSize.h * 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F4F9),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Transform.scale(
-            scale: 1.1,
-            child: Image.asset(AppAssets.profileCar, width: ResSize.w * 75),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, RightToLeftTransition(const Settings()));
+            },
+            icon: const Icon(Icons.tune_rounded, color: _ink, size: 22),
           ),
-          12.width,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _line),
+            ),
+            child: Row(
               children: [
-                TextWidget(
-                  text: 'Vehicles',
-                  fontSize: 18,
-                  color: AppColor.title,
-                  fontWeight: fwMedium,
+                const CircleAvatar(
+                  radius: 28,
+                  backgroundImage: AssetImage(AppAssets.profileImg),
+                  backgroundColor: Color(0xFFECECEC),
                 ),
-                1.height,
-                Row(
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Andrew Johns',
+                        style: TextStyle(
+                          color: _ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Joined 2024',
+                        style: TextStyle(
+                          color: _muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _link(
+            context,
+            icon: Icons.directions_car_outlined,
+            title: 'Vehicles',
+            detail: 'Mercedes-Benz C200',
+            page: DriverVehicles(),
+          ),
+          const SizedBox(height: 12),
+          _group(context, [
+            _item(Icons.insights_outlined, 'Analytics', const Analytics()),
+            _item(Icons.account_balance_outlined, 'My bank', const MyBank()),
+            _item(Icons.description_outlined, 'Documents', const DriverDocuments()),
+          ]),
+          const SizedBox(height: 12),
+          _group(context, [
+            _item(Icons.privacy_tip_outlined, 'Privacy policy', LegalDocumentScreen.privacy),
+            _item(Icons.article_outlined, 'Terms of service', LegalDocumentScreen.terms),
+            _item(Icons.help_outline_rounded, 'Help center', const SupportInboxScreen()),
+          ]),
+          const SizedBox(height: 12),
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              onTap: () => _confirmLogout(context),
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: _line),
+                ),
+                child: const Row(
                   children: [
-                    TextWidget(
-                      text: 'Mercedes-Benz C200',
-                      fontSize: 14,
-                      color: AppColor.title,
-                      fontWeight: fwMedium,
-                    ),
-                    20.width,
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: AppColor.title,
-                      size: ResSize.h * 18,
+                    Icon(Icons.logout_rounded, color: Color(0xFFB84F3D), size: 18),
+                    SizedBox(width: 10),
+                    Text(
+                      'Log out',
+                      style: TextStyle(
+                        color: Color(0xFFB84F3D),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -223,88 +149,106 @@ class DriverProfile extends StatelessWidget {
     );
   }
 
-  Widget _menuItem({
-    required String icon,
+  Widget _link(
+    BuildContext context, {
+    required IconData icon,
     required String title,
-    required VoidCallback onTap,
-    double iconScaleSize = 1,
+    required String detail,
+    required Widget page,
   }) {
-    return InkWell(
-      onTap: onTap,
-      splashColor: AppColor.primary.withOpacity(0.1),
-      highlightColor: AppColor.primary.withOpacity(0.1),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: 12 * ResSize.h,
-          horizontal: screenHorizPadding,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Transform.scale(
-                    scale: iconScaleSize,
-                    child: Image.asset(
-                      icon,
-                      height: ResSize.h * 20,
-                      color: AppColor.title,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: () => Navigator.push(context, RightToLeftTransition(page)),
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _line),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: _ink, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  16.width,
-                  Expanded(
-                    child: TextWidget(
-                      text: title,
-                      color: AppColor.title,
-                      fontSize: 18,
-                      fontWeight: fwMedium,
+                    const SizedBox(height: 2),
+                    Text(
+                      detail,
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: AppColor.subtitle,
-              size: ResSize.h * 18,
-            ),
-          ],
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFB0B8BC)),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _logoutItem(BuildContext context) {
-    return InkWell(
-      onTap: () => _confirmLogout(context),
-      splashColor: AppColor.red.withOpacity(0.1),
-      highlightColor: AppColor.red.withOpacity(0.1),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: 12 * ResSize.h,
-          horizontal: screenHorizPadding,
-        ),
-        child: Row(
-          children: [
-            Transform.scale(
-              scale: 1,
-              child: Image.asset(
-                AppAssets.logout,
-                height: ResSize.h * 24,
-                color: AppColor.red,
+  Widget _group(BuildContext context, List<_ProfileItem> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _line),
+      ),
+      child: Column(
+        children: [
+          for (final item in items)
+            InkWell(
+              onTap: () =>
+                  Navigator.push(context, RightToLeftTransition(item.page)),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
+                child: Row(
+                  children: [
+                    Icon(item.icon, color: _ink, size: 18),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        item.title,
+                        style: const TextStyle(
+                          color: _ink,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFFB0B8BC),
+                      size: 20,
+                    ),
+                  ],
+                ),
               ),
             ),
-            16.width,
-            TextWidget(
-              text: 'Log out',
-              fontSize: 18,
-              color: AppColor.red,
-              fontWeight: fwMedium,
-            ),
-          ],
-        ),
+        ],
       ),
     );
+  }
+
+  _ProfileItem _item(IconData icon, String title, Widget page) {
+    return _ProfileItem(icon, title, page);
   }
 
   Future<void> _confirmLogout(BuildContext context) async {
@@ -324,9 +268,7 @@ class DriverProfile extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColor.red,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF252E3A)),
               child: const Text('Log out'),
             ),
           ],
@@ -340,4 +282,11 @@ class DriverProfile extends StatelessWidget {
       );
     }
   }
+}
+
+class _ProfileItem {
+  const _ProfileItem(this.icon, this.title, this.page);
+  final IconData icon;
+  final String title;
+  final Widget page;
 }

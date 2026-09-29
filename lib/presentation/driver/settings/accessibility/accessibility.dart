@@ -1,13 +1,4 @@
-// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
-import 'package:movera/constants/appassets.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/models/onboarding.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
-import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
-import 'package:riff_switch/riff_switch.dart';
 
 class Accessibility extends StatefulWidget {
   const Accessibility({super.key});
@@ -17,223 +8,143 @@ class Accessibility extends StatefulWidget {
 }
 
 class _AccessibilityState extends State<Accessibility> {
-  List<OnBoardingModel> items = [
-    OnBoardingModel(
-      image: AppAssets.hearing,
-      title: "Hearing",
-      subTitle: "choose to disclose whether your are deaf or hard of hearing",
-    ),
-    OnBoardingModel(
-      image: AppAssets.flash,
-      title: "Flash for requests",
-      subTitle:
-          "Your phone screen will flash and play an audio alert upon receiving request",
-    ),
-    OnBoardingModel(
-      image: AppAssets.vibration,
-      title: "Vibration for requests",
-      subTitle:
-          "Your phone will vibrate and play an audio alert upon receiving request",
-    ),
-  ];
-  bool val1 = false;
-  bool val2 = false;
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _muted = Color(0xFF7D898F);
+  static const Color _line = Color(0xFFE6E8EA);
+
+  bool _flash = false;
+  bool _vibration = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F6F7),
       appBar: AppBar(
-        actionsPadding: EdgeInsets.all(0),
         automaticallyImplyLeading: false,
-        backgroundColor: AppColor.white,
-        clipBehavior: Clip.none,
-        foregroundColor: AppColor.white,
+        backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: Icon(
-            Icons.arrow_back_ios_rounded,
-            color: AppColor.title,
-            size: ResSize.h * 18,
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_rounded, color: _ink),
+        ),
+        titleSpacing: 0,
+        title: const Text(
+          'Accessibility',
+          style: TextStyle(
+            color: _ink,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
           ),
         ),
-        centerTitle: true,
-        title: TextWidget(
-          text: "App setting",
-          color: AppColor.title,
-          fontSize: 16,
-          fontWeight: fwMedium,
-        ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            12.height,
-            Container(
-              height: ResSize.h * 8,
-              width: double.infinity,
-              color: Color(0xffFAFAFA),
-            ),
-            12.height,
-            ...List.generate(items.length, (index) {
-              return _menuItem(
-                icon: items[index].image,
-                title: items[index].title,
-                subTitle: items[index].subTitle,
-                onTap: () {
-                  if (index != 0) return;
-                  showDialog<void>(
-                    context: context,
-                    builder: (dialogContext) {
-                      return AlertDialog(
-                        backgroundColor: Colors.white,
-                        title: const Text('Hearing'),
-                        content: const Text(
-                          'Riders can be told you are deaf or hard of hearing. This stays on this device.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            child: const Text('Not now'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF19865C),
-                            ),
-                            child: const Text('Share on trips'),
-                          ),
-                        ],
-                      );
-                    },
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+        children: [
+          _tile(
+            title: 'Hearing',
+            detail: 'Tell riders if you are deaf or hard of hearing.',
+            trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFB0B8BC)),
+            onTap: () {
+              showDialog<void>(
+                context: context,
+                builder: (dialogContext) {
+                  return AlertDialog(
+                    backgroundColor: Colors.white,
+                    title: const Text('Hearing'),
+                    content: const Text(
+                      'Riders can be told you are deaf or hard of hearing. This stays on this device.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Not now'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: FilledButton.styleFrom(backgroundColor: _ink),
+                        child: const Text('Share on trips'),
+                      ),
+                    ],
                   );
                 },
-                showArrow: items[index].image == AppAssets.hearing
-                    ? true
-                    : false,
-                trailing: items[index].image == AppAssets.flash
-                    ? Transform.scale(
-                        scale: 0.8,
-                        child: RiffSwitch(
-                          trackColor: WidgetStatePropertyAll(Color(0xffBEBEBE)),
-                          activeTrackColor: Color(0xff00C24D),
-                          value: val1,
-                          onChanged: (value) => setState(() {
-                            val1 = value;
-                          }),
-                          type: RiffSwitchType.cupertino,
-                          inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: Color(0xffBEBEBE),
-                          activeColor: Color(0xff00C24D),
-                        ),
-                      )
-                    : items[index].image == AppAssets.vibration
-                    ? Transform.scale(
-                        scale: 0.8,
-                        child: RiffSwitch(
-                          trackColor: WidgetStatePropertyAll(Color(0xffBEBEBE)),
-                          activeTrackColor: Color(0xff00C24D),
-                          value: val2,
-                          onChanged: (value) => setState(() {
-                            val2 = value;
-                          }),
-                          type: RiffSwitchType.cupertino,
-                          inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: Color(0xffBEBEBE),
-                          activeColor: Color(0xff00C24D),
-                        ),
-                      )
-                    : SizedBox(),
               );
-            }),
-
-            24.height,
-          ],
-        ),
+            },
+          ),
+          const SizedBox(height: 10),
+          _tile(
+            title: 'Flash for requests',
+            detail: 'The screen flashes when a request arrives.',
+            trailing: Switch.adaptive(
+              value: _flash,
+              activeTrackColor: _ink,
+              onChanged: (value) => setState(() => _flash = value),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _tile(
+            title: 'Vibration for requests',
+            detail: 'The phone vibrates when a request arrives.',
+            trailing: Switch.adaptive(
+              value: _vibration,
+              activeTrackColor: _ink,
+              onChanged: (value) => setState(() => _vibration = value),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _menuItem({
-    required String icon,
+  Widget _tile({
     required String title,
-    subTitle,
-    required VoidCallback onTap,
-    double iconScaleSize = 1.2,
-    bool showArrow = true,
-    Widget trailing = const SizedBox(),
+    required String detail,
+    required Widget trailing,
+    VoidCallback? onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      splashColor: AppColor.primary.withOpacity(0.1),
-      highlightColor: AppColor.primary.withOpacity(0.1),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: 14 * ResSize.h,
-          horizontal: screenHorizPadding,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Transform.scale(
-              scale: iconScaleSize,
-              child: Padding(
-                padding: EdgeInsets.only(top: ResSize.h * 8),
-                child: Image.asset(
-                  icon,
-                  height: ResSize.h * 20,
-                  color: AppColor.title,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _line),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      detail,
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 12,
+                        height: 1.3,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            16.width,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextWidget(
-                          text: title,
-                          color: AppColor.title,
-                          fontSize: 18,
-                          fontWeight: fwMedium,
-                        ),
-                      ),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          trailing,
-                          showArrow
-                              ? Icon(
-                                  Icons.arrow_forward_ios_rounded,
-                                  color: AppColor.subtitle,
-                                  size: ResSize.h * 18,
-                                )
-                              : SizedBox(),
-                        ],
-                      ),
-                    ],
-                  ),
-                  2.height,
-                  Padding(
-                    padding: EdgeInsets.only(right: ResSize.w * 16),
-                    child: TextWidget(
-                      text: subTitle,
-                      color: AppColor.subtitle,
-                      fontSize: 14,
-                      fontWeight: fwNormal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+              trailing,
+            ],
+          ),
         ),
       ),
     );

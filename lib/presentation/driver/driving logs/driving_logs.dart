@@ -1,163 +1,180 @@
 import 'package:flutter/material.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
-import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
 
 class DrivingLogs extends StatelessWidget {
   const DrivingLogs({super.key});
 
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _muted = Color(0xFF7D898F);
+  static const Color _line = Color(0xFFE6E8EA);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F7),
       appBar: AppBar(
-        actionsPadding: EdgeInsets.all(0),
         automaticallyImplyLeading: false,
-        backgroundColor: AppColor.white,
-        clipBehavior: Clip.none,
-        foregroundColor: AppColor.white,
+        backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: Row(
-          children: [
-            IconButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              icon: Icon(
-                Icons.arrow_back_ios_rounded,
-                color: AppColor.title,
-                size: ResSize.h * 20,
-              ),
-            ),
-          ],
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
-        centerTitle: true,
-        title: TextWidget(
-          text: "Driving Logs",
-          color: AppColor.title,
-          fontSize: 16,
-          fontWeight: fwBold,
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              12.height,
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenHorizPadding,
-                  vertical: ResSize.h * 22,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  // ignore: deprecated_member_use
-                  color: Color(0xff215277).withOpacity(0.10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextWidget(
-                      text: "Current driving session",
-                      color: AppColor.subtitle,
-                      fontSize: 16,
-                      fontWeight: fwSemiBold,
-                    ),
-                    2.height,
-                    TextWidget(
-                      text: "6 hr 26min",
-                      color: AppColor.title,
-                      fontSize: 36,
-                      fontWeight: fwSemiBold,
-                    ),
-                    8.height,
-                    SizedBox(
-                      child: Stack(
-                        alignment: Alignment.centerLeft,
-                        children: [
-                          Container(
-                            height: ResSize.h * 9,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFD9D9D9),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          FractionallySizedBox(
-                            widthFactor: 0.75,
-                            child: Container(
-                              height: ResSize.h * 9,
-                              decoration: BoxDecoration(
-                                color: AppColor.primary,
-                                borderRadius: BorderRadius.circular(21),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    12.height,
-                    TextWidget(
-                      text: "75% daily limit reached",
-                      color: AppColor.title,
-                      fontSize: 16,
-                      fontWeight: fwNormal,
-                    ),
-                  ],
-                ),
-              ),
-              32.height,
-              ...List.generate(2, (index) {
-                return Column(
-                  children: [
-                    index == 0
-                        ? SizedBox()
-                        : Column(
-                            children: [
-                              16.height,
-                              Divider(
-                                color: AppColor.border,
-                                thickness: 0.3,
-                                height: 0,
-                              ),
-                              16.height,
-                            ],
-                          ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextWidget(
-                            text: "Driving Regulations overview",
-                            color: AppColor.title,
-                            fontSize: 20,
-                            fontWeight: fwSemiBold,
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: ResSize.h * 14,
-                          color: AppColor.title,
-                        ),
-                      ],
-                    ),
-                    8.height,
-                    TextWidget(
-                      text:
-                          "Lorem ipsum dolor sit amet consectetur. Viverra nulla pulvinar risus turpis molestie metus congue tristique aliquam. Lacinia dolor nec penatibus consectetu",
-                      color: AppColor.title,
-                      fontSize: 14,
-                      fontWeight: fwNormal,
-                    ),
-                  ],
-                );
-              }),
-            ],
+        titleSpacing: 0,
+        title: const Text(
+          'Driving log',
+          style: TextStyle(
+            color: _ink,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
           ),
         ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'TODAY',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  '6 h 26 min',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.8,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '2 h 34 min left before the daily limit',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: const LinearProgressIndicator(
+                    minHeight: 4,
+                    value: 0.75,
+                    backgroundColor: Color(0xFFE8EBED),
+                    valueColor: AlwaysStoppedAnimation<Color>(_ink),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'This week',
+            style: TextStyle(
+              color: _ink,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _shift('Monday', '5 h 10 min', 'Online 07:12 – 12:22'),
+          _shift('Tuesday', '6 h 40 min', 'Online 06:48 – 13:28'),
+          _shift('Wednesday', '4 h 05 min', 'Online 15:10 – 19:15'),
+          _shift('Thursday', '6 h 26 min', 'Still online'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: _line),
+            ),
+            child: const Text(
+              'A break is required after 4.5 hours of driving. The daily limit on this account is 9 hours.',
+              style: TextStyle(
+                color: _muted,
+                fontSize: 12,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _shift(String day, String hours, String detail) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: _ink,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  day,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detail,
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            hours,
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

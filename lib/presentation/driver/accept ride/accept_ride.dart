@@ -705,6 +705,32 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
+  bool get _driverNearPickup {
+    return GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
+          GeoPointMaps.fromLatLng(widget.pickupPosition),
+        ) <=
+        100;
+  }
+
+  void _tryConfirmPickupArrival() {
+    if (!_driverNearPickup) {
+      _blockedPickupArrival();
+      return;
+    }
+    _confirmPickupArrival();
+  }
+
+  void _blockedPickupArrival() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Move within 100 m of the pickup to confirm.'),
+        backgroundColor: _ink,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
   void _confirmPickupArrival() {
     if (_stageTransitioning ||
         !mounted ||
@@ -2364,8 +2390,10 @@ class _AcceptRideState extends State<AcceptRide>
                       ActiveRideStage.onTrip => 'ON TRIP',
                     },
                     onArrived: _stage == ActiveRideStage.headingToPickup
-                        ? _confirmPickupArrival
+                        ? _tryConfirmPickupArrival
                         : null,
+                    arrivedEnabled: _driverNearPickup,
+                    onArrivedBlocked: _blockedPickupArrival,
                     riderReply: _riderOnTheWay ? 'RIDER ON THE WAY' : null,
                     onWaitTap: _stage == ActiveRideStage.waitingForRider
                         ? _openWaitingTime

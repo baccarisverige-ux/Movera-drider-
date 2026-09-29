@@ -1,11 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:movera/constants/appassets.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
-import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
-import 'package:riff_switch/riff_switch.dart';
 
 class SoundAndVoice extends StatefulWidget {
   const SoundAndVoice({super.key});
@@ -15,7 +8,11 @@ class SoundAndVoice extends StatefulWidget {
 }
 
 class _SoundAndVoiceState extends State<SoundAndVoice> {
-  double generalVolume = 0.35; // 0..1
+  static const Color _ink = Color(0xFF252E3A);
+  static const Color _muted = Color(0xFF7D898F);
+  static const Color _line = Color(0xFFE6E8EA);
+
+  double generalVolume = 0.35;
   bool alwaysPlayRequests = true;
   bool voiceNavigation = true;
   bool readRiderMessages = false;
@@ -23,313 +20,171 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F6F7),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: AppColor.white,
+        backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
-          icon: Icon(
-            Icons.arrow_back_ios_rounded,
-            color: AppColor.title,
-            size: ResSize.h * 18,
+          icon: const Icon(Icons.arrow_back_rounded, color: _ink),
+        ),
+        titleSpacing: 0,
+        title: const Text(
+          'Sound & voice',
+          style: TextStyle(
+            color: _ink,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
           ),
         ),
-        centerTitle: true,
-        title: TextWidget(
-          text: 'Sound & voice',
-          color: AppColor.title,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            12.height,
-            Container(
-              height: ResSize.h * 8,
-              width: double.infinity,
-              color: const Color(0xFFFAFAFA),
-            ),
-            16.height,
-
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextWidget(
-                    text: 'General',
-                    color: AppColor.title,
-                    fontSize: 18,
-                    fontWeight: fwMedium,
-                  ),
-                  12.height,
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 4 * ResSize.h,
-                      activeTrackColor: AppColor.primary,
-                      inactiveTrackColor: const Color(0xFFCCCCCC),
-                      thumbColor: Colors.white,
-                      overlayColor: Colors.transparent,
-                      thumbShape: const RoundSliderThumbShape(
-                        elevation: 3,
-
-                        enabledThumbRadius: 11,
-                      ),
-                    ),
-                    child: Slider(
-                      value: generalVolume,
-                      onChanged: (v) => setState(() => generalVolume = v),
-                    ),
-                  ),
-                  22.height,
-                  TextWidget(
-                    text: 'Alerts',
-                    color: AppColor.title,
-                    fontSize: 18,
-                    fontWeight: fwMedium,
-                  ),
-                  4.height,
-                  TextWidget(
-                    text: 'Include notifications and trip requests',
-                    color: AppColor.subtitle,
-                    fontSize: 14,
-                    fontWeight: fwNormal,
-                  ),
-                  17.height,
-                  _testTile(
-                    title: 'Test alerts volume',
-                    subtitle: 'Controlled by device volume',
-                    onTest: _onTestAlerts,
-                  ),
-                  24.height,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextWidget(
-                          text: 'Always play trip requests',
-                          color: AppColor.title,
-                          fontSize: 18,
-                          fontWeight: fwMedium,
-                        ),
-                      ),
-                      Transform.scale(
-                        scale: 0.9,
-                        child: RiffSwitch(
-                          type: RiffSwitchType.cupertino,
-                          value: alwaysPlayRequests,
-                          onChanged: (v) =>
-                              setState(() => alwaysPlayRequests = v),
-                          activeColor: const Color(0xFF00C24D),
-                          inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: const Color(0xFFBEBEBE),
-                          activeTrackColor: const Color(0xFF00C24D),
-                          trackColor: const WidgetStatePropertyAll(
-                            Color(0xFFBEBEBE),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextWidget(
-                    text: 'Play even when device is muted/silent',
-                    color: AppColor.subtitle,
-                    fontSize: 14,
-                    fontWeight: fwNormal,
-                  ),
-                  20.height,
-                ],
-              ),
-            ),
-
-            Divider(
-              color: const Color(0xFFEAEAEA),
-              thickness: 1 * ResSize.h,
-              height: 0,
-            ),
-
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: 16 * ResSize.w,
-                vertical: 18 * ResSize.h,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextWidget(
-                    text: 'Voice',
-                    color: AppColor.title,
-                    fontSize: 18,
-                    fontWeight: fwMedium,
-                  ),
-                  4.height,
-                  TextWidget(
-                    text: 'Include speech like voice navigation',
-                    color: const Color(0xFF9F9F9F),
-                    fontSize: 14,
-                    fontWeight: fwNormal,
-                  ),
-                  12.height,
-                  _testTile(
-                    title: 'Test voice volume',
-                    subtitle: 'Controlled by device volume',
-                    onTest: _onTestVoice,
-                  ),
-                  24.height,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextWidget(
-                          text: 'Voice Navigation',
-                          color: AppColor.title,
-                          fontSize: 18,
-                          fontWeight: fwMedium,
-                        ),
-                      ),
-                      Transform.scale(
-                        scale: 0.9,
-                        child: RiffSwitch(
-                          type: RiffSwitchType.cupertino,
-                          value: voiceNavigation,
-                          onChanged: (v) => setState(() => voiceNavigation = v),
-                          activeColor: const Color(0xFF00C24D),
-                          inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: const Color(0xFFBEBEBE),
-                          activeTrackColor: const Color(0xFF00C24D),
-                          trackColor: const WidgetStatePropertyAll(
-                            Color(0xFFBEBEBE),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  18.height,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextWidget(
-                          text: 'Read rider messages',
-                          color: AppColor.title,
-                          fontSize: 18,
-                          fontWeight: fwMedium,
-                        ),
-                      ),
-                      Transform.scale(
-                        scale: 0.9,
-                        child: RiffSwitch(
-                          type: RiffSwitchType.cupertino,
-                          value: readRiderMessages,
-                          onChanged: (v) =>
-                              setState(() => readRiderMessages = v),
-                          activeColor: const Color(0xFF00C24D),
-                          inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: const Color(0xFFBEBEBE),
-                          activeTrackColor: const Color(0xFF00C24D),
-                          trackColor: const WidgetStatePropertyAll(
-                            Color(0xFFBEBEBE),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _testTile({
-    required String title,
-    required String subtitle,
-    required VoidCallback onTest,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        // ignore: deprecated_member_use
-        color: const Color(0xFF233C8E).withOpacity(0.10),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: 14 * ResSize.w,
-        vertical: 14 * ResSize.h,
-      ),
-      child: Row(
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextWidget(
-                  text: title,
-                  color: AppColor.title,
-                  fontSize: 18,
-                  fontWeight: fwMedium,
+          _card(
+            children: [
+              const Text(
+                'Volume',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
                 ),
-                4.height,
-                TextWidget(
-                  text: subtitle,
-                  color: AppColor.subtitle,
-                  fontSize: 14,
-                  fontWeight: fwNormal,
-                ),
-              ],
-            ),
+              ),
+              Slider(
+                value: generalVolume,
+                activeColor: _ink,
+                onChanged: (value) => setState(() => generalVolume = value),
+              ),
+              _switchRow(
+                'Always play trip requests',
+                'Plays even when the phone is silent',
+                alwaysPlayRequests,
+                (value) => setState(() => alwaysPlayRequests = value),
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF173C5E),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: 12 * ResSize.w,
-                vertical: 6 * ResSize.h,
-              ),
-            ),
-            onPressed: onTest,
-            child: Row(
-              children: [
-                Image.asset(
-                  AppAssets.sound,
-                  height: 22 * ResSize.h,
-                  color: AppColor.white,
+          const SizedBox(height: 12),
+          _card(
+            children: [
+              const Text(
+                'Voice',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
                 ),
-                6.width,
-                TextWidget(
-                  text: 'Test',
-                  color: AppColor.white,
-                  fontSize: 12,
-                  fontWeight: fwMedium,
-                ),
-                2.width,
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+              _switchRow(
+                'Voice navigation',
+                'Spoken turns while you drive',
+                voiceNavigation,
+                (value) => setState(() => voiceNavigation = value),
+              ),
+              _switchRow(
+                'Read rider messages',
+                'Reads new chat messages aloud',
+                readRiderMessages,
+                (value) => setState(() => readRiderMessages = value),
+              ),
+              const SizedBox(height: 8),
+              _test('Test alerts', _onTestAlerts),
+              const SizedBox(height: 8),
+              _test('Test voice', _onTestVoice),
+            ],
           ),
         ],
       ),
     );
   }
 
+  Widget _card({required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _switchRow(
+    String title,
+    String detail,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detail,
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            activeTrackColor: _ink,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _test(String label, VoidCallback onTap) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _ink,
+          side: const BorderSide(color: _line),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
+
   void _onTestAlerts() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Playing alert sound (mock)')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Playing alert sound (mock)')),
+    );
   }
 
   void _onTestVoice() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Playing voice sound (mock)')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Playing voice sound (mock)')),
+    );
   }
 }
