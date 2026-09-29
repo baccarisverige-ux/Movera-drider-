@@ -8,6 +8,7 @@ import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/movera_line_icon.dart';
+import 'package:movera/widgets/navigation_transition.dart';
 
 class DriverRideCompleted extends StatefulWidget {
   const DriverRideCompleted({

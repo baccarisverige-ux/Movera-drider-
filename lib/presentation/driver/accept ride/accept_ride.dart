@@ -38,6 +38,7 @@ import 'package:movera/widgets/movera_modal_sheet.dart';
 import 'package:movera/widgets/movera_sheet_metrics.dart';
 import 'package:movera/widgets/movera_vehicle_marker.dart';
 import 'package:movera/widgets/movera_line_icon.dart';
+import 'package:movera/widgets/navigation_transition.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
