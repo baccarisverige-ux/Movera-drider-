@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/presentation/driver/auth/additional%20detail/navigation.dart';
 import 'package:movera/widgets/custom_btn.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
-import 'package:movera/widgets/navigation_transition.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
 import 'package:pinput/pinput.dart';
@@ -60,7 +58,7 @@ class DriverPhoneVerification extends StatelessWidget {
               text: TextSpan(
                 children: [
                   TextSpan(
-                    text: "Verification code has been sent to",
+                    text: "Code delivery is unavailable in this demo",
                     style: GoogleFonts.poppins(
                       fontSize: ResSize.setSp(16),
                       fontWeight: fwNormal,
@@ -68,7 +66,7 @@ class DriverPhoneVerification extends StatelessWidget {
                     ),
                   ),
                   TextSpan(
-                    text: " +96441938184.",
+                    text: ".",
                     style: GoogleFonts.poppins(
                       decoration: TextDecoration.underline,
                       fontSize: ResSize.setSp(16),
@@ -77,7 +75,7 @@ class DriverPhoneVerification extends StatelessWidget {
                     ),
                   ),
                   TextSpan(
-                    text: " Enter your 4 digit code",
+                    text: " Account verification requires the account service.",
                     style: GoogleFonts.poppins(
                       fontSize: ResSize.setSp(16),
                       fontWeight: fwNormal,
@@ -154,9 +152,8 @@ class DriverPhoneVerification extends StatelessWidget {
               CustomButton(
                 centerContent: "Continue",
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    BottomToTopTransition(const AdditionalInfoNavigation()),
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Verification is unavailable in this demo.')),
                   );
                 },
               ),

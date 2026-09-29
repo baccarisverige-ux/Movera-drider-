@@ -4,11 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/presentation/driver/auth/phone%20verification/phone_verify.dart';
 import 'package:movera/widgets/custom_btn.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/custom_textfield.dart';
-import 'package:movera/widgets/navigation_transition.dart';
 import 'package:movera/widgets/phone_picker.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
@@ -114,7 +112,7 @@ class _DriverSignInPhoneState extends State<DriverSignInPhone> {
                     TextWidget(
                       textAlign: TextAlign.start,
                       text:
-                          "Enter a valid phone number where we will send a verification code",
+                          "Phone sign-in is unavailable in this demo. No verification code is sent.",
                       color: AppColor.subtitle,
                       fontSize: 14,
                       fontWeight: fwMedium,
@@ -169,11 +167,8 @@ class _DriverSignInPhoneState extends State<DriverSignInPhone> {
                     CustomButton(
                       centerContent: "Continue",
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          BottomToTopTransition(
-                            const DriverPhoneVerification(),
-                          ),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Phone sign-in requires the account service.')),
                         );
                       },
                     ),
