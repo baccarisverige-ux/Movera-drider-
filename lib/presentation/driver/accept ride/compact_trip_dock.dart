@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:movera/widgets/movera_line_icon.dart';
 
 /// Collapsed Active Ride route summary.
 ///
@@ -220,40 +219,37 @@ class CompactTripDock extends StatelessWidget {
                       ],
                     ),
                     if (riderName != null && riderName!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 1),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              riderName!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _ink,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.15,
-                              ),
-                            ),
-                          ),
-                          _dockAction(
-                            mark: MoveraMark.phone,
-                            tooltip: 'Call rider',
-                            onTap: onCall,
-                          ),
-                          const SizedBox(width: 4),
-                          _dockAction(
-                            mark: MoveraMark.message,
-                            tooltip: 'Message rider',
-                            onTap: onMessage,
-                          ),
-                        ],
+                      const SizedBox(height: 2),
+                      Text(
+                        riderName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _ink,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.15,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
             ),
+            if (riderName != null && riderName!.trim().isNotEmpty) ...[
+              const SizedBox(width: 6),
+              _dockAction(
+                icon: Icons.call_outlined,
+                tooltip: 'Call rider',
+                onTap: onCall,
+              ),
+              const SizedBox(width: 6),
+              _dockAction(
+                icon: Icons.chat_bubble_outline_rounded,
+                tooltip: 'Message rider',
+                onTap: onMessage,
+              ),
+            ],
             const SizedBox(width: 7),
             Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -326,7 +322,7 @@ class CompactTripDock extends StatelessWidget {
   }
 
   static Widget _dockAction({
-    required MoveraMark mark,
+    required IconData icon,
     required String tooltip,
     required VoidCallback? onTap,
   }) {
@@ -334,20 +330,14 @@ class CompactTripDock extends StatelessWidget {
       message: tooltip,
       child: Material(
         color: const Color(0xFFF4F5F6),
-        borderRadius: BorderRadius.circular(8),
+        shape: const CircleBorder(),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
+          customBorder: const CircleBorder(),
           child: SizedBox(
-            width: 20,
-            height: 20,
-            child: Center(
-              child: MoveraLineIcon(
-                mark: mark,
-                size: 12,
-                color: _ink,
-              ),
-            ),
+            width: 36,
+            height: 36,
+            child: Icon(icon, size: 18, color: _ink),
           ),
         ),
       ),
