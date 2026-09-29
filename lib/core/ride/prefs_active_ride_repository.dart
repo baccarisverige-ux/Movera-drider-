@@ -10,20 +10,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Stale snapshots older than [PersistedActiveRide.freshnessWindow] are dropped
 /// so an abandoned trip cannot revive days later.
 class PrefsActiveRideRepository implements ActiveRideRepository {
-  PrefsActiveRideRepository({
-    Future<SharedPreferences> Function()? load,
-  }) : _load = load ?? SharedPreferences.getInstance;
+  PrefsActiveRideRepository({Future<SharedPreferences> Function()? load})
+    : _load = load ?? SharedPreferences.getInstance;
 
   /// SharedPreferences key. Web localStorage prefix is `flutter.`.
   static const key = 'movera_driver_active_ride';
 
   final Future<SharedPreferences> Function() _load;
 
-  /// Bumped on every [clear] so an in-flight [save] cannot revive a cancelled trip.
-  int _epoch = 0;
+  // SharedPreferences operations are asynchronous. Keep them in invocation
+  // order so a previous ride's cleanup cannot remove a newer ride's snapshot.
+  Future<void> _pending = Future<void>.value();
+
+  Future<T> _enqueue<T>(Future<T> Function() operation) {
+    final result = _pending.then((_) => operation());
+    _pending = result.then<void>((_) {}).catchError((
+      Object error,
+      StackTrace stack,
+    ) {
+      DriverLog.error('Active-ride storage operation failed', error, stack);
+    });
+    return result;
+  }
 
   @override
-  Future<PersistedActiveRide?> read() async {
+  Future<PersistedActiveRide?> read() => _enqueue(() async {
     try {
       final prefs = await _load();
       final raw = prefs.getString(key);
@@ -43,28 +54,22 @@ class PrefsActiveRideRepository implements ActiveRideRepository {
       DriverLog.error('Active-ride snapshot parse failed', error, stack);
       return null;
     }
-  }
+  });
 
   @override
-  Future<void> save(PersistedActiveRide ride) async {
+  Future<void> save(PersistedActiveRide ride) => _enqueue(() async {
     try {
-      final token = _epoch;
       final prefs = await _load();
-      if (token != _epoch) return;
       final stamped = ride.stamped();
       await prefs.setString(key, jsonEncode(stamped.toJson()));
-      if (token != _epoch) {
-        await prefs.remove(key);
-      }
     } catch (error, stack) {
       DriverLog.warn('Active-ride snapshot save failed: $error');
       DriverLog.error('Active-ride snapshot save failed', error, stack);
     }
-  }
+  });
 
   @override
-  Future<void> clear() async {
-    _epoch += 1;
+  Future<void> clear() => _enqueue(() async {
     try {
       final prefs = await _load();
       await prefs.remove(key);
@@ -72,5 +77,5 @@ class PrefsActiveRideRepository implements ActiveRideRepository {
       DriverLog.warn('Active-ride snapshot clear failed: $error');
       DriverLog.error('Active-ride snapshot clear failed', error, stack);
     }
-  }
+  });
 }
