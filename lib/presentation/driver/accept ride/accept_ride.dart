@@ -1265,7 +1265,38 @@ class _AcceptRideState extends State<AcceptRide>
       return;
     }
     if (!mounted) return;
-    if (!_rideLifecycle.complete()) {
+    final offer = _nextTripRadarOffer;
+    final queuedNext =
+        _onTripRadarState == _OnTripRadarState.secured && offer != null;
+    if (queuedNext && widget.activeRideRepository != null) {
+      final next = PersistedActiveRide(
+        tripId: offer.id,
+        stage: ActiveRideStage.headingToPickup,
+        riderName: offer.riderName,
+        riderRating: offer.rating,
+        fare: offer.fare,
+        category: offer.category,
+        matchedVia: 'Movera Radar',
+        pickupAddress: offer.pickup,
+        dropoffAddress: offer.dropoff,
+        pickupLat: offer.pickupPosition.latitude,
+        pickupLng: offer.pickupPosition.longitude,
+        dropoffLat: offer.dropoffPosition.latitude,
+        dropoffLng: offer.dropoffPosition.longitude,
+      );
+      await widget.activeRideRepository!.save(next);
+      final saved = await widget.activeRideRepository!.read();
+      if (saved?.tripId != offer.id) {
+        _completionInFlight = false;
+        _stageTransitioning = false;
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not save the next trip. Please try again.'),
+        ));
+        return;
+      }
+    }
+    if (!mounted) return;
+    if (!_rideLifecycle.complete(clearSnapshot: !queuedNext || widget.activeRideRepository == null)) {
       _completionInFlight = false;
       _stageTransitioning = false;
       return;
@@ -1274,9 +1305,6 @@ class _AcceptRideState extends State<AcceptRide>
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
     _waybills.completeCurrent();
-    final offer = _nextTripRadarOffer;
-    final queuedNext =
-        _onTripRadarState == _OnTripRadarState.secured && offer != null;
     final nextRide = queuedNext
         ? AcceptRide(
             offerId: offer.id,

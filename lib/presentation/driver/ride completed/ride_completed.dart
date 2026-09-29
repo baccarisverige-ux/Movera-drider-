@@ -4,7 +4,6 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
-import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/movera_line_icon.dart';
@@ -48,13 +47,14 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
 
   void _finish() {
     final navigator = Navigator.of(context);
-    final nextRide = widget.nextRide ?? _rideFromQueuedWaybill();
+    final nextRide = widget.nextRide;
     if (nextRide != null) {
       widget.sessionController?.stayOnlineAfterTrip();
       _waybills.promoteNextToCurrent();
       navigator.pushReplacement(BottomToTopTransition(nextRide));
       return;
     }
+    _waybills.clearNext();
     widget.sessionController?.setOnline(false);
     if (navigator.canPop()) {
       navigator.popUntil((route) => route.isFirst);
@@ -70,17 +70,6 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
           activeRideRepository: widget.activeRideRepository,
         ),
       ),
-    );
-  }
-
-  Widget? _rideFromQueuedWaybill() {
-    final queued = _waybills.next;
-    if (queued == null) return null;
-    return AcceptRide.fromQueuedWaybill(
-      queued,
-      waybillRepository: _waybills,
-      sessionController: widget.sessionController,
-      activeRideRepository: widget.activeRideRepository,
     );
   }
 

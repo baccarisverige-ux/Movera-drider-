@@ -66,6 +66,17 @@ void main() {
     expect(ride.cancelled, isFalse);
   });
 
+  test('completion preserves a pre-saved queued trip snapshot', () async {
+    final store = MemoryActiveRideRepository();
+    final ride = ActiveRideController(tripId: 'A', repository: store,
+        initialStage: ActiveRideStage.onTrip);
+    await store.save(const PersistedActiveRide(
+      tripId: 'B', stage: ActiveRideStage.headingToPickup,
+    ));
+    expect(ride.complete(clearSnapshot: false), isTrue);
+    expect((await store.read())?.tripId, 'B');
+  });
+
   test('active ride persists stage through the repository', () async {
     final store = MemoryActiveRideRepository();
     final ride = ActiveRideController(
