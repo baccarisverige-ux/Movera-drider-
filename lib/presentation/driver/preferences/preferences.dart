@@ -229,7 +229,6 @@ class _PreferencesState extends State<Preferences> {
             borderRadius: BorderRadius.circular(19),
             border: Border.all(color: _line),
           ),
-          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 10, 12),
             child: Column(
