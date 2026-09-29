@@ -2182,12 +2182,12 @@ class _AcceptRideState extends State<AcceptRide>
       return 'Slide to drop-off';
     }
     return switch (_stage) {
-      ActiveRideStage.headingToPickup => 'Slide to start trip',
+      ActiveRideStage.headingToPickup => 'Slide to arrive at pickup',
       ActiveRideStage.waitingForRider => widget.stopAddresses.isEmpty
           ? 'Slide to start trip'
           : 'Slide to start first stop',
       ActiveRideStage.onTrip => _stopCursor < widget.stopAddresses.length
-          ? 'Arrive at the stop'
+          ? 'Slide to arrive at the stop'
           : 'Slide to complete trip',
     };
   }
@@ -2325,7 +2325,7 @@ class _AcceptRideState extends State<AcceptRide>
             minHeight: offerOpen ? 0 : collapsed,
             maxHeight: offerOpen ? 1 : expanded,
             snapPoint: snap,
-            panelSnapping: true,
+            panelSnapping: false,
             defaultPanelState: PanelState.OPEN,
             isDraggable: !offerOpen,
             color: Colors.transparent,
@@ -3163,7 +3163,14 @@ class _AcceptRideState extends State<AcceptRide>
             accent: accent,
             onConfirmed: () {
               _setMapGesturesBlocked(false);
-              _advanceRide();
+              if (_stage == ActiveRideStage.headingToPickup ||
+                  (_stage == ActiveRideStage.onTrip &&
+                   !_paidStopWait &&
+                   _stopCursor < widget.stopAddresses.length)) {
+                _onArrivedTap();
+              } else {
+                _advanceRide();
+              }
             },
           ),
         ),
