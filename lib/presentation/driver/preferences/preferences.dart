@@ -255,10 +255,14 @@ class _PreferencesState extends State<Preferences> {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(6, 0, 18, 6),
-                    child: Image.asset(
-                      category.image,
-                      fit: BoxFit.contain,
+                    padding: const EdgeInsets.fromLTRB(4, 0, 16, 4),
+                    child: ColoredBox(
+                      color: const Color(0xFFF7F8F8),
+                      child: Image.asset(
+                        category.image,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
                     ),
                   ),
                 ),
