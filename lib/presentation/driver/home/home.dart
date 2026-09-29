@@ -142,6 +142,8 @@ class _DriverHomeState extends State<DriverHome>
   bool showRideRequests = false;
   bool isAccountActivated = true;
   bool _activationHold = false;
+  Color? _sheetTone;
+  Timer? _sheetToneTimer;
   late final DriverSessionController _driverSession;
   late final bool _ownsDriverSession;
   bool get _isOnline => _driverSession.isOnline;
@@ -1300,6 +1302,15 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
+  void _flashSheet(Color color) {
+    _sheetToneTimer?.cancel();
+    setState(() => _sheetTone = color);
+    _sheetToneTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      setState(() => _sheetTone = null);
+    });
+  }
+
   void _skipActivationDemo() {
     setState(() {
       isAccountActivated = true;
@@ -1642,6 +1653,7 @@ class _DriverHomeState extends State<DriverHome>
                           goOnlinePulseController: _goOnlinePulseController,
                           onOpenScheduledRides: _openScheduledRides,
                           inactive: _activationHold && !isAccountActivated,
+                          tone: _sheetTone,
                         ),
                       ),
                     ),
@@ -3480,6 +3492,7 @@ class _DriverHomeState extends State<DriverHome>
       _pendingRadarHomeOffers.clear();
       _soonReservationReady = false;
     });
+    _flashSheet(const Color(0xFF1C6B45));
     _clearDirectOfferRoute();
     unawaited(_startDriverLocation(moveCamera: true));
 
@@ -3555,6 +3568,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Future<void> _goOffline() async {
+    _flashSheet(const Color(0xFF8E2E28));
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
     _directOfferTimer?.cancel();
@@ -4800,12 +4814,14 @@ class _DriverHomeState extends State<DriverHome>
             notchDepth: 58,
             cornerRadius: 24,
           ),
-          color: const Color(0xFFFCFDFD),
+          color: _sheetTone ?? const Color(0xFFFCFDFD),
           elevation: 8,
           shadowColor: const Color(0x3311181C),
           clipBehavior: Clip.antiAlias,
-          child: Container(
-            color: const Color(0xFFFCFDFD),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 420),
+            curve: Curves.easeOutCubic,
+            color: _sheetTone ?? const Color(0xFFFCFDFD),
             child: Column(
               children: [
                 const SizedBox(height: 88),
@@ -5146,6 +5162,7 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void dispose() {
     _homeSheetPositionGuardTimer?.cancel();
+    _sheetToneTimer?.cancel();
     _goOnlinePulseController.dispose();
     _onlineTransitionTimer?.cancel();
     _offerSimulationTimer?.cancel();
