@@ -18,8 +18,6 @@ class _SettingsState extends State<Settings> {
   static const Color _muted = Color(0xFF7D898F);
   static const Color _line = Color(0xFFE6E8EA);
 
-  bool _dark = false;
-  String _language = 'English (US)';
 
   @override
   Widget build(BuildContext context) {
@@ -60,17 +58,12 @@ class _SettingsState extends State<Settings> {
             _row(
               icon: Icons.dark_mode_outlined,
               title: 'Dark mode',
-              trailing: Switch.adaptive(
-                value: _dark,
-                activeTrackColor: _ink,
-                onChanged: (value) => setState(() => _dark = value),
-              ),
+              detail: 'Unavailable in demo',
             ),
             _row(
               icon: Icons.language_rounded,
               title: 'Language',
-              detail: _language,
-              onTap: _pickLanguage,
+              detail: 'English (US) only',
             ),
           ]),
           const SizedBox(height: 12),
@@ -178,49 +171,4 @@ class _SettingsState extends State<Settings> {
     );
   }
 
-  Future<void> _pickLanguage() async {
-    const options = <String>['English (US)', 'Svenska'];
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Language',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: _ink,
-                    ),
-                  ),
-                ),
-              ),
-              for (final option in options)
-                ListTile(
-                  title: Text(option),
-                  trailing: option == _language
-                      ? const Icon(Icons.check_rounded, color: _ink)
-                      : null,
-                  onTap: () => Navigator.pop(sheetContext, option),
-                ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-    if (selected != null && mounted) {
-      setState(() => _language = selected);
-    }
-  }
 }
