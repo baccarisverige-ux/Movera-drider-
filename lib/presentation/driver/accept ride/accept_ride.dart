@@ -56,6 +56,7 @@ class AcceptRide extends StatefulWidget {
     this.pickupArea = 'Enhörna',
     this.dropoffAddress = 'T-Centralen, Stockholm',
     this.stopAddresses = const <String>[],
+    this.stopPositions = const <LatLng>[],
     this.pickupPosition = const LatLng(59.3279, 18.0615),
     this.dropoffPosition = const LatLng(59.3326, 18.0649),
     this.locationRepository,
@@ -83,6 +84,7 @@ class AcceptRide extends StatefulWidget {
   final String pickupArea;
   final String dropoffAddress;
   final List<String> stopAddresses;
+  final List<LatLng> stopPositions;
   final LatLng pickupPosition;
   final LatLng dropoffPosition;
   final DriverLocationRepository? locationRepository;
@@ -149,6 +151,7 @@ class AcceptRide extends StatefulWidget {
       pickupArea: snapshot.pickupArea ?? pickup.split(',').last.trim(),
       dropoffAddress: snapshot.dropoffAddress ?? 'Stockholm',
       stopAddresses: snapshot.stopAddresses,
+      stopPositions: snapshot.stopPoints.map((point) => point.toLatLng()).toList(),
       pickupPosition: LatLng(
         snapshot.pickupLat ?? 59.3279,
         snapshot.pickupLng ?? 18.0615,
@@ -520,6 +523,7 @@ class _AcceptRideState extends State<AcceptRide>
       pickupArea: widget.pickupArea,
       dropoffAddress: widget.dropoffAddress,
       stopAddresses: widget.stopAddresses,
+      stopPoints: widget.stopPositions.map(GeoPointMaps.fromLatLng).toList(),
       pickupLat: widget.pickupPosition.latitude,
       pickupLng: widget.pickupPosition.longitude,
       dropoffLat: widget.dropoffPosition.latitude,
@@ -643,7 +647,7 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  LatLng get _routeTarget {
+  LatLng? get _routeTarget {
     if (_stage == ActiveRideStage.onTrip &&
         _stopCursor < widget.stopAddresses.length) {
       return _stopPoint(_stopCursor);
@@ -652,20 +656,14 @@ class _AcceptRideState extends State<AcceptRide>
     return widget.pickupPosition;
   }
 
-  LatLng _stopPoint(int index) {
-    final count = widget.stopAddresses.length;
-    final t = (index + 1) / (count + 1);
-    return LatLng(
-      widget.pickupPosition.latitude +
-          (widget.dropoffPosition.latitude - widget.pickupPosition.latitude) * t,
-      widget.pickupPosition.longitude +
-          (widget.dropoffPosition.longitude - widget.pickupPosition.longitude) * t,
-    );
+  LatLng? _stopPoint(int index) {
+    if (index < 0 || index >= widget.stopPositions.length) return null;
+    return widget.stopPositions[index];
   }
 
   bool get _arrivalDemo {
     final binding = WidgetsBinding.instance.runtimeType.toString();
-    return kIsWeb || binding.contains('Test');
+    return binding.contains('Test');
   }
 
   LatLng? get _arrivalTarget {
@@ -682,6 +680,7 @@ class _AcceptRideState extends State<AcceptRide>
     final target = _arrivalTarget;
     if (target == null) return false;
     if (_arrivalDemo) return true;
+    if (!_hasLiveLocation) return false;
     return GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
           GeoPointMaps.fromLatLng(target),
         ) <=
@@ -763,6 +762,18 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _blockedArrival() {
+    if (_arrivalTarget == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('This stop needs a verified map location before arrival.'),
+      ));
+      return;
+    }
+    if (!_arrivalDemo && !_hasLiveLocation) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Location unavailable. Enable location to confirm arrival.'),
+      ));
+      return;
+    }
     final where = _stage == ActiveRideStage.onTrip ? 'stop' : 'pickup';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -958,9 +969,20 @@ class _AcceptRideState extends State<AcceptRide>
     if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) return;
     if (!_allowExternalRouting) return;
 
+    final target = _routeTarget;
+    if (target == null) {
+      setState(() {
+        _roadGeoPoints = [];
+        _roadRoutePoints = [];
+        _routeDistanceMeters = null;
+        _routeDurationSeconds = null;
+        _locationStatus = 'Stop location unavailable';
+      });
+      return;
+    }
     await _navigation.ensureRoute(
       origin: GeoPointMaps.fromLatLng(_driverPosition),
-      destination: GeoPointMaps.fromLatLng(_routeTarget),
+      destination: GeoPointMaps.fromLatLng(target),
       force: force,
     );
     if (!mounted) return;
@@ -1036,7 +1058,7 @@ class _AcceptRideState extends State<AcceptRide>
 
     final points = _roadRoutePoints.isNotEmpty
         ? _roadRoutePoints
-        : <LatLng>[_driverPosition, _routeTarget];
+        : <LatLng>[_driverPosition, if (_routeTarget != null) _routeTarget!];
     var minLat = points.first.latitude;
     var maxLat = points.first.latitude;
     var minLng = points.first.longitude;
@@ -1110,15 +1132,11 @@ class _AcceptRideState extends State<AcceptRide>
         if (_paidStopWait) {
           _paidStopWait = false;
           _waitTimer?.cancel();
-          if (_stopCursor + 1 < widget.stopAddresses.length) {
-            _stopCursor += 1;
-            _rideLifecycle.persistNow();
-            _stageTransitioning = false;
-            if (mounted) setState(() {});
-            unawaited(_refreshOnTripRoute());
-            return;
-          }
-          _completeCurrentTrip();
+          _stopCursor += 1;
+          _rideLifecycle.persistNow();
+          _stageTransitioning = false;
+          if (mounted) setState(() {});
+          unawaited(_refreshOnTripRoute());
           return;
         }
         if (_stopCursor < widget.stopAddresses.length) {
@@ -2114,7 +2132,7 @@ class _AcceptRideState extends State<AcceptRide>
       if (next <= widget.stopAddresses.length) {
         return 'Slide to ${_stopWord(next)} stop';
       }
-      return 'Slide to complete trip';
+      return 'Slide to drop-off';
     }
     return switch (_stage) {
       ActiveRideStage.headingToPickup => 'Slide to start trip',
@@ -2128,8 +2146,10 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   String get _slideConfirmedLabel {
-    if (_paidStopWait && _stopCursor + 1 < widget.stopAddresses.length) {
-      return 'Next stop';
+    if (_paidStopWait) {
+      return _stopCursor + 1 < widget.stopAddresses.length
+          ? 'Next stop'
+          : 'To drop-off';
     }
     return switch (_stage) {
       ActiveRideStage.headingToPickup => 'Waiting',

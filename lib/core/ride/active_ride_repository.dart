@@ -1,3 +1,5 @@
+import 'package:movera/core/geo/geo_point.dart';
+
 enum ActiveRideStage {
   headingToPickup,
   waitingForRider,
@@ -92,6 +94,7 @@ class PersistedActiveRide {
     this.pickupArea,
     this.dropoffAddress,
     this.stopAddresses = const <String>[],
+    this.stopPoints = const <GeoPoint>[],
     this.pickupLat,
     this.pickupLng,
     this.dropoffLat,
@@ -118,6 +121,7 @@ class PersistedActiveRide {
   final String? pickupArea;
   final String? dropoffAddress;
   final List<String> stopAddresses;
+  final List<GeoPoint> stopPoints;
   final double? pickupLat;
   final double? pickupLng;
   final double? dropoffLat;
@@ -157,6 +161,7 @@ class PersistedActiveRide {
       pickupArea: pickupArea,
       dropoffAddress: dropoffAddress,
       stopAddresses: stopAddresses,
+      stopPoints: stopPoints,
       pickupLat: pickupLat,
       pickupLng: pickupLng,
       dropoffLat: dropoffLat,
@@ -186,6 +191,11 @@ class PersistedActiveRide {
         if (pickupArea != null) 'pickupArea': pickupArea,
         if (dropoffAddress != null) 'dropoffAddress': dropoffAddress,
         if (stopAddresses.isNotEmpty) 'stopAddresses': stopAddresses,
+        if (stopPoints.isNotEmpty)
+          'stopPoints': [
+            for (final point in stopPoints)
+              {'latitude': point.latitude, 'longitude': point.longitude},
+          ],
         if (pickupLat != null) 'pickupLat': pickupLat,
         if (pickupLng != null) 'pickupLng': pickupLng,
         if (dropoffLat != null) 'dropoffLat': dropoffLat,
@@ -223,6 +233,14 @@ class PersistedActiveRide {
               ?.whereType<String>()
               .toList(growable: false) ??
           const <String>[],
+      stopPoints: (json['stopPoints'] as List?)
+              ?.whereType<Map>()
+              .map((point) => GeoPoint(
+                    (point['latitude'] as num).toDouble(),
+                    (point['longitude'] as num).toDouble(),
+                  ))
+              .toList(growable: false) ??
+          const <GeoPoint>[],
       pickupLat: (json['pickupLat'] as num?)?.toDouble(),
       pickupLng: (json['pickupLng'] as num?)?.toDouble(),
       dropoffLat: (json['dropoffLat'] as num?)?.toDouble(),
