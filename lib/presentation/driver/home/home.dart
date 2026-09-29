@@ -1383,27 +1383,16 @@ class _DriverHomeState extends State<DriverHome>
       clipBehavior: Clip.antiAlias,
       child: Align(
         alignment: Alignment.topCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 72),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 62, 16, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              GestureDetector(
-                onTap: _openActivationDocuments,
-                behavior: HitTestBehavior.opaque,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-                  child: Text(
-                    'Contact support',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
+              TextButton(
+                onPressed: _openActivationDocuments,
+                child: const Text('Account documents',
+                  style: TextStyle(color: Colors.white, fontSize: 18,
+                    fontWeight: FontWeight.w800)),
               ),
               TextButton(
                 onPressed: _skipActivationDemo,
