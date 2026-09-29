@@ -5,6 +5,7 @@ import 'package:movera/main.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/core/realtime/driver_realtime.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/waybill/waybill.dart';
@@ -2099,7 +2100,7 @@ void main() {
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     expect(panel.minHeight, 164);
     expect(panel.snapPoint, isNotNull);
-    expect(panel.panelSnapping, isTrue);
+    expect(panel.panelSnapping, isFalse);
     expect(
       find.byKey(const ValueKey<String>('active-ride-journey-card')),
       findsOneWidget,
@@ -2212,6 +2213,21 @@ void main() {
     expect(banner.width, closeTo(375, 1));
     _expectNoException(tester);
   });
+  testWidgets('A stop without coordinates cannot be marked arrived', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide(
+      initialStage: ActiveRideStage.onTrip,
+      stopAddresses: <String>['Unlocated stop'],
+    )));
+    await tester.pump(const Duration(milliseconds: 160));
+    expect(find.text('Slide to arrive at the stop'), findsOneWidget);
+    await _slideActiveRideAction(tester);
+    expect(find.text('This stop needs a verified map location before arrival.'), findsOneWidget);
+    expect(find.text('Slide to arrive at the stop'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
 }
 
 class _FailingRouteRepository implements RouteRepository {
