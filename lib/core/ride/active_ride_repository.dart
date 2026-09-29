@@ -97,6 +97,8 @@ class PersistedActiveRide {
     this.dropoffLat,
     this.dropoffLng,
     this.waitSeconds,
+    this.stopIndex = 0,
+    this.paidStopWait = false,
     this.next,
   });
 
@@ -121,6 +123,8 @@ class PersistedActiveRide {
   final double? dropoffLat;
   final double? dropoffLng;
   final int? waitSeconds;
+  final int stopIndex;
+  final bool paidStopWait;
   final PersistedQueuedTrip? next;
 
   /// How long a saved live trip may sit untouched and still be restored.
@@ -158,6 +162,8 @@ class PersistedActiveRide {
       dropoffLat: dropoffLat,
       dropoffLng: dropoffLng,
       waitSeconds: waitSeconds,
+      stopIndex: stopIndex,
+      paidStopWait: paidStopWait,
       next: next,
     );
   }
@@ -185,6 +191,8 @@ class PersistedActiveRide {
         if (dropoffLat != null) 'dropoffLat': dropoffLat,
         if (dropoffLng != null) 'dropoffLng': dropoffLng,
         if (waitSeconds != null) 'waitSeconds': waitSeconds,
+        'stopIndex': stopIndex,
+        'paidStopWait': paidStopWait,
         if (next != null) 'next': next!.toJson(),
       };
 
@@ -220,6 +228,8 @@ class PersistedActiveRide {
       dropoffLat: (json['dropoffLat'] as num?)?.toDouble(),
       dropoffLng: (json['dropoffLng'] as num?)?.toDouble(),
       waitSeconds: (json['waitSeconds'] as num?)?.toInt(),
+      stopIndex: (json['stopIndex'] as num?)?.toInt() ?? 0,
+      paidStopWait: json['paidStopWait'] == true,
       next: nextJson is Map
           ? PersistedQueuedTrip.fromJson(Map<String, dynamic>.from(nextJson))
           : null,

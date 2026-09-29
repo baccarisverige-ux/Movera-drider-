@@ -33,6 +33,9 @@ void main() {
       dropoffLat: 59.3157,
       dropoffLng: 18.0335,
       waitSeconds: 12,
+      stopIndex: 1,
+      paidStopWait: true,
+      startedAt: DateTime.utc(2026, 9, 29, 12),
       next: const PersistedQueuedTrip(
         tripId: 'on-trip-radar-demo-1',
         riderName: 'Maya',
@@ -63,6 +66,9 @@ void main() {
     ]);
     expect(decoded.next?.tripId, 'on-trip-radar-demo-1');
     expect(decoded.next?.riderName, 'Maya');
+    expect(decoded.stopIndex, 1);
+    expect(decoded.paidStopWait, isTrue);
+    expect(decoded.startedAt, DateTime.utc(2026, 9, 29, 12));
   });
 
   test('stale snapshots older than six hours are not fresh', () {

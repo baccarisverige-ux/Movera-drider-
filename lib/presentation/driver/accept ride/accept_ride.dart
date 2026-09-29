@@ -419,7 +419,16 @@ class _AcceptRideState extends State<AcceptRide>
     _rideLifecycle.addListener(_syncNavigationStage);
     _syncNavigationStage();
     _restoreQueuedNextFromSnapshot();
+    final restored = widget.restoredSnapshot;
+    _stopCursor = math.min(math.max(0, restored?.stopIndex ?? 0), widget.stopAddresses.length);
+    _paidStopWait = restored?.paidStopWait == true;
+    _onTripStartedAt = restored?.startedAt;
     _waitSeconds = widget.initialWaitSeconds;
+    if (restored?.savedAt != null &&
+        (widget.initialStage == ActiveRideStage.waitingForRider || _paidStopWait)) {
+      final elapsed = DateTime.now().difference(restored!.savedAt!).inSeconds;
+      _waitSeconds += math.max(0, elapsed);
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _waybills.beginCurrent(_buildCurrentWaybill());
@@ -516,6 +525,9 @@ class _AcceptRideState extends State<AcceptRide>
       dropoffLat: widget.dropoffPosition.latitude,
       dropoffLng: widget.dropoffPosition.longitude,
       waitSeconds: _waitSeconds,
+      stopIndex: _stopCursor,
+      paidStopWait: _paidStopWait,
+      startedAt: _onTripStartedAt,
       next: securedOffer == null
           ? null
           : PersistedQueuedTrip(
@@ -777,6 +789,7 @@ class _AcceptRideState extends State<AcceptRide>
       _paidStopWait = true;
       _waitSeconds = 0;
       _startWaitTimer();
+      _rideLifecycle.persistNow();
       if (mounted) setState(() {});
     }
   }
@@ -798,6 +811,7 @@ class _AcceptRideState extends State<AcceptRide>
     _waitSeconds = 0;
     _routeLoading = false;
     _startWaitTimer();
+    _rideLifecycle.persistNow();
     unawaited(
       _realtime.sendSignal(
         tripId: widget.offerId,
@@ -1083,6 +1097,7 @@ class _AcceptRideState extends State<AcceptRide>
         _nextTripRadarDemoTimer?.cancel();
         _nextTripRadarMatchTimer?.cancel();
         _onTripStartedAt = DateTime.now();
+        _rideLifecycle.persistNow();
         _onTripRadarState = _OnTripRadarState.scanning;
         _nextTripRadarOffer = null;
         if (mounted) setState(() {});
@@ -1097,6 +1112,7 @@ class _AcceptRideState extends State<AcceptRide>
           _waitTimer?.cancel();
           if (_stopCursor + 1 < widget.stopAddresses.length) {
             _stopCursor += 1;
+            _rideLifecycle.persistNow();
             _stageTransitioning = false;
             if (mounted) setState(() {});
             unawaited(_refreshOnTripRoute());
