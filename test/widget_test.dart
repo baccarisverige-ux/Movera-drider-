@@ -59,6 +59,15 @@ Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 1100));
 }
 
+Future<void> _tapArrived(WidgetTester tester) async {
+  final button =
+      find.byKey(const ValueKey<String>('active-ride-arrived-button'));
+  expect(button, findsOneWidget);
+  await tester.ensureVisible(button);
+  await tester.tap(button);
+  await tester.pump(const Duration(milliseconds: 240));
+}
+
 Future<void> _slideActiveRideAction(WidgetTester tester) async {
   final action =
       find.byKey(const ValueKey<String>('active-ride-primary-action'));
@@ -1378,14 +1387,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
 
     expect(find.text('Heading to pickup'), findsOneWidget);
-    expect(find.text('Slide to confirm pickup'), findsOneWidget);
+    expect(find.text("I've arrived"), findsOneWidget);
+    expect(find.text('Slide to confirm pickup'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('active-ride-panel-headingToPickup')),
       findsOneWidget,
     );
     _expectNoException(tester);
 
-    await _slideActiveRideAction(tester);
+    await _tapArrived(tester);
 
     expect(find.text('Waiting for rider'), findsWidgets);
     expect(find.text('Slide to start trip'), findsOneWidget);
@@ -1435,7 +1445,7 @@ void main() {
       expect(find.byType(CustomGoogleMap), findsOneWidget);
       expect(find.text('Heading to pickup'), findsOneWidget);
 
-      await _slideActiveRideAction(tester);
+      await _tapArrived(tester);
 
       expect(find.text('Waiting for rider'), findsWidgets);
       expect(find.byType(AcceptRide), findsOneWidget);
@@ -1528,7 +1538,7 @@ void main() {
 
     expect(find.byType(AcceptRide), findsOneWidget);
 
-    await _slideActiveRideAction(tester);
+    await _tapArrived(tester);
     await _slideActiveRideAction(tester);
     await _slideActiveRideAction(tester);
     await _confirmShortTripIfAsked(tester);
@@ -1575,7 +1585,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
 
-    await _slideActiveRideAction(tester);
+    await _tapArrived(tester);
     await _slideActiveRideAction(tester);
 
     expect(find.textContaining('Dropping off'), findsOneWidget);
@@ -1653,7 +1663,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 160));
 
-    await _slideActiveRideAction(tester);
+    await _tapArrived(tester);
     await _slideActiveRideAction(tester);
     await tester.pump(const Duration(milliseconds: 2400));
 
@@ -1683,7 +1693,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 160));
 
-    await _slideActiveRideAction(tester);
+    await _tapArrived(tester);
 
     await _slideActiveRideAction(tester);
 
@@ -1742,7 +1752,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 160));
 
-    await _slideActiveRideAction(tester);
+    await _tapArrived(tester);
     await _slideActiveRideAction(tester);
     await tester.pump(const Duration(milliseconds: 2400));
 
@@ -1879,7 +1889,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
 
-    await _slideActiveRideAction(tester);
+    await _tapArrived(tester);
 
     await _slideActiveRideAction(tester);
 
@@ -2135,7 +2145,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
 
-    await _slideActiveRideAction(tester);
+    await _tapArrived(tester);
     await _slideActiveRideAction(tester);
     await tester.pump(const Duration(milliseconds: 2400));
 

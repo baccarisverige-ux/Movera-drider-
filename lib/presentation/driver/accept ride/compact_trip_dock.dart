@@ -259,7 +259,6 @@ class CompactTripDock extends StatelessWidget {
               padding: const EdgeInsets.only(right: 8),
               child: onArrived != null
                   ? Material(
-                      key: const ValueKey<String>('active-ride-arrived-button'),
                       color: arrivedEnabled
                           ? const Color(0xFF252E3A)
                           : const Color(0xFFE6E8EA),

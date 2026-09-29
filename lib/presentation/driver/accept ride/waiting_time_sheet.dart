@@ -12,6 +12,7 @@ Future<void> showWaitingTimeSheet(
   BuildContext context, {
   required int Function() readSeconds,
   VoidCallback? onNoShow,
+  bool fullyPaid = false,
 }) {
   return showMoveraModalSheet<void>(
     context: context,
@@ -20,6 +21,7 @@ Future<void> showWaitingTimeSheet(
       return WaitingTimeSheet(
         readSeconds: readSeconds,
         onNoShow: onNoShow,
+        fullyPaid: fullyPaid,
       );
     },
   );
@@ -30,10 +32,12 @@ class WaitingTimeSheet extends StatefulWidget {
     super.key,
     required this.readSeconds,
     this.onNoShow,
+    this.fullyPaid = false,
   });
 
   final int Function() readSeconds;
   final VoidCallback? onNoShow;
+  final bool fullyPaid;
 
   @override
   State<WaitingTimeSheet> createState() => _WaitingTimeSheetState();
@@ -78,9 +82,9 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
               children: [
                 _CloseMark(onTap: () => Navigator.pop(context)),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Pickup wait',
+                    widget.fullyPaid ? 'Stop wait' : 'Pickup wait',
                     style: TextStyle(
                       color: _ink,
                       fontSize: 16,
@@ -113,7 +117,9 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        phase.title,
+                        widget.fullyPaid
+                            ? 'Every minute is paid'
+                            : phase.title,
                         style: const TextStyle(
                           color: _ink,
                           fontSize: 18,
@@ -123,7 +129,9 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        phase.detail,
+                        widget.fullyPaid
+                            ? 'This stop has no free minutes. The whole wait is added to the fare.'
+                            : phase.detail,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: _muted,
@@ -136,6 +144,7 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (!widget.fullyPaid) ...[
                 _PhaseCard(
                   title: 'Included time',
                   detail: 'The opening minutes stay inside the fare.',
@@ -145,15 +154,19 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
                       : _PhaseState.done,
                 ),
                 const SizedBox(height: 8),
+                ],
                 _PhaseCard(
                   title: 'Wait time',
-                  detail: 'Added to the fare when this trip is completed.',
+                  detail: widget.fullyPaid
+                      ? 'Added from the first second at this stop.'
+                      : 'Added to the fare when this trip is completed.',
                   value: '12,26 kr / min',
                   tone: const Color(0xFF146B45),
-                  state: seconds < _graceSeconds
-                      ? _PhaseState.later
-                      : _PhaseState.now,
+                  state: widget.fullyPaid || seconds >= _graceSeconds
+                      ? _PhaseState.now
+                      : _PhaseState.later,
                 ),
+                if (!widget.fullyPaid) ...[
                 const SizedBox(height: 8),
                 _PhaseCard(
                   title: 'No-show',
@@ -164,7 +177,10 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
                       ? _PhaseState.later
                       : _PhaseState.now,
                 ),
-                if (seconds >= _noShowSeconds && widget.onNoShow != null) ...[
+                ],
+                if (!widget.fullyPaid &&
+                    seconds >= _noShowSeconds &&
+                    widget.onNoShow != null) ...[
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,

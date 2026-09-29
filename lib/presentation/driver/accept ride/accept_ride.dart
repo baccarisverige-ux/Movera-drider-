@@ -376,6 +376,8 @@ class _AcceptRideState extends State<AcceptRide>
   DateTime? _lastSnapshotAt;
   bool _liveUpdatesPaused = false;
   int _waitSeconds = 0;
+  int _stopCursor = 0;
+  bool _paidStopWait = false;
   DateTime? _onTripStartedAt;
   _OnTripRadarState _onTripRadarState = _OnTripRadarState.off;
   _NextTripRadarOffer? _nextTripRadarOffer;
@@ -629,10 +631,53 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  LatLng get _routeTarget =>
-      _stage == ActiveRideStage.onTrip
-          ? widget.dropoffPosition
-          : widget.pickupPosition;
+  LatLng get _routeTarget {
+    if (_stage == ActiveRideStage.onTrip &&
+        _stopCursor < widget.stopAddresses.length) {
+      return _stopPoint(_stopCursor);
+    }
+    if (_stage == ActiveRideStage.onTrip) return widget.dropoffPosition;
+    return widget.pickupPosition;
+  }
+
+  LatLng _stopPoint(int index) {
+    final count = widget.stopAddresses.length;
+    final t = (index + 1) / (count + 1);
+    return LatLng(
+      widget.pickupPosition.latitude +
+          (widget.dropoffPosition.latitude - widget.pickupPosition.latitude) * t,
+      widget.pickupPosition.longitude +
+          (widget.dropoffPosition.longitude - widget.pickupPosition.longitude) * t,
+    );
+  }
+
+  bool get _arrivalDemo {
+    final binding = WidgetsBinding.instance.runtimeType.toString();
+    return kIsWeb || binding.contains('Test');
+  }
+
+  LatLng? get _arrivalTarget {
+    if (_stage == ActiveRideStage.headingToPickup) return widget.pickupPosition;
+    if (_stage == ActiveRideStage.onTrip &&
+        !_paidStopWait &&
+        _stopCursor < widget.stopAddresses.length) {
+      return _stopPoint(_stopCursor);
+    }
+    return null;
+  }
+
+  bool get _nearArrivalTarget {
+    final target = _arrivalTarget;
+    if (target == null) return false;
+    if (_arrivalDemo) return true;
+    return GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
+          GeoPointMaps.fromLatLng(target),
+        ) <=
+        100;
+  }
+
+  bool get _countingWait =>
+      _stage == ActiveRideStage.waitingForRider || _paidStopWait;
 
 
   void _syncNavigationStage() {
@@ -705,30 +750,35 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
-  bool get _driverNearPickup {
-    return GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
-          GeoPointMaps.fromLatLng(widget.pickupPosition),
-        ) <=
-        100;
-  }
-
-  void _tryConfirmPickupArrival() {
-    if (!_driverNearPickup) {
-      _blockedPickupArrival();
-      return;
-    }
-    _confirmPickupArrival();
-  }
-
-  void _blockedPickupArrival() {
+  void _blockedArrival() {
+    final where = _stage == ActiveRideStage.onTrip ? 'stop' : 'pickup';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Move within 100 m of the pickup to confirm.'),
+        content: Text('Move within 100 m of the $where to arrive.'),
         backgroundColor: _ink,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
+  }
+
+  void _onArrivedTap() {
+    if (!_nearArrivalTarget) {
+      _blockedArrival();
+      return;
+    }
+    if (_stage == ActiveRideStage.headingToPickup) {
+      _confirmPickupArrival();
+      return;
+    }
+    if (_stage == ActiveRideStage.onTrip &&
+        !_paidStopWait &&
+        _stopCursor < widget.stopAddresses.length) {
+      _paidStopWait = true;
+      _waitSeconds = 0;
+      _startWaitTimer();
+      if (mounted) setState(() {});
+    }
   }
 
   void _confirmPickupArrival() {
@@ -874,7 +924,7 @@ class _AcceptRideState extends State<AcceptRide>
       _rideLifecycle.persistNow();
     }
 
-    if (_stage != ActiveRideStage.waitingForRider) {
+    if (_stage != ActiveRideStage.waitingForRider && !_paidStopWait) {
       await _refreshRoadRoute(force: forceRoute);
       await _followVehicle();
     }
@@ -891,7 +941,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Future<void> _refreshRoadRoute({bool force = false}) async {
-    if (_stage == ActiveRideStage.waitingForRider) return;
+    if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) return;
     if (!_allowExternalRouting) return;
 
     await _navigation.ensureRoute(
@@ -1020,7 +1070,6 @@ class _AcceptRideState extends State<AcceptRide>
     switch (_stage) {
       case ActiveRideStage.headingToPickup:
         _stageTransitioning = false;
-        _confirmPickupArrival();
         return;
 
       case ActiveRideStage.waitingForRider:
@@ -1029,6 +1078,8 @@ class _AcceptRideState extends State<AcceptRide>
           return;
         }
         _waitTimer?.cancel();
+        _paidStopWait = false;
+        _stopCursor = 0;
         _nextTripRadarDemoTimer?.cancel();
         _nextTripRadarMatchTimer?.cancel();
         _onTripStartedAt = DateTime.now();
@@ -1041,6 +1092,23 @@ class _AcceptRideState extends State<AcceptRide>
         return;
 
       case ActiveRideStage.onTrip:
+        if (_paidStopWait) {
+          _paidStopWait = false;
+          _waitTimer?.cancel();
+          if (_stopCursor + 1 < widget.stopAddresses.length) {
+            _stopCursor += 1;
+            _stageTransitioning = false;
+            if (mounted) setState(() {});
+            unawaited(_refreshOnTripRoute());
+            return;
+          }
+          _completeCurrentTrip();
+          return;
+        }
+        if (_stopCursor < widget.stopAddresses.length) {
+          _stageTransitioning = false;
+          return;
+        }
         if (_tripEndedTooQuickly) {
           _stageTransitioning = false;
           unawaited(_askBeforeShortFinish());
@@ -2002,7 +2070,7 @@ class _AcceptRideState extends State<AcceptRide>
   void _startWaitTimer() {
     _waitTimer?.cancel();
     _waitTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _stage != ActiveRideStage.waitingForRider) return;
+      if (!mounted || !_countingWait) return;
       setState(() => _waitSeconds++);
     });
   }
@@ -2013,15 +2081,59 @@ class _AcceptRideState extends State<AcceptRide>
     return '$minutes:$seconds';
   }
 
+  String _stopWord(int number) {
+    return switch (number) {
+      1 => 'first',
+      2 => 'second',
+      3 => 'third',
+      4 => 'fourth',
+      5 => 'fifth',
+      _ => '$number',
+    };
+  }
+
+  String get _slideLabel {
+    if (_paidStopWait) {
+      final next = _stopCursor + 2;
+      if (next <= widget.stopAddresses.length) {
+        return 'Slide to ${_stopWord(next)} stop';
+      }
+      return 'Slide to complete trip';
+    }
+    return switch (_stage) {
+      ActiveRideStage.headingToPickup => 'Slide to start trip',
+      ActiveRideStage.waitingForRider => widget.stopAddresses.isEmpty
+          ? 'Slide to start trip'
+          : 'Slide to start first stop',
+      ActiveRideStage.onTrip => _stopCursor < widget.stopAddresses.length
+          ? 'Arrive at the stop'
+          : 'Slide to complete trip',
+    };
+  }
+
+  String get _slideConfirmedLabel {
+    if (_paidStopWait && _stopCursor + 1 < widget.stopAddresses.length) {
+      return 'Next stop';
+    }
+    return switch (_stage) {
+      ActiveRideStage.headingToPickup => 'Waiting',
+      ActiveRideStage.waitingForRider => 'Trip started',
+      ActiveRideStage.onTrip => 'Trip completed',
+    };
+  }
+
   void _openWaitingTime() {
-    if (_stage != ActiveRideStage.waitingForRider) return;
+    if (!_countingWait) return;
     showWaitingTimeSheet(
       context,
       readSeconds: () => _waitSeconds,
-      onNoShow: () {
-        if (_waitSeconds < 300 || !mounted) return;
-        _confirmCancellationReason(_noShowReason);
-      },
+      fullyPaid: _paidStopWait,
+      onNoShow: _paidStopWait
+          ? null
+          : () {
+              if (_waitSeconds < 300 || !mounted) return;
+              _confirmCancellationReason(_noShowReason);
+            },
     );
   }
 
@@ -2054,9 +2166,14 @@ class _AcceptRideState extends State<AcceptRide>
           ? widget.dropoffAddress
           : widget.pickupAddress;
 
-  String get _onwardAddress => widget.stopAddresses.isNotEmpty
-      ? widget.stopAddresses.first
-      : widget.dropoffAddress;
+  String get _onwardAddress {
+    if (_stopCursor < widget.stopAddresses.length &&
+        (_stage == ActiveRideStage.onTrip ||
+            _stage == ActiveRideStage.waitingForRider)) {
+      return widget.stopAddresses[_stopCursor];
+    }
+    return widget.dropoffAddress;
+  }
 
   String get _nextStopEyebrow {
     switch (_stage) {
@@ -2381,23 +2498,18 @@ class _AcceptRideState extends State<AcceptRide>
                     pickupAddress: widget.pickupAddress,
                     dropoffAddress: widget.dropoffAddress,
                     stopAddresses: widget.stopAddresses,
-                    etaLabel: _stage == ActiveRideStage.waitingForRider
-                        ? _waitLabel
-                        : _routeEtaText,
+                    etaLabel: _countingWait ? _waitLabel : _routeEtaText,
                     stageLabel: switch (_stage) {
                       ActiveRideStage.headingToPickup => 'PICKUP',
                       ActiveRideStage.waitingForRider => 'WAITING',
-                      ActiveRideStage.onTrip => 'ON TRIP',
+                      ActiveRideStage.onTrip =>
+                        _paidStopWait ? 'STOP WAIT' : 'ON TRIP',
                     },
-                    onArrived: _stage == ActiveRideStage.headingToPickup
-                        ? _tryConfirmPickupArrival
-                        : null,
-                    arrivedEnabled: _driverNearPickup,
-                    onArrivedBlocked: _blockedPickupArrival,
+                    onArrived: _arrivalTarget != null ? _onArrivedTap : null,
+                    arrivedEnabled: _nearArrivalTarget,
+                    onArrivedBlocked: _blockedArrival,
                     riderReply: _riderOnTheWay ? 'RIDER ON THE WAY' : null,
-                    onWaitTap: _stage == ActiveRideStage.waitingForRider
-                        ? _openWaitingTime
-                        : null,
+                    onWaitTap: _countingWait ? _openWaitingTime : null,
                     riderName: widget.riderName,
                     onCall: () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -2878,7 +2990,34 @@ class _AcceptRideState extends State<AcceptRide>
       ActiveRideStage.onTrip => const Color(0xFF1B3F6F),
     };
 
-    return Row(
+    return Column(
+      children: [
+        if (_arrivalTarget != null) ...[
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton(
+              key: const ValueKey<String>('active-ride-arrived-button'),
+              onPressed: _nearArrivalTarget ? _onArrivedTap : _blockedArrival,
+              style: FilledButton.styleFrom(
+                elevation: 0,
+                backgroundColor:
+                    _nearArrivalTarget ? _ink : const Color(0xFFE6E8EA),
+                foregroundColor:
+                    _nearArrivalTarget ? Colors.white : const Color(0xFF98A1A6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text(
+                "I've arrived",
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        Row(
       children: [
         Material(
           key: const ValueKey<String>('active-ride-trip-options'),
@@ -2928,16 +3067,8 @@ class _AcceptRideState extends State<AcceptRide>
             key: const ValueKey<String>('active-ride-slide-action'),
             semanticsKey:
                 const ValueKey<String>('active-ride-primary-action'),
-            label: switch (_stage) {
-              ActiveRideStage.headingToPickup => 'Slide to confirm pickup',
-              ActiveRideStage.waitingForRider => 'Slide to start trip',
-              ActiveRideStage.onTrip => 'Slide to complete trip',
-            },
-            confirmedLabel: switch (_stage) {
-              ActiveRideStage.headingToPickup => 'Pickup confirmed',
-              ActiveRideStage.waitingForRider => 'Trip started',
-              ActiveRideStage.onTrip => 'Trip completed',
-            },
+            label: _slideLabel,
+            confirmedLabel: _slideConfirmedLabel,
             iconAsset: switch (_stage) {
               ActiveRideStage.headingToPickup =>
                 'assets/icons/movera_pin.svg',
@@ -2952,6 +3083,8 @@ class _AcceptRideState extends State<AcceptRide>
               _advanceRide();
             },
           ),
+        ),
+      ],
         ),
       ],
     );
@@ -3197,7 +3330,9 @@ class _AcceptRideState extends State<AcceptRide>
     final isOnTrip = _stage == ActiveRideStage.onTrip;
     final reasons = isOnTrip
         ? _onTripCancellationReasons
-        : _stage == ActiveRideStage.waitingForRider && _waitSeconds >= 300
+        : _stage == ActiveRideStage.waitingForRider &&
+                !_paidStopWait &&
+                _waitSeconds >= 300
             ? <_TripCancellationReason>[_noShowReason, ..._preTripCancellationReasons]
             : _preTripCancellationReasons;
 
