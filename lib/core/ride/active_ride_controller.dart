@@ -58,11 +58,11 @@ class ActiveRideController extends ChangeNotifier {
     return true;
   }
 
-  bool complete() {
+  bool complete({bool clearSnapshot = true}) {
     if (terminal || _stage != ActiveRideStage.onTrip) return false;
     _terminalStatus = TripStatus.completed;
     notifyListeners();
-    unawaited(_repository.clear());
+    if (clearSnapshot) unawaited(_repository.clear());
     return true;
   }
 

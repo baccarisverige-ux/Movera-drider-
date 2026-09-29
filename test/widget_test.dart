@@ -1805,7 +1805,7 @@ void main() {
   });
 
   testWidgets(
-    'Completed screen starts a queued trip even without a nextRide widget',
+    'Completed screen clears a stale queued waybill without a nextRide widget',
     (WidgetTester tester) async {
       WaybillStore.reset();
       addTearDown(() {
@@ -1855,13 +1855,10 @@ void main() {
       await tester.tap(find.text('Done'));
       await tester.pump(const Duration(milliseconds: 520));
 
-      expect(find.byType(AcceptRide), findsOneWidget);
-      expect(find.byType(DriverHome), findsNothing);
-      expect(find.text('Heading to pickup'), findsOneWidget);
-      expect(find.textContaining('Maya'), findsWidgets);
-      expect(find.textContaining('Vasagatan 10'), findsWidgets);
+      expect(find.byType(AcceptRide), findsNothing);
+      expect(find.byType(DriverHome), findsOneWidget);
       expect(WaybillStore.next, isNull);
-      expect(WaybillStore.current?.tripId, 'queued-1');
+      expect(WaybillStore.current, isNull);
       _expectNoException(tester);
     },
   );
