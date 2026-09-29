@@ -663,7 +663,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   bool get _arrivalDemo {
     final binding = WidgetsBinding.instance.runtimeType.toString();
-    return kIsWeb || binding.contains('Test');
+    return binding.contains('Test');
   }
 
   LatLng? get _arrivalTarget {
@@ -677,9 +677,9 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   bool get _nearArrivalTarget {
-    if (_arrivalDemo) return true;
     final target = _arrivalTarget;
     if (target == null) return false;
+    if (_arrivalDemo) return true;
     return GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
           GeoPointMaps.fromLatLng(target),
         ) <=
