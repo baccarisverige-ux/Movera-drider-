@@ -117,7 +117,7 @@ void main() async {
     expect(restored.savedAt, isNotNull);
   });
 
-  test('prefs repository drops a stale snapshot', () async {
+  test('prefs repository retains stale snapshot for recovery', () async {
     SharedPreferences.setMockInitialValues({
       PrefsActiveRideRepository.key: jsonEncode(
         PersistedActiveRide(
@@ -128,7 +128,7 @@ void main() async {
       ),
     });
     final staleStore = PrefsActiveRideRepository();
-    expect(await staleStore.read(), isNull);
+    expect((await staleStore.read())?.tripId, 'trip-stale');
   });
 
   test('clear wins over an in-flight save so a cancelled trip cannot revive', () async {
