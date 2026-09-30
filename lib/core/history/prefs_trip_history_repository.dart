@@ -25,6 +25,10 @@ class PrefsTripHistoryRepository {
       whenLabel: data['whenLabel'] as String, pickup: data['pickup'] as String,
       dropoff: data['dropoff'] as String, fare: data['fare'] as String,
       category: data['category'] as String,
+      distance: data['distance'] as String? ?? '—',
+      duration: data['duration'] as String? ?? '—',
+      tip: data['tip'] as String? ?? '—',
+      paymentMethod: data['paymentMethod'] as String? ?? '—',
       completedAt: DateTime.tryParse(data['completedAt'] as String? ?? ''),
     )).toList(growable: false);
   }
@@ -52,7 +56,14 @@ class PrefsTripHistoryRepository {
     return rows.take(maxReceipts).toList();
   }
 
-  Future<void> archive(WaybillRecord record, {DateTime? completedAt}) {
+  Future<void> archive(
+    WaybillRecord record, {
+    DateTime? completedAt,
+    String? distance,
+    String? duration,
+    String? tip,
+    String? paymentMethod,
+  }) {
     final result = _pending.then((_) async {
       final prefs = await _load();
       final raw = prefs.getString(key);
@@ -69,6 +80,11 @@ class PrefsTripHistoryRepository {
         'dropoff': record.dropoff,
         'fare': record.fare,
         'category': record.service,
+        if (distance?.trim().isNotEmpty == true) 'distance': distance!.trim(),
+        if (duration?.trim().isNotEmpty == true) 'duration': duration!.trim(),
+        if (tip?.trim().isNotEmpty == true) 'tip': tip!.trim(),
+        if (paymentMethod?.trim().isNotEmpty == true)
+          'paymentMethod': paymentMethod!.trim(),
         'completedAt': at.toIso8601String(),
       });
       final success = await prefs.setString(key, jsonEncode({'schemaVersion':1,'rows':rows.take(maxReceipts).toList()}));

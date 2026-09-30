@@ -11,10 +11,10 @@ class TripHistoryRecord {
     required this.dropoff,
     required this.fare,
     required this.category,
-    this.distance = '',
-    this.duration = '',
-    this.tip = '0 kr',
-    this.paymentMethod = 'Wallet',
+    this.distance = '—',
+    this.duration = '—',
+    this.tip = '—',
+    this.paymentMethod = '—',
     this.completedAt,
   });
 
