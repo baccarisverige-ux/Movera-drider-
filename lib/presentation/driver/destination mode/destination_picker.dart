@@ -32,7 +32,6 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
   static const Color _muted = Color(0xFF7D898F);
   static const Color _line = Color(0xFFE3E8E5);
   static const Color _softGreen = Color(0xFFF0F6F2);
-  static const Color _green = Color(0xFF315E4D);
 
   static const List<_DestinationPlace> _places = [
     _DestinationPlace(
@@ -126,7 +125,8 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
       backgroundColor: const Color(0xFFFBFCFB),
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -301,7 +301,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  Text(
+                  Expanded(child: Text(
                     _searchController.text.trim().isEmpty
                         ? 'Suggested addresses'
                         : 'Results',
@@ -309,9 +309,9 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                       color: _ink,
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                    ),
+                    )),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   if (_searchController.text.trim().isNotEmpty)
                     Text(
                       '${results.length} found',
@@ -325,10 +325,12 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
               ),
             ),
             const SizedBox(height: 8),
-            Expanded(
+            SizedBox(
               child: results.isEmpty
                   ? const _NoDestinationResults()
                   : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: EdgeInsets.fromLTRB(
