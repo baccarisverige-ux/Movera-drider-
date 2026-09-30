@@ -1,3 +1,4 @@
+import 'package:movera/core/session/demo_features.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -57,23 +58,23 @@ class DriverStarter extends StatelessWidget {
               child: Column(
                 children: [
                   CustomButton(
-                    centerContent: "Sign in",
-                    onPressed: () {
+                    centerContent: legacyAuthEnabled ? "Legacy sign-in preview" : "Sign-in unavailable — demo",
+                    onPressed: legacyAuthEnabled ? () {
                       Navigator.pushReplacement(
                         context,
                         BottomToTopTransition(const DriverSignIn()),
                       );
-                    },
+                    } : null,
                   ),
                   8.height,
                   CustomButton(
-                    centerContent: "Create account",
-                    onPressed: () {
+                    centerContent: legacyAuthEnabled ? "Legacy registration preview" : "Registration unavailable — demo",
+                    onPressed: legacyAuthEnabled ? () {
                       Navigator.push(
                         context,
                         BottomToTopTransition(const DriverCreateAccount()),
                       );
-                    },
+                    } : null,
                     btncolor: Colors.transparent,
                     borderColor: AppColor.primary,
                     borderwidth: 0.5,
