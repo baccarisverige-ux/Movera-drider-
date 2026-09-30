@@ -431,7 +431,6 @@ class _AcceptRideState extends State<AcceptRide>
         _realtime.subscribe(widget.offerId).listen(_onRealtimeEvent, onError: (Object error) {
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip updates disconnected. Reconnecting is required.')));
         });
-    widget.sessionController?.beginTrip(widget.offerId);
     unawaited(_resyncTrip());
     _rideLifecycle.snapshotBuilder = _buildSnapshot;
     _rideLifecycle.addListener(_onPersistenceChanged);
@@ -450,6 +449,7 @@ class _AcceptRideState extends State<AcceptRide>
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      widget.sessionController?.beginTrip(widget.offerId);
       _waybills.beginCurrent(_buildCurrentWaybill());
       if (widget.restoredSnapshot?.next != null && _nextTripRadarOffer != null) {
         _waybills.secureNext(_buildNextWaybill(_nextTripRadarOffer!));
