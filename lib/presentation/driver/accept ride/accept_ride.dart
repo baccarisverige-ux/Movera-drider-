@@ -226,6 +226,7 @@ class _TripCancellationReason {
 
 class _AcceptRideState extends State<AcceptRide>
     with TickerProviderStateMixin, WidgetsBindingObserver {
+  final DriverRealtimeSequenceGate _realtimeGate = DriverRealtimeSequenceGate();
   static const Color _ink = Color(0xFF252E3A);
   static const Color _panel = Color(0xFFFFFFFF);
   static const Color _canvas = Color(0xFFF4F6F7);
@@ -706,6 +707,19 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _onRealtimeEvent(DriverRealtimeEvent event) {
     if (!mounted || event.tripId != widget.offerId) return;
+
+    final disposition = _realtimeGate.evaluate(event);
+    if (disposition == DriverRealtimeDisposition.staleOrDuplicate ||
+        disposition == DriverRealtimeDisposition.blockedAfterTerminal) {
+      return;
+    }
+
+    if (disposition == DriverRealtimeDisposition.acceptedWithGap) {
+      final realtime = widget.realtime;
+      if (realtime != null) {
+        unawaited(realtime.reconnectAndResync(widget.offerId));
+      }
+    }
 
     switch (event.kind) {
       case DriverRealtimeKind.riderOnTheWay:
