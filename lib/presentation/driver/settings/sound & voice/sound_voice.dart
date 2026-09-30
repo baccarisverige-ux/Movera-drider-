@@ -1,3 +1,4 @@
+import 'package:movera/core/settings/settings_repository.dart';
 import 'package:flutter/material.dart';
 
 class SoundAndVoice extends StatefulWidget {
@@ -16,6 +17,21 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
   bool alwaysPlayRequests = true;
   bool voiceNavigation = true;
   bool readRiderMessages = false;
+
+  final _settings = SettingsRepository();
+  bool _settingsTouched = false;
+  Future<void> _restoreSettings() async {
+    final data=await _settings.read('sound'); if(!mounted || _settingsTouched) return;
+    setState(() { if(data['generalVolume'] is num) generalVolume=(data['generalVolume'] as num).toDouble().clamp(0.0,1.0);if(data['alwaysPlayRequests'] is bool) alwaysPlayRequests=data['alwaysPlayRequests'] as bool;if(data['voiceNavigation'] is bool) voiceNavigation=data['voiceNavigation'] as bool;if(data['readRiderMessages'] is bool) readRiderMessages=data['readRiderMessages'] as bool; });
+  }
+  Future<bool> _persistSettings() async {
+    _settingsTouched=true;
+    try { await _settings.save('sound',{'generalVolume':generalVolume,'alwaysPlayRequests':alwaysPlayRequests,'voiceNavigation':voiceNavigation,'readRiderMessages':readRiderMessages}); return true; }
+    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); return false; }
+  }
+
+  @override
+  void initState() { super.initState(); _restoreSettings(); }
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +60,7 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
+          const Text('Local demo preferences — saved on this device; effects are previews.'),
           _card(
             children: [
               const Text(
@@ -57,13 +74,13 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
               Slider(
                 value: generalVolume,
                 activeColor: _ink,
-                onChanged: (value) => setState(() => generalVolume = value),
+                onChanged: (value) { setState(() => generalVolume = value); _persistSettings(); },
               ),
               _switchRow(
                 'Always play trip requests',
                 'Plays even when the phone is silent',
                 alwaysPlayRequests,
-                (value) => setState(() => alwaysPlayRequests = value),
+                (value) { setState(() => alwaysPlayRequests = value); _persistSettings(); },
               ),
             ],
           ),
@@ -83,13 +100,13 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
                 'Voice navigation',
                 'Spoken turns while you drive',
                 voiceNavigation,
-                (value) => setState(() => voiceNavigation = value),
+                (value) { setState(() => voiceNavigation = value); _persistSettings(); },
               ),
               _switchRow(
                 'Read rider messages',
                 'Reads new chat messages aloud',
                 readRiderMessages,
-                (value) => setState(() => readRiderMessages = value),
+                (value) { setState(() => readRiderMessages = value); _persistSettings(); },
               ),
               const SizedBox(height: 8),
               _test('Test alerts', _onTestAlerts),
