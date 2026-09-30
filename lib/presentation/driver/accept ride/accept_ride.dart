@@ -1,15 +1,16 @@
+import 'package:movera/core/ride/completion_journal.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:movera/core/logging/driver_log.dart';
 import 'package:movera/widgets/preview_unavailable.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
-import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/core/geo/geo_point_maps.dart';
 import 'package:movera/core/routing/route_maps.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
@@ -1260,55 +1261,21 @@ class _AcceptRideState extends State<AcceptRide>
     if (_completionInFlight || !mounted || _rideLifecycle.terminal) return;
     _completionInFlight = true;
     _stageTransitioning = true;
-    try {
-      await PrefsTripHistoryRepository().archive(
-        _waybills.current ?? _buildCurrentWaybill(),
-      );
-    } catch (_) {
-      _completionInFlight = false;
-      _stageTransitioning = false;
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not save the trip. Please try again.'),
-        ));
-      }
-      return;
-    }
-    if (!mounted) return;
     final offer = _nextTripRadarOffer;
-    final queuedNext =
-        _onTripRadarState == _OnTripRadarState.secured && offer != null;
-    if (queuedNext && widget.activeRideRepository != null) {
-      final next = PersistedActiveRide(
-        tripId: offer.id,
-        stage: ActiveRideStage.headingToPickup,
-        riderName: offer.riderName,
-        riderRating: offer.rating,
-        fare: offer.fare,
-        category: offer.category,
-        matchedVia: 'Movera Radar',
-        pickupAddress: offer.pickup,
-        dropoffAddress: offer.dropoff,
-        pickupLat: offer.pickupPosition.latitude,
-        pickupLng: offer.pickupPosition.longitude,
-        dropoffLat: offer.dropoffPosition.latitude,
-        dropoffLng: offer.dropoffPosition.longitude,
-      );
-      await widget.activeRideRepository!.save(next);
-      final saved = await widget.activeRideRepository!.read();
-      if (saved?.tripId != offer.id) {
-        _completionInFlight = false;
-        _stageTransitioning = false;
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not save the next trip. Please try again.'),
-        ));
-        return;
+    final queuedNext = _onTripRadarState == _OnTripRadarState.secured && offer != null;
+    final next = queuedNext ? _snapshotForOffer(offer) : null;
+    try {
+      await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
+        _waybills.current ?? _buildCurrentWaybill(), next: next);
+      if (!mounted) return;
+      if (!await _rideLifecycle.complete(clearSnapshot: false)) {
+        _completionInFlight = false; _stageTransitioning = false; return;
       }
-    }
-    if (!mounted) return;
-    if (!await _rideLifecycle.complete(clearSnapshot: !queuedNext || widget.activeRideRepository == null)) {
-      _completionInFlight = false;
-      _stageTransitioning = false;
+    } catch (error, stack) {
+      DriverLog.error('Trip completion journal failed', error, stack);
+      _completionInFlight = false; _stageTransitioning = false;
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not finish saving this trip. Retry completion; the receipt will not duplicate.')));
       return;
     }
     _waitTimer?.cancel();
@@ -1349,6 +1316,13 @@ class _AcceptRideState extends State<AcceptRide>
       ),
     );
   }
+
+  PersistedActiveRide _snapshotForOffer(_NextTripRadarOffer offer) => PersistedActiveRide(
+    tripId: offer.id, stage: ActiveRideStage.headingToPickup, riderName: offer.riderName,
+    riderRating: offer.rating, fare: offer.fare, category: offer.category, matchedVia: 'Demo Radar',
+    pickupAddress: offer.pickup, dropoffAddress: offer.dropoff,
+    pickupLat: offer.pickupPosition.latitude, pickupLng: offer.pickupPosition.longitude,
+    dropoffLat: offer.dropoffPosition.latitude, dropoffLng: offer.dropoffPosition.longitude);
 
   void _unlockStageAfterFrame() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3705,7 +3679,17 @@ class _AcceptRideState extends State<AcceptRide>
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
-    if (!await _rideLifecycle.cancel()) return;
+    try {
+      final secured = _onTripRadarState == _OnTripRadarState.secured ? _nextTripRadarOffer : null;
+      await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
+        _waybills.current ?? _buildCurrentWaybill(), status: TripStatus.cancelledByDriver,
+        next: secured == null ? null : _snapshotForOffer(secured));
+    } catch (_) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save cancellation. Retry.')));
+      return;
+    }
+    // The journal has already applied terminal cleanup and queued handoff.
+    if (!await _rideLifecycle.cancel(clearSnapshot: false)) return;
     if (!mounted) return;
     _waybills.discardCurrent();
 

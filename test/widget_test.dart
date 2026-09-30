@@ -56,10 +56,12 @@ Future<void> _advanceAnimation(
 Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 220));
   final confirm = find.text('Confirm finish');
-  if (confirm.evaluate().isEmpty) return;
-  await tester.tap(confirm);
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 1100));
+  if (confirm.evaluate().isNotEmpty) { await tester.tap(confirm); }
+  // Each asynchronous journal write must be flushed before asserting navigation.
+  for(var i=0;i<60 && find.byType(DriverRideCompleted).evaluate().isEmpty;i++) {
+    await tester.pump(const Duration(milliseconds:25));
+  }
+  await tester.pump(const Duration(milliseconds:1100));
 }
 
 Future<void> _tapArrived(WidgetTester tester) async {
