@@ -1,3 +1,4 @@
+import 'package:movera/core/contracts/trip_status.dart';
 import 'package:flutter/material.dart';
 import 'package:dotted_line/dotted_line.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -477,7 +478,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             TextWidget(
-              text: 'Ride Completed on',
+              text: _ride.status == TripStatus.completed ? 'Ride Completed on' : 'Trip ended: ${_ride.status.wireName} (${_ride.cancellationActor ?? 'actor unavailable'}; ${_ride.cancellationReasonCode ?? 'reason unavailable'})',
               color: AppColor.subtitle,
               fontSize: 16,
               fontWeight: fwBold,

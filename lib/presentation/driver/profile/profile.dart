@@ -100,7 +100,7 @@ class DriverProfile extends StatelessWidget {
             context,
             icon: Icons.directions_car_outlined,
             title: 'Vehicles',
-            detail: 'Mercedes-Benz C200',
+            detail: 'Mercedes-Benz E 220',
             page: DriverVehicles(),
           ),
           const SizedBox(height: 12),

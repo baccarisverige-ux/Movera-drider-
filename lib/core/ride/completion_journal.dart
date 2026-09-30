@@ -62,11 +62,13 @@ class CompletionJournal {
  if(!status.isTerminal) throw StateError('Invalid terminal journal');
  final row=Map<String,dynamic>.from(data['record'] as Map);
  final at=DateTime.parse(data['completedAt'] as String);
- if(status==TripStatus.completed) {
+ {
  await history.archive(WaybillRecord(tripId:id,statusLabel:'Completed',issuedAt:at,
  fare:row['fare'] as String,service:row['service'] as String,riderName:row['riderName'] as String,
  pickup:row['pickup'] as String,dropoff:row['dropoff'] as String,source:'Local demo',
- driverName:'Unavailable',vehicle:'Unavailable',licensePlate:'Unavailable',passengerCapacity:0),completedAt:at);
+ driverName:'Unavailable',vehicle:'Unavailable',licensePlate:'Unavailable',passengerCapacity:0),completedAt:at, status:status,
+ cancellationActor:data['cancellation'] is Map ? (data['cancellation'] as Map)['actor'] as String? : null,
+ cancellationReasonCode:data['cancellation'] is Map ? (data['cancellation'] as Map)['reasonCode'] as String? : null);
  afterWrite?.call('archive');
  }
  final cancellation=data['cancellation'];
