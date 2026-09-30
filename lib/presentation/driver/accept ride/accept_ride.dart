@@ -2564,7 +2564,7 @@ class _AcceptRideState extends State<AcceptRide>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text(
-                            'Phone integration will call the rider.',
+                            'Rider phone contact is not connected in this demo.',
                           ),
                           backgroundColor: _ink,
                           behavior: SnackBarBehavior.floating,
