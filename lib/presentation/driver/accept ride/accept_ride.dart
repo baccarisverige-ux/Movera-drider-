@@ -1,3 +1,4 @@
+import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
 import 'package:movera/core/location/location_freshness.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'dart:async';
@@ -407,6 +408,8 @@ class _AcceptRideState extends State<AcceptRide>
   late final AnimationController _radarSweepController;
   String? _locationStatus;
 
+  late final SheetTrace _sheetTrace = SheetTrace('active', () => _ridePanelController.isAttached ? _ridePanelController.panelPosition : 0);
+
   @override
   void initState() {
     super.initState();
@@ -471,6 +474,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   @override
   void dispose() {
+    _sheetTrace.dispose();
     _rideSheetPositionGuardTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _waitTimer?.cancel();
@@ -1351,6 +1355,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _onRideSheetPointerDown(PointerDownEvent event) {
+    _sheetTrace.down();
     _ridePointerActive = true;
     _ridePointerLastY = event.position.dy;
     _ridePointerLastMs = DateTime.now().millisecondsSinceEpoch;
@@ -1371,6 +1376,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _onRideSheetPointerEnd(PointerEvent event) {
+    _sheetTrace.up(_ridePointerVelocity);
     _onRideSheetPointerMove(event);
     _ridePointerActive = false;
     _scheduleRideSheetPositionGuard(

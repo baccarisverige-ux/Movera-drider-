@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:movera/widgets/movera_sheet_metrics.dart';
@@ -60,6 +61,7 @@ class MoveraSnapSheetController {
     });
     try {
       await controller.animateWith(simulation);
+      if (kDebugMode) debugPrint('SHEET spring-end position=$position target=$target velocity=$velocityPxPerSec');
     } finally {
       if (identical(_spring, controller)) {
         controller.dispose();
