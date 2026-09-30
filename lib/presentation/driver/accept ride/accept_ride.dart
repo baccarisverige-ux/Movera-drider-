@@ -400,6 +400,7 @@ class _AcceptRideState extends State<AcceptRide>
   bool _routeLoading = false;
   bool _stageTransitioning = false;
   bool _completionInFlight = false;
+  bool _cancellationInFlight = false;
   bool _blockMapGestures = false;
   bool _cameraProgrammatic = false;
   DateTime? _lastCameraFollowAt;
@@ -744,15 +745,29 @@ class _AcceptRideState extends State<AcceptRide>
     _handlingRiderCancellation = true;
     final wasOnTrip = _stage == ActiveRideStage.onTrip;
 
+    if (_completionInFlight || _cancellationInFlight) { _handlingRiderCancellation=false; return; }
+    final secured = _onTripRadarState == _OnTripRadarState.secured ? _nextTripRadarOffer : null;
+    final next = secured == null ? null : _snapshotForOffer(secured);
+    try {
+      await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
+        _waybills.current ?? _buildCurrentWaybill(), status: TripStatus.cancelledByRider, next: next);
+      if (!mounted) return;
+      if (!await _rideLifecycle.cancel(status: TripStatus.cancelledByRider, clearSnapshot: false)) {
+        _handlingRiderCancellation=false; return;
+      }
+    } catch (_) {
+      _handlingRiderCancellation=false;
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Could not save rider cancellation. Retry.'),
+        action: SnackBarAction(label:'Retry',onPressed:(){ _handleRiderCancelled(); })));
+      return;
+    }
+    if(!mounted) return;
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
     _pauseLiveUpdates();
 
-    if (!await _rideLifecycle.cancel(status: TripStatus.cancelledByRider)) {
-      _handlingRiderCancellation = false;
-      return;
-    }
     _waybills.discardCurrent();
 
     await showRiderCancelledSheet(
@@ -763,6 +778,14 @@ class _AcceptRideState extends State<AcceptRide>
     if (!mounted) return;
 
     widget.sessionController?.stayOnlineAfterTrip();
+    if(next!=null) {
+      _waybills.promoteNextToCurrent();
+      Navigator.of(context).pushReplacement(BottomToTopTransition(AcceptRide.fromPersisted(next,
+        waybillRepository:_waybills,sessionController:widget.sessionController,
+        locationRepository:widget.locationRepository,routeRepository:widget.routeRepository,
+        activeRideRepository:widget.activeRideRepository)));
+      return;
+    }
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {
       navigator.pop();
@@ -1251,7 +1274,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Future<void> _completeCurrentTrip() async {
-    if (_completionInFlight || !mounted || _rideLifecycle.terminal) return;
+    if (_completionInFlight || _cancellationInFlight || _handlingRiderCancellation || !mounted || _rideLifecycle.terminal) return;
     _completionInFlight = true;
     _stageTransitioning = true;
     final offer = _nextTripRadarOffer;
@@ -3649,9 +3672,8 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Future<void> _submitTripCancellation(_TripCancellationReason reason) async {
-    _waitTimer?.cancel();
-    _nextTripRadarDemoTimer?.cancel();
-    _nextTripRadarMatchTimer?.cancel();
+    if(_cancellationInFlight || _completionInFlight || _handlingRiderCancellation) return;
+    _cancellationInFlight=true;
     try {
       final secured = _onTripRadarState == _OnTripRadarState.secured ? _nextTripRadarOffer : null;
       await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
@@ -3659,11 +3681,15 @@ class _AcceptRideState extends State<AcceptRide>
         next: secured == null ? null : _snapshotForOffer(secured));
     } catch (_) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save cancellation. Retry.')));
+      _cancellationInFlight=false;
       return;
     }
     // The journal has already applied terminal cleanup and queued handoff.
-    if (!await _rideLifecycle.cancel(clearSnapshot: false)) return;
+    if (!await _rideLifecycle.cancel(clearSnapshot: false)) { _cancellationInFlight=false; return; }
     if (!mounted) return;
+    _waitTimer?.cancel();
+    _nextTripRadarDemoTimer?.cancel();
+    _nextTripRadarMatchTimer?.cancel();
     _waybills.discardCurrent();
 
     final offer = _nextTripRadarOffer;
