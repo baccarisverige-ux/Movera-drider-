@@ -204,7 +204,7 @@ class MyQueuePosition extends StatelessWidget {
                     ),
                   ),
                   16.height,
-                  CustomButton(centerContent: "Join Queue", onPressed: () {}),
+                  CustomButton(centerContent: "Queue unavailable — preview", onPressed: null),
                   24.height,
                   Row(
                     children: [

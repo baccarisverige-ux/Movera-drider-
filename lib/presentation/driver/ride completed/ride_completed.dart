@@ -197,7 +197,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
             Icons.star_rounded,
             color: Color(0xFFF2A12E),
           ),
-          onRatingUpdate: (rating) => setState(() => _rating = rating),
+          onRatingUpdate: (rating) { setState(() => _rating = rating); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rating not sent (demo)'))); },
           updateOnDrag: true,
         ),
       ],

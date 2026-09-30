@@ -88,7 +88,7 @@ class _DriverSearchPickupLocationState
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
-                            onPressed: () {},
+                            onPressed: null,
                             child: SizedBox(
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
