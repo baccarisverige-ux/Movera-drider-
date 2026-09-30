@@ -408,15 +408,17 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
             ),
             Row(
               children: [
-                Transform.scale(
-                  scale: 1.2,
-                  child: Image.asset(
-                    AppAssets.wallet2,
-                    color: AppColor.title,
-                    height: ResSize.h * 22,
+                if (_ride.paymentMethod != '—') ...[
+                  Transform.scale(
+                    scale: 1.2,
+                    child: Image.asset(
+                      AppAssets.wallet2,
+                      color: AppColor.title,
+                      height: ResSize.h * 22,
+                    ),
                   ),
-                ),
-                6.width,
+                  6.width,
+                ],
                 TextWidget(
                   color: AppColor.title,
                   fontSize: 16,
