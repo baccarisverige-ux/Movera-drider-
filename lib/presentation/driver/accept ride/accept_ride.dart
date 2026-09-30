@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:movera/widgets/preview_unavailable.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -2494,21 +2495,7 @@ class _AcceptRideState extends State<AcceptRide>
           onTap: () => showSafetyToolKitSheet(context),
         ),
         const SizedBox(height: 9),
-        _mapCircleButton(
-          icon: Icons.layers_outlined,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Map layers will be connected to settings.'),
-                backgroundColor: _ink,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            );
-          },
-        ),
+        const PreviewUnavailable(label: 'Map layers', child: Icon(Icons.layers_outlined, color: Colors.grey)),
       ],
     );
   }

@@ -42,7 +42,8 @@ class AnalyticsAppBar extends StatelessWidget {
       ),
       actions: [
         IconButton(
-          onPressed: () {},
+          onPressed: null,
+          tooltip: "Date filter unavailable — preview",
           icon: Row(
             children: [
               TextWidget(
