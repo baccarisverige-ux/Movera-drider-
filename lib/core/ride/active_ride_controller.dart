@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
@@ -39,8 +37,8 @@ class ActiveRideController extends ChangeNotifier {
   /// Does not replace [ActiveRideStage] in UI.
   TripStatus get tripStatus => _terminalStatus ?? _stage.tripStatus;
 
-  bool transitionTo(ActiveRideStage next) {
-    if (terminal) return false;
+  Future<bool> transitionTo(ActiveRideStage next) async {
+    if (terminal || saving) return false;
     if (next == _stage) return true;
 
     final allowed = switch (_stage) {
@@ -52,27 +50,27 @@ class ActiveRideController extends ChangeNotifier {
 
     if (!allowed) return false;
 
+    if (!await _write(() => _repository.save(_snapshot(next)))) return false;
     _stage = next;
-    notifyListeners();
-    persistNow();
+    if (!_disposed) notifyListeners();
     return true;
   }
 
-  bool complete({bool clearSnapshot = true}) {
-    if (terminal || _stage != ActiveRideStage.onTrip) return false;
+  Future<bool> complete({bool clearSnapshot = true}) async {
+    if (terminal || saving || _stage != ActiveRideStage.onTrip) return false;
+    if (clearSnapshot && !await _write(_repository.clear)) return false;
     _terminalStatus = TripStatus.completed;
-    notifyListeners();
-    if (clearSnapshot) unawaited(_repository.clear());
+    if (!_disposed) notifyListeners();
     return true;
   }
 
-  bool cancel({
+  Future<bool> cancel({
     TripStatus status = TripStatus.cancelledByDriver,
-  }) {
-    if (terminal || !_isCancellationTerminal(status)) return false;
+  }) async {
+    if (terminal || saving || !_isCancellationTerminal(status)) return false;
+    if (!await _write(_repository.clear)) return false;
     _terminalStatus = status;
-    notifyListeners();
-    unawaited(_repository.clear());
+    if (!_disposed) notifyListeners();
     return true;
   }
 
@@ -82,15 +80,28 @@ class ActiveRideController extends ChangeNotifier {
         status == TripStatus.cancelledByAdmin;
   }
 
-  /// Write the current live snapshot. Safe to call from lifecycle pauses.
-  void persistNow() {
-    if (terminal) return;
-    final id = tripId;
-    if (id == null) return;
-    final ride = snapshotBuilder?.call(_stage) ??
-        PersistedActiveRide(tripId: id, stage: _stage);
-    unawaited(_repository.save(ride));
+  bool _disposed = false;
+  bool _writing = false;
+  Object? persistenceError;
+  bool get saving => _writing;
+  PersistedActiveRide _snapshot(ActiveRideStage stage) =>
+      snapshotBuilder?.call(stage) ?? PersistedActiveRide(tripId: tripId ?? 'demo', stage: stage);
+  Future<bool> _write(Future<void> Function() operation) async {
+    if (_writing) return false;
+    _writing = true;
+    persistenceError = null;
+    if (!_disposed) notifyListeners();
+    try { await operation(); return true; }
+    catch (error) { persistenceError = error; return false; }
+    finally { _writing = false; if (!_disposed) notifyListeners(); }
   }
+  /// Errors are observable; fire-and-forget lifecycle saves never throw.
+  Future<bool> persistNow() async {
+    if (terminal || tripId == null) return true;
+    return _write(() => _repository.save(_snapshot(_stage)));
+  }
+  @override
+  void dispose() { _disposed = true; super.dispose(); }
 
   Future<void> restore() async {
     final stored = await _repository.read();
@@ -98,6 +109,6 @@ class ActiveRideController extends ChangeNotifier {
     if (tripId != null && stored.tripId != tripId) return;
     if (!stored.isFresh) return;
     _stage = stored.stage;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 }
