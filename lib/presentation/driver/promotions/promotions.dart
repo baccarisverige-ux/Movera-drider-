@@ -86,7 +86,7 @@ class _PromotionsState extends State<Promotions> {
         ),
         titleSpacing: 0,
         title: const Text(
-          'Promotions',
+          'Promotions preview',
           style: TextStyle(
             color: _ink,
             fontSize: 18,
@@ -101,7 +101,7 @@ class _PromotionsState extends State<Promotions> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Row(
               children: [
-                _tabChip('Live', 0),
+                _tabChip('Preview', 0),
                 const SizedBox(width: 8),
                 _tabChip('Saved', 1),
               ],
@@ -216,7 +216,7 @@ class _PromotionsState extends State<Promotions> {
                   Clipboard.setData(ClipboardData(text: promo.code));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${promo.code} copied'),
+                      content: Text('Demo code ${promo.code} copied'),
                       backgroundColor: _ink,
                       behavior: SnackBarBehavior.floating,
                     ),

@@ -28,7 +28,7 @@ class Analytics extends StatelessWidget {
         ),
         titleSpacing: 0,
         title: const Text(
-          'Analytics',
+          'Analytics preview',
           style: TextStyle(
             color: _ink,
             fontSize: 18,
@@ -51,7 +51,7 @@ class Analytics extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'TODAY',
+                  'DEMO DATA',
                   style: TextStyle(
                     color: _muted,
                     fontSize: 10,
@@ -71,7 +71,7 @@ class Analytics extends StatelessWidget {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  '3 rides completed',
+                  'Sample: 3 rides completed',
                   style: TextStyle(
                     color: _muted,
                     fontSize: 13,
@@ -90,7 +90,7 @@ class Analytics extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Last trip',
+                        'Sample last trip',
                         style: TextStyle(
                           color: _muted,
                           fontSize: 11,
@@ -133,7 +133,7 @@ class Analytics extends StatelessWidget {
           _demand(const DriverHomeAdminContentService().load().stockholmWork),
           const SizedBox(height: 16),
           const Text(
-            'Performance',
+            'Sample performance',
             style: TextStyle(
               color: _ink,
               fontSize: 14,
@@ -214,7 +214,7 @@ class Analytics extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Strongest area',
+                      'Sample strongest area',
                       style: TextStyle(
                         color: Color(0xFFBFD5CC),
                         fontSize: 11,

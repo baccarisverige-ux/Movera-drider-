@@ -49,21 +49,21 @@ class InAirportQueue extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           TextWidget(
-                            text: "In Airport queue",
+                            text: "Airport queue preview",
                             fontSize: 16,
                             fontWeight: fwSemiBold,
                             color: AppColor.title,
                           ),
                           4.height,
                           TextWidget(
-                            text: "10 Drivers ahead of you",
+                            text: "Sample: 10 drivers ahead",
                             fontSize: 12,
                             fontWeight: fwMedium,
                             color: AppColor.subtitle,
                           ),
                           4.height,
                           TextWidget(
-                            text: "view details",
+                            text: "view sample details",
                             fontSize: 12,
                             fontWeight: fwMedium,
                             color: Color(0xff0088FF),
