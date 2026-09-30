@@ -16,11 +16,17 @@ class CompletionJournal {
  final PrefsTripHistoryRepository history;
  final Future<SharedPreferences> Function() load;
  final void Function(String step)? afterWrite;
- static Future<void> _pending=Future<void>.value();
+ static Future<void>? _pending;
  @visibleForTesting
- static void resetForTesting() { _pending=Future<void>.value(); }
+ static void resetForTesting() { _pending=null; }
  Future<void> _serial(Future<void> Function() action) {
- final result=_pending.then((_)=>action()); _pending=result.catchError((Object _) {}); return result;
+ final previous=_pending;
+ // Start an idle queue directly: do not retain a Future from another test zone.
+ final result=previous==null ? action() : previous.then((_)=>action());
+ final tail=result.catchError((Object _) {});
+ _pending=tail;
+ tail.then((_) { if(identical(_pending,tail)) _pending=null; });
+ return result;
  }
  Future<void> finish(WaybillRecord record, {PersistedActiveRide? next,
  TripStatus status=TripStatus.completed}) => _serial(() async {
