@@ -95,7 +95,29 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
     await saveDraft();
     if (created != null && mounted) {
       setState(() => tickets.insert(0, created));
-      try { await _saveTickets(); await _repository.update('draft',{'subject':'','message':'','category':'Trip & rider'}); } catch(_) {}
+      try {
+        await _saveTickets();
+      } catch (_) {
+        if (mounted) {
+          setState(() => tickets.remove(created));
+        }
+        return;
+      }
+
+      try {
+        await _repository.update(
+          'draft',
+          {'subject':'','message':'','category':'Trip & rider'},
+        );
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ticket saved locally, but the composer draft could not be cleared.'),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -175,9 +197,24 @@ class _ConversationState extends State<_Conversation> {
   Future<void> saveMessage() async {
     if(input.text.trim().isEmpty) return;
     final text=input.text.trim();
-    setState(() { widget.ticket.messages.add(_Message(text,false)); widget.ticket.preview=text; });
-    try { await widget.onChanged(); if(mounted) input.clear(); }
-    catch(_) { if(mounted) setState(() { widget.ticket.messages.removeLast(); }); }
+    final previousPreview = widget.ticket.preview;
+    setState(() {
+      widget.ticket.messages.add(_Message(text,false));
+      widget.ticket.preview=text;
+    });
+    try {
+      await widget.onChanged();
+      if(mounted) input.clear();
+    } catch(_) {
+      if(mounted) {
+        setState(() {
+          if (widget.ticket.messages.isNotEmpty) {
+            widget.ticket.messages.removeLast();
+          }
+          widget.ticket.preview = previousPreview;
+        });
+      }
+    }
   }
   @override void dispose() { input.dispose(); super.dispose(); }
   @override Widget build(BuildContext context) => Scaffold(
