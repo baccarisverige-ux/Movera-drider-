@@ -32,7 +32,6 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
   static const Color _muted = Color(0xFF7D898F);
   static const Color _line = Color(0xFFE3E8E5);
   static const Color _softGreen = Color(0xFFF0F6F2);
-  static const Color _green = Color(0xFF315E4D);
 
   static const List<_DestinationPlace> _places = [
     _DestinationPlace(

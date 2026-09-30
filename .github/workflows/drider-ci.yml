@@ -43,10 +43,20 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: flutter analyze --no-fatal-infos
 
       - name: Test
         run: flutter test
 
       - name: Build web
         run: flutter build web --release
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: driver-verification-${{ github.sha }}
+          path: |
+            build/test-evidence/
+            test/failures/
+          if-no-files-found: ignore

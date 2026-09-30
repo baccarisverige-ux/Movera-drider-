@@ -437,13 +437,12 @@ class _SafetyToolButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.active = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool active;
+  final bool active = false;
 
   @override
   Widget build(BuildContext context) {

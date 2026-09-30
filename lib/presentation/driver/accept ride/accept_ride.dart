@@ -230,7 +230,6 @@ class _AcceptRideState extends State<AcceptRide>
   static const Color _canvas = Color(0xFFF4F6F7);
   static const Color _muted = Color(0xFF7D898F);
   static const Color _green = Color(0xFF19865C);
-  static const Color _mint = Color(0xFFE6F5EE);
   static const Color _line = Color(0xFFE5E9EB);
   static const Color _danger = Color(0xFFE75D65);
   static const double _nextTripRadarRadiusMeters = 30000;
@@ -1058,17 +1057,6 @@ class _AcceptRideState extends State<AcceptRide>
     return '$minutes min';
   }
 
-  String get _routeDistanceText {
-    final meters = _routeDistanceMeters;
-    if (meters == null) return _routeLoading ? 'road route' : '—';
-
-    if (meters < 1000) {
-      return '${meters.round()} m';
-    }
-
-    final km = meters / 1000;
-    return '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
-  }
 
   Future<void> _fitRoute() async {
     final controller = _mapController;
@@ -2069,26 +2057,6 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  Widget _nextTripMeta({
-    required IconData icon,
-    required String text,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: const Color(0xFF7D898F), size: 14),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(
-            color: Color(0xFF657178),
-            fontSize: 9.5,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _nextTripLocationRow({
     required Color color,
@@ -2232,10 +2200,6 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
-  String get _compactDockDetail =>
-      _stage == ActiveRideStage.onTrip
-          ? widget.dropoffAddress
-          : widget.pickupAddress;
 
   String get _onwardAddress {
     if (_stopCursor < widget.stopAddresses.length &&

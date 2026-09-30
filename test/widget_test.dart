@@ -4,7 +4,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/main.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/history/prefs_trip_history_repository.dart';
-import 'package:movera/core/realtime/driver_realtime.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/routing/route_instruction.dart';
@@ -25,7 +24,6 @@ import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dar
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 Future<void> _pumpHome(WidgetTester tester, Size size) async {
