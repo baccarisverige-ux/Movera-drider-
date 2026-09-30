@@ -43,15 +43,14 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
     }
     subject.addListener(() { unawaited(saveDraft()); });
     message.addListener(() { unawaited(saveDraft()); });
-    ModalRoute<dynamic>? draftRoute;
     final created = await showModalBottomSheet<_Ticket>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          draftRoute = ModalRoute.of(context);
-          return Padding(
+      builder: (sheetContext) => _DraftFormLifetime(
+        controllers: [subject, message],
+        child: StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
           child: SingleChildScrollView(child: Container(
             padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
@@ -90,15 +89,10 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
               ]),
             ),
           )),
-        ); },
-      ),
+        ),
+      )),
     );
     await saveDraft();
-    // The pop result precedes the closing animation; controllers remain live
-    // until the route has removed its text fields from the widget tree.
-    await draftRoute?.completed;
-    subject.dispose();
-    message.dispose();
     if (created != null && mounted) {
       setState(() => tickets.insert(0, created));
       try { await _saveTickets(); await _repository.update('draft',{'subject':'','message':'','category':'Trip & rider'}); } catch(_) {}
@@ -221,3 +215,21 @@ class _Ticket {
 }
 
 class _Message { final String text; final bool support; _Message(this.text, this.support); }
+
+/// Controllers live as long as the fields, including the sheet exit animation.
+class _DraftFormLifetime extends StatefulWidget {
+  const _DraftFormLifetime({required this.controllers, required this.child});
+  final List<TextEditingController> controllers;
+  final Widget child;
+  @override
+  State<_DraftFormLifetime> createState() => _DraftFormLifetimeState();
+}
+class _DraftFormLifetimeState extends State<_DraftFormLifetime> {
+  @override
+  void dispose() {
+    for (final controller in widget.controllers) { controller.dispose(); }
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
