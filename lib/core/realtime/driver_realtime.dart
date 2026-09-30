@@ -106,15 +106,26 @@ class MemoryDriverRealtime implements DriverRealtime {
   final _controller = StreamController<DriverRealtimeEvent>.broadcast();
   final _lastByTrip = <String, DriverRealtimeEvent>{};
   int _sequence = 0;
+  int _generation = 0;
+  bool _disposed = false;
+  final _sequencesByTrip = <String,int>{};
+  final _projectionsByTrip = <String,DriverRealtimeEvent>{};
   String? _tripId;
 
   int get sequence => _sequence;
 
   void publish(DriverRealtimeEvent event) {
+    if(_disposed) return;
+    if(event.sequence<1 || event.tripId.trim().isEmpty) throw ArgumentError('Valid trip ID and positive per-trip sequence required');
+    final projection=_projectionsByTrip[event.tripId];
+    if(projection?.status?.isTerminal == true || projection?.kind==DriverRealtimeKind.riderCancelled) return;
     final previous = _lastByTrip[event.tripId];
     if (previous == null || event.sequence > previous.sequence) {
       _lastByTrip[event.tripId] = event;
     }
+    if(previous!=null && event.sequence<=previous.sequence) return;
+    _sequencesByTrip[event.tripId]=event.sequence;
+    if(event.kind==DriverRealtimeKind.tripProjection || event.kind==DriverRealtimeKind.riderCancelled) _projectionsByTrip[event.tripId]=event;
     if (event.sequence > _sequence) _sequence = event.sequence;
     _controller.add(event);
   }
@@ -128,11 +139,11 @@ class MemoryDriverRealtime implements DriverRealtime {
     String? message,
     DateTime? at,
   }) {
-    _sequence += 1;
+    final nextSequence=(_sequencesByTrip[tripId] ?? 0)+1;
     final event = DriverRealtimeEvent(
       tripId: tripId,
       kind: kind,
-      sequence: _sequence,
+      sequence: nextSequence,
       at: at ?? DateTime.now(),
       status: status,
       latitude: latitude,
@@ -145,8 +156,10 @@ class MemoryDriverRealtime implements DriverRealtime {
 
   @override
   Stream<DriverRealtimeEvent> subscribe(String tripId) {
+    if(_disposed) throw StateError('Realtime disposed');
     _tripId = tripId;
-    return _controller.stream.where((event) => event.tripId == tripId);
+    final generation=++_generation;
+    return _controller.stream.where((event) => !_disposed && generation==_generation && _tripId==tripId && event.tripId == tripId);
   }
 
   @override
@@ -164,18 +177,21 @@ class MemoryDriverRealtime implements DriverRealtime {
 
   @override
   Future<void> reconnectAndResync(String tripId) async {
-    _tripId = tripId;
-    final last = _lastByTrip[tripId];
+    if(_disposed || _tripId!=tripId) return;
+    final last = _projectionsByTrip[tripId] ?? _lastByTrip[tripId];
     if (last != null) _controller.add(last);
   }
 
   @override
   void unsubscribe() {
+    _generation++;
     _tripId = null;
   }
 
   @override
   void dispose() {
+    if(_disposed) return;
+    _disposed=true;
     unsubscribe();
     _controller.close();
   }

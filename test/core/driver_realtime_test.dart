@@ -119,7 +119,7 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(seen, hasLength(2));
     expect(seen.first.sequence, 1);
-    expect(seen.last.sequence, 3);
+    expect(seen.last.sequence, 2);
     expect(seen.last.kind, DriverRealtimeKind.riderCancelled);
     expect(seen.last.status, TripStatus.cancelledByRider);
     await sub.cancel();
