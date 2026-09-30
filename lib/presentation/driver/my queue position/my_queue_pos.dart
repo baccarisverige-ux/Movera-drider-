@@ -143,7 +143,7 @@ class MyQueuePosition extends StatelessWidget {
                                   ),
                                   4.width,
                                   TextWidget(
-                                    text: "Current Rank",
+                                    text: "Sample Rank",
                                     color: AppColor.title,
                                     fontSize: 14,
                                     fontWeight: fwMedium,
@@ -159,7 +159,7 @@ class MyQueuePosition extends StatelessWidget {
                                   ),
                                   4.width,
                                   TextWidget(
-                                    text: "Current Rank",
+                                    text: "Sample Rank",
                                     color: AppColor.title,
                                     fontSize: 14,
                                     fontWeight: fwMedium,
