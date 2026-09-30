@@ -5,6 +5,96 @@ import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/realtime/driver_realtime.dart';
 
 void main() {
+  test('sequence gate rejects duplicate and reordered events', () {
+    final gate = DriverRealtimeSequenceGate();
+    final at = DateTime(2026, 9, 30);
+
+    expect(
+      gate.evaluate(DriverRealtimeEvent(
+        tripId:'trip-1',kind:DriverRealtimeKind.location,sequence:4,at:at,
+      )),
+      DriverRealtimeDisposition.accepted,
+    );
+    expect(
+      gate.evaluate(DriverRealtimeEvent(
+        tripId:'trip-1',kind:DriverRealtimeKind.location,sequence:4,at:at,
+      )),
+      DriverRealtimeDisposition.staleOrDuplicate,
+    );
+    expect(
+      gate.evaluate(DriverRealtimeEvent(
+        tripId:'trip-1',kind:DriverRealtimeKind.location,sequence:3,at:at,
+      )),
+      DriverRealtimeDisposition.staleOrDuplicate,
+    );
+  });
+
+  test('sequence gate exposes gaps so the adapter can resync', () {
+    final gate = DriverRealtimeSequenceGate();
+    final at = DateTime(2026, 9, 30);
+    gate.evaluate(DriverRealtimeEvent(
+      tripId:'trip-1',kind:DriverRealtimeKind.location,sequence:1,at:at,
+    ));
+
+    expect(
+      gate.evaluate(DriverRealtimeEvent(
+        tripId:'trip-1',kind:DriverRealtimeKind.location,sequence:3,at:at,
+      )),
+      DriverRealtimeDisposition.acceptedWithGap,
+    );
+    expect(gate.lastSequenceFor('trip-1'),3);
+  });
+
+  test('terminal realtime event dominates later non-terminal events', () {
+    final gate = DriverRealtimeSequenceGate();
+    final at = DateTime(2026, 9, 30);
+
+    expect(
+      gate.evaluate(DriverRealtimeEvent(
+        tripId:'trip-1',
+        kind:DriverRealtimeKind.riderCancelled,
+        sequence:5,
+        at:at,
+        status:TripStatus.cancelledByRider,
+      )),
+      DriverRealtimeDisposition.accepted,
+    );
+    expect(gate.isTerminal('trip-1'),isTrue);
+    expect(
+      gate.evaluate(DriverRealtimeEvent(
+        tripId:'trip-1',
+        kind:DriverRealtimeKind.riderOnTheWay,
+        sequence:6,
+        at:at,
+      )),
+      DriverRealtimeDisposition.blockedAfterTerminal,
+    );
+  });
+
+  test('reconnect replays newest event even after an older publish', () async {
+    final bus = MemoryDriverRealtime();
+    final at = DateTime(2026, 9, 30);
+    bus.publish(DriverRealtimeEvent(
+      tripId:'trip-1',kind:DriverRealtimeKind.location,sequence:10,at:at,
+      latitude:59.33,
+    ));
+    bus.publish(DriverRealtimeEvent(
+      tripId:'trip-1',kind:DriverRealtimeKind.location,sequence:8,at:at,
+      latitude:1,
+    ));
+
+    final seen=<DriverRealtimeEvent>[];
+    final sub=bus.subscribe('trip-1').listen(seen.add);
+    await bus.reconnectAndResync('trip-1');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(seen,hasLength(1));
+    expect(seen.single.sequence,10);
+    expect(seen.single.latitude,59.33);
+    await sub.cancel();
+    bus.dispose();
+  });
+
   test('events are sequence-numbered and filtered by tripId', () async {
     final bus = MemoryDriverRealtime();
     final seen = <DriverRealtimeEvent>[];
@@ -113,3 +203,4 @@ void main() {
     bus.dispose();
   });
 }
+
