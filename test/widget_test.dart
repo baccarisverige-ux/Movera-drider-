@@ -1767,7 +1767,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Next trip waybill'), findsOneWidget);
-    expect(find.text('Movera Radar'), findsOneWidget);
+    expect(find.text('Demo Radar'), findsOneWidget);
     _expectNoException(tester);
   });
 

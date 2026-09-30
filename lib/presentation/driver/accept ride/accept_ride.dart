@@ -1,3 +1,4 @@
+import 'package:movera/core/location/location_freshness.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -54,7 +55,7 @@ class AcceptRide extends StatefulWidget {
     this.riderTrips = 312,
     this.fare = '—',
     this.category = 'Movera',
-    this.matchedVia = 'Movera Radar',
+    this.matchedVia = 'Demo Radar',
     this.pickupAddress = 'Odlarvägen 22',
     this.pickupArea = 'Enhörna',
     this.dropoffAddress = 'T-Centralen, Stockholm',
@@ -149,7 +150,7 @@ class AcceptRide extends StatefulWidget {
       riderTrips: snapshot.riderTrips ?? 312,
       fare: snapshot.fare ?? '—',
       category: snapshot.category ?? 'Movera',
-      matchedVia: snapshot.matchedVia ?? 'Movera Radar',
+      matchedVia: snapshot.matchedVia ?? 'Demo Radar',
       pickupAddress: pickup,
       pickupArea: snapshot.pickupArea ?? pickup.split(',').last.trim(),
       dropoffAddress: snapshot.dropoffAddress ?? 'Stockholm',
@@ -645,7 +646,7 @@ class _AcceptRideState extends State<AcceptRide>
       riderName: offer.riderName,
       pickup: offer.pickup,
       dropoff: offer.dropoff,
-      source: 'Movera Radar',
+      source: 'Demo Radar',
       driverName: 'Movera Driver',
       vehicle: 'Movera partner vehicle',
       licensePlate: 'MVR 418',
@@ -959,6 +960,7 @@ class _AcceptRideState extends State<AcceptRide>
     DriverLocation location, {
     bool forceRoute = false,
   }) async {
+    if(!location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs()>90 || location.point.longitude.abs()>180) return;
     final next = location.point.toLatLng();
     if (!mounted) return;
 
@@ -1312,7 +1314,7 @@ class _AcceptRideState extends State<AcceptRide>
             riderRating: offer.rating,
             fare: offer.fare,
             category: offer.category,
-            matchedVia: 'Movera Radar',
+            matchedVia: 'Demo Radar',
             pickupAddress: offer.pickup,
             pickupArea: offer.pickup.split(',').last.trim(),
             dropoffAddress: offer.dropoff,
@@ -1576,9 +1578,7 @@ class _AcceptRideState extends State<AcceptRide>
       return;
     }
 
-    // Demo: appear while heading to drop-off. Without live GPS (web/tests)
-    // always show after the delay. Live GPS still requires a city-scale
-    // remaining distance so a far-away device does not get the demo.
+    // Offers are explicitly simulated. A future live adapter must pass the freshness gate.
     if (_hasLiveLocation) {
       final metersToDropoff =
           GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
@@ -2484,9 +2484,13 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
+  bool get _freshRadarLocation => _hasLiveLocation && hasFreshLocation(
+    GeoPointMaps.fromLatLng(_driverPosition), _lastGpsAppliedAt, DateTime.now());
+
   Widget _buildMapControls() {
     return Column(
       children: [
+        Text(_freshRadarLocation ? 'Demo Radar' : 'Demo Radar — live location unavailable/stale', style: const TextStyle(fontSize: 10)),
         _mapCircleButton(
           icon: Icons.my_location_rounded,
           onTap: () {
@@ -3729,7 +3733,7 @@ class _AcceptRideState extends State<AcceptRide>
             riderRating: offer.rating,
             fare: offer.fare,
             category: offer.category,
-            matchedVia: 'Movera Radar',
+            matchedVia: 'Demo Radar',
             pickupAddress: offer.pickup,
             pickupArea: offer.pickup.split(',').last.trim(),
             dropoffAddress: offer.dropoff,
