@@ -1,3 +1,4 @@
+import 'package:movera/core/settings/settings_repository.dart';
 import 'package:flutter/material.dart';
 
 class Preferences extends StatefulWidget {
@@ -55,10 +56,23 @@ class _PreferencesState extends State<Preferences> {
 
   late List<bool> _selected;
 
+  final _settings = SettingsRepository();
+  bool _settingsTouched = false;
+  Future<void> _restoreSettings() async {
+    final data=await _settings.read('categories'); if(!mounted || _settingsTouched) return;
+    setState(() { if(data['selected'] is List && (data['selected'] as List).length==_categories.length && (data['selected'] as List).every((v)=>v is bool)) _selected=List<bool>.from(data['selected'] as List); });
+  }
+  Future<bool> _persistSettings() async {
+    _settingsTouched=true;
+    try { await _settings.save('categories',{'selected':_selected}); return true; }
+    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); return false; }
+  }
+
   @override
   void initState() {
     super.initState();
     _selected = List<bool>.filled(_categories.length, true);
+    _restoreSettings();
   }
 
   int get _selectedCount => _selected.where((selected) => selected).length;
@@ -68,9 +82,11 @@ class _PreferencesState extends State<Preferences> {
     setState(() {
       _selected = List<bool>.filled(_categories.length, selectAll);
     });
+    _persistSettings();
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (!await _persistSettings() || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -102,6 +118,7 @@ class _PreferencesState extends State<Preferences> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+          const Text('Local demo preferences — saved on this device; effects are previews.'),
             Text(
               'Ride preferences',
               style: TextStyle(
@@ -221,6 +238,7 @@ class _PreferencesState extends State<Preferences> {
           setState(() {
             _selected[index] = !_selected[index];
           });
+          _persistSettings();
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
