@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:movera/presentation/driver/auth/additional%20detail/screens/upload%20document/select%20document%20type/select_doc_typ.dart';
+import 'document_preview.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 
 class DriverDocuments extends StatelessWidget {
@@ -86,23 +86,23 @@ class DriverDocuments extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _group(context, const [
-            _Doc('Terms and Conditions', 'Completed', true),
-            _Doc('Virtual information session', 'Completed', true),
-            _Doc('Driver’s License', 'Completed', true),
-            _Doc('Profile photo', 'Completed', true),
+            _Doc('Terms and Conditions', 'Not verified', true),
+            _Doc('Virtual information session', 'Not verified', true),
+            _Doc('Driver’s License', 'Not verified', true),
+            _Doc('Profile photo', 'Not verified', true),
             _Doc(
               'Registration certificate from Bolagsverket (for AB, KB or HB) or register extract from Skatteverket (in the case of a sole proprietorship) (NOT needed if you deliver for a Fleet Partner)',
-              'Completed',
+              'Not verified',
               true,
             ),
-            _Doc('Taxi Driver License', 'Completed', true),
-            _Doc('Taxi Traffic Permit', 'Completed', true),
-            _Doc('Tax settings', 'Completed', true),
-            _Doc('Bank statement', 'Completed', true),
+            _Doc('Taxi Driver License', 'Not verified', true),
+            _Doc('Taxi Traffic Permit', 'Not verified', true),
+            _Doc('Tax settings', 'Not verified', true),
+            _Doc('Bank statement', 'Not verified', true),
           ]),
           const SizedBox(height: 18),
           const Text(
-            'Mercedes-Benz E 220 USD89R',
+            'Sample vehicle documents',
             style: TextStyle(
               color: _ink,
               fontSize: 16,
@@ -113,10 +113,10 @@ class DriverDocuments extends StatelessWidget {
           _group(context, const [
             _Doc(
               'Vehicle Registration Certificate (Front Page)',
-              'Completed',
+              'Not verified',
               true,
             ),
-            _Doc('Insurance Letter', 'Completed', true),
+            _Doc('Insurance Letter', 'Not verified', true),
           ]),
         ],
       ),
@@ -138,7 +138,7 @@ class DriverDocuments extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  RightToLeftTransition(const SelectDocumentType()),
+                  RightToLeftTransition(DocumentPreview(title: items[i].title)),
                 );
               },
               child: Padding(
