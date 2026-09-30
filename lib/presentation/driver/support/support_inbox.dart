@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:movera/core/support/local_support_repository.dart';
 import 'package:flutter/material.dart';
 
 class SupportInboxScreen extends StatefulWidget {
@@ -7,23 +9,51 @@ class SupportInboxScreen extends StatefulWidget {
 }
 
 class _SupportInboxScreenState extends State<SupportInboxScreen> {
-  final List<_Ticket> tickets = [
-    _Ticket('Scheduled ride question', 'Support confirmed your reservation.', 'OPEN', true),
-    _Ticket('Wallet payout review', 'Your payout was reviewed and released.', 'RESOLVED', false),
-  ];
+  final List<_Ticket> tickets = [];
+  final _repository = LocalSupportRepository();
+  bool _loading = true;
+  @override
+  void initState() { super.initState(); _restore(); }
+  Future<void> _restore() async {
+    final data=await _repository.read();
+    if(!mounted) return;
+    setState(() {
+      for(final row in (data['tickets'] as List? ?? [])) {
+        if(row is Map) { final ticket=_Ticket.fromJson(Map<String,dynamic>.from(row)); if(ticket!=null) tickets.add(ticket); }
+      }
+      _loading=false;
+    });
+  }
+  Future<void> _saveTickets() async {
+    try { await _repository.update('tickets',tickets.map((t)=>t.toJson()).toList()); }
+    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local conversation. Retry.'))); rethrow; }
+  }
 
   Future<void> _newTicket() async {
-    final subject = TextEditingController();
-    final message = TextEditingController();
-    String category = 'Trip & rider';
+    if(_loading) return;
+    final data=await _repository.read(); if(!mounted) return;
+    final draft=data['draft'] is Map ? data['draft'] as Map : <String,dynamic>{};
+    final subject = TextEditingController(text: draft['subject'] as String? ?? '');
+    final message = TextEditingController(text: draft['message'] as String? ?? '');
+    const categories=['Trip & rider','Wallet & payments','Scheduled rides','Account & documents','Technical issue','Something else'];
+    String category=categories.contains(draft['category']) ? draft['category'] as String : 'Trip & rider';
+    Future<void> saveDraft() async {
+      try { await _repository.update('draft',{'subject':subject.text,'message':message.text,'category':category}); }
+      catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local draft.'))); }
+    }
+    subject.addListener(() { unawaited(saveDraft()); });
+    message.addListener(() { unawaited(saveDraft()); });
+    ModalRoute<dynamic>? draftRoute;
     final created = await showModalBottomSheet<_Ticket>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
+        builder: (context, setSheetState) {
+          draftRoute = ModalRoute.of(context);
+          return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-          child: Container(
+          child: SingleChildScrollView(child: Container(
             padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
             decoration: const BoxDecoration(
               color: Color(0xFFF8F9FA),
@@ -37,34 +67,42 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                 const Text('Local ticket draft', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF20282E))),
                 const SizedBox(height: 18),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: category,
                   decoration: _decoration('Category'),
                   items: ['Trip & rider', 'Wallet & payments', 'Scheduled rides', 'Account & documents', 'Technical issue', 'Something else']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                  onChanged: (v) { if (v != null) setSheetState(() => category = v); },
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e, maxLines: 1, overflow: TextOverflow.ellipsis))).toList(),
+                  onChanged: (v) { if (v != null) { setSheetState(() => category = v); unawaited(saveDraft()); } },
                 ),
                 const SizedBox(height: 12),
                 TextField(controller: subject, decoration: _decoration('Subject')),
                 const SizedBox(height: 12),
                 TextField(controller: message, minLines: 4, maxLines: 6, decoration: _decoration('Tell us what happened')),
                 const SizedBox(height: 18),
-                SizedBox(width: double.infinity, height: 54, child: FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF202A30), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+                SizedBox(width: double.infinity, child: FilledButton(
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 54), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), backgroundColor: const Color(0xFF202A30), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
                   onPressed: () {
                     if (subject.text.trim().isEmpty || message.text.trim().isEmpty) return;
-                    Navigator.pop(sheetContext, _Ticket(subject.text.trim(), message.text.trim(), 'OPEN', false));
+                    Navigator.pop(sheetContext, _Ticket(subject.text.trim(), message.text.trim(), 'LOCAL DRAFT', false));
                   },
                   child: const Text('Save draft in demo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 )),
               ]),
             ),
-          ),
-        ),
+          )),
+        ); },
       ),
     );
+    await saveDraft();
+    // The pop result precedes the closing animation; controllers remain live
+    // until the route has removed its text fields from the widget tree.
+    await draftRoute?.completed;
     subject.dispose();
     message.dispose();
-    if (created != null && mounted) setState(() => tickets.insert(0, created));
+    if (created != null && mounted) {
+      setState(() => tickets.insert(0, created));
+      try { await _saveTickets(); await _repository.update('draft',{'subject':'','message':'','category':'Trip & rider'}); } catch(_) {}
+    }
   }
 
   InputDecoration _decoration(String label) => InputDecoration(
@@ -74,8 +112,9 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   );
 
   void _open(_Ticket ticket) {
+    if(_loading) return;
     setState(() => ticket.unread = false);
-    Navigator.push(context, MaterialPageRoute(builder: (_) => _Conversation(ticket: ticket)));
+    Navigator.push(context, MaterialPageRoute(builder: (_) => _Conversation(ticket: ticket, onChanged: _saveTickets)));
   }
 
   @override
@@ -97,7 +136,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
           _SupportIcon(), SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Local support preview', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-            SizedBox(height: 3), Text('Messages stay on this screen; no ticket is sent.', style: TextStyle(color: Color(0xFFBFC8CD), fontSize: 12)),
+            SizedBox(height: 3), Text('Local drafts on this device — no support service.', style: TextStyle(color: Color(0xFFBFC8CD), fontSize: 12)),
           ])),
           CircleAvatar(radius: 5, backgroundColor: Color(0xFF2FBE7B)),
         ]),
@@ -133,25 +172,31 @@ class _TicketCard extends StatelessWidget {
 }
 
 class _Conversation extends StatefulWidget {
-  final _Ticket ticket; const _Conversation({required this.ticket});
+  final _Ticket ticket; final Future<void> Function() onChanged; const _Conversation({required this.ticket, required this.onChanged});
   @override State<_Conversation> createState() => _ConversationState();
 }
 
 class _ConversationState extends State<_Conversation> {
   final input = TextEditingController();
-  void send() { if (input.text.trim().isEmpty) return; setState(() { widget.ticket.messages.add(_Message(input.text.trim(), false)); widget.ticket.preview = input.text.trim(); }); input.clear(); }
+  Future<void> saveMessage() async {
+    if(input.text.trim().isEmpty) return;
+    final text=input.text.trim();
+    setState(() { widget.ticket.messages.add(_Message(text,false)); widget.ticket.preview=text; });
+    try { await widget.onChanged(); if(mounted) input.clear(); }
+    catch(_) { if(mounted) setState(() { widget.ticket.messages.removeLast(); }); }
+  }
   @override void dispose() { input.dispose(); super.dispose(); }
   @override Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF2F4F5),
-    appBar: AppBar(backgroundColor: const Color(0xFFF2F4F5), surfaceTintColor: Colors.transparent, title: Text(widget.ticket.subject, style: const TextStyle(fontWeight: FontWeight.w800))),
+    appBar: AppBar(backgroundColor: const Color(0xFFF2F4F5), surfaceTintColor: Colors.transparent, title: Text('Local draft: ${widget.ticket.subject}', style: const TextStyle(fontWeight: FontWeight.w800))),
     body: Column(children: [
       Expanded(child: ListView(padding: const EdgeInsets.all(16), children: widget.ticket.messages.map((m) => Align(
         alignment: m.support ? Alignment.centerLeft : Alignment.centerRight,
         child: Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14), constraints: const BoxConstraints(maxWidth: 300), decoration: BoxDecoration(color: m.support ? Colors.white : const Color(0xFF202A30), borderRadius: BorderRadius.circular(18)), child: Text(m.text, style: TextStyle(color: m.support ? const Color(0xFF283138) : Colors.white, height: 1.35))),
       )).toList())),
       Container(color: Colors.white, padding: EdgeInsets.fromLTRB(14, 10, 14, MediaQuery.paddingOf(context).bottom + 10), child: Row(children: [
-        Expanded(child: TextField(controller: input, decoration: InputDecoration(hintText: 'Write a message', filled: true, fillColor: const Color(0xFFF2F4F5), border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none)))),
-        const SizedBox(width: 9), IconButton.filled(onPressed: send, style: IconButton.styleFrom(backgroundColor: const Color(0xFF202A30)), icon: const Icon(Icons.arrow_upward_rounded)),
+        Expanded(child: TextField(controller: input, decoration: InputDecoration(hintText: 'Write a local draft', filled: true, fillColor: const Color(0xFFF2F4F5), border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none)))),
+        const SizedBox(width: 9), IconButton.filled(onPressed: saveMessage, style: IconButton.styleFrom(backgroundColor: const Color(0xFF202A30)), icon: const Icon(Icons.arrow_upward_rounded)),
       ])),
     ]),
   );
@@ -164,7 +209,15 @@ class _SupportIcon extends StatelessWidget {
 
 class _Ticket {
   final String subject; String preview; final String status; bool unread; final List<_Message> messages;
-  _Ticket(this.subject, this.preview, this.status, this.unread) : messages = [_Message(preview, true)];
+  _Ticket(this.subject, this.preview, this.status, this.unread) : messages = [_Message(preview, false)];
+  Map<String,dynamic> toJson()=>{'subject':subject,'preview':preview,'status':status,'unread':unread,'messages':messages.map((m)=>{'text':m.text,'support':false}).toList()};
+  static _Ticket? fromJson(Map<String,dynamic> json) {
+    if(json['subject'] is! String || json['preview'] is! String) return null;
+    final ticket=_Ticket(json['subject'] as String,json['preview'] as String,'LOCAL DRAFT',false);
+    ticket.messages.clear();
+    for(final row in (json['messages'] as List? ?? [])) { if(row is Map && row['text'] is String) ticket.messages.add(_Message(row['text'] as String,false)); }
+    return ticket;
+  }
 }
 
 class _Message { final String text; final bool support; _Message(this.text, this.support); }
