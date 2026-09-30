@@ -64,15 +64,15 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
                       padding: const EdgeInsets.fromLTRB(2, 2, 2, 0),
                       child: Row(
                         children: [
-                          Text(
+                          Expanded(Text(
                             _selectedTab == 0 ? 'Available today' : 'Upcoming',
                             style: const TextStyle(
                               color: Color(0xFF6F7B82),
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                             ),
-                          ),
-                          const Spacer(),
+                          )),
+                          const SizedBox(width: 8),
                           if (_selectedTab == 0)
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -314,15 +314,15 @@ class _ScheduledRideCard extends StatelessWidget {
                   const SizedBox(height: 7),
                   Row(
                     children: [
-                      _RideMeta(
+                      Flexible(_RideMeta(
                         icon: Icons.directions_car_outlined,
                         label: ride.category,
-                      ),
+                      )),
                       const SizedBox(width: 12),
-                      _RideMeta(
+                      Flexible(_RideMeta(
                         icon: Icons.route_outlined,
                         label: ride.distance,
-                      ),
+                      )),
                     ],
                   ),
                 ],

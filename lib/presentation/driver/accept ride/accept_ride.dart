@@ -1128,6 +1128,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Future<void> _advanceRide() async {
+    if (kDebugMode) DriverLog.info('AUDIT advance stage=$_stage locked=$_stageTransitioning saving=${_rideLifecycle.saving}');
     if (_stageTransitioning || !mounted || _rideLifecycle.terminal) return;
 
     _stageTransitioning = true;
@@ -1269,11 +1270,13 @@ class _AcceptRideState extends State<AcceptRide>
         );
       },
     );
+    if (kDebugMode) DriverLog.info('AUDIT finish confirmation=$finish stage=$_stage');
     if (finish != true || !mounted || _stage != ActiveRideStage.onTrip) return;
     unawaited(_completeCurrentTrip());
   }
 
   Future<void> _completeCurrentTrip() async {
+    if (kDebugMode) DriverLog.info('AUDIT completion entered busy=$_completionInFlight saving=${_rideLifecycle.saving}');
     if (_completionInFlight || _cancellationInFlight || _handlingRiderCancellation || !mounted || _rideLifecycle.terminal) return;
     _completionInFlight = true;
     _stageTransitioning = true;
@@ -1283,6 +1286,7 @@ class _AcceptRideState extends State<AcceptRide>
     try {
       await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
         _waybills.current ?? _buildCurrentWaybill(), next: next);
+      if (kDebugMode) DriverLog.info('AUDIT journal durable saving=${_rideLifecycle.saving}');
       if (!mounted) return;
       if (!await _rideLifecycle.complete(clearSnapshot: false)) {
         _completionInFlight = false; _stageTransitioning = false; return;

@@ -283,14 +283,14 @@ class Analytics extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
+                  Expanded(Text(
                     stats.surroundingTitle,
                     style: const TextStyle(
                       color: Color(0xFF22312D),
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
                     ),
-                  ),
+                  )),
                 ],
               ),
               const SizedBox(height: 10),

@@ -142,7 +142,15 @@ class _PreferencesState extends State<Preferences> {
       ),
       body: SafeArea(
         top: false,
-        child: Column(
+        child: MediaQuery.textScalerOf(context).scale(14) > 20
+          ? ListView(padding: const EdgeInsets.symmetric(horizontal: 16), children: [
+              const Padding(padding: EdgeInsets.all(8), child: Text('Local demo preferences', style: TextStyle(fontSize: 12))),
+              _buildSummary(),
+              for (var index = 0; index < _categories.length; index++)
+                Padding(padding: const EdgeInsets.only(bottom: 10), child: SizedBox(height: 330, child: _buildCategory(index))),
+              _buildSaveArea(),
+            ])
+          : Column(
           children: [
             const Padding(padding: EdgeInsets.all(8), child: Text('Local demo preferences', style: TextStyle(fontSize: 12))),
             _buildSummary(),

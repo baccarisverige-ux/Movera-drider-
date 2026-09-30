@@ -125,7 +125,8 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
       backgroundColor: const Color(0xFFFBFCFB),
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -324,10 +325,12 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
               ),
             ),
             const SizedBox(height: 8),
-            Expanded(
+            SizedBox(
               child: results.isEmpty
                   ? const _NoDestinationResults()
                   : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: EdgeInsets.fromLTRB(
