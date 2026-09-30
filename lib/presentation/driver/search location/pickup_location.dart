@@ -88,7 +88,8 @@ class _DriverSearchPickupLocationState
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
-                            onPressed: () {},
+                            onPressed: null,
+                            tooltip: "Search unavailable — preview",
                             child: SizedBox(
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
