@@ -1448,14 +1448,17 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   bool hideMainPanel = false;
-  // Add this method to open destination panel
+  Timer? _destinationOpenTimer;
   void openDestinationPanel() {
-    // First close the main panel completely
-    setState(() {
-      hideMainPanel = true;
-    });
-    // Wait for main panel to close, then open destination panel
-    Future.delayed(Duration(milliseconds: 100), () {
+    if (!mounted) return;
+    _destinationOpenTimer?.cancel();
+    setState(() => hideMainPanel = true);
+    _destinationOpenTimer = Timer(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
+      if (!_driverSession.isOnline || !_destinationPanelController.isAttached) {
+        setState(() => hideMainPanel = false);
+        return;
+      }
       _destinationPanelController.open();
     });
   }
@@ -3648,6 +3651,8 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Future<void> _goOffline() async {
+    _destinationOpenTimer?.cancel();
+    hideMainPanel = false;
     unawaited(_radarSubscription?.cancel() ?? Future<void>.value());
     _radarSubscription = null;
     _latestDispatchOffers = const <RideOffer>[];
@@ -5242,6 +5247,7 @@ class _DriverHomeState extends State<DriverHome>
 
   @override
   void dispose() {
+    _destinationOpenTimer?.cancel();
     _radarSubscription?.cancel();
     _homeSheetPositionGuardTimer?.cancel();
     _sheetToneTimer?.cancel();
