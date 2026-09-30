@@ -66,9 +66,10 @@ class ActiveRideController extends ChangeNotifier {
 
   Future<bool> cancel({
     TripStatus status = TripStatus.cancelledByDriver,
+    bool clearSnapshot = true,
   }) async {
     if (terminal || saving || !_isCancellationTerminal(status)) return false;
-    if (!await _write(() => _finish(status))) return false;
+    if (clearSnapshot && !await _write(() => _finish(status))) return false;
     _terminalStatus = status;
     if (!_disposed) notifyListeners();
     return true;
