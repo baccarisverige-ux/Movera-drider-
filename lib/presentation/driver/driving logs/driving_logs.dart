@@ -22,7 +22,7 @@ class DrivingLogs extends StatelessWidget {
         ),
         titleSpacing: 0,
         title: const Text(
-          'Driving log',
+          'Driving log preview',
           style: TextStyle(
             color: _ink,
             fontSize: 18,
@@ -45,7 +45,7 @@ class DrivingLogs extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'TODAY',
+                  'DEMO DATA',
                   style: TextStyle(
                     color: _muted,
                     fontSize: 10,
@@ -65,7 +65,7 @@ class DrivingLogs extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  '2 h 34 min left before the daily limit',
+                  'Sample driving-time data · not live',
                   style: TextStyle(
                     color: _muted,
                     fontSize: 12,
@@ -87,7 +87,7 @@ class DrivingLogs extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           const Text(
-            'This week',
+            'Sample week',
             style: TextStyle(
               color: _ink,
               fontSize: 14,
@@ -98,7 +98,7 @@ class DrivingLogs extends StatelessWidget {
           _shift('Monday', '5 h 10 min', 'Online 07:12 – 12:22'),
           _shift('Tuesday', '6 h 40 min', 'Online 06:48 – 13:28'),
           _shift('Wednesday', '4 h 05 min', 'Online 15:10 – 19:15'),
-          _shift('Thursday', '6 h 26 min', 'Still online'),
+          _shift('Thursday', '6 h 26 min', 'Sample online state'),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -108,7 +108,7 @@ class DrivingLogs extends StatelessWidget {
               border: Border.all(color: _line),
             ),
             child: const Text(
-              'A break is required after 4.5 hours of driving. The daily limit on this account is 9 hours.',
+              'Demo compliance copy only. Driving and break limits are not connected to live account or regulatory data.',
               style: TextStyle(
                 color: _muted,
                 fontSize: 12,
