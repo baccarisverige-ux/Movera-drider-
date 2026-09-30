@@ -150,7 +150,7 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _sheetToneTimer;
   late final DriverSessionController _driverSession;
   late final bool _ownsDriverSession;
-  bool get _isOnline => _driverSession.isOnline;
+  bool get _isOnline => _driverSession.availableForOffers;
   bool get _isGoingOnline => _driverSession.isGoingOnline;
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;

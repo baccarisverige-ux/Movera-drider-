@@ -23,33 +23,44 @@ enum TripStatus {
 }
 
 extension TripStatusWire on TripStatus {
+  bool get isTerminal => switch (this) {
+    TripStatus.completed ||
+    TripStatus.cancelledByRider ||
+    TripStatus.cancelledByDriver ||
+    TripStatus.cancelledByAdmin ||
+    TripStatus.noShow ||
+    TripStatus.expired ||
+    TripStatus.failed => true,
+    _ => false,
+  };
+
   /// Snake_case value used in contracts and logs.
   String get wireName => switch (this) {
-        TripStatus.draft => 'draft',
-        TripStatus.quoted => 'quoted',
-        TripStatus.requested => 'requested',
-        TripStatus.searching => 'searching',
-        TripStatus.offered => 'offered',
-        TripStatus.accepted => 'accepted',
-        TripStatus.driverToPickup => 'driver_to_pickup',
-        TripStatus.arrived => 'arrived',
-        TripStatus.riderOnboard => 'rider_onboard',
-        TripStatus.inTrip => 'in_trip',
-        TripStatus.approachingDropoff => 'approaching_dropoff',
-        TripStatus.completed => 'completed',
-        TripStatus.cancelledByRider => 'cancelled_by_rider',
-        TripStatus.cancelledByDriver => 'cancelled_by_driver',
-        TripStatus.cancelledByAdmin => 'cancelled_by_admin',
-        TripStatus.noShow => 'no_show',
-        TripStatus.expired => 'expired',
-        TripStatus.failed => 'failed',
-      };
+    TripStatus.draft => 'draft',
+    TripStatus.quoted => 'quoted',
+    TripStatus.requested => 'requested',
+    TripStatus.searching => 'searching',
+    TripStatus.offered => 'offered',
+    TripStatus.accepted => 'accepted',
+    TripStatus.driverToPickup => 'driver_to_pickup',
+    TripStatus.arrived => 'arrived',
+    TripStatus.riderOnboard => 'rider_onboard',
+    TripStatus.inTrip => 'in_trip',
+    TripStatus.approachingDropoff => 'approaching_dropoff',
+    TripStatus.completed => 'completed',
+    TripStatus.cancelledByRider => 'cancelled_by_rider',
+    TripStatus.cancelledByDriver => 'cancelled_by_driver',
+    TripStatus.cancelledByAdmin => 'cancelled_by_admin',
+    TripStatus.noShow => 'no_show',
+    TripStatus.expired => 'expired',
+    TripStatus.failed => 'failed',
+  };
 }
 
 extension ActiveRideStageAsTripStatus on ActiveRideStage {
   TripStatus get tripStatus => switch (this) {
-        ActiveRideStage.headingToPickup => TripStatus.driverToPickup,
-        ActiveRideStage.waitingForRider => TripStatus.arrived,
-        ActiveRideStage.onTrip => TripStatus.inTrip,
-      };
+    ActiveRideStage.headingToPickup => TripStatus.driverToPickup,
+    ActiveRideStage.waitingForRider => TripStatus.arrived,
+    ActiveRideStage.onTrip => TripStatus.inTrip,
+  };
 }

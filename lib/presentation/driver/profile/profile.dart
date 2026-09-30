@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movera/core/session/driver_runtime_scope.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/driver/analytics/analytics.dart';
 import 'package:movera/presentation/driver/auth/starter/starter.dart';
@@ -106,13 +107,29 @@ class DriverProfile extends StatelessWidget {
           _group(context, [
             _item(Icons.insights_outlined, 'Analytics', const Analytics()),
             _item(Icons.account_balance_outlined, 'My bank', const MyBank()),
-            _item(Icons.description_outlined, 'Documents', const DriverDocuments()),
+            _item(
+              Icons.description_outlined,
+              'Documents',
+              const DriverDocuments(),
+            ),
           ]),
           const SizedBox(height: 12),
           _group(context, [
-            _item(Icons.privacy_tip_outlined, 'Privacy policy', LegalDocumentScreen.privacy),
-            _item(Icons.article_outlined, 'Terms of service', LegalDocumentScreen.terms),
-            _item(Icons.help_outline_rounded, 'Help center', const SupportInboxScreen()),
+            _item(
+              Icons.privacy_tip_outlined,
+              'Privacy policy',
+              LegalDocumentScreen.privacy,
+            ),
+            _item(
+              Icons.article_outlined,
+              'Terms of service',
+              LegalDocumentScreen.terms,
+            ),
+            _item(
+              Icons.help_outline_rounded,
+              'Help center',
+              const SupportInboxScreen(),
+            ),
           ]),
           const SizedBox(height: 12),
           Material(
@@ -122,14 +139,21 @@ class DriverProfile extends StatelessWidget {
               onTap: () => _confirmLogout(context),
               borderRadius: BorderRadius.circular(18),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: _line),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.logout_rounded, color: Color(0xFFB84F3D), size: 18),
+                    Icon(
+                      Icons.logout_rounded,
+                      color: Color(0xFFB84F3D),
+                      size: 18,
+                    ),
                     SizedBox(width: 10),
                     Text(
                       'Log out',
@@ -268,7 +292,9 @@ class DriverProfile extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF252E3A)),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF252E3A),
+              ),
               child: const Text('Log out'),
             ),
           ],
@@ -276,6 +302,7 @@ class DriverProfile extends StatelessWidget {
       },
     );
     if (leave == true && context.mounted) {
+      DriverRuntimeScope.maybeOf(context)?.session.reset();
       Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const DriverStarter()),
         (route) => false,
