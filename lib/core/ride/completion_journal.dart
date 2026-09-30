@@ -28,15 +28,25 @@ class CompletionJournal {
  tail.then((_) { if(identical(_pending,tail)) _pending=null; });
  return result;
  }
- Future<void> finish(WaybillRecord record, {PersistedActiveRide? next,
- TripStatus status=TripStatus.completed}) => _serial(() async {
+ Future<void> finish(
+  WaybillRecord record, {
+  PersistedActiveRide? next,
+  TripStatus status=TripStatus.completed,
+  String? cancellationReasonCode,
+  String? cancellationActor,
+ }) => _serial(() async {
  final prefs=await load();
  // Do not overwrite an earlier unfinished transaction.
  if(prefs.getString(key)!=null) await _replay(prefs);
- final payload={'schemaVersion':1,'tripId':record.tripId,'status':status.name,
- 'completedAt':DateTime.now().toIso8601String(),
+ final terminalAt=DateTime.now();
+ final payload={'schemaVersion':2,'tripId':record.tripId,'status':status.name,
+ 'completedAt':terminalAt.toIso8601String(),
  'record':{'tripId':record.tripId,'riderName':record.riderName,'fare':record.fare,
  'service':record.service,'pickup':record.pickup,'dropoff':record.dropoff},
+ if(cancellationReasonCode!=null) 'cancellation':{
+   'reasonCode':cancellationReasonCode,
+   'actor':cancellationActor ?? 'unknown',
+ },
  if(next!=null) 'next':next.toJson()};
  if(!await prefs.setString(key,jsonEncode(payload))) throw StateError('Completion journal write failed');
  afterWrite?.call('journal'); await _replay(prefs);
@@ -45,7 +55,8 @@ class CompletionJournal {
  Future<void> _replay(SharedPreferences prefs) async {
  final raw=prefs.getString(key); if(raw==null) return;
  final data=jsonDecode(raw) as Map<String,dynamic>;
- if(data['schemaVersion']!=1) throw StateError('Unsupported completion journal');
+ final schemaVersion=data['schemaVersion'];
+ if(schemaVersion!=1 && schemaVersion!=2) throw StateError('Unsupported completion journal');
  final id=data['tripId'] as String;
  final status=TripStatus.values.byName(data['status'] as String);
  if(![TripStatus.completed,TripStatus.cancelledByDriver,TripStatus.cancelledByRider,TripStatus.cancelledByAdmin].contains(status)) throw StateError('Invalid terminal journal');
@@ -58,8 +69,18 @@ class CompletionJournal {
  driverName:'Unavailable',vehicle:'Unavailable',licensePlate:'Unavailable',passengerCapacity:0),completedAt:at);
  afterWrite?.call('archive');
  }
+ final cancellation=data['cancellation'];
+ final cancellationMap=cancellation is Map ? Map<String,dynamic>.from(cancellation) : null;
  final repository=active;
- if(repository is TerminalRideRepository) await (repository as TerminalRideRepository).markTerminal(id,status);
+ if(repository is TerminalRideRepository) {
+   await (repository as TerminalRideRepository).markTerminal(
+     id,
+     status,
+     reasonCode: cancellationMap?['reasonCode'] as String?,
+     actor: cancellationMap?['actor'] as String?,
+     occurredAt: at,
+   );
+ }
  afterWrite?.call('terminal');
  final nextData=data['next'];
  if(nextData is Map) {

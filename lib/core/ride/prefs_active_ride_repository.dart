@@ -48,7 +48,9 @@ class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRep
       );
       if (ride == null) return null;
       final terminal = prefs.getStringList(terminalKey) ?? <String>[];
-      if (terminal.any((item) => item.startsWith('${ride.tripId}|'))) return null;
+      if (terminal.any((item) => _terminalTripId(item) == ride.tripId)) {
+        return null;
+      }
       return ride;
     } catch (error, stack) {
       DriverLog.warn('Active-ride snapshot unreadable: $error');
@@ -66,13 +68,37 @@ class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRep
   });
 
   @override
-  Future<void> markTerminal(String tripId, TripStatus status) => _enqueue(() async {
-    if (![TripStatus.completed, TripStatus.cancelledByRider, TripStatus.cancelledByDriver, TripStatus.cancelledByAdmin].contains(status)) throw ArgumentError('Terminal status required');
+  Future<void> markTerminal(
+    String tripId,
+    TripStatus status, {
+    String? reasonCode,
+    String? actor,
+    DateTime? occurredAt,
+  }) => _enqueue(() async {
+    if (![TripStatus.completed, TripStatus.cancelledByRider, TripStatus.cancelledByDriver, TripStatus.cancelledByAdmin].contains(status)) {
+      throw ArgumentError('Terminal status required');
+    }
     final prefs = await _load();
     final ids = prefs.getStringList(terminalKey) ?? <String>[];
-    if (!ids.any((item) => item.startsWith('$tripId|'))) ids.add('$tripId|${status.name}');
-    if (!await prefs.setStringList(terminalKey, ids)) throw StateError('Terminal marker could not be saved');
+    if (!ids.any((item) => _terminalTripId(item) == tripId)) {
+      final at = (occurredAt ?? DateTime.now()).toUtc().toIso8601String();
+      ids.add([
+        tripId,
+        status.name,
+        reasonCode ?? '',
+        actor ?? '',
+        at,
+      ].join('|'));
+    }
+    if (!await prefs.setStringList(terminalKey, ids)) {
+      throw StateError('Terminal marker could not be saved');
+    }
   });
+
+  static String _terminalTripId(String marker) {
+    final separator = marker.indexOf('|');
+    return separator < 0 ? marker : marker.substring(0, separator);
+  }
 
   @override
   Future<void> clearForTrip(String tripId) => _enqueue(() async {

@@ -7,6 +7,18 @@ import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/core/waybill/waybill.dart';
 void main() {
+ test('driver cancellation reason survives journal cleanup', () async {
+ SharedPreferences.setMockInitialValues({}); final active=PrefsActiveRideRepository();
+ await active.save(const PersistedActiveRide(tripId:'cancel-A',stage:ActiveRideStage.onTrip));
+ final record=WaybillRecord(tripId:'cancel-A',statusLabel:'Current',issuedAt:DateTime(2026),fare:'10 kr',service:'Demo',riderName:'Sample',pickup:'P',dropoff:'D',source:'Demo',driverName:'Sample',vehicle:'Sample',licensePlate:'Sample',passengerCapacity:4);
+ await CompletionJournal(active:active).finish(record,status:TripStatus.cancelledByDriver,cancellationReasonCode:'unsafe_pickup',cancellationActor:'driver');
+ final prefs=await SharedPreferences.getInstance();
+ final markers=prefs.getStringList(PrefsActiveRideRepository.terminalKey) ?? const <String>[];
+ expect(markers.where((item)=>item.startsWith('cancel-A|')),hasLength(1));
+ expect(markers.single,contains('|cancelledByDriver|unsafe_pickup|driver|'));
+ expect(await active.read(),isNull);
+ });
+
  test('rider cancellation retains queued B without creating a receipt', () async {
  SharedPreferences.setMockInitialValues({});final active=PrefsActiveRideRepository();
  await active.save(const PersistedActiveRide(tripId:'A',stage:ActiveRideStage.onTrip));
