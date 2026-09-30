@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// On Flutter web this is `localStorage` key `flutter.movera_driver_active_ride`.
 /// Stale snapshots older than [PersistedActiveRide.freshnessWindow] are dropped
 /// so an abandoned trip cannot revive days later.
-class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRepository {
+class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRepository, RideHandoffRepository {
   PrefsActiveRideRepository({Future<SharedPreferences> Function()? load})
     : _load = load ?? SharedPreferences.getInstance;
 
@@ -24,16 +24,16 @@ class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRep
 
   // SharedPreferences operations are asynchronous. Keep them in invocation
   // order so a previous ride's cleanup cannot remove a newer ride's snapshot.
-  Future<void> _pending = Future<void>.value();
+  static Future<void>? _pending;
 
   Future<T> _enqueue<T>(Future<T> Function() operation) {
-    final result = _pending.then((_) => operation());
-    _pending = result.then<void>((_) {}).catchError((
-      Object error,
-      StackTrace stack,
-    ) {
+    final previous = _pending;
+    final result = previous == null ? operation() : previous.then((_) => operation());
+    final tail = result.then<void>((_) {}).catchError((Object error, StackTrace stack) {
       DriverLog.error('Active-ride storage operation failed', error, stack);
     });
+    _pending = tail;
+    tail.then((_) { if (identical(_pending, tail)) _pending = null; });
     return result;
   }
 
@@ -44,11 +44,11 @@ class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRep
       final raw = prefs.getString(key);
       if (raw == null || raw.isEmpty) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) return null;
+      if (decoded is! Map) throw StateError('Malformed active ride');
       final ride = PersistedActiveRide.fromJson(
         Map<String, dynamic>.from(decoded),
       );
-      if (ride == null) return null;
+      if (ride == null) throw StateError('Unsupported or malformed active ride');
       final terminal = prefs.getStringList(terminalKey) ?? <String>[];
       if (terminal.any((item) => _terminalTripId(item) == ride.tripId)) {
         return null;
@@ -57,16 +57,39 @@ class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRep
     } catch (error, stack) {
       DriverLog.warn('Active-ride snapshot unreadable: $error');
       DriverLog.error('Active-ride snapshot parse failed', error, stack);
-      return null;
+      rethrow;
     }
   });
 
   @override
   Future<void> save(PersistedActiveRide ride) => _enqueue(() async {
     final prefs = await _load();
+    final terminal = prefs.getStringList(terminalKey) ?? <String>[];
+    if (terminal.any((item) => _terminalTripId(item) == ride.tripId)) throw StateError('Cannot revive a terminal trip');
+    final raw = prefs.getString(key);
+    if (raw != null) {
+      final current = jsonDecode(raw);
+      if (current is! Map || current['tripId'] != ride.tripId) throw StateError('Another trip owns the active snapshot');
+      final stage = ActiveRideStage.values.byName(current['stage'] as String);
+      if (stage.index > ride.stage.index) throw StateError('Cannot rewind trip progress');
+    }
     if (!await prefs.setString(key, jsonEncode(ride.stamped().toJson()))) {
       throw StateError('Active ride could not be saved');
     }
+  });
+
+  @override
+  Future<void> handoff(String expectedTripId, PersistedActiveRide next) => _enqueue(() async {
+    final prefs = await _load();
+    final raw = prefs.getString(key);
+    if (raw != null) {
+      final current = jsonDecode(raw);
+      if (current is! Map || (current['tripId'] != expectedTripId && current['tripId'] != next.tripId)) throw StateError('Queued handoff conflicts with a newer active trip');
+      if (current['tripId'] == next.tripId) return; // Never rewind an already progressing next trip.
+    }
+    final terminal = prefs.getStringList(terminalKey) ?? <String>[];
+    if (terminal.any((item) => _terminalTripId(item) == next.tripId)) throw StateError('Queued trip is already terminal');
+    if (!await prefs.setString(key, jsonEncode(next.stamped().toJson()))) throw StateError('Queued handoff write failed');
   });
 
   @override

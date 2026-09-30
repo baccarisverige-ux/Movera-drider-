@@ -86,7 +86,13 @@ class CompletionJournal {
  if(nextData is Map) {
  final next=PersistedActiveRide.fromJson(Map<String,dynamic>.from(nextData));
  if(next==null || next.tripId==id) throw StateError('Invalid queued trip');
- await active.save(next);
+ if(repository is RideHandoffRepository) {
+   await (repository as RideHandoffRepository).handoff(id, next);
+ } else {
+   final current = await active.read();
+   if(current != null && current.tripId != id && current.tripId != next.tripId) throw StateError('Queued handoff conflicts with a newer active trip');
+   if(current?.tripId != next.tripId) await active.save(next);
+ }
  } else {
  // Clear only A; do not erase an independently accepted newer trip.
  final current=await active.read();

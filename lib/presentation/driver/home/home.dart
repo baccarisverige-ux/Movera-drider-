@@ -150,7 +150,7 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _sheetToneTimer;
   late final DriverSessionController _driverSession;
   late final bool _ownsDriverSession;
-  bool get _isOnline => _driverSession.availableForOffers;
+  bool get _isOnline => _recoveryResolved && _driverSession.availableForOffers;
   bool get _isGoingOnline => _driverSession.isGoingOnline;
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
@@ -279,12 +279,13 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   bool _didAttemptActiveRideRestore = false;
+  bool _recoveryResolved = false;
 
   Future<void> _restoreActiveRideIfNeeded() async {
     if (_didAttemptActiveRideRestore) return;
     _didAttemptActiveRideRestore = true;
     final repo = widget.activeRideRepository;
-    if (repo == null) return;
+    if (repo == null) { if (mounted) setState(() => _recoveryResolved = true); return; }
     PersistedActiveRide? snapshot;
     try {
       await CompletionJournal(active: repo).reconcile();
@@ -296,19 +297,21 @@ class _DriverHomeState extends State<DriverHome>
         action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); })));
       return;
     }
-    if (!mounted || snapshot == null) return;
+    if (!mounted) return;
+    if (snapshot == null) { setState(() => _recoveryResolved = true); return; }
 
-    if (!snapshot.isFresh) {
+    if (!snapshot.isFresh || !snapshot.hasVerifiedEndpoints) {
       final resume = await showDialog<bool>(context: context, barrierDismissible: false,
         builder: (context) => AlertDialog(title: const Text('Unresolved trip'),
-          content: const Text('This saved trip is older than six hours. Resume it or close it explicitly.'),
+          content: Text(snapshot.hasVerifiedEndpoints ? 'This saved trip is older than six hours. Resume it or close it explicitly.' : 'Saved route coordinates are unavailable. Close this trip explicitly before accepting another.'),
           actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Close trip')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Resume trip'))]));
+            FilledButton(onPressed: snapshot.hasVerifiedEndpoints ? () => Navigator.pop(context, true) : null, child: const Text('Resume trip'))]));
       if (!mounted) return;
       if (resume != true) {
         try {
           if (repo is TerminalRideRepository) await (repo as TerminalRideRepository).markTerminal(snapshot.tripId, TripStatus.cancelledByDriver);
           if (repo is TerminalRideRepository) { await (repo as TerminalRideRepository).clearForTrip(snapshot.tripId); } else { await repo.clear(); }
+          if (mounted) setState(() => _recoveryResolved = true);
         } catch (_) {
           _didAttemptActiveRideRestore = false;
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -319,6 +322,7 @@ class _DriverHomeState extends State<DriverHome>
       }
     }
 
+    setState(() => _recoveryResolved = true);
     DriverLog.info(
       'Restoring active ride ${snapshot.tripId} at ${snapshot.stage.name}',
     );
@@ -1236,7 +1240,7 @@ class _DriverHomeState extends State<DriverHome>
       context,
       ActiveRideTransition(
         AcceptRide(
-          offerId: offer.id,
+          offerId: '${offer.id}-${DateTime.now().microsecondsSinceEpoch}',
           fare: offer.fare,
           category: offer.category,
           matchedVia: offer.reservation ? 'Reservation' : 'Exclusive Radar',
@@ -1284,7 +1288,7 @@ class _DriverHomeState extends State<DriverHome>
       context,
       ActiveRideTransition(
         AcceptRide(
-          offerId: offer.id,
+          offerId: '${offer.id}-${DateTime.now().microsecondsSinceEpoch}',
           fare: offer.fare,
           category: offer.category,
           matchedVia: 'Movera Radar',

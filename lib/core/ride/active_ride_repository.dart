@@ -58,7 +58,8 @@ class PersistedQueuedTrip {
   static PersistedQueuedTrip? fromJson(Map<String, dynamic>? json) {
     if (json == null) return null;
     final tripId = json['tripId'] as String?;
-    if (tripId == null || tripId.isEmpty) return null;
+    if (tripId == null || tripId.trim().isEmpty) return null;
+    if (!['pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng'].every((key) => validCoordinate(json[key], latitude: key.endsWith('Lat')))) return null;
     return PersistedQueuedTrip(
       tripId: tripId,
       riderName: json['riderName'] as String? ?? '',
@@ -66,10 +67,10 @@ class PersistedQueuedTrip {
       category: json['category'] as String? ?? 'Movera',
       pickup: json['pickup'] as String? ?? '',
       dropoff: json['dropoff'] as String? ?? '',
-      pickupLat: (json['pickupLat'] as num?)?.toDouble() ?? 59.3328,
-      pickupLng: (json['pickupLng'] as num?)?.toDouble() ?? 18.0587,
-      dropoffLat: (json['dropoffLat'] as num?)?.toDouble() ?? 59.3142,
-      dropoffLng: (json['dropoffLng'] as num?)?.toDouble() ?? 18.0735,
+      pickupLat: (json['pickupLat'] as num).toDouble(),
+      pickupLng: (json['pickupLng'] as num).toDouble(),
+      dropoffLat: (json['dropoffLat'] as num).toDouble(),
+      dropoffLng: (json['dropoffLng'] as num).toDouble(),
       rating: (json['rating'] as num?)?.toDouble() ?? 4.9,
       pickupMinutes: (json['pickupMinutes'] as num?)?.toInt() ?? 4,
       tripMinutes: (json['tripMinutes'] as num?)?.toInt() ?? 16,
@@ -104,6 +105,9 @@ class PersistedActiveRide {
     this.stopIndex = 0,
     this.paidStopWait = false,
     this.next,
+    this.destinationModeActive = false,
+    this.destinationAddress,
+    this.destinationPoint,
   });
 
   final String tripId;
@@ -131,6 +135,11 @@ class PersistedActiveRide {
   final int stopIndex;
   final bool paidStopWait;
   final PersistedQueuedTrip? next;
+  final bool destinationModeActive;
+  final String? destinationAddress;
+  final GeoPoint? destinationPoint;
+  bool get hasVerifiedEndpoints => validCoordinate(pickupLat, latitude: true) && validCoordinate(pickupLng, latitude: false) && validCoordinate(dropoffLat, latitude: true) && validCoordinate(dropoffLng, latitude: false);
+
 
   /// How long a saved live trip may sit untouched and still be restored.
   ///
@@ -143,7 +152,8 @@ class PersistedActiveRide {
   bool isFreshAt(DateTime now) {
     final at = savedAt;
     if (at == null) return true;
-    return now.difference(at) < freshnessWindow;
+    final age = now.difference(at);
+    return age >= const Duration(minutes: -2) && age < freshnessWindow;
   }
 
   PersistedActiveRide stamped([DateTime? at]) {
@@ -173,6 +183,9 @@ class PersistedActiveRide {
       stopIndex: stopIndex,
       paidStopWait: paidStopWait,
       next: next,
+      destinationModeActive: destinationModeActive,
+      destinationAddress: destinationAddress,
+      destinationPoint: destinationPoint,
     );
   }
 
@@ -208,17 +221,32 @@ class PersistedActiveRide {
         'stopIndex': stopIndex,
         'paidStopWait': paidStopWait,
         if (next != null) 'next': next!.toJson(),
+        'destinationModeActive': destinationModeActive,
+        if (destinationAddress != null) 'destinationAddress': destinationAddress,
+        if (destinationPoint != null) 'destinationPoint': {'latitude': destinationPoint!.latitude, 'longitude': destinationPoint!.longitude},
       };
 
   static PersistedActiveRide? fromJson(Map<String, dynamic> json) {
     final version = json['schemaVersion'] ?? 1;
     if (version != 1 && version != 2) return null;
     final tripId = json['tripId'] as String?;
-    if (tripId == null || tripId.isEmpty) return null;
+    if (tripId == null || tripId.trim().isEmpty) return null;
     final stageName = json['stage'] as String?;
     final stage = ActiveRideStage.values.where((value) => value.name == stageName);
     if (stage.isEmpty) return null;
+    for (final key in ['arrivedAt', 'startedAt', 'savedAt']) {
+      if (json[key] != null && (json[key] is! String || DateTime.tryParse(json[key] as String) == null)) return null;
+    }
+    for (final key in ['pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng']) {
+      if (json[key] != null && !validCoordinate(json[key], latitude: key.endsWith('Lat'))) return null;
+    }
+    final stops = json['stopPoints'];
+    if (stops != null && (stops is! List || stops.any((point) => point is! Map || !validCoordinate(point['latitude'], latitude: true) || !validCoordinate(point['longitude'], latitude: false)))) return null;
+    final destination = json['destinationPoint'];
+    if (destination != null && (destination is! Map || !validCoordinate(destination['latitude'], latitude: true) || !validCoordinate(destination['longitude'], latitude: false))) return null;
     final nextJson = json['next'];
+    final next = nextJson is Map ? PersistedQueuedTrip.fromJson(Map<String,dynamic>.from(nextJson)) : null;
+    if (nextJson != null && next == null) return null;
     return PersistedActiveRide(
       tripId: tripId,
       stage: stage.first,
@@ -254,9 +282,10 @@ class PersistedActiveRide {
       waitSeconds: (json['waitSeconds'] as num?)?.toInt(),
       stopIndex: (json['stopIndex'] as num?)?.toInt() ?? 0,
       paidStopWait: json['paidStopWait'] == true,
-      next: nextJson is Map
-          ? PersistedQueuedTrip.fromJson(Map<String, dynamic>.from(nextJson))
-          : null,
+      next: next,
+      destinationModeActive: json['destinationModeActive'] == true,
+      destinationAddress: json['destinationAddress'] as String?,
+      destinationPoint: destination is Map ? GeoPoint((destination['latitude'] as num).toDouble(), (destination['longitude'] as num).toDouble()) : null,
     );
   }
 }
@@ -301,4 +330,11 @@ abstract interface class TerminalRideRepository {
   });
 
   Future<void> clearForTrip(String tripId);
+}
+
+bool validCoordinate(Object? value, {required bool latitude}) => value is num && value.isFinite && value.abs() <= (latitude ? 90 : 180);
+
+/// A journal may replace only its own trip or replay its already-installed next trip.
+abstract interface class RideHandoffRepository {
+  Future<void> handoff(String expectedTripId, PersistedActiveRide next);
 }
