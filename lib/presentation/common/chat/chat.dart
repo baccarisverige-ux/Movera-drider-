@@ -55,6 +55,27 @@ class _ChatState extends State<Chat> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             12.height,
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: screenHorizPadding),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xffF6F6F6),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Local demo chat · messages are not sent to the rider.',
+                      style: TextStyle(fontSize: 12.5, height: 1.3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            10.height,
             Expanded(
               child: StatefulBuilder(
                 builder: (context, i) {
@@ -206,7 +227,7 @@ class _SenderMessageState extends State<SenderMessage> {
                     ),
                     5.height,
                     TextWidget(
-                      text: "10:00 AM",
+                      text: "Local preview · not sent",
                       color: Color(0xff858F94),
                       fontSize: 12,
                       fontWeight: fwNormal,
@@ -266,7 +287,7 @@ class _ReceiverMessageState extends State<ReceiverMessage> {
                     ),
                     5.height,
                     TextWidget(
-                      text: "10:00 AM",
+                      text: "Local preview · not sent",
                       color: Color(0xff858F94),
                       fontSize: 12,
                       fontWeight: fwNormal,
