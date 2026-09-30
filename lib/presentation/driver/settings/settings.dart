@@ -148,7 +148,7 @@ class _SettingsState extends State<Settings> {
               ),
             ),
             if (detail != null)
-              Padding(
+              Flexible(child: Padding(
                 padding: const EdgeInsets.only(right: 6),
                 child: Text(
                   detail,
@@ -158,7 +158,7 @@ class _SettingsState extends State<Settings> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
+              )),
             trailing ??
                 const Icon(
                   Icons.chevron_right_rounded,

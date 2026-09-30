@@ -667,13 +667,12 @@ class _BreakdownRow extends StatelessWidget {
   const _BreakdownRow({
     required this.label,
     required this.value,
-    this.valueColor,
     this.strong = false,
   });
 
   final String label;
   final String value;
-  final Color? valueColor;
+  final Color? valueColor = null;
   final bool strong;
 
   @override

@@ -51,7 +51,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         child: Column(
           children: [
             _buildHeader(context),
-            const Padding(padding: EdgeInsets.all(12), child: Text('Preview — not binding. Accept/cancel changes are temporary and reset on reopening.')),
+            const Padding(padding: EdgeInsets.all(12), child: Text('Preview — not binding. Decisions reset when reopened.', style: TextStyle(fontSize: 12))),
             _buildTabs(),
             Expanded(
               child: ListView.separated(
@@ -64,15 +64,15 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
                       padding: const EdgeInsets.fromLTRB(2, 2, 2, 0),
                       child: Row(
                         children: [
-                          Text(
+                          Expanded(child: Text(
                             _selectedTab == 0 ? 'Available today' : 'Upcoming',
                             style: const TextStyle(
                               color: Color(0xFF6F7B82),
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                             ),
-                          ),
-                          const Spacer(),
+                          )),
+                          const SizedBox(width: 8),
                           if (_selectedTab == 0)
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -203,7 +203,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 15),
       child: Container(
-        height: 46,
+        height: 46 * MediaQuery.textScalerOf(context).scale(13) / 13,
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: const Color(0xFFF0F2F3),
@@ -314,15 +314,15 @@ class _ScheduledRideCard extends StatelessWidget {
                   const SizedBox(height: 7),
                   Row(
                     children: [
-                      _RideMeta(
+                      Flexible(child: _RideMeta(
                         icon: Icons.directions_car_outlined,
                         label: ride.category,
-                      ),
+                      )),
                       const SizedBox(width: 12),
-                      _RideMeta(
+                      Flexible(child: _RideMeta(
                         icon: Icons.route_outlined,
                         label: ride.distance,
-                      ),
+                      )),
                     ],
                   ),
                 ],
@@ -406,14 +406,14 @@ class _RideMeta extends StatelessWidget {
       children: [
         Icon(icon, color: const Color(0xFF89949B), size: 15),
         const SizedBox(width: 4),
-        Text(
+        Flexible(child: Text(
           label,
           style: const TextStyle(
             color: Color(0xFF89949B),
             fontSize: 10,
             fontWeight: FontWeight.w600,
           ),
-        ),
+        )),
       ],
     );
   }

@@ -44,7 +44,6 @@ import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/movera_radar_orb.dart';
@@ -137,7 +136,6 @@ class _DriverHomeState extends State<DriverHome>
 
   static const double _homeExpandedFraction = 0.86;
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
-  static const Duration _radarOfferLifetime = Duration(milliseconds: 30000);
   static const int _maxHomeRadarOffers = 4;
   double _sheetPointerVelocity = 0;
   double _sheetPointerLastY = 0;
@@ -232,56 +230,8 @@ class _DriverHomeState extends State<DriverHome>
     reservation: true,
   );
 
-  static const _HomeDirectOffer _radarHomeOffer = _HomeDirectOffer(
-    id: 'home-radar-match',
-    category: 'Comfort',
-    reason: 'Trip Radar match',
-    detail: 'Detected in your live radar coverage',
-    fare: '156,80 kr',
-    rating: '4.77',
-    pickupMinutes: 6,
-    pickupKm: 1.8,
-    tripMinutes: 18,
-    tripKm: 16.4,
-    pickup: 'Kungsgatan 44, Stockholm',
-    dropoff: 'Modulvägen 6B, Kungens Kurva',
-    pickupPosition: LatLng(59.3347, 18.0621),
-    dropoffPosition: LatLng(59.2697, 17.9258),
-  );
 
-  static const _HomeDirectOffer _radarHomeOffer2 = _HomeDirectOffer(
-    id: 'home-radar-match-2',
-    category: 'Premium',
-    reason: 'Trip Radar match',
-    detail: 'Live request inside your radar area',
-    fare: '198,40 kr',
-    rating: '4.91',
-    pickupMinutes: 4,
-    pickupKm: 1.1,
-    tripMinutes: 23,
-    tripKm: 14.2,
-    pickup: 'Sveavägen 86, Stockholm',
-    dropoff: 'Mall of Scandinavia, Solna',
-    pickupPosition: LatLng(59.3426, 18.0594),
-    dropoffPosition: LatLng(59.3703, 18.0031),
-  );
 
-  static const _HomeDirectOffer _radarHomeOffer3 = _HomeDirectOffer(
-    id: 'home-radar-match-3',
-    category: 'Comfort',
-    reason: 'Trip Radar match',
-    detail: 'Live request inside your radar area',
-    fare: '132,60 kr',
-    rating: '4.85',
-    pickupMinutes: 7,
-    pickupKm: 2.4,
-    tripMinutes: 16,
-    tripKm: 9.8,
-    pickup: 'Sankt Eriksgatan 52, Stockholm',
-    dropoff: 'Liljeholmen, Stockholm',
-    pickupPosition: LatLng(59.3356, 18.0378),
-    dropoffPosition: LatLng(59.3108, 18.0222),
-  );
 
   late final SheetTrace _sheetTrace = SheetTrace('home', () => _panelController.isAttached ? _panelController.panelPosition : 0);
 
@@ -993,16 +943,6 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
-  void _scheduleRadarOfferExpiry(_HomeDirectOffer offer) {
-    _radarOfferTimeoutTimers.remove(offer.id)?.cancel();
-    _radarOfferTimeoutTimers[offer.id] = Timer(
-      _radarOfferLifetime,
-      () {
-        if (!mounted) return;
-        _dismissRadarHomeOffer(offer);
-      },
-    );
-  }
 
   void _activateRadarHomeOffer(_HomeDirectOffer offer) {
     if (!mounted ||
@@ -1526,10 +1466,6 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
-  Future<void> _openDriverSheet() async {
-    _setMapGesturesBlocked(true);
-    await _springPanelTo(1);
-  }
 
   Future<void> _closeDriverSheet() async {
     await _springPanelTo(0);
@@ -5166,89 +5102,6 @@ class _DriverHomeState extends State<DriverHome>
     );
   }
 
-  Widget _driverStatCard({
-    required String title,
-    required String mainText,
-    required Color mainColor,
-    IconData? icon,
-    Color? iconColor,
-    String? badge,
-    Color? badgeColor,
-    String? footer,
-  }) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 142),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColor.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextWidget(
-                  text: title,
-                  color: const Color(0xFF8A97A8),
-                  fontSize: 12,
-                  fontWeight: fwNormal,
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFF9DA9B8),
-                size: 19,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: iconColor, size: 18),
-                const SizedBox(width: 5),
-              ],
-              Expanded(
-                child: TextWidget(
-                  text: mainText,
-                  color: mainColor,
-                  fontSize: 19,
-                  fontWeight: fwSemiBold,
-                ),
-              ),
-            ],
-          ),
-          if (badge != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              decoration: BoxDecoration(
-                color: badgeColor,
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: TextWidget(
-                text: badge,
-                color: AppColor.white,
-                fontSize: 11,
-                fontWeight: fwSemiBold,
-              ),
-            ),
-          ],
-          if (footer != null) ...[
-            const SizedBox(height: 10),
-            TextWidget(
-              text: footer,
-              color: const Color(0xFF8A97A8),
-              fontSize: 10,
-              fontWeight: fwNormal,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
   @override
   void dispose() {
@@ -5286,62 +5139,6 @@ class _DriverHomeState extends State<DriverHome>
     super.dispose();
   }
 
-  void _showSuccessSnackbar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        clipBehavior: Clip.none,
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        content: Container(
-          padding: EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              Container(
-                height: 40,
-                width: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColor.white,
-                ),
-                child: Icon(
-                  Icons.check_circle_rounded,
-                  color: Colors.green,
-                  size: 24,
-                ),
-              ),
-              16.width,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextWidget(
-                      text: "Account Approved!",
-                      fontSize: 16,
-                      fontWeight: fwBold,
-                      color: AppColor.white,
-                    ),
-                    4.height,
-                    TextWidget(
-                      text:
-                          "Your account has been approved. You can now go online and start accepting rides.",
-                      fontSize: 12,
-                      fontWeight: fwNormal,
-                      color: AppColor.white,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: EdgeInsets.all(16),
-      ),
-    );
-  }
 }
 
 
@@ -5377,7 +5174,7 @@ class _HomeDirectOffer {
   final LatLng pickupPosition;
   final LatLng dropoffPosition;
   final bool reservation;
-  final bool driverSigned;
+  final bool driverSigned = false;
 
   const _HomeDirectOffer({
     required this.id,
@@ -5395,6 +5192,5 @@ class _HomeDirectOffer {
     required this.pickupPosition,
     required this.dropoffPosition,
     this.reservation = false,
-    this.driverSigned = false,
   });
 }

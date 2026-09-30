@@ -166,14 +166,14 @@ class DrivingLogs extends StatelessWidget {
               ],
             ),
           ),
-          Text(
+          Flexible(child: Text(
             hours,
             style: const TextStyle(
               color: _ink,
               fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
-          ),
+          )),
         ],
       ),
     );
