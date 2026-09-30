@@ -1,6 +1,6 @@
 # Driver audit stack review and merge gates
 
-This series is draft only. Review PR 16 through PR 29 in numerical order. Each PR targets the preceding phase branch, and no phase has been merged by opening the stack.
+The current series is draft only: phases 14–31 are PRs #30–#47. Review in phase order. Phase 14 targets main; each successor targets the preceding phase branch. Earlier PRs #16–#29 are already part of the main baseline. Opening or updating this stack does not authorize any merge.
 
 ## Automated gate on each exact head
 
@@ -18,6 +18,26 @@ The repository is a frontend demo. Dispatch, reservations, payments, support, do
 
 ## Merge sequence
 
-16 baseline → 17 storage → 18 snapshot → 19 stops → 20 history → 21 queued ride → 22 shared offers → 23 Home sheet → 24 active sheet → 25 safety → 26 support demo → 27 settings → 28 auth boundary → 29 regression gate.
+| Phase | PR | Scope |
+| --- | --- | --- |
+| 14 | #30 | Wallet simulation |
+| 15 | #31 | Document previews |
+| 16 | #32 | Demo boundary and emergency dialer |
+| 17 | #33 | Identity preview |
+| 18 | #34 | Unavailable controls |
+| 19 | #35 | Observable storage |
+| 20 | #36 | Terminal and stale recovery |
+| 21 | #37 | Completion and cancellation journal |
+| 22 | #38 | History hardening |
+| 23 | #39 | Radar location freshness |
+| 24 | #40 | Destination teardown guard |
+| 25 | #41 | Passive sheet traces |
+| 26 | #42 | Physical-device evidence gate; no motion change |
+| 27 | #43 | Scheduled ride preview |
+| 28 | #44 | Local support drafts |
+| 29 | #45 | Local settings |
+| 30 | #46 | Route inventory and legacy auth gate |
+| 31 | #47 | Fault, navigation, large-text and CI verification |
+
 
 Merge one at a time only after its gate passes, retarget or refresh the next draft against the updated base, and inspect its diff and CI again. Keep rollback at the phase commit boundary. No automation merges these drafts.
