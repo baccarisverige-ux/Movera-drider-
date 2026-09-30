@@ -750,7 +750,11 @@ class _AcceptRideState extends State<AcceptRide>
     final next = secured == null ? null : _snapshotForOffer(secured);
     try {
       await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
-        _waybills.current ?? _buildCurrentWaybill(), status: TripStatus.cancelledByRider, next: next);
+        _waybills.current ?? _buildCurrentWaybill(),
+        status: TripStatus.cancelledByRider,
+        cancellationReasonCode: 'rider_cancelled',
+        cancellationActor: 'rider',
+        next: next);
       if (!mounted) return;
       if (!await _rideLifecycle.cancel(status: TripStatus.cancelledByRider, clearSnapshot: false)) {
         _handlingRiderCancellation=false; return;
@@ -3677,7 +3681,10 @@ class _AcceptRideState extends State<AcceptRide>
     try {
       final secured = _onTripRadarState == _OnTripRadarState.secured ? _nextTripRadarOffer : null;
       await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
-        _waybills.current ?? _buildCurrentWaybill(), status: TripStatus.cancelledByDriver,
+        _waybills.current ?? _buildCurrentWaybill(),
+        status: TripStatus.cancelledByDriver,
+        cancellationReasonCode: reason.code,
+        cancellationActor: 'driver',
         next: secured == null ? null : _snapshotForOffer(secured));
     } catch (_) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save cancellation. Retry.')));
