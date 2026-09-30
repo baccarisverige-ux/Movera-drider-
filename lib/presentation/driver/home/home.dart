@@ -303,7 +303,7 @@ class _DriverHomeState extends State<DriverHome>
     if (!snapshot.isFresh || !snapshot.hasVerifiedEndpoints) {
       final resume = await showDialog<bool>(context: context, barrierDismissible: false,
         builder: (context) => AlertDialog(title: const Text('Unresolved trip'),
-          content: Text(snapshot.hasVerifiedEndpoints ? 'This saved trip is older than six hours. Resume it or close it explicitly.' : 'Saved route coordinates are unavailable. Close this trip explicitly before accepting another.'),
+          content: Text(snapshot!.hasVerifiedEndpoints ? 'This saved trip is older than six hours. Resume it or close it explicitly.' : 'Saved route coordinates are unavailable. Close this trip explicitly before accepting another.'),
           actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Close trip')),
             FilledButton(onPressed: snapshot.hasVerifiedEndpoints ? () => Navigator.pop(context, true) : null, child: const Text('Resume trip'))]));
       if (!mounted) return;
