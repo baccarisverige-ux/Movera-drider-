@@ -16,7 +16,7 @@ class EarningStatsScreen extends StatefulWidget {
 }
 
 class _EarningStatsScreenState extends State<EarningStatsScreen> {
-  final List<String> tabs = ["Type", "Feature", "7/12 - 7/14", "Clear"];
+  final List<String> tabs = ["Type", "Feature", "Sample period", "Clear"];
   int selectedTab = 2;
   @override
   Widget build(BuildContext context) {
@@ -38,7 +38,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: TextWidget(
-          text: "Earning Stats",
+          text: "Earnings preview",
           fontSize: 16,
           fontWeight: fwSemiBold,
           color: AppColor.title,
@@ -180,7 +180,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextWidget(
-                      text: "Skypulse solution pvt",
+                      text: "Demo rider",
                       fontSize: 16,
                       fontWeight: fwSemiBold,
                       color: AppColor.title,
@@ -189,7 +189,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
                     Row(
                       children: [
                         TextWidget(
-                          text: "VIP Ride",
+                          text: "Movera demo",
                           fontSize: 10,
                           fontWeight: fwSemiBold,
                           color: AppColor.subtitle,
@@ -201,7 +201,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
                           color: AppColor.subtitle,
                         ),
                         TextWidget(
-                          text: "5.6 km",
+                          text: "Sample distance",
                           fontSize: 10,
                           fontWeight: fwSemiBold,
                           color: AppColor.subtitle,
@@ -213,7 +213,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
                           color: AppColor.subtitle,
                         ),
                         TextWidget(
-                          text: "\$12.00",
+                          text: "—",
                           fontSize: 10,
                           fontWeight: fwSemiBold,
                           color: AppColor.subtitle,
@@ -225,7 +225,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
                           color: AppColor.subtitle,
                         ),
                         TextWidget(
-                          text: "20 Jun, 10:30 AM",
+                          text: "Sample",
                           fontSize: 10,
                           fontWeight: fwSemiBold,
                           color: AppColor.subtitle,
@@ -323,7 +323,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                "1141 central park, Lemonade Homilton",
+                                "Sample pickup, Stockholm",
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.poppins(
@@ -351,7 +351,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                "Skypulse office, RWP, Pakistan",
+                                "Sample drop-off, Stockholm",
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.poppins(
