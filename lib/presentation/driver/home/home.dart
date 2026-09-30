@@ -1,3 +1,4 @@
+import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -331,7 +332,17 @@ class _DriverHomeState extends State<DriverHome>
     _didAttemptActiveRideRestore = true;
     final repo = widget.activeRideRepository;
     if (repo == null) return;
-    final snapshot = await repo.read();
+    PersistedActiveRide? snapshot;
+    try {
+      await CompletionJournal(active: repo).reconcile();
+      snapshot = await repo.read();
+    } catch (_) {
+      _didAttemptActiveRideRestore = false;
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Trip recovery needs a retry. Saved progress is retained.'),
+        action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); })));
+      return;
+    }
     if (!mounted || snapshot == null) return;
 
     if (!snapshot.isFresh) {
