@@ -51,6 +51,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         child: Column(
           children: [
             _buildHeader(context),
+            const Padding(padding: EdgeInsets.all(12), child: Text('Preview — not binding. Accept/cancel changes are temporary and reset on reopening.')),
             _buildTabs(),
             Expanded(
               child: ListView.separated(
@@ -625,7 +626,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
         ),
         titleSpacing: 0,
         title: Text(
-          ride.accepted ? 'Your reservation' : 'Reservation details',
+          ride.accepted ? 'Sample reservation' : 'Reservation details',
           style: const TextStyle(
             color: _ink,
             fontSize: 18,
@@ -701,7 +702,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                     ),
                     SizedBox(width: 6),
                     Text(
-                      'Route preview',
+                      'Illustrative route — sample data',
                       style: TextStyle(
                         color: _ink,
                         fontSize: 11,
@@ -870,7 +871,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                ride.accepted ? 'Confirmed' : 'Available',
+                                ride.accepted ? 'Demo accepted' : 'Available',
                                 style: TextStyle(
                                   color: ride.accepted ? _green : _muted,
                                   fontSize: 11,
