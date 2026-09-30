@@ -18,6 +18,7 @@ class LiveVehicleAnimator {
   LiveVehicleAnimator({
     required TickerProvider vsync,
     LiveVehiclePose? initial,
+    this.reduceMotion,
   }) : pose = ValueNotifier<LiveVehiclePose>(
           initial ??
               const LiveVehiclePose(
@@ -34,6 +35,7 @@ class LiveVehicleAnimator {
     _controller.addListener(_handleTick);
   }
 
+  final bool Function()? reduceMotion;
   final ValueNotifier<LiveVehiclePose> pose;
   final AnimationController _controller;
   late LiveVehiclePose _from;
@@ -55,7 +57,7 @@ class LiveVehicleAnimator {
   }
 
   void moveTo(LatLng target, double headingDegrees) {
-    if (!_hasPose) {
+    if (!_hasPose || reduceMotion?.call()==true) {
       snapTo(target, headingDegrees);
       return;
     }
