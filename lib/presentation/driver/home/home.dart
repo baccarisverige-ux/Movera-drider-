@@ -364,13 +364,13 @@ class _DriverHomeState extends State<DriverHome>
       issuedAt: snapshot.savedAt ?? DateTime.now(),
       fare: snapshot.fare ?? '—',
       service: snapshot.category ?? 'Movera',
-      riderName: snapshot.riderName ?? 'Angelica',
+      riderName: snapshot.riderName ?? 'Rider data unavailable',
       pickup: snapshot.pickupAddress ?? '',
       dropoff: snapshot.dropoffAddress ?? '',
       source: snapshot.matchedVia ?? 'Movera Radar',
-      driverName: 'Movera Driver',
-      vehicle: 'Movera partner vehicle',
-      licensePlate: 'MVR 418',
+      driverName: 'Demo driver — identity unavailable',
+      vehicle: 'Vehicle data unavailable',
+      licensePlate: 'Plate unavailable',
       passengerCapacity: 4,
     );
   }
@@ -386,9 +386,9 @@ class _DriverHomeState extends State<DriverHome>
       pickup: next.pickup,
       dropoff: next.dropoff,
       source: 'Movera Radar',
-      driverName: 'Movera Driver',
-      vehicle: 'Movera partner vehicle',
-      licensePlate: 'MVR 418',
+      driverName: 'Demo driver — identity unavailable',
+      vehicle: 'Vehicle data unavailable',
+      licensePlate: 'Plate unavailable',
       passengerCapacity: 4,
     );
   }
