@@ -54,7 +54,7 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
   void initState() {
     super.initState();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
+      if (mounted) { setState(() {}); }
     });
   }
 
@@ -489,7 +489,7 @@ class _WaitingClockState extends State<WaitingClock>
       },
     );
 
-    if (widget.onTap == null) return clock;
+    if (widget.onTap == null) { return clock; }
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -550,7 +550,7 @@ class _ClockPainter extends CustomPainter {
     final inner = radius * 0.62;
     final outer = radius * 0.86;
     final handPaint = Paint()
-      ..color = tone.withOpacity(0.9)
+      ..color = tone.withValues(alpha: 0.9)
       ..strokeWidth = size.width < 70 ? 1.4 : 2
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(
@@ -568,7 +568,7 @@ class _ClockPainter extends CustomPainter {
 }
 
 Color _waitTone(int seconds) {
-  if (seconds >= _noShowSeconds) return const Color(0xFF9E2B33);
-  if (seconds >= _graceSeconds) return const Color(0xFF146B45);
+  if (seconds >= _noShowSeconds) { return const Color(0xFF9E2B33); }
+  if (seconds >= _graceSeconds) { return const Color(0xFF146B45); }
   return const Color(0xFF1C242C);
 }

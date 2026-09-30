@@ -1,5 +1,4 @@
 import 'package:movera/core/contracts/trip_status.dart';
-
 import 'dart:convert';
 
 import 'package:movera/core/logging/driver_log.dart';
@@ -11,11 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// On Flutter web this is `localStorage` key `flutter.movera_driver_active_ride`.
 /// Stale snapshots older than [PersistedActiveRide.freshnessWindow] are dropped
 /// so an abandoned trip cannot revive days later.
-class PrefsActiveRideRepository
-    implements
-        ActiveRideRepository,
-        TerminalRideRepository,
-        RideHandoffRepository {
+class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRepository, RideHandoffRepository {
   PrefsActiveRideRepository({Future<SharedPreferences> Function()? load})
     : _load = load ?? SharedPreferences.getInstance;
 
@@ -33,21 +28,12 @@ class PrefsActiveRideRepository
 
   Future<T> _enqueue<T>(Future<T> Function() operation) {
     final previous = _pending;
-    final result = previous == null
-        ? operation()
-        : previous.then((_) => operation());
-    final tail = result.then<void>((_) {}).catchError((
-      Object error,
-      StackTrace stack,
-    ) {
+    final result = previous == null ? operation() : previous.then((_) => operation());
+    final tail = result.then<void>((_) {}).catchError((Object error, StackTrace stack) {
       DriverLog.error('Active-ride storage operation failed', error, stack);
     });
     _pending = tail;
-    tail.then((_) {
-      if (identical(_pending, tail)) {
-        _pending = null;
-      }
-    });
+    tail.then((_) { if (identical(_pending, tail)) { _pending = null; } });
     return result;
   }
 
@@ -56,19 +42,13 @@ class PrefsActiveRideRepository
     try {
       final prefs = await _load();
       final raw = prefs.getString(key);
-      if (raw == null || raw.isEmpty) {
-        return null;
-      }
+      if (raw == null || raw.isEmpty) { return null; }
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) {
-        throw StateError('Malformed active ride');
-      }
+      if (decoded is! Map) { throw StateError('Malformed active ride'); }
       final ride = PersistedActiveRide.fromJson(
         Map<String, dynamic>.from(decoded),
       );
-      if (ride == null) {
-        throw StateError('Unsupported or malformed active ride');
-      }
+      if (ride == null) { throw StateError('Unsupported or malformed active ride'); }
       final terminal = prefs.getStringList(terminalKey) ?? <String>[];
       if (terminal.any((item) => _terminalTripId(item) == ride.tripId)) {
         return null;
@@ -85,23 +65,13 @@ class PrefsActiveRideRepository
   Future<void> save(PersistedActiveRide ride) => _enqueue(() async {
     final prefs = await _load();
     final terminal = prefs.getStringList(terminalKey) ?? <String>[];
-    if (terminal.any((item) => _terminalTripId(item) == ride.tripId)) {
-      throw StateError('Cannot revive a terminal trip');
-    }
+    if (terminal.any((item) => _terminalTripId(item) == ride.tripId)) { throw StateError('Cannot revive a terminal trip'); }
     final raw = prefs.getString(key);
     if (raw != null) {
       final current = jsonDecode(raw);
-      if (current is! Map ||
-          (current['tripId'] != ride.tripId &&
-              !terminal.any(
-                (item) => _terminalTripId(item) == current['tripId'],
-              ))) {
-        throw StateError('Another trip owns the active snapshot');
-      }
+      if (current is! Map || (current['tripId'] != ride.tripId && !terminal.any((item) => _terminalTripId(item) == current['tripId']))) { throw StateError('Another trip owns the active snapshot'); }
       final stage = ActiveRideStage.values.byName(current['stage'] as String);
-      if (current['tripId'] == ride.tripId && stage.index > ride.stage.index) {
-        throw StateError('Cannot rewind trip progress');
-      }
+      if (current['tripId'] == ride.tripId && stage.index > ride.stage.index) { throw StateError('Cannot rewind trip progress'); }
     }
     if (!await prefs.setString(key, jsonEncode(ride.stamped().toJson()))) {
       throw StateError('Active ride could not be saved');
@@ -109,31 +79,18 @@ class PrefsActiveRideRepository
   });
 
   @override
-  Future<void> handoff(String expectedTripId, PersistedActiveRide next) =>
-      _enqueue(() async {
-        final prefs = await _load();
-        final raw = prefs.getString(key);
-        if (raw != null) {
-          final current = jsonDecode(raw);
-          if (current is! Map ||
-              (current['tripId'] != expectedTripId &&
-                  current['tripId'] != next.tripId)) {
-            throw StateError(
-              'Queued handoff conflicts with a newer active trip',
-            );
-          }
-          if (current['tripId'] == next.tripId) {
-            return;
-          } // Never rewind an already progressing next trip.
-        }
-        final terminal = prefs.getStringList(terminalKey) ?? <String>[];
-        if (terminal.any((item) => _terminalTripId(item) == next.tripId)) {
-          throw StateError('Queued trip is already terminal');
-        }
-        if (!await prefs.setString(key, jsonEncode(next.stamped().toJson()))) {
-          throw StateError('Queued handoff write failed');
-        }
-      });
+  Future<void> handoff(String expectedTripId, PersistedActiveRide next) => _enqueue(() async {
+    final prefs = await _load();
+    final raw = prefs.getString(key);
+    if (raw != null) {
+      final current = jsonDecode(raw);
+      if (current is! Map || (current['tripId'] != expectedTripId && current['tripId'] != next.tripId)) { throw StateError('Queued handoff conflicts with a newer active trip'); }
+      if (current['tripId'] == next.tripId) { return; } // Never rewind an already progressing next trip.
+    }
+    final terminal = prefs.getStringList(terminalKey) ?? <String>[];
+    if (terminal.any((item) => _terminalTripId(item) == next.tripId)) { throw StateError('Queued trip is already terminal'); }
+    if (!await prefs.setString(key, jsonEncode(next.stamped().toJson()))) { throw StateError('Queued handoff write failed'); }
+  });
 
   @override
   Future<void> markTerminal(
@@ -142,7 +99,6 @@ class PrefsActiveRideRepository
     String? reasonCode,
     String? actor,
     DateTime? occurredAt,
-    bool authoritative = false,
   }) => _enqueue(() async {
     if (!status.isTerminal) {
       throw ArgumentError('Terminal status required');
@@ -151,7 +107,7 @@ class PrefsActiveRideRepository
     final ids = prefs.getStringList(terminalKey) ?? <String>[];
     final at = (occurredAt ?? DateTime.now()).toUtc();
     final existing = ids.where((item) => _terminalTripId(item) == tripId);
-    final marker = existing.isNotEmpty && !authoritative
+    final marker = existing.isNotEmpty
         ? existing.first
         : [
             tripId,
@@ -164,7 +120,11 @@ class PrefsActiveRideRepository
     ids.removeWhere((item) => _terminalTripId(item) == tripId);
     ids.add(marker);
 
-    final retained = _pruneTerminalMarkers(ids, currentTripId: tripId, now: at);
+    final retained = _pruneTerminalMarkers(
+      ids,
+      currentTripId: tripId,
+      now: at,
+    );
     if (!await prefs.setStringList(terminalKey, retained)) {
       throw StateError('Terminal marker could not be saved');
     }
@@ -180,9 +140,7 @@ class PrefsActiveRideRepository
 
     for (final marker in markers.reversed) {
       final id = _terminalTripId(marker);
-      if (id.isEmpty || !seen.add(id)) {
-        continue;
-      }
+      if (id.isEmpty || !seen.add(id)) { continue; }
 
       if (id != currentTripId) {
         final timestamp = _terminalTimestamp(marker);
@@ -193,9 +151,7 @@ class PrefsActiveRideRepository
       }
 
       newestFirst.add(marker);
-      if (newestFirst.length >= maxTerminalMarkers) {
-        break;
-      }
+      if (newestFirst.length >= maxTerminalMarkers) { break; }
     }
 
     return newestFirst.reversed.toList(growable: false);
@@ -203,9 +159,7 @@ class PrefsActiveRideRepository
 
   static DateTime? _terminalTimestamp(String marker) {
     final parts = marker.split('|');
-    if (parts.length < 5 || parts[4].isEmpty) {
-      return null;
-    }
+    if (parts.length < 5 || parts[4].isEmpty) { return null; }
     return DateTime.tryParse(parts[4])?.toUtc();
   }
 
@@ -218,23 +172,15 @@ class PrefsActiveRideRepository
   Future<void> clearForTrip(String tripId) => _enqueue(() async {
     final prefs = await _load();
     final raw = prefs.getString(key);
-    if (raw == null) {
-      return;
-    }
+    if (raw == null) { return; }
     final data = jsonDecode(raw);
-    if (data is! Map || data['tripId'] != tripId) {
-      return;
-    }
-    if (!await prefs.remove(key)) {
-      throw StateError('Trip cleanup failed');
-    }
+    if (data is! Map || data['tripId'] != tripId) { return; }
+    if (!await prefs.remove(key)) { throw StateError('Trip cleanup failed'); }
   });
 
   @override
   Future<void> clear() => _enqueue(() async {
     final prefs = await _load();
-    if (!await prefs.remove(key)) {
-      throw StateError('Active ride could not be cleared');
-    }
+    if (!await prefs.remove(key)) { throw StateError('Active ride could not be cleared'); }
   });
 }

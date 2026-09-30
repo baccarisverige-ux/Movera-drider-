@@ -1,0 +1,22 @@
+{
+  "app_reachable": 124,
+  "test_reachable": 173,
+  "outside_app_graph": [
+    "lib/core/contracts/driver_trip_gateway.dart",
+    "lib/core/documents/driver_document.dart",
+    "lib/core/driver/driver_profile.dart",
+    "lib/core/earnings/earnings.dart",
+    "lib/core/failures/failures.dart",
+    "lib/core/vehicle/vehicle.dart",
+    "lib/presentation/driver/my wallet/components/choose_bank.dart",
+    "lib/presentation/driver/my wallet/components/withdraw_sucess.dart",
+    "lib/presentation/driver/sheets/sheet_snap_state.dart"
+  ],
+  "outside_app_and_tests": [
+    "lib/core/contracts/driver_trip_gateway.dart",
+    "lib/core/failures/failures.dart",
+    "lib/presentation/driver/my wallet/components/choose_bank.dart",
+    "lib/presentation/driver/my wallet/components/withdraw_sucess.dart",
+    "lib/presentation/driver/sheets/sheet_snap_state.dart"
+  ]
+}

@@ -32,7 +32,7 @@ class MoveraSheetMetrics {
     final maxH = expandedHeight(viewportHeight);
     final midH = middleHeight(viewportHeight);
     final span = maxH - collapsed;
-    if (span <= 0) return 0.5;
+    if (span <= 0) { return 0.5; }
     return ((midH - collapsed) / span).clamp(0.08, 0.92);
   }
 
@@ -51,8 +51,8 @@ class MoveraSheetMetrics {
     final dCollapsed = position.abs();
     final dSnap = (position - snap).abs();
     final dExpanded = (1 - position).abs();
-    if (dCollapsed <= dSnap && dCollapsed <= dExpanded) return 0;
-    if (dSnap <= dExpanded) return snap;
+    if (dCollapsed <= dSnap && dCollapsed <= dExpanded) { return 0; }
+    if (dSnap <= dExpanded) { return snap; }
     return 1;
   }
 

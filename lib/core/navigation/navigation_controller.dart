@@ -85,7 +85,7 @@ class NavigationController extends ChangeNotifier {
   }
 
   void pauseFollow() {
-    if (_userPausedFollow) return;
+    if (_userPausedFollow) { return; }
     _userPausedFollow = true;
     _rebuildBanner();
   }
@@ -132,9 +132,9 @@ class NavigationController extends ChangeNotifier {
     bool force = false,
     String? targetLabel,
   }) async {
-    if (_disposed) return;
+    if (_disposed) { return; }
     _targetLabel = targetLabel;
-    if (_stage == ActiveRideStage.waitingForRider) return;
+    if (_stage == ActiveRideStage.waitingForRider) { return; }
 
     _destination = destination;
     final now = DateTime.now();
@@ -158,22 +158,22 @@ class NavigationController extends ChangeNotifier {
         origin: origin,
         destination: destination,
       );
-      if (_disposed || token != _routeRequestToken) return;
+      if (_disposed || token != _routeRequestToken) { return; }
       _route = route;
       _instructionHint = 0;
       _status = null;
       _rebuildBanner();
     } catch (_) {
-      if (_disposed || token != _routeRequestToken) return;
+      if (_disposed || token != _routeRequestToken) { return; }
       _status = 'Route updating…';
       _rebuildBanner();
     } finally {
-      if (token == _routeRequestToken) _routeInFlight = false;
+      if (token == _routeRequestToken) { _routeInFlight = false; }
     }
   }
 
   void _rebuildBanner() {
-    if (_disposed) return;
+    if (_disposed) { return; }
     final waiting = _stage == ActiveRideStage.waitingForRider;
     if (waiting) {
       _snapshot = NavigationSnapshot(
@@ -287,10 +287,10 @@ class NavigationController extends ChangeNotifier {
         destination == null ||
         _rerouteDebounce != null ||
         _routeInFlight)
-      return;
+      { return; }
     _rerouteDebounce = Timer(const Duration(seconds: 2), () {
       _rerouteDebounce = null;
-      if (_disposed) return;
+      if (_disposed) { return; }
       unawaited(
         ensureRoute(
           origin: _snapshot.vehicle,

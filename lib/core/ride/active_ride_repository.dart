@@ -56,10 +56,10 @@ class PersistedQueuedTrip {
       };
 
   static PersistedQueuedTrip? fromJson(Map<String, dynamic>? json) {
-    if (json == null) return null;
+    if (json == null) { return null; }
     final tripId = json['tripId'] as String?;
-    if (tripId == null || tripId.trim().isEmpty) return null;
-    if (!['pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng'].every((key) => validCoordinate(json[key], latitude: key.endsWith('Lat')))) return null;
+    if (tripId == null || tripId.trim().isEmpty) { return null; }
+    if (!['pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng'].every((key) => validCoordinate(json[key], latitude: key.endsWith('Lat')))) { return null; }
     return PersistedQueuedTrip(
       tripId: tripId,
       riderName: json['riderName'] as String? ?? '',
@@ -151,7 +151,7 @@ class PersistedActiveRide {
 
   bool isFreshAt(DateTime now) {
     final at = savedAt;
-    if (at == null) return true;
+    if (at == null) { return true; }
     final age = now.difference(at);
     return age >= const Duration(minutes: -2) && age < freshnessWindow;
   }
@@ -228,25 +228,25 @@ class PersistedActiveRide {
 
   static PersistedActiveRide? fromJson(Map<String, dynamic> json) {
     final version = json['schemaVersion'] ?? 1;
-    if (version != 1 && version != 2) return null;
+    if (version != 1 && version != 2) { return null; }
     final tripId = json['tripId'] as String?;
-    if (tripId == null || tripId.trim().isEmpty) return null;
+    if (tripId == null || tripId.trim().isEmpty) { return null; }
     final stageName = json['stage'] as String?;
     final stage = ActiveRideStage.values.where((value) => value.name == stageName);
-    if (stage.isEmpty) return null;
+    if (stage.isEmpty) { return null; }
     for (final key in ['arrivedAt', 'startedAt', 'savedAt']) {
-      if (json[key] != null && (json[key] is! String || DateTime.tryParse(json[key] as String) == null)) return null;
+      if (json[key] != null && (json[key] is! String || DateTime.tryParse(json[key] as String) == null)) { return null; }
     }
     for (final key in ['pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng']) {
-      if (json[key] != null && !validCoordinate(json[key], latitude: key.endsWith('Lat'))) return null;
+      if (json[key] != null && !validCoordinate(json[key], latitude: key.endsWith('Lat'))) { return null; }
     }
     final stops = json['stopPoints'];
-    if (stops != null && (stops is! List || stops.any((point) => point is! Map || !validCoordinate(point['latitude'], latitude: true) || !validCoordinate(point['longitude'], latitude: false)))) return null;
+    if (stops != null && (stops is! List || stops.any((point) => point is! Map || !validCoordinate(point['latitude'], latitude: true) || !validCoordinate(point['longitude'], latitude: false)))) { return null; }
     final destination = json['destinationPoint'];
-    if (destination != null && (destination is! Map || !validCoordinate(destination['latitude'], latitude: true) || !validCoordinate(destination['longitude'], latitude: false))) return null;
+    if (destination != null && (destination is! Map || !validCoordinate(destination['latitude'], latitude: true) || !validCoordinate(destination['longitude'], latitude: false))) { return null; }
     final nextJson = json['next'];
     final next = nextJson is Map ? PersistedQueuedTrip.fromJson(Map<String,dynamic>.from(nextJson)) : null;
-    if (nextJson != null && next == null) return null;
+    if (nextJson != null && next == null) { return null; }
     return PersistedActiveRide(
       tripId: tripId,
       stage: stage.first,

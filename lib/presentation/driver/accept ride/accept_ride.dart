@@ -142,7 +142,7 @@ class AcceptRide extends StatefulWidget {
     DriverSessionController? sessionController,
     ActiveRideRepository? activeRideRepository,
   }) {
-    if (!snapshot.hasVerifiedEndpoints) throw StateError('Saved trip requires verified pickup and drop-off coordinates');
+    if (!snapshot.hasVerifiedEndpoints) { throw StateError('Saved trip requires verified pickup and drop-off coordinates'); }
     final pickup = snapshot.pickupAddress ?? 'Address unavailable';
     return AcceptRide(
       key: key,
@@ -435,7 +435,7 @@ class _AcceptRideState extends State<AcceptRide>
     _realtime = widget.realtime ?? MemoryDriverRealtime();
     _realtimeSubscription =
         _realtime.subscribe(widget.offerId).listen(_onRealtimeEvent, onError: (Object error) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip updates disconnected. Reconnecting is required.')));
+          if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip updates disconnected. Reconnecting is required.'))); }
         });
     unawaited(_resyncTrip());
     _rideLifecycle.snapshotBuilder = _buildSnapshot;
@@ -454,9 +454,9 @@ class _AcceptRideState extends State<AcceptRide>
       _waitSeconds += math.max(0, elapsed);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       widget.sessionController?.beginTrip(widget.offerId);
-      if(_waybills.current?.tripId != widget.offerId) _waybills.beginCurrent(_buildCurrentWaybill());
+      if(_waybills.current?.tripId != widget.offerId) { _waybills.beginCurrent(_buildCurrentWaybill()); }
       if (widget.restoredSnapshot?.next != null && _nextTripRadarOffer != null) {
         _waybills.secureNext(_buildNextWaybill(_nextTripRadarOffer!));
       }
@@ -592,7 +592,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _restoreQueuedNextFromSnapshot() {
     final next = widget.restoredSnapshot?.next;
-    if (next == null) return;
+    if (next == null) { return; }
     _onTripRadarState = _OnTripRadarState.secured;
     _nextTripRadarOffer = _NextTripRadarOffer(
       id: next.tripId,
@@ -625,7 +625,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _pauseLiveUpdates() {
-    if (_liveUpdatesPaused) return;
+    if (_liveUpdatesPaused) { return; }
     _liveUpdatesPaused = true;
     _locationEpoch++;
     _hasLiveLocation = false;
@@ -640,7 +640,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _resumeLiveUpdates() {
-    if (!_liveUpdatesPaused) return;
+    if (!_liveUpdatesPaused) { return; }
     _liveUpdatesPaused = false;
     if (!MediaQuery.disableAnimationsOf(context) && !_radarPulseController.isAnimating) {
       _radarPulseController.repeat(reverse: true);
@@ -692,12 +692,12 @@ class _AcceptRideState extends State<AcceptRide>
         _stopCursor < widget.stopAddresses.length) {
       return _stopPoint(_stopCursor);
     }
-    if (_stage == ActiveRideStage.onTrip) return widget.dropoffPosition;
+    if (_stage == ActiveRideStage.onTrip) { return widget.dropoffPosition; }
     return widget.pickupPosition;
   }
 
   LatLng? _stopPoint(int index) {
-    if (index < 0 || index >= widget.stopPositions.length) return null;
+    if (index < 0 || index >= widget.stopPositions.length) { return null; }
     return widget.stopPositions[index];
   }
 
@@ -707,7 +707,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   LatLng? get _arrivalTarget {
-    if (_stage == ActiveRideStage.headingToPickup) return widget.pickupPosition;
+    if (_stage == ActiveRideStage.headingToPickup) { return widget.pickupPosition; }
     if (_stage == ActiveRideStage.onTrip &&
         !_paidStopWait &&
         _stopCursor < widget.stopAddresses.length) {
@@ -718,9 +718,9 @@ class _AcceptRideState extends State<AcceptRide>
 
   bool get _nearArrivalTarget {
     final target = _arrivalTarget;
-    if (target == null) return false;
-    if (_arrivalDemo) return true;
-    if (!_hasLiveLocation || _lastLocation?.isUsableAt(DateTime.now()) != true) return false;
+    if (target == null) { return false; }
+    if (_arrivalDemo) { return true; }
+    if (!_hasLiveLocation || _lastLocation?.isUsableAt(DateTime.now()) != true) { return false; }
     return GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
           GeoPointMaps.fromLatLng(target),
         ) <=
@@ -736,7 +736,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _onRealtimeEvent(DriverRealtimeEvent event) {
-    if (!mounted || event.tripId != widget.offerId) return;
+    if (!mounted || event.tripId != widget.offerId) { return; }
 
     final disposition = _realtimeGate.evaluate(event);
     if (disposition == DriverRealtimeDisposition.staleOrDuplicate ||
@@ -755,7 +755,7 @@ class _AcceptRideState extends State<AcceptRide>
 
     switch (event.kind) {
       case DriverRealtimeKind.riderOnTheWay:
-        if (_rideLifecycle.terminal) return;
+        if (_rideLifecycle.terminal) { return; }
         setState(() => _riderOnTheWay = true);
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(
@@ -784,14 +784,14 @@ class _AcceptRideState extends State<AcceptRide>
   Future<void> _resyncTrip() async {
     try { await _realtime.reconnectAndResync(widget.offerId); }
     catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Trip updates could not be refreshed.'),
-        action: SnackBarAction(label: 'Retry', onPressed: () => unawaited(_resyncTrip()))));
+        action: SnackBarAction(label: 'Retry', onPressed: () => unawaited(_resyncTrip())))); }
     }
   }
 
   Future<void> _drainProjection() async {
-    if (!mounted || _drainingProjection || _pendingProjection == null) return;
+    if (!mounted || _drainingProjection || _pendingProjection == null) { return; }
     if (_rideLifecycle.saving || _completionInFlight || _cancellationInFlight || _stageTransitioning) {
       _projectionRetry ??= Timer(const Duration(milliseconds: 100), () {
         _projectionRetry = null; unawaited(_drainProjection());
@@ -807,25 +807,25 @@ class _AcceptRideState extends State<AcceptRide>
       } else if (status.isTerminal) {
         await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
           _waybills.current ?? _buildCurrentWaybill(), status: status);
-        if (!mounted) return;
-        if (!await _rideLifecycle.applyProjection(status)) return;
+        if (!mounted) { return; }
+        if (!await _rideLifecycle.applyProjection(status)) { return; }
         _pauseLiveUpdates();
         _waybills.discardCurrent();
         widget.sessionController?.stayOnlineAfterTrip();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Trip ended: ${status.wireName}')));
-          if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+          if (Navigator.of(context).canPop()) { Navigator.of(context).pop(); }
         }
       } else {
-        if (!await _rideLifecycle.applyProjection(status)) return;
+        if (!await _rideLifecycle.applyProjection(status)) { return; }
         if (mounted) { setState(() {}); _resumeStageSideEffects(); }
       }
-      if (status == TripStatus.cancelledByRider && !_rideLifecycle.terminal) return;
-      if (identical(event, _pendingProjection)) _pendingProjection = null;
+      if (status == TripStatus.cancelledByRider && !_rideLifecycle.terminal) { return; }
+      if (identical(event, _pendingProjection)) { _pendingProjection = null; }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Trip update could not be saved.'),
-        action: SnackBarAction(label: 'Retry', onPressed: () => unawaited(_drainProjection()))));
+        action: SnackBarAction(label: 'Retry', onPressed: () => unawaited(_drainProjection())))); }
     } finally { _drainingProjection = false; }
   }
 
@@ -849,18 +849,18 @@ class _AcceptRideState extends State<AcceptRide>
         cancellationReasonCode: 'rider_cancelled',
         cancellationActor: 'rider',
         next: next);
-      if (!mounted) return;
+      if (!mounted) { return; }
       if (!await _rideLifecycle.cancel(status: TripStatus.cancelledByRider, clearSnapshot: false)) {
         _handlingRiderCancellation=false; return;
       }
     } catch (_) {
       _handlingRiderCancellation=false;
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Could not save rider cancellation. Retry.'),
-        action: SnackBarAction(label:'Retry',onPressed:(){ _handleRiderCancelled(); })));
+        action: SnackBarAction(label:'Retry',onPressed:(){ _handleRiderCancelled(); }))); }
       return;
     }
-    if(!mounted) return;
+    if(!mounted) { return; }
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
@@ -873,7 +873,7 @@ class _AcceptRideState extends State<AcceptRide>
       riderName: widget.riderName,
       wasOnTrip: wasOnTrip,
     );
-    if (!mounted) return;
+    if (!mounted) { return; }
 
     widget.sessionController?.stayOnlineAfterTrip();
     if(next!=null) {
@@ -891,7 +891,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _onPersistenceChanged() {
-    if (!mounted || _rideLifecycle.persistenceError == null) return;
+    if (!mounted || _rideLifecycle.persistenceError == null) { return; }
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('Trip progress could not be saved. Keep this screen open and retry.'),
       action: SnackBarAction(label: 'Retry', onPressed: () { _rideLifecycle.persistNow(); }),
@@ -938,7 +938,7 @@ class _AcceptRideState extends State<AcceptRide>
       _waitSeconds = 0;
       _startWaitTimer();
       await _rideLifecycle.persistNow();
-      if (mounted) setState(() {});
+      if (mounted) { setState(() {}); }
     }
   }
 
@@ -967,19 +967,19 @@ class _AcceptRideState extends State<AcceptRide>
         message: 'Your driver has arrived at the pickup point.',
       ),
     );
-    if (mounted) setState(() {});
+    if (mounted) { setState(() {}); }
     _unlockStageAfterFrame();
   }
 
   void _onNavigationChanged() {
-    if (!mounted || _stageTransitioning) return;
+    if (!mounted || _stageTransitioning) { return; }
     final route = _navigation.route;
     final status = _navigation.status;
     final pointsChanged = route != null &&
         route.points.length >= 2 &&
         !identical(_roadGeoPoints, route.points);
     final mappedRoute = route;
-    if (!pointsChanged && status == _locationStatus) return;
+    if (!pointsChanged && status == _locationStatus) { return; }
     setState(() {
       if (pointsChanged && mappedRoute != null) {
         _roadGeoPoints = mappedRoute.points;
@@ -994,13 +994,13 @@ class _AcceptRideState extends State<AcceptRide>
 
   Future<void> _prepareDriverVehicleMarker() async {
     final icon = await MoveraVehicleMarker.createIcon();
-    if (!mounted) return;
+    if (!mounted) { return; }
     setState(() => _driverVehicleIcon = icon);
   }
 
   Set<Polyline> get _polylines {
     if (_roadRoutePoints.length < 2) {
-      if (_cachedPolylines.isEmpty) return _cachedPolylines;
+      if (_cachedPolylines.isEmpty) { return _cachedPolylines; }
       _cachedPolylines = <Polyline>{};
       return _cachedPolylines;
     }
@@ -1025,25 +1025,25 @@ class _AcceptRideState extends State<AcceptRide>
 
   Future<void> _startLiveLocation() async {
     final epoch = ++_locationEpoch;
-    if (_liveUpdatesPaused) return;
+    if (_liveUpdatesPaused) { return; }
     try {
       final position = await _locationService.getCurrentPosition();
-      if (!mounted) return;
+      if (!mounted) { return; }
 
-      if (_liveUpdatesPaused || epoch != _locationEpoch) return;
+      if (_liveUpdatesPaused || epoch != _locationEpoch) { return; }
       await _applyDriverPosition(position, forceRoute: true);
-      if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) return;
+      if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) { return; }
 
       _positionSubscription?.cancel();
       _positionSubscription = _locationService
           .watchPosition(distanceFilterMeters: kIsWeb ? 20 : 8)
           .listen(
         (position) {
-          if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) return;
+          if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) { return; }
           _applyDriverPosition(position);
         },
         onError: (Object error) {
-          if (!mounted) return;
+          if (!mounted) { return; }
           _navigation.keepLastKnown(status: 'Location updating…');
           setState(() {
             _hasLiveLocation = false;
@@ -1052,7 +1052,7 @@ class _AcceptRideState extends State<AcceptRide>
         },
       );
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       _navigation.keepLastKnown(status: 'Location updating…');
       setState(() {
         _hasLiveLocation = false;
@@ -1066,9 +1066,9 @@ class _AcceptRideState extends State<AcceptRide>
     DriverLocation location, {
     bool forceRoute = false,
   }) async {
-    if(!location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs()>90 || location.point.longitude.abs()>180) return;
+    if(!location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs()>90 || location.point.longitude.abs()>180) { return; }
     final next = location.point.toLatLng();
-    if (!mounted) return;
+    if (!mounted) { return; }
 
     if (!forceRoute &&
         kIsWeb &&
@@ -1111,8 +1111,8 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Future<void> _refreshRoadRoute({bool force = false}) async {
-    if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) return;
-    if (!_allowExternalRouting) return;
+    if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) { return; }
+    if (!_allowExternalRouting) { return; }
 
     final target = _routeTarget;
     if (target == null) {
@@ -1131,7 +1131,7 @@ class _AcceptRideState extends State<AcceptRide>
       targetLabel: _stage == ActiveRideStage.onTrip && _stopCursor < widget.stopAddresses.length ? 'Stop ${_stopCursor + 1}' : null,
       force: force,
     );
-    if (!mounted) return;
+    if (!mounted) { return; }
 
     final route = _navigation.route;
     setState(() {
@@ -1147,10 +1147,10 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Future<void> _followVehicle({bool force = false}) async {
-    if (!_allowExternalRouting) return;
-    if (!force && !_navigation.followCamera) return;
+    if (!_allowExternalRouting) { return; }
+    if (!force && !_navigation.followCamera) { return; }
     final controller = _mapController;
-    if (controller == null) return;
+    if (controller == null) { return; }
     final now = DateTime.now();
     if (!force &&
         _lastCameraFollowAt != null &&
@@ -1175,13 +1175,13 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _onCameraMove(CameraPosition position) {
-    if (_cameraProgrammatic) return;
+    if (_cameraProgrammatic) { return; }
     _navigation.pauseFollow();
   }
 
   String get _routeEtaText {
     final seconds = _routeDurationSeconds;
-    if (seconds == null) return _routeLoading ? 'Routing…' : '—';
+    if (seconds == null) { return _routeLoading ? 'Routing…' : '—'; }
     final minutes = math.max(1, (seconds / 60).ceil());
     return '$minutes min';
   }
@@ -1189,7 +1189,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   Future<void> _fitRoute() async {
     final controller = _mapController;
-    if (controller == null) return;
+    if (controller == null) { return; }
 
     final points = _roadRoutePoints.isNotEmpty
         ? _roadRoutePoints
@@ -1234,7 +1234,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Future<void> _advanceRide() async {
-    if (_stageTransitioning || !mounted || _rideLifecycle.terminal) return;
+    if (_stageTransitioning || !mounted || _rideLifecycle.terminal) { return; }
 
     _stageTransitioning = true;
 
@@ -1257,7 +1257,7 @@ class _AcceptRideState extends State<AcceptRide>
         await _rideLifecycle.persistNow();
         _onTripRadarState = _OnTripRadarState.scanning;
         _nextTripRadarOffer = null;
-        if (mounted) setState(() {});
+        if (mounted) { setState(() {}); }
         _maybeScheduleOnTripRadarDemoOffer();
         _unlockStageAfterFrame();
         unawaited(_refreshOnTripRoute());
@@ -1270,7 +1270,7 @@ class _AcceptRideState extends State<AcceptRide>
           _stopCursor += 1;
           await _rideLifecycle.persistNow();
           _stageTransitioning = false;
-          if (mounted) setState(() {});
+          if (mounted) { setState(() {}); }
           unawaited(_refreshOnTripRoute());
           return;
         }
@@ -1290,14 +1290,14 @@ class _AcceptRideState extends State<AcceptRide>
 
   bool get _tripEndedTooQuickly {
     final started = _onTripStartedAt;
-    if (started == null) return false;
+    if (started == null) { return false; }
     return DateTime.now().difference(started) < const Duration(seconds: 90);
   }
 
   Future<void> _askBeforeShortFinish() async {
     final finish = await showMoveraModalSheet<bool>(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.32),
+      barrierColor: Colors.black.withValues(alpha: 0.32),
       heightFactor: 0.5,
       builder: (sheetContext) {
         return MoveraModalSheet(
@@ -1375,12 +1375,12 @@ class _AcceptRideState extends State<AcceptRide>
         );
       },
     );
-    if (finish != true || !mounted || _stage != ActiveRideStage.onTrip) return;
+    if (finish != true || !mounted || _stage != ActiveRideStage.onTrip) { return; }
     await _completeCurrentTrip();
   }
 
   Future<void> _completeCurrentTrip() async {
-    if (_completionInFlight || _cancellationInFlight || _handlingRiderCancellation || !mounted || _rideLifecycle.terminal) return;
+    if (_completionInFlight || _cancellationInFlight || _handlingRiderCancellation || !mounted || _rideLifecycle.terminal) { return; }
     _completionInFlight = true;
     _stageTransitioning = true;
     final offer = _nextTripRadarOffer;
@@ -1389,20 +1389,21 @@ class _AcceptRideState extends State<AcceptRide>
     try {
       await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
         _waybills.current ?? _buildCurrentWaybill(), next: next);
-      if (!mounted) return;
+      if (!mounted) { return; }
       if (!await _rideLifecycle.complete(clearSnapshot: false)) {
         _completionInFlight = false; _stageTransitioning = false; return;
       }
     } catch (error, stack) {
       DriverLog.error('Trip completion journal failed', error, stack);
       _completionInFlight = false; _stageTransitioning = false;
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Could not finish saving this trip. Retry completion; the receipt will not duplicate.')));
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not finish saving this trip. Retry completion; the receipt will not duplicate.'))); }
       return;
     }
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
+    if(!mounted) { return; }
     _waybills.completeCurrent();
     final nextRide = queuedNext
         ? AcceptRide(
@@ -1456,7 +1457,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _setMapGesturesBlocked(bool value) {
-    if (!mounted || _blockMapGestures == value) return;
+    if (!mounted || _blockMapGestures == value) { return; }
     setState(() {
       _blockMapGestures = value;
     });
@@ -1527,7 +1528,7 @@ class _AcceptRideState extends State<AcceptRide>
         position.abs(),
         math.min((position - snap).abs(), (1 - position).abs()),
       );
-      if (nearestDistance <= 0.025) return;
+      if (nearestDistance <= 0.025) { return; }
       unawaited(_snapRideSheet(velocity: 0));
     });
   }
@@ -1544,7 +1545,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Future<void> _snapRideSheet({double? velocity}) async {
-    if (!_ridePanelController.isAttached) return;
+    if (!_ridePanelController.isAttached) { return; }
     final viewport = MediaQuery.sizeOf(context).height;
     final collapsed = MoveraSheetMetrics.activeCollapsedHeight +
         MediaQuery.paddingOf(context).bottom;
@@ -1560,7 +1561,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   Future<void> _refreshOnTripRoute({bool fitCamera = false}) async {
     await _refreshRoadRoute(force: true);
-    if (!mounted || _stage != ActiveRideStage.onTrip) return;
+    if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
     if (fitCamera) {
       await _fitRoute();
     }
@@ -1568,7 +1569,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   Future<void> _focusWaitingPickup() async {
     final controller = _mapController;
-    if (controller == null) return;
+    if (controller == null) { return; }
 
     try {
       await controller.animateCamera(
@@ -1583,11 +1584,11 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _startOnTripRadar() {
-    if (_onTripRadarState == _OnTripRadarState.stopped) return;
+    if (_onTripRadarState == _OnTripRadarState.stopped) { return; }
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
 
-    if (!mounted || _stage != ActiveRideStage.onTrip) return;
+    if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
 
     setState(() {
       _onTripRadarState = _OnTripRadarState.scanning;
@@ -1598,8 +1599,8 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _toggleOnTripRadar() {
-    if (_stage != ActiveRideStage.onTrip) return;
-    if (_onTripRadarState == _OnTripRadarState.secured) return;
+    if (_stage != ActiveRideStage.onTrip) { return; }
+    if (_onTripRadarState == _OnTripRadarState.secured) { return; }
     if (_onTripRadarOn) {
       _stopOnTripRadar();
       return;
@@ -1616,9 +1617,9 @@ class _AcceptRideState extends State<AcceptRide>
       _onTripRadarState == _OnTripRadarState.secured;
 
   bool _dropoffFollowsDestination(LatLng dropoff) {
-    if (!widget.destinationModeActive) return true;
+    if (!widget.destinationModeActive) { return true; }
     final destination = widget.destinationPosition;
-    if (destination == null) return true;
+    if (destination == null) { return true; }
 
     final latitudeRadians = _driverPosition.latitude * math.pi / 180;
     final longitudeScale = math.cos(latitudeRadians);
@@ -1631,19 +1632,23 @@ class _AcceptRideState extends State<AcceptRide>
       destinationX * destinationX + destinationY * destinationY,
     );
     final offerLength = math.sqrt(offerX * offerX + offerY * offerY);
-    if (destinationLength == 0 || offerLength == 0) return true;
+    if (destinationLength == 0 || offerLength == 0) { return true; }
     final cosine = (destinationX * offerX + destinationY * offerY) /
         (destinationLength * offerLength);
     return cosine >= 0.45;
   }
 
+  _NextTripRadarOffer get _uniqueDemoNext => _NextTripRadarOffer(
+    id:'${widget.offerId}-next',category:_demoNextTripOffer.category,fare:_demoNextTripOffer.fare,rating:_demoNextTripOffer.rating,
+    pickupMinutes:_demoNextTripOffer.pickupMinutes,tripMinutes:_demoNextTripOffer.tripMinutes,riderName:_demoNextTripOffer.riderName,
+    pickup:_demoNextTripOffer.pickup,dropoff:_demoNextTripOffer.dropoff,pickupPosition:_demoNextTripOffer.pickupPosition,dropoffPosition:_demoNextTripOffer.dropoffPosition);
   _NextTripRadarOffer _onTripRadarOfferForDestination() {
-    if (!widget.destinationModeActive) return _demoNextTripOffer;
+    if (!widget.destinationModeActive) { return _uniqueDemoNext; }
     final destination = widget.destinationPosition;
-    if (destination == null) return _demoNextTripOffer;
+    if (destination == null) { return _uniqueDemoNext; }
     final address = widget.destinationAddress?.trim();
     return _NextTripRadarOffer(
-      id: 'on-trip-radar-on-your-way',
+      id: '${widget.offerId}-next-destination',
       category: _demoNextTripOffer.category,
       fare: _demoNextTripOffer.fare,
       rating: _demoNextTripOffer.rating,
@@ -1663,8 +1668,8 @@ class _AcceptRideState extends State<AcceptRide>
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
     _nextTripOfferExpiry?.cancel();
-    if (!mounted || _stage != ActiveRideStage.onTrip) return;
-    if (_onTripRadarState == _OnTripRadarState.secured) return;
+    if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
+    if (_onTripRadarState == _OnTripRadarState.secured) { return; }
     setState(() {
       _onTripRadarState = _OnTripRadarState.stopped;
       _nextTripRadarOffer = null;
@@ -1686,7 +1691,7 @@ class _AcceptRideState extends State<AcceptRide>
           GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
         GeoPointMaps.fromLatLng(widget.dropoffPosition),
       );
-      if (metersToDropoff > _nextTripRadarRadiusMeters) return;
+      if (metersToDropoff > _nextTripRadarRadiusMeters) { return; }
     }
 
     _nextTripRadarDemoTimer = Timer(
@@ -1700,7 +1705,7 @@ class _AcceptRideState extends State<AcceptRide>
 
         setState(() {
           final offer = _onTripRadarOfferForDestination();
-          if (!_dropoffFollowsDestination(offer.dropoffPosition)) return;
+          if (!_dropoffFollowsDestination(offer.dropoffPosition)) { return; }
           _nextTripRadarOffer = offer;
           _onTripRadarState = _OnTripRadarState.offerAvailable;
         });
@@ -1712,7 +1717,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _armOnTripOfferExpiry() {
     _nextTripOfferExpiry?.cancel();
-    if (_onTripRadarState != _OnTripRadarState.offerAvailable) return;
+    if (_onTripRadarState != _OnTripRadarState.offerAvailable) { return; }
     _nextTripOfferExpiry = Timer(_onTripOfferLifetime, () {
       if (!mounted || _onTripRadarState != _OnTripRadarState.offerAvailable) {
         return;
@@ -1723,7 +1728,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _hideRideSheetForOffer() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_ridePanelController.isAttached) return;
+      if (!mounted || !_ridePanelController.isAttached) { return; }
       if (_onTripRadarState == _OnTripRadarState.offerAvailable) {
         _ridePanelController.close();
       }
@@ -1732,7 +1737,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _restoreRideSheet() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_ridePanelController.isAttached) return;
+      if (!mounted || !_ridePanelController.isAttached) { return; }
       _ridePanelController.open();
     });
   }
@@ -1744,7 +1749,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   void _acceptNextTripRadar() {
     final offer = _nextTripRadarOffer;
-    if (offer == null || _stage != ActiveRideStage.onTrip) return;
+    if (offer == null || _stage != ActiveRideStage.onTrip) { return; }
     if (_onTripRadarState == _OnTripRadarState.secured ||
         _onTripRadarState == _OnTripRadarState.matching) {
       return;
@@ -1754,7 +1759,7 @@ class _AcceptRideState extends State<AcceptRide>
     _restoreRideSheet();
     _nextTripRadarMatchTimer?.cancel();
     _nextTripRadarMatchTimer = Timer(const Duration(milliseconds: 900), () {
-      if (!mounted || _stage != ActiveRideStage.onTrip) return;
+      if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
       setState(() => _onTripRadarState = _OnTripRadarState.secured);
       _waybills.secureNext(_buildNextWaybill(offer));
       _rideLifecycle.persistNow();
@@ -1762,7 +1767,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _denyNextTripRadar() {
-    if (_stage != ActiveRideStage.onTrip) return;
+    if (_stage != ActiveRideStage.onTrip) { return; }
     if (_onTripRadarState == _OnTripRadarState.secured ||
         _onTripRadarState == _OnTripRadarState.matching) {
       return;
@@ -1780,7 +1785,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   Widget _buildIncomingRideCard() {
     final offer = _nextTripRadarOffer;
-    if (offer == null) return const SizedBox.shrink();
+    if (offer == null) { return const SizedBox.shrink(); }
     const alertCoral = Color(0xFFFF765C);
 
     return Material(
@@ -1792,15 +1797,15 @@ class _AcceptRideState extends State<AcceptRide>
         decoration: BoxDecoration(
           color: const Color(0xFFF9FAFB),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: alertCoral.withOpacity(0.55), width: 1.2),
+          border: Border.all(color: alertCoral.withValues(alpha: 0.55), width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: alertCoral.withOpacity(0.12),
+              color: alertCoral.withValues(alpha: 0.12),
               blurRadius: 22,
               offset: const Offset(0, 6),
             ),
             BoxShadow(
-              color: const Color(0xFF11181C).withOpacity(0.14),
+              color: const Color(0xFF11181C).withValues(alpha: 0.14),
               blurRadius: 24,
               offset: const Offset(0, 12),
             ),
@@ -1850,7 +1855,7 @@ class _AcceptRideState extends State<AcceptRide>
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                     decoration: BoxDecoration(
-                      color: alertCoral.withOpacity(0.10),
+                      color: alertCoral.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(11),
                     ),
                     child: const Text(
@@ -2240,7 +2245,7 @@ class _AcceptRideState extends State<AcceptRide>
   void _startWaitTimer() {
     _waitTimer?.cancel();
     _waitTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || !_countingWait) return;
+      if (!mounted || !_countingWait) { return; }
       setState(() => _waitSeconds++);
     });
   }
@@ -2295,7 +2300,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   void _openWaitingTime() {
-    if (!_countingWait) return;
+    if (!_countingWait) { return; }
     showWaitingTimeSheet(
       context,
       readSeconds: () => _waitSeconds,
@@ -2303,7 +2308,7 @@ class _AcceptRideState extends State<AcceptRide>
       onNoShow: _paidStopWait
           ? null
           : () {
-              if (_waitSeconds < 300 || !mounted) return;
+              if (_waitSeconds < 300 || !mounted) { return; }
               _confirmCancellationReason(_noShowReason);
             },
     );
@@ -2373,8 +2378,8 @@ class _AcceptRideState extends State<AcceptRide>
             ? '${widget.riderName} is on the way'
             : 'Hold for ${widget.riderName}';
       case ActiveRideStage.onTrip:
-        if (widget.stopAddresses.isEmpty) return widget.riderName;
-        if (widget.stopAddresses.length == 1) return 'Then drop-off';
+        if (widget.stopAddresses.isEmpty) { return widget.riderName; }
+        if (widget.stopAddresses.length == 1) { return 'Then drop-off'; }
         return 'Stop 1 of ${widget.stopAddresses.length}';
     }
   }
@@ -2469,9 +2474,9 @@ class _AcceptRideState extends State<AcceptRide>
                     onMapCreated: (controller) {
                       final firstCreate = _mapController == null;
                       _mapController = controller;
-                      if (!firstCreate) return;
+                      if (!firstCreate) { return; }
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) unawaited(_fitRoute());
+                        if (mounted) { unawaited(_fitRoute()); }
                       });
                     },
                   ),
@@ -2597,7 +2602,7 @@ class _AcceptRideState extends State<AcceptRide>
       color: Colors.white,
       shape: const CircleBorder(),
       elevation: 4,
-      shadowColor: const Color(0xFF172027).withOpacity(0.16),
+      shadowColor: const Color(0xFF172027).withValues(alpha: 0.16),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
@@ -2623,7 +2628,7 @@ class _AcceptRideState extends State<AcceptRide>
             border: Border(top: BorderSide(color: _line)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF172027).withOpacity(0.12),
+                color: const Color(0xFF172027).withValues(alpha: 0.12),
                 blurRadius: 28,
                 offset: const Offset(0, -8),
               ),
@@ -3064,7 +3069,7 @@ class _AcceptRideState extends State<AcceptRide>
     return ValueListenableBuilder<WaybillRecord?>(
       valueListenable: _waybills.currentListenable,
       builder: (context, record, _) {
-        if (record == null) return const SizedBox.shrink();
+        if (record == null) { return const SizedBox.shrink(); }
 
         return Material(
           key: const ValueKey<String>('current-waybill-shortcut'),
@@ -3200,7 +3205,7 @@ class _AcceptRideState extends State<AcceptRide>
                 border: Border.all(color: const Color(0xFFE1E8E5)),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF18392E).withOpacity(0.07),
+                    color: const Color(0xFF18392E).withValues(alpha: 0.07),
                     blurRadius: 14,
                     offset: const Offset(0, 5),
                   ),
@@ -3260,7 +3265,7 @@ class _AcceptRideState extends State<AcceptRide>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.35),
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (sheetContext) {
         return Container(
           constraints: BoxConstraints(
@@ -3331,7 +3336,7 @@ class _AcceptRideState extends State<AcceptRide>
   Future<void> _showTripOptions() async {
     await showMoveraModalSheet<void>(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.35),
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       heightFactor: 0.78,
       builder: (sheetContext) {
         return MoveraModalSheet(
@@ -3503,7 +3508,7 @@ class _AcceptRideState extends State<AcceptRide>
 
     final reason = await showMoveraModalSheet<_TripCancellationReason>(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.32),
+      barrierColor: Colors.black.withValues(alpha: 0.32),
       heightFactor: isOnTrip ? 0.72 : 0.66,
       builder: (sheetContext) {
         return MoveraModalSheet(
@@ -3639,7 +3644,7 @@ class _AcceptRideState extends State<AcceptRide>
       },
     );
 
-    if (!mounted || reason == null) return;
+    if (!mounted || reason == null) { return; }
     await _confirmCancellationReason(reason);
   }
 
@@ -3650,7 +3655,7 @@ class _AcceptRideState extends State<AcceptRide>
 
     final confirmed = await showMoveraModalSheet<bool>(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.34),
+      barrierColor: Colors.black.withValues(alpha: 0.34),
       heightFactor: 0.56,
       builder: (sheetContext) {
         return MoveraModalSheet(
@@ -3776,12 +3781,12 @@ class _AcceptRideState extends State<AcceptRide>
       },
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !mounted) { return; }
     _submitTripCancellation(reason);
   }
 
   Future<void> _submitTripCancellation(_TripCancellationReason reason) async {
-    if(_cancellationInFlight || _completionInFlight || _handlingRiderCancellation) return;
+    if(_cancellationInFlight || _completionInFlight || _handlingRiderCancellation) { return; }
     _cancellationInFlight=true;
     try {
       final secured = _onTripRadarState == _OnTripRadarState.secured ? _nextTripRadarOffer : null;
@@ -3792,13 +3797,13 @@ class _AcceptRideState extends State<AcceptRide>
         cancellationActor: 'driver',
         next: secured == null ? null : _snapshotForOffer(secured));
     } catch (_) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save cancellation. Retry.')));
+      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save cancellation. Retry.'))); }
       _cancellationInFlight=false;
       return;
     }
     // The journal has already applied terminal cleanup and queued handoff.
     if (!await _rideLifecycle.cancel(clearSnapshot: false)) { _cancellationInFlight=false; return; }
-    if (!mounted) return;
+    if (!mounted) { return; }
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
@@ -3910,9 +3915,9 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
     final inTests = WidgetsBinding.instance.runtimeType
         .toString()
         .contains('TestWidgetsFlutterBinding');
-    if (inTests) return;
+    if (inTests) { return; }
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       final next = widget.vehicle.current;
       if (next.position.latitude == _pose.position.latitude &&
           next.position.longitude == _pose.position.longitude &&
@@ -4050,13 +4055,13 @@ class _SlideRideActionState extends State<_SlideRideAction> {
     _dragging = true;
     _confirmed = false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _confirmed || _fraction != 0) return;
+      if (!mounted || _confirmed || _fraction != 0) { return; }
       setState(() => _dragging = false);
     });
   }
 
   void _update(double delta, double maxTravel) {
-    if (_confirmed || _confirming || maxTravel <= 0) return;
+    if (_confirmed || _confirming || maxTravel <= 0) { return; }
     final next = (_fraction + (delta / maxTravel)).clamp(0.0, 1.0);
     setState(() {
       _dragging = true;
@@ -4065,33 +4070,33 @@ class _SlideRideActionState extends State<_SlideRideAction> {
   }
 
   void _cancelDrag() {
-    if (_confirming || !mounted) return;
+    if (_confirming || !mounted) { return; }
     setState(() { _dragging = false; _fraction = 0; _confirmed = false; });
   }
 
   Future<void> _finish() async {
-    if (_confirming) return;
+    if (_confirming) { return; }
     if (_fraction < _trigger) { _cancelDrag(); return; }
     setState(() { _confirmed = true; _confirming = true; _dragging = false; _fraction = 1; });
     HapticFeedback.mediumImpact();
     try {
       await widget.onConfirmed();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('The action could not be completed. Please retry.')));
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The action could not be completed. Please retry.'))); }
     } finally {
-      if (mounted) setState(() { _confirmed = false; _confirming = false; _fraction = 0; _dragging = false; });
+      if (mounted) { setState(() { _confirmed = false; _confirming = false; _fraction = 0; _dragging = false; }); }
     }
   }
 
   Future<void> _accessibleConfirm() async {
-    if(_confirming) return;
+    if(_confirming) { return; }
     final confirmed=await showDialog<bool>(context:context,builder:(context)=>AlertDialog(
       title:Text(widget.label.replaceFirst('Slide to ','')),
       content:const Text('Confirm this trip action?'),
       actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),
         FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Confirm'))]));
-    if(!mounted || confirmed!=true || _confirming) return;
+    if(!mounted || confirmed!=true || _confirming) { return; }
     _fraction=1;
     await _finish();
   }
@@ -4130,11 +4135,11 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                 ),
                 borderRadius: BorderRadius.circular(21),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.06),
+                  color: Colors.white.withValues(alpha: 0.06),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF172027).withOpacity(0.17),
+                    color: const Color(0xFF172027).withValues(alpha: 0.17),
                     blurRadius: 16,
                     offset: const Offset(0, 7),
                   ),
@@ -4160,8 +4165,8 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
                               colors: [
-                                widget.accent.withOpacity(0.44),
-                                widget.accent.withOpacity(0.14),
+                                widget.accent.withValues(alpha: 0.44),
+                                widget.accent.withValues(alpha: 0.14),
                               ],
                             ),
                           ),
@@ -4209,7 +4214,7 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                           colors: _confirmed
                               ? [
                                   widget.accent,
-                                  widget.accent.withOpacity(0.82),
+                                  widget.accent.withValues(alpha: 0.82),
                                 ]
                               : const [
                                   Color(0xFFFFFFFF),
@@ -4219,12 +4224,12 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: _confirmed
-                              ? Colors.white.withOpacity(0.12)
+                              ? Colors.white.withValues(alpha: 0.12)
                               : const Color(0xFFE0E7E4),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0C1814).withOpacity(0.18),
+                            color: const Color(0xFF0C1814).withValues(alpha: 0.18),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -4256,14 +4261,14 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                         children: [
                           Icon(
                             Icons.chevron_right_rounded,
-                            color: Colors.white.withOpacity(0.72),
+                            color: Colors.white.withValues(alpha: 0.72),
                             size: 16,
                           ),
                           Transform.translate(
                             offset: const Offset(-5, 0),
                             child: Icon(
                               Icons.chevron_right_rounded,
-                              color: Colors.white.withOpacity(0.4),
+                              color: Colors.white.withValues(alpha: 0.4),
                               size: 16,
                             ),
                           ),

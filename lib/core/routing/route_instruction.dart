@@ -135,8 +135,8 @@ class RouteInstructionCopy {
   const RouteInstructionCopy._();
 
   static String formatDistance(double meters) {
-    if (meters < 25) return 'now';
-    if (meters < 1000) return '${meters.round()} m';
+    if (meters < 25) { return 'now'; }
+    if (meters < 1000) { return '${meters.round()} m'; }
     final km = meters / 1000;
     return '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
   }
@@ -163,7 +163,7 @@ class RouteInstructionCopy {
       case RouteManeuverType.exitRoundabout:
       case RouteManeuverType.exitRotary:
         final exit = exitNumber ?? '';
-        if (exit.isEmpty) return 'At the roundabout, continue';
+        if (exit.isEmpty) { return 'At the roundabout, continue'; }
         return 'At roundabout, take exit $exit';
       case RouteManeuverType.offRamp:
       case RouteManeuverType.ramp:
@@ -242,10 +242,10 @@ class RouteInstructionCopy {
     required double meters,
   }) {
     final lower = action.toLowerCase();
-    if (lower.startsWith('roundabout')) return action;
+    if (lower.startsWith('roundabout')) { return action; }
     final dist = formatDistance(meters);
-    if (dist == 'now') return '$action now';
-    if (lower.startsWith('continue')) return '$action $dist';
+    if (dist == 'now') { return '$action now'; }
+    if (lower.startsWith('continue')) { return '$action $dist'; }
     return '$action in $dist';
   }
 

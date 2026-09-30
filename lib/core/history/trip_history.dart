@@ -87,7 +87,7 @@ class MemoryTripHistoryRepository implements TripHistoryRepository {
   @override
   TripHistoryRecord? byTripId(String tripId) {
     for (final row in _rows) {
-      if (row.tripId == tripId) return row;
+      if (row.tripId == tripId) { return row; }
     }
     return null;
   }

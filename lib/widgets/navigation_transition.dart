@@ -49,7 +49,7 @@ class BottomToTopTransition extends ModalRoute<void> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    if (MediaQuery.disableAnimationsOf(context)) return child;
+    if (MediaQuery.disableAnimationsOf(context)) { return child; }
     final curved = CurvedAnimation(
       parent: animation,
       curve: Curves.fastLinearToSlowEaseIn,
@@ -129,7 +129,7 @@ class TopToBottomTransition extends PageRouteBuilder {
           transitionDuration: _motionDuration(1000),
           reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
-            if (MediaQuery.disableAnimationsOf(context)) return child;
+            if (MediaQuery.disableAnimationsOf(context)) { return child; }
             animation = CurvedAnimation(
                 curve: Curves.fastLinearToSlowEaseIn,
                 parent: animation,
@@ -138,7 +138,7 @@ class TopToBottomTransition extends PageRouteBuilder {
               alignment: Alignment.topCenter,
               child: SizeTransition(
                 sizeFactor: animation,
-                axisAlignment: 0,
+                alignment: Alignment.center,
                 child: child,
               ),
             );
@@ -155,7 +155,7 @@ class SwitchTransition extends PageRouteBuilder {
           transitionDuration: _motionDuration(1000),
           reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
-            if (MediaQuery.disableAnimationsOf(context)) return child;
+            if (MediaQuery.disableAnimationsOf(context)) { return child; }
             animation = CurvedAnimation(
                 curve: Curves.fastLinearToSlowEaseIn,
                 parent: animation,
@@ -165,7 +165,7 @@ class SwitchTransition extends PageRouteBuilder {
               child: SizeTransition(
                 axis: Axis.horizontal,
                 sizeFactor: animation,
-                axisAlignment: 0,
+                alignment: Alignment.center,
                 child: child,
               ),
             );
@@ -182,7 +182,7 @@ class LeftToRightTransition extends PageRouteBuilder {
           transitionDuration: _motionDuration(1000),
           reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
-            if (MediaQuery.disableAnimationsOf(context)) return child;
+            if (MediaQuery.disableAnimationsOf(context)) { return child; }
             animation = CurvedAnimation(
                 curve: Curves.fastLinearToSlowEaseIn,
                 parent: animation,
@@ -192,7 +192,7 @@ class LeftToRightTransition extends PageRouteBuilder {
               child: SizeTransition(
                 axis: Axis.horizontal,
                 sizeFactor: animation,
-                axisAlignment: 0,
+                alignment: Alignment.center,
                 child: child,
               ),
             );
@@ -209,7 +209,7 @@ class RightToLeftTransition extends PageRouteBuilder {
           transitionDuration: _motionDuration(1000),
           reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
-            if (MediaQuery.disableAnimationsOf(context)) return child;
+            if (MediaQuery.disableAnimationsOf(context)) { return child; }
             animation = CurvedAnimation(
                 curve: Curves.fastLinearToSlowEaseIn,
                 parent: animation,
@@ -219,7 +219,7 @@ class RightToLeftTransition extends PageRouteBuilder {
               child: SizeTransition(
                 axis: Axis.horizontal,
                 sizeFactor: animation,
-                axisAlignment: 0,
+                alignment: Alignment.center,
                 child: child,
               ),
             );

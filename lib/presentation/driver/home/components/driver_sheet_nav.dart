@@ -227,7 +227,7 @@ class DriverSheetNav {
     required bool isOnline,
     required bool hasRideOffers,
   }) {
-    if (!isOnline) return const SizedBox.shrink();
+    if (!isOnline) { return const SizedBox.shrink(); }
     return Positioned.fill(
       child: IgnorePointer(
         child: RadarEdgeDash(
@@ -260,8 +260,8 @@ class DriverSheetNav {
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(18),
-            splashColor: const Color(0xFF19865C).withOpacity(0.08),
-            highlightColor: const Color(0xFF19865C).withOpacity(0.04),
+            splashColor: const Color(0xFF19865C).withValues(alpha: 0.08),
+            highlightColor: const Color(0xFF19865C).withValues(alpha: 0.04),
             child: Center(
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 260),
@@ -299,7 +299,7 @@ class DriverSheetNav {
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(0xFF2FBE7B)
-                                    .withOpacity(0.28 + pulse * 0.35),
+                                    .withValues(alpha: 0.28 + pulse * 0.35),
                                 blurRadius: 6,
                               ),
                             ],
@@ -340,7 +340,7 @@ class DriverSheetNav {
             child: InkWell(
               onTap: onTap,
               customBorder: const CircleBorder(),
-              splashColor: const Color(0xFF2FBE7B).withOpacity(0.12),
+              splashColor: const Color(0xFF2FBE7B).withValues(alpha: 0.12),
               child: SizedBox(
                 height: 43,
                 width: 43,

@@ -6,7 +6,6 @@ import 'package:movera/core/session/driver_route_observer.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -95,7 +94,7 @@ class _DriverHomeState extends State<DriverHome>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final route = ModalRoute.of(context);
-    if (route != null) driverRouteObserver.subscribe(this, route);
+    if (route != null) { driverRouteObserver.subscribe(this, route); }
     if(MediaQuery.disableAnimationsOf(context)) { _goOnlinePulseController.stop(); _radarSweepController.stop(); }
   }
   @override
@@ -111,14 +110,16 @@ class _DriverHomeState extends State<DriverHome>
     _locationEpoch++;
     _driverLocationSubscription?.cancel();
     _driverLocationSubscription = null;
+    _radarSubscription?.cancel();_radarSubscription=null;
     _cancelAllOfferTimers();
     _offerSimulationTimer?.cancel(); _directOfferTimer?.cancel();
     _expandedDirectOfferTimer?.cancel(); _radarOfferTwoTimer?.cancel(); _radarOfferThreeTimer?.cancel();
     _goOnlinePulseController.stop(); _radarSweepController.stop();
   }
   void _resumeHomeUpdates() {
-    if (!mounted || !_liveVisible) return;
+    if (!mounted || !_liveVisible) { return; }
     unawaited(_startDriverLocation());
+    _scheduleVisibleOffers();
     if(!MediaQuery.disableAnimationsOf(context)) { _goOnlinePulseController.repeat(reverse: true); _radarSweepController.repeat(); }
     setState(() {});
   }
@@ -320,22 +321,22 @@ class _DriverHomeState extends State<DriverHome>
   bool _recoveryResolved = false;
 
   Future<void> _restoreActiveRideIfNeeded() async {
-    if (_didAttemptActiveRideRestore) return;
+    if (_didAttemptActiveRideRestore) { return; }
     _didAttemptActiveRideRestore = true;
     final repo = widget.activeRideRepository;
-    if (repo == null) { if (mounted) setState(() => _recoveryResolved = true); return; }
+    if (repo == null) { if (mounted) { setState(() => _recoveryResolved = true); } return; }
     PersistedActiveRide? snapshot;
     try {
       await CompletionJournal(active: repo).reconcile();
       snapshot = await repo.read();
     } catch (_) {
       _didAttemptActiveRideRestore = false;
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Trip recovery needs a retry. Saved progress is retained.'),
-        action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); })));
+        action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); }))); }
       return;
     }
-    if (!mounted) return;
+    if (!mounted) { return; }
     if (snapshot == null) { setState(() => _recoveryResolved = true); return; }
 
     if (!snapshot.isFresh || !snapshot.hasVerifiedEndpoints) {
@@ -344,17 +345,17 @@ class _DriverHomeState extends State<DriverHome>
           content: Text(snapshot!.hasVerifiedEndpoints ? 'This saved trip is older than six hours. Resume it or close it explicitly.' : 'Saved route coordinates are unavailable. Close this trip explicitly before accepting another.'),
           actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Close trip')),
             FilledButton(onPressed: snapshot.hasVerifiedEndpoints ? () => Navigator.pop(context, true) : null, child: const Text('Resume trip'))]));
-      if (!mounted) return;
+      if (!mounted) { return; }
       if (resume != true) {
         try {
-          if (repo is TerminalRideRepository) await (repo as TerminalRideRepository).markTerminal(snapshot.tripId, TripStatus.cancelledByDriver);
+          if (repo is TerminalRideRepository) { await (repo as TerminalRideRepository).markTerminal(snapshot.tripId, TripStatus.cancelledByDriver); }
           if (repo is TerminalRideRepository) { await (repo as TerminalRideRepository).clearForTrip(snapshot.tripId); } else { await repo.clear(); }
-          if (mounted) setState(() => _recoveryResolved = true);
+          if (mounted) { setState(() => _recoveryResolved = true); }
         } catch (_) {
           _didAttemptActiveRideRestore = false;
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: const Text('Could not close saved trip. Please retry.'),
-            action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); })));
+            action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); }))); }
         }
         return;
       }
@@ -370,7 +371,7 @@ class _DriverHomeState extends State<DriverHome>
       _waybills.secureNext(_waybillFromQueued(next));
     }
 
-    if (!mounted) return;
+    if (!mounted) { return; }
     Navigator.of(context).push(
       BottomToTopTransition(
         AcceptRide.fromPersisted(
@@ -422,7 +423,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _onDriverSessionChanged() {
-    if (!mounted) return;
+    if (!mounted) { return; }
     if (_driverSession.consumeResumeHomeAfterTrip()) {
       setState(() {
         showRideRequests = false;
@@ -434,11 +435,11 @@ class _DriverHomeState extends State<DriverHome>
 
   Future<void> _startDriverLocation({bool moveCamera = false}) async {
     final epoch = ++_locationEpoch;
-    if (!_liveVisible) return;
+    if (!_liveVisible) { return; }
     try {
       final position = await _driverLocationService.getCurrentPosition();
-      if (!mounted) return;
-      if (!_liveVisible || epoch != _locationEpoch) return;
+      if (!mounted) { return; }
+      if (!_liveVisible || epoch != _locationEpoch) { return; }
       _applyDriverLocation(position);
       _listenToDriverLocation();
       if (moveCamera || !_didCenterOnLiveLocation) {
@@ -446,7 +447,7 @@ class _DriverHomeState extends State<DriverHome>
         await _animateToDriverLocation();
       }
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() => _hasLiveDriverLocation = false);
     }
   }
@@ -464,14 +465,14 @@ class _DriverHomeState extends State<DriverHome>
         }
       },
       onError: (_) {
-        if (!mounted) return;
+        if (!mounted) { return; }
         setState(() => _hasLiveDriverLocation = false);
       },
     );
   }
 
   void _applyDriverLocation(DriverLocation location) {
-    if (!mounted || !_liveVisible || !location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs() > 90 || location.point.longitude.abs() > 180) return;
+    if (!mounted || !_liveVisible || !location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs() > 90 || location.point.longitude.abs() > 180) { return; }
 
     final next = location.point.toLatLng();
     final heading =
@@ -503,7 +504,7 @@ class _DriverHomeState extends State<DriverHome>
 
   Future<void> _prepareDriverVehicleMarker() async {
     final icon = await MoveraVehicleMarker.createIcon();
-    if (!mounted) return;
+    if (!mounted) { return; }
     setState(() {
       _driverVehicleIcon = icon;
       _markers = {
@@ -523,7 +524,7 @@ class _DriverHomeState extends State<DriverHome>
 
   Future<void> _animateToDriverLocation() async {
     final controller = _mapController;
-    if (controller == null) return;
+    if (controller == null) { return; }
 
     try {
       await controller.animateCamera(
@@ -541,7 +542,7 @@ class _DriverHomeState extends State<DriverHome>
 
   Future<void> _zoomToDriverLocation() async {
     await _startDriverLocation(moveCamera: true);
-    if (!mounted) return;
+    if (!mounted) { return; }
     await _animateToDriverLocation();
   }
 
@@ -551,7 +552,7 @@ class _DriverHomeState extends State<DriverHome>
         key: const ValueKey<String>('driver-location-zoom'),
         color: Colors.white,
         elevation: 4,
-        shadowColor: const Color(0xFF172027).withOpacity(0.16),
+        shadowColor: const Color(0xFF172027).withValues(alpha: 0.16),
         shape: const CircleBorder(),
         child: InkWell(
           onTap: _zoomToDriverLocation,
@@ -618,7 +619,7 @@ class _DriverHomeState extends State<DriverHome>
     LatLng pickup,
     LatLng dropoff,
   ) async {
-    if (!mounted) return;
+    if (!mounted) { return; }
 
     setState(() {
       _isDirectOfferRoutePreview = true;
@@ -669,7 +670,7 @@ class _DriverHomeState extends State<DriverHome>
       }
     } catch (_) {}
 
-    if (!mounted) return;
+    if (!mounted) { return; }
 
     final media = MediaQuery.of(context);
     final insets = MapOverlayInsets.forHome(
@@ -704,7 +705,7 @@ class _DriverHomeState extends State<DriverHome>
     List<LatLng> points, {
     double padding = 80,
   }) async {
-    if (points.isEmpty || _mapController == null) return;
+    if (points.isEmpty || _mapController == null) { return; }
 
     var south = points.first.latitude;
     var north = points.first.latitude;
@@ -744,7 +745,7 @@ class _DriverHomeState extends State<DriverHome>
     if (_mainPanelPosition > 0.001 || isPanelOpen) {
       _panelController.close();
     }
-    if (!mounted) return;
+    if (!mounted) { return; }
 
     Navigator.of(context)
         .push<DriverDestinationResult>(
@@ -753,7 +754,7 @@ class _DriverHomeState extends State<DriverHome>
           ),
         )
         .then((result) {
-          if (!mounted || result == null) return;
+          if (!mounted || result == null) { return; }
           _activateDestinationMode(result);
         });
   }
@@ -802,7 +803,7 @@ class _DriverHomeState extends State<DriverHome>
         origin: GeoPointMaps.fromLatLng(_driverPosition),
         destination: GeoPointMaps.fromLatLng(destination),
       );
-      if (!mounted || _destinationPosition != destination) return;
+      if (!mounted || _destinationPosition != destination) { return; }
 
       setState(() {
         _destinationRoutePolylines = {
@@ -818,27 +819,27 @@ class _DriverHomeState extends State<DriverHome>
         };
       });
     } catch (_) {
-      if (!mounted || _destinationPosition != destination) return;
+      if (!mounted || _destinationPosition != destination) { return; }
       setState(() => _destinationRoutePolylines = <Polyline>{});
     }
   }
 
   Future<void> _fitDestinationRoute() async {
     final destination = _destinationPosition;
-    if (destination == null || _mapController == null) return;
+    if (destination == null || _mapController == null) { return; }
 
     final routePoints = _destinationRoutePolylines.isEmpty
         ? <LatLng>[_driverPosition, destination]
         : _destinationRoutePolylines.first.points;
 
     await Future<void>.delayed(const Duration(milliseconds: 80));
-    if (!mounted || _mapController == null) return;
+    if (!mounted || _mapController == null) { return; }
 
     await _fitPoints(routePoints, padding: 74);
   }
 
   void _endDestinationMode() {
-    if (!_destinationModeActive) return;
+    if (!_destinationModeActive) { return; }
     setState(() {
       _destinationModeActive = false;
       _destinationAddress = null;
@@ -850,17 +851,17 @@ class _DriverHomeState extends State<DriverHome>
 
   String get _destinationShortLabel {
     final address = _destinationAddress?.trim();
-    if (address == null || address.isEmpty) return 'Destination';
+    if (address == null || address.isEmpty) { return 'Destination'; }
     final firstPart = address.split(',').first.trim();
-    if (firstPart.length <= 24) return firstPart;
+    if (firstPart.length <= 24) { return firstPart; }
     return '${firstPart.substring(0, 21)}…';
   }
 
   void _maybeShowSoonReservation() {
-    if (!_soonReservationReady || !mounted || !_isOnline) return;
+    if (!_soonReservationReady || !mounted || !_isOnline) { return; }
     final offer = _soonReservationOffer;
-    if (offer.driverSigned || offer.pickupMinutes > 30) return;
-    if (!_directOfferFollowsDestination(offer)) return;
+    if (offer.driverSigned || offer.pickupMinutes > 30) { return; }
+    if (!_directOfferFollowsDestination(offer)) { return; }
 
     _showOutsideRadarOffer(offer);
     if (_outsideRadarOffer?.id == offer.id) {
@@ -869,9 +870,9 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   bool _directOfferFollowsDestination(_HomeDirectOffer offer) {
-    if (!_destinationModeActive) return true;
+    if (!_destinationModeActive) { return true; }
     final destination = _destinationPosition;
-    if (destination == null) return true;
+    if (destination == null) { return true; }
 
     final latitudeRadians = _driverPosition.latitude * math.pi / 180;
     final longitudeScale = math.cos(latitudeRadians);
@@ -889,7 +890,7 @@ class _DriverHomeState extends State<DriverHome>
       destinationX * destinationX + destinationY * destinationY,
     );
     final offerLength = math.sqrt(offerX * offerX + offerY * offerY);
-    if (destinationLength == 0 || offerLength == 0) return true;
+    if (destinationLength == 0 || offerLength == 0) { return true; }
 
     final cosine =
         (destinationX * offerX + destinationY * offerY) /
@@ -898,7 +899,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _clearDirectOfferRoute() {
-    if (!mounted) return;
+    if (!mounted) { return; }
     setState(() {
       _isDirectOfferRoutePreview = false;
       _directOfferRouteMarkers = {};
@@ -931,7 +932,7 @@ class _DriverHomeState extends State<DriverHome>
     _outsideOfferTimeoutTimer = Timer(
       _outsideOfferLifetime,
       () {
-        if (!mounted || _outsideRadarOffer?.id != offer.id) return;
+        if (!mounted || _outsideRadarOffer?.id != offer.id) { return; }
         _dismissOutsideRadarOffer();
       },
     );
@@ -945,7 +946,7 @@ class _DriverHomeState extends State<DriverHome>
   void _dismissOutsideRadarOffer() {
     _outsideOfferTimeoutTimer?.cancel();
     _outsideOfferTimeoutTimer = null;
-    if (!mounted) return;
+    if (!mounted) { return; }
 
     setState(() {
       _outsideRadarOffer = null;
@@ -1023,7 +1024,7 @@ class _DriverHomeState extends State<DriverHome>
       if (seen.add(offer.id)) {
         next.add(offer);
       }
-      if (next.length >= _maxHomeRadarOffers) break;
+      if (next.length >= _maxHomeRadarOffers) { break; }
     }
 
     setState(() {
@@ -1054,7 +1055,7 @@ class _DriverHomeState extends State<DriverHome>
 
   void _dismissRadarHomeOffer(_HomeDirectOffer offer) {
     _radarOfferTimeoutTimers.remove(offer.id)?.cancel();
-    if (!mounted) return;
+    if (!mounted) { return; }
 
     setState(() {
       _radarHomeOffers.removeWhere((item) => item.id == offer.id);
@@ -1097,7 +1098,7 @@ class _DriverHomeState extends State<DriverHome>
 
   Future<void> _claimHomeRadarOffer(_HomeDirectOffer offer) async {
     final result = await _dispatch.claimOffer(offer.id);
-    if (!mounted || _homeRadarMatchingOfferId != offer.id) return;
+    if (!mounted || _homeRadarMatchingOfferId != offer.id) { return; }
     if (result.isSuccess) {
       _resolveHomeRadarMatchWon(offer);
     } else {
@@ -1108,7 +1109,7 @@ class _DriverHomeState extends State<DriverHome>
   void _watchDispatchRadar() {
     _radarSubscription?.cancel();
     _radarSubscription = _dispatch.watchNearbyOffers().listen((offers) {
-      if (!mounted || !_isOnline) return;
+      if (!mounted || !_isOnline) { return; }
       _latestDispatchOffers = offers;
       final ids = offers.map((item) => item.id).toSet();
       for (final offer in [..._radarHomeOffers, ..._pendingRadarHomeOffers]) {
@@ -1123,7 +1124,7 @@ class _DriverHomeState extends State<DriverHome>
   void _showDispatchOfferAt(int index) {
     final offers = _latestDispatchOffers.where((offer) => offer.isNearby &&
         (!_destinationModeActive || offer.followsDestination)).toList();
-    if (index >= offers.length) return;
+    if (index >= offers.length) { return; }
     final offer = offers[index];
     _showRadarHomeOffer(_HomeDirectOffer(
       id: offer.id,
@@ -1159,7 +1160,7 @@ class _DriverHomeState extends State<DriverHome>
     _homeRadarNoticeTimer = Timer(
       const Duration(milliseconds: 850),
       () {
-        if (!mounted) return;
+        if (!mounted) { return; }
         _acceptRadarHomeOffer(offer);
       },
     );
@@ -1181,7 +1182,7 @@ class _DriverHomeState extends State<DriverHome>
     _homeRadarNoticeTimer = Timer(
       const Duration(milliseconds: 2600),
       () {
-        if (!mounted) return;
+        if (!mounted) { return; }
         setState(() => _homeRadarMatchNotice = null);
       },
     );
@@ -1269,7 +1270,7 @@ class _DriverHomeState extends State<DriverHome>
 
   void _acceptOutsideRadarOffer() {
     final offer = _outsideRadarOffer;
-    if (offer == null) return;
+    if (offer == null) { return; }
 
     _cancelAllOfferTimers();
     _expandedDirectOfferTimer?.cancel();
@@ -1303,7 +1304,7 @@ class _DriverHomeState extends State<DriverHome>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() {
         _outsideRadarOffer = null;
         _radarHomeOffers.clear();
@@ -1317,7 +1318,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _acceptRadarHomeOffer(_HomeDirectOffer offer) {
-    if (!_radarHomeOffers.any((item) => item.id == offer.id)) return;
+    if (!_radarHomeOffers.any((item) => item.id == offer.id)) { return; }
 
     _cancelAllOfferTimers();
     _expandedDirectOfferTimer?.cancel();
@@ -1351,7 +1352,7 @@ class _DriverHomeState extends State<DriverHome>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() {
         _outsideRadarOffer = null;
         _radarHomeOffers.clear();
@@ -1371,7 +1372,7 @@ class _DriverHomeState extends State<DriverHome>
       _sheetToneShown = true;
     });
     _sheetToneTimer = Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() => _sheetToneShown = false);
     });
   }
@@ -1438,11 +1439,11 @@ class _DriverHomeState extends State<DriverHome>
   bool hideMainPanel = false;
   Timer? _destinationOpenTimer;
   void openDestinationPanel() {
-    if (!mounted) return;
+    if (!mounted) { return; }
     _destinationOpenTimer?.cancel();
     setState(() => hideMainPanel = true);
     _destinationOpenTimer = Timer(const Duration(milliseconds: 100), () {
-      if (!mounted) return;
+      if (!mounted) { return; }
       if (!_driverSession.isOnline || !_destinationPanelController.isAttached) {
         setState(() => hideMainPanel = false);
         return;
@@ -1452,7 +1453,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _setMapGesturesBlocked(bool value) {
-    if (!mounted || _blockMapGestures == value) return;
+    if (!mounted || _blockMapGestures == value) { return; }
     setState(() {
       _blockMapGestures = value;
     });
@@ -1506,7 +1507,7 @@ class _DriverHomeState extends State<DriverHome>
         math.min((position - snap).abs(), (1 - position).abs()),
       );
 
-      if (nearestDistance <= 0.025) return;
+      if (nearestDistance <= 0.025) { return; }
       unawaited(_snapHomeSheet(velocity: 0));
     });
   }
@@ -1521,7 +1522,7 @@ class _DriverHomeState extends State<DriverHome>
     final maxHeight = _homeExpandedHeight(context);
     final middleHeight = MoveraSheetMetrics.middleHeight(viewportHeight);
     final span = maxHeight - MoveraSheetMetrics.collapsedHeight;
-    if (span <= 0) return 0.5;
+    if (span <= 0) { return 0.5; }
     return ((middleHeight - MoveraSheetMetrics.collapsedHeight) / span)
         .clamp(0.08, 0.92);
   }
@@ -1541,7 +1542,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Future<void> _snapHomeSheet({double? velocity}) async {
-    if (!_panelController.isAttached) return;
+    if (!_panelController.isAttached) { return; }
     _snapSheet.rangePx =
         _homeExpandedHeight(context) - MoveraSheetMetrics.collapsedHeight;
     final snap = _homeSnapPoint(context);
@@ -1562,7 +1563,7 @@ class _DriverHomeState extends State<DriverHome>
 
   void _settleHomeSheet({double? velocity}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       unawaited(_snapHomeSheet(velocity: velocity));
     });
   }
@@ -1601,9 +1602,9 @@ class _DriverHomeState extends State<DriverHome>
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            const Color(0xFF172027).withOpacity(0.46),
-                            const Color(0xFF6F7D80).withOpacity(0.16),
-                            const Color(0xFFF4F7F8).withOpacity(0.24),
+                            const Color(0xFF172027).withValues(alpha: 0.46),
+                            const Color(0xFF6F7D80).withValues(alpha: 0.16),
+                            const Color(0xFFF4F7F8).withValues(alpha: 0.24),
                           ],
                           stops: const [0.0, 0.45, 1.0],
                         ),
@@ -1869,7 +1870,7 @@ class _DriverHomeState extends State<DriverHome>
                           boxShadow: [
                             BoxShadow(
                               color:
-                                  const Color(0xFF172027).withOpacity(0.11),
+                                  const Color(0xFF172027).withValues(alpha: 0.11),
                               blurRadius: 18,
                               spreadRadius: 0,
                               offset: const Offset(0, 7),
@@ -1926,7 +1927,7 @@ class _DriverHomeState extends State<DriverHome>
                             color: Colors.white,
                             elevation: 3,
                             shadowColor:
-                                const Color(0xFF172027).withOpacity(0.12),
+                                const Color(0xFF172027).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(18),
                             child: InkWell(
                               key: const ValueKey<String>(
@@ -2110,7 +2111,7 @@ class _DriverHomeState extends State<DriverHome>
               child: Material(
                 color: AppColor.white,
                 elevation: 4,
-                shadowColor: const Color(0xFF1D2730).withOpacity(0.16),
+                shadowColor: const Color(0xFF1D2730).withValues(alpha: 0.16),
                 shape: const CircleBorder(),
                 child: InkWell(
                   onTap: () => showSafetyToolKitSheet(context),
@@ -2166,7 +2167,7 @@ class _DriverHomeState extends State<DriverHome>
                   behavior: HitTestBehavior.opaque,
                   onTap: _hideTodaySummary,
                   child: ColoredBox(
-                    color: const Color(0xFF172027).withOpacity(0.22),
+                    color: const Color(0xFF172027).withValues(alpha: 0.22),
                   ),
                 ),
               ),
@@ -2209,12 +2210,12 @@ class _DriverHomeState extends State<DriverHome>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF172027).withOpacity(0.09),
+                            color: const Color(0xFF172027).withValues(alpha: 0.09),
                             blurRadius: 14,
                             offset: const Offset(3, 5),
                           ),
                           BoxShadow(
-                            color: Colors.white.withOpacity(0.72),
+                            color: Colors.white.withValues(alpha: 0.72),
                             blurRadius: 4,
                             offset: const Offset(-1, -1),
                           ),
@@ -2323,7 +2324,7 @@ class _DriverHomeState extends State<DriverHome>
 
     return RepaintBoundary(
       child: Material(
-        color: const Color(0xFFF7F9F9).withOpacity(0.98),
+        color: const Color(0xFFF7F9F9).withValues(alpha: 0.98),
         elevation: 8,
         shadowColor: const Color(0x3311181C),
         borderRadius: BorderRadius.circular(22),
@@ -2547,12 +2548,12 @@ class _DriverHomeState extends State<DriverHome>
         height: trayHeight,
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF7F9F9).withOpacity(0.98),
+            color: const Color(0xFFF7F9F9).withValues(alpha: 0.98),
             borderRadius: BorderRadius.circular(26),
             border: Border.all(color: const Color(0xFFDDE5E2)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF11181C).withOpacity(0.12),
+                color: const Color(0xFF11181C).withValues(alpha: 0.12),
                 blurRadius: 26,
                 offset: const Offset(0, 10),
               ),
@@ -2573,7 +2574,7 @@ class _DriverHomeState extends State<DriverHome>
                   itemBuilder: (context, index) {
                     final offer = offers[index];
                     return RepaintBoundary(
-                      key: ValueKey<String>('radar-offer-' + offer.id),
+                      key: ValueKey<String>('radar-offer-${offer.id}'),
                       child: _buildRadarOpportunityCard(offer),
                     );
                   },
@@ -2862,18 +2863,18 @@ class _DriverHomeState extends State<DriverHome>
               color: const Color(0xFFF9FAFB),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: alertCoral.withOpacity(0.38 + (pulse * 0.28)),
+                color: alertCoral.withValues(alpha: 0.38 + (pulse * 0.28)),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: alertCoral.withOpacity(0.08 + (pulse * 0.07)),
+                  color: alertCoral.withValues(alpha: 0.08 + (pulse * 0.07)),
                   blurRadius: 20 + (pulse * 8),
                   spreadRadius: pulse * 1.8,
                   offset: const Offset(0, 5),
                 ),
                 BoxShadow(
-                  color: const Color(0xFF11181C).withOpacity(0.14),
+                  color: const Color(0xFF11181C).withValues(alpha: 0.14),
                   blurRadius: 24,
                   offset: const Offset(0, 12),
                 ),
@@ -2919,7 +2920,7 @@ class _DriverHomeState extends State<DriverHome>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: alertCoral.withOpacity(0.10),
+                          color: alertCoral.withValues(alpha: 0.10),
                           borderRadius: BorderRadius.circular(11),
                         ),
                         child: Text(
@@ -3211,10 +3212,10 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _onRadarSheetDragUpdate(DragUpdateDetails details) {
-    if (!_panelController.isAttached) return;
+    if (!_panelController.isAttached) { return; }
     _snapSheet.stopSpring();
     final range = _homeExpandedHeight(context) - MoveraSheetMetrics.collapsedHeight;
-    if (range <= 0) return;
+    if (range <= 0) { return; }
     final next = (_panelController.panelPosition - details.delta.dy / range)
         .clamp(0.0, 1.0);
     _panelController.panelPosition = next;
@@ -3234,14 +3235,14 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _showTodaySummary() {
-    if (_showTodaySummaryPopup) return;
+    if (_showTodaySummaryPopup) { return; }
     setState(() {
       _showTodaySummaryPopup = true;
     });
   }
 
   void _hideTodaySummary() {
-    if (!_showTodaySummaryPopup) return;
+    if (!_showTodaySummaryPopup) { return; }
     setState(() {
       _showTodaySummaryPopup = false;
     });
@@ -3278,12 +3279,12 @@ class _DriverHomeState extends State<DriverHome>
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF19865C).withOpacity(0.10),
+              color: const Color(0xFF19865C).withValues(alpha: 0.10),
               blurRadius: 22,
               offset: const Offset(0, 10),
             ),
             BoxShadow(
-              color: const Color(0xFF172027).withOpacity(0.08),
+              color: const Color(0xFF172027).withValues(alpha: 0.08),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -3534,10 +3535,14 @@ class _DriverHomeState extends State<DriverHome>
       unawaited(showDriverSuspendedSheet(context));
       return;
     }
+    if(!_recoveryResolved) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Resolve saved trip recovery before going online.'),action:SnackBarAction(label:'Retry',onPressed:_restoreActiveRideIfNeeded)));
+      return;
+    }
     if (!isAccountActivated) {
       setState(() => _activationHold = true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_panelController.isAttached) return;
+        if (!mounted || !_panelController.isAttached) { return; }
         unawaited(_snapSheet.springTo(0.28));
       });
       return;
@@ -3567,10 +3572,20 @@ class _DriverHomeState extends State<DriverHome>
     _onlineTransitionTimer = Timer(
       const Duration(milliseconds: 1400),
       () {
-        if (!mounted) return;
+        if (!mounted) { return; }
         setState(() {
           _driverSession.completeGoingOnline();
         });
+        _scheduleVisibleOffers();
+      },
+    );
+  }
+
+  void _scheduleVisibleOffers() {
+    if(!mounted || !_liveVisible || !_driverSession.availableForOffers) return;
+    _cancelAllOfferTimers();
+    _directOfferTimer?.cancel();_offerSimulationTimer?.cancel();
+    _radarOfferTwoTimer?.cancel();_radarOfferThreeTimer?.cancel();_expandedDirectOfferTimer?.cancel();
         _watchDispatchRadar();
 
         // Frontend demo only. Outside-Radar offers remain exclusive and
@@ -3578,7 +3593,7 @@ class _DriverHomeState extends State<DriverHome>
         _directOfferTimer = Timer(
           const Duration(milliseconds: 2200),
           () {
-            if (!mounted || !_isOnline) return;
+            if (!mounted || !_isOnline) { return; }
             _showOutsideRadarOffer(_veryCloseDirectOffer);
           },
         );
@@ -3588,7 +3603,7 @@ class _DriverHomeState extends State<DriverHome>
         _offerSimulationTimer = Timer(
           const Duration(milliseconds: 11500),
           () {
-            if (!mounted || !_isOnline) return;
+            if (!mounted || !_isOnline) { return; }
             _showDispatchOfferAt(0);
           },
         );
@@ -3596,7 +3611,7 @@ class _DriverHomeState extends State<DriverHome>
         _radarOfferTwoTimer = Timer(
           const Duration(milliseconds: 14500),
           () {
-            if (!mounted || !_isOnline) return;
+            if (!mounted || !_isOnline) { return; }
             _showDispatchOfferAt(1);
           },
         );
@@ -3604,7 +3619,7 @@ class _DriverHomeState extends State<DriverHome>
         _radarOfferThreeTimer = Timer(
           const Duration(milliseconds: 17500),
           () {
-            if (!mounted || !_isOnline) return;
+            if (!mounted || !_isOnline) { return; }
             _showDispatchOfferAt(2);
           },
         );
@@ -3628,12 +3643,10 @@ class _DriverHomeState extends State<DriverHome>
         _reservationOfferTimer = Timer(
           const Duration(milliseconds: 40000),
           () {
-            if (!mounted || !_isOnline) return;
+            if (!mounted || !_isOnline) { return; }
             _maybeShowSoonReservation();
           },
         );
-      },
-    );
   }
 
   Future<void> _goOffline() async {
@@ -3749,9 +3762,9 @@ class _DriverHomeState extends State<DriverHome>
 
         return _buildRadarOrb(
           title: pendingRadarCount > 0
-              ? pendingRadarCount.toString() + " new"
+              ? "$pendingRadarCount new"
               : radarOfferCount > 1
-              ? radarOfferCount.toString() + " offers"
+              ? "$radarOfferCount offers"
               : hasRadarOffer
               ? "Trip found"
               : "Radar",
@@ -3813,15 +3826,15 @@ class _DriverHomeState extends State<DriverHome>
     }
 
     for (var index = 0; index < length; index++) {
-      if (a[index] > b[index]) return true;
-      if (a[index] < b[index]) return false;
+      if (a[index] > b[index]) { return true; }
+      if (a[index] < b[index]) { return false; }
     }
 
     return false;
   }
 
   Future<void> _maybeShowAppUpdatePrompt() async {
-    if (_updatePromptShown || !mounted) return;
+    if (_updatePromptShown || !mounted) { return; }
 
     final update = _adminHomeConfig.update;
     if (!update.enabled ||
@@ -3911,7 +3924,7 @@ class _DriverHomeState extends State<DriverHome>
                       if (sheetContext.mounted) {
                         Navigator.pop(sheetContext);
                       }
-                      if (!mounted) return;
+                      if (!mounted) { return; }
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
@@ -3974,7 +3987,7 @@ class _DriverHomeState extends State<DriverHome>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withOpacity(0.28),
+      barrierColor: Colors.black.withValues(alpha: 0.28),
       builder: (sheetContext) {
         return DraggableScrollableSheet(
           initialChildSize: 0.76,
@@ -4337,7 +4350,7 @@ class _DriverHomeState extends State<DriverHome>
         ),
     ];
 
-    if (metrics.isEmpty) return const SizedBox.shrink();
+    if (metrics.isEmpty) { return const SizedBox.shrink(); }
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
@@ -4408,7 +4421,7 @@ class _DriverHomeState extends State<DriverHome>
         border: Border.all(color: const Color(0xFFE0E9E5)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF18392E).withOpacity(0.055),
+            color: const Color(0xFF18392E).withValues(alpha: 0.055),
             blurRadius: 28,
             offset: const Offset(0, 11),
           ),
@@ -4427,7 +4440,7 @@ class _DriverHomeState extends State<DriverHome>
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF163D31).withOpacity(0.16),
+                      color: const Color(0xFF163D31).withValues(alpha: 0.16),
                       blurRadius: 12,
                       offset: const Offset(0, 5),
                     ),
@@ -4484,7 +4497,7 @@ class _DriverHomeState extends State<DriverHome>
               borderRadius: BorderRadius.circular(19),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF173F32).withOpacity(0.13),
+                  color: const Color(0xFF173F32).withValues(alpha: 0.13),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
@@ -4496,10 +4509,10 @@ class _DriverHomeState extends State<DriverHome>
                   height: 36,
                   width: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.10),
+                    color: Colors.white.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.12),
+                      color: Colors.white.withValues(alpha: 0.12),
                     ),
                   ),
                   child: const MoveraLineIcon(
@@ -4667,7 +4680,7 @@ class _DriverHomeState extends State<DriverHome>
               boxShadow: isBusy
                   ? [
                       BoxShadow(
-                        color: accent.withOpacity(0.20),
+                        color: accent.withValues(alpha: 0.20),
                         blurRadius: 4,
                         spreadRadius: 1,
                       ),
@@ -4724,7 +4737,7 @@ class _DriverHomeState extends State<DriverHome>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: accent.withOpacity(0.18),
+                      color: accent.withValues(alpha: 0.18),
                       blurRadius: 5,
                       spreadRadius: 1,
                     ),

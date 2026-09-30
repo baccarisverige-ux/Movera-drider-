@@ -413,8 +413,8 @@ class _NextStopLineState extends State<_NextStopLine>
 }
 
 double _scrollPhase(double t) {
-  if (t < 0.16) return 0;
-  if (t > 0.84) return 1;
+  if (t < 0.16) { return 0; }
+  if (t > 0.84) { return 1; }
   return Curves.easeInOut.transform((t - 0.16) / 0.68);
 }
 
@@ -439,7 +439,7 @@ class _RadarOnOffState extends State<_RadarOnOff>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
-    if (widget.on) _pulse.repeat();
+    if (widget.on) { _pulse.repeat(); }
   }
 
   @override
@@ -544,7 +544,7 @@ class _RadarPulsePainter extends CustomPainter {
       final paint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2
-        ..color = const Color(0xFF1C242C).withOpacity((1 - phase) * 0.55);
+        ..color = const Color(0xFF1C242C).withValues(alpha: (1 - phase) * 0.55);
       canvas.drawCircle(center, 3 + phase * 7, paint);
     }
   }

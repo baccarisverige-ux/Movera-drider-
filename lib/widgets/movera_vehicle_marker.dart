@@ -102,6 +102,6 @@ class MoveraVehicleMarker {
     if (data == null) {
       return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
     }
-    return BitmapDescriptor.fromBytes(data.buffer.asUint8List());
+    return BitmapDescriptor.bytes(data.buffer.asUint8List());
   }
 }

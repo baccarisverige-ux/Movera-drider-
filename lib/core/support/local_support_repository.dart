@@ -8,7 +8,7 @@ class LocalSupportRepository {
  await _pending; return _read(await SharedPreferences.getInstance());
  }
  Map<String,dynamic> _read(SharedPreferences prefs) {
- try { final raw=prefs.getString(key); if(raw==null) return {};
+ try { final raw=prefs.getString(key); if(raw==null) { return {}; }
  final json=jsonDecode(raw); return json is Map && json['schemaVersion']==1 ? Map<String,dynamic>.from(json):{};
  } catch(_) { return {}; }
  }
@@ -16,12 +16,12 @@ class LocalSupportRepository {
  Future<void> write() async {
  final prefs=await SharedPreferences.getInstance();final data=_read(prefs);
  data['schemaVersion']=1;data[field]=value;
- if(!await prefs.setString(key,jsonEncode(data))) throw StateError('Local draft could not be saved');
+ if(!await prefs.setString(key,jsonEncode(data))) { throw StateError('Local draft could not be saved'); }
  }
  final previous=_pending;
  final result=previous==null ? write() : previous.then((_)=>write());
  final tail=result.catchError((Object _) {});_pending=tail;
- tail.then((_) {if(identical(_pending,tail)) _pending=null;});
+ tail.then((_) {if(identical(_pending,tail)) { _pending=null; }});
  return result;
  }
 }

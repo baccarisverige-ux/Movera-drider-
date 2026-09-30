@@ -1,0 +1,18 @@
+[
+  "lib/models/home_recent_rides.dart",
+  "lib/models/saved_places.dart",
+  "lib/models/title_image.dart",
+  "lib/presentation/common/onboarding/onboarding.dart",
+  "lib/presentation/driver/home/components/account_activation_diaglog.dart",
+  "lib/presentation/driver/home/components/home_direct_offer.dart",
+  "lib/presentation/driver/home/components/recent_rides.dart",
+  "lib/presentation/driver/ride history/components/appbar.dart",
+  "lib/presentation/driver/search location/confirm pickup/confirm_location.dart",
+  "lib/presentation/driver/search location/drop_off_location.dart",
+  "lib/presentation/driver/search location/pickup_location.dart",
+  "lib/presentation/driver/analytics/components/reviews.dart",
+  "lib/presentation/driver/analytics/components/insights.dart",
+  "lib/presentation/driver/analytics/components/overal_ratings.dart",
+  "lib/presentation/driver/analytics/components/appbar.dart",
+  "lib/presentation/driver/analytics/components/earnings.dart"
+]

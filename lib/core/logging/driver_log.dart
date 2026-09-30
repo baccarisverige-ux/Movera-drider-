@@ -20,6 +20,6 @@ class DriverLog {
   ]) {
     final detail = error == null ? message : '$message: $error';
     debugPrint('[$name] ERROR $detail');
-    if (stack != null) debugPrint('$stack');
+    if (stack != null) { debugPrint('$stack'); }
   }
 }

@@ -21,7 +21,7 @@ class PrefsTripHistoryRepository {
     await _pending;
     final prefs = await _load();
     final raw = prefs.getString(key);
-    if (raw == null) return const <TripHistoryRecord>[];
+    if (raw == null) { return const <TripHistoryRecord>[]; }
     return _decode(raw).map((data) => TripHistoryRecord(
       tripId: data['tripId'] as String, riderName: data['riderName'] as String,
       whenLabel: data['whenLabel'] as String, pickup: data['pickup'] as String,
@@ -41,12 +41,12 @@ class PrefsTripHistoryRepository {
 
   static const maxReceipts = 500;
   List<Map<String,dynamic>> _decode(String? raw) {
-    if(raw==null) return [];
+    if(raw==null) { return []; }
     dynamic decoded;
     try { decoded=jsonDecode(raw); }
     catch(error) { DriverLog.warn('History JSON malformed: $error'); return []; }
     if(decoded is Map) {
-      if(decoded['schemaVersion']!=1) throw StateError('Unsupported history schema');
+      if(decoded['schemaVersion']!=1) { throw StateError('Unsupported history schema'); }
       decoded=decoded['rows'];
     }
     if(decoded is! List) { DriverLog.warn('History rows are malformed'); return []; }
@@ -56,7 +56,7 @@ class PrefsTripHistoryRepository {
         || (row['tripId'] as String).isEmpty || (row['completedAt']!=null && (row['completedAt'] is! String || DateTime.tryParse(row['completedAt'] as String)==null))) {
         DriverLog.warn('Skipping malformed history row'); continue;
       }
-      if(ids.add(row['tripId'] as String)) rows.add(Map<String,dynamic>.from(row));
+      if(ids.add(row['tripId'] as String)) { rows.add(Map<String,dynamic>.from(row)); }
     }
     rows.sort((a,b)=>(DateTime.tryParse(b['completedAt'] as String? ?? '') ?? DateTime(1970)).compareTo(DateTime.tryParse(a['completedAt'] as String? ?? '') ?? DateTime(1970)));
     return rows.take(maxReceipts).toList();
@@ -102,12 +102,12 @@ class PrefsTripHistoryRepository {
         'completedAt': at.toIso8601String(),
       });
       final success = await prefs.setString(key, jsonEncode({'schemaVersion':1,'rows':rows.take(maxReceipts).toList()}));
-      if (!success) throw StateError('Could not archive completed trip');
+      if (!success) { throw StateError('Could not archive completed trip'); }
     }
     final result=previous==null ? write() : previous.then((_)=>write());
     final tail=result.catchError((Object _) {});
     _pending=tail;
-    tail.then((_) { if(identical(_pending,tail)) _pending=null; });
+    tail.then((_) { if(identical(_pending,tail)) { _pending=null; } });
     return result;
   }
 }

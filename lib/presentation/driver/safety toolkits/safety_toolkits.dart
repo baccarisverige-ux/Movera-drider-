@@ -7,7 +7,7 @@ Future<T?> showSafetyToolKitSheet<T>(BuildContext context) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    barrierColor: const Color(0xFF172027).withOpacity(0.30),
+    barrierColor: const Color(0xFF172027).withValues(alpha: 0.30),
     builder: (_) => const SafetyToolKits(),
   );
 }
@@ -76,7 +76,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
 
     if (call == true && mounted) {
       final result = await handoffEmergencyDial(() => launchUrl(Uri.parse('tel:112')));
-      if (!mounted) return;
+      if (!mounted) { return; }
       _showMessage(result == EmergencyDialResult.opened
         ? 'Emergency dialer opened — confirm the call on your device.'
         : 'Could not open the dialer. Dial 112 manually.');
@@ -233,7 +233,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
           ),
           Switch.adaptive(
             value: value,
-            activeColor: _green,
+            activeThumbColor: _green,
             onChanged: onChanged,
           ),
         ],

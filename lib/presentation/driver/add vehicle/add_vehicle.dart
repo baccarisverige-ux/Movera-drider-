@@ -32,7 +32,7 @@ class _AddVehicleState extends State<AddVehicle> {
   }
 
   void _refresh() {
-    if (mounted) setState(() {});
+    if (mounted) { setState(() {}); }
   }
 
   @override
@@ -80,7 +80,7 @@ class _AddVehicleState extends State<AddVehicle> {
         );
       },
     );
-    if (picked == null || !mounted) return;
+    if (picked == null || !mounted) { return; }
     setState(() => _year = picked);
   }
 
@@ -221,7 +221,7 @@ class _AddVehicleState extends State<AddVehicle> {
                         setState(()=>_saving=true);
                         try {
                           await LocalVehicleStore().upsert({'id':_vehicleId,'make':_make.text.trim(),'model':_model.text.trim(),'year':_year!,'plate':_plate.text.trim()});
-                          if(!mounted) return;
+                          if(!context.mounted) { return; }
                         await Navigator.push(
                           context,
                           MaterialPageRoute<void>(
@@ -235,8 +235,8 @@ class _AddVehicleState extends State<AddVehicle> {
                           ),
                         );
                         } catch(_) {
-                          if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local vehicle draft. Retry.')));
-                        } finally { if(mounted) setState(()=>_saving=false); }
+                          if(context.mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local vehicle draft. Retry.'))); }
+                        } finally { if(mounted) { setState(()=>_saving=false); } }
                       }
                     : null,
                 style: FilledButton.styleFrom(
@@ -342,12 +342,12 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
     try {
       final rows=await _store.list();
       final matching=rows.where((row)=>row['id']==widget.vehicleId);
-      if(mounted) setState(() {
+      if(mounted) { setState(() {
         _draft=matching.isEmpty ? null : matching.first;
         _registrationDone=_draft?['registrationPhoto'] is String;
         _insuranceDone=_draft?['insurancePhoto'] is String;
-      });
-    } catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Could not load local vehicle documents.'),action:SnackBarAction(label:'Retry',onPressed:_restore))); }
+      }); }
+    } catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Could not load local vehicle documents.'),action:SnackBarAction(label:'Retry',onPressed:_restore))); } }
   }
   bool _registrationDone = false;
   bool _insuranceDone = false;
@@ -359,19 +359,19 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
     required List<String> checks,
     required bool registration,
   }) async {
-    if(_busy || _draft==null) return;
+    if(_busy || _draft==null) { return; }
     final saved = await Navigator.push<Uint8List>(
       context,
       MaterialPageRoute(
         builder: (_) => _VehiclePhotoPage(title: title, checks: checks),
       ),
     );
-    if (saved == null || !mounted) return;
+    if (saved == null || !mounted) { return; }
     setState(()=>_busy=true);
     final updated={..._draft!, (registration ? 'registrationPhoto' : 'insurancePhoto'):base64Encode(saved)};
-    try { await _store.upsert(updated); if(!mounted) return; _draft=updated; }
-    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Photo could not be saved locally. Retry.')));return; }
-    finally { if(mounted) setState(()=>_busy=false); }
+    try { await _store.upsert(updated); if(!mounted) { return; } _draft=updated; }
+    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Photo could not be saved locally. Retry.'))); }return; }
+    finally { if(mounted) { setState(()=>_busy=false); } }
     setState(() {
       if (registration) {
         _registrationDone = true;
@@ -455,8 +455,8 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
     );
     if (remove == true && mounted && widget.vehicleId != null) {
       try { await _store.remove(widget.vehicleId!); }
-      catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not remove local draft. Retry.')));return; }
-      if(!mounted) return;
+      catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not remove local draft. Retry.'))); }return; }
+      if(!mounted) { return; }
       Navigator.of(context).pop();
     }
   }
@@ -610,15 +610,15 @@ class _VehiclePhotoPage extends StatelessWidget {
   Future<void> _take(BuildContext context) async {
     try {
       final file = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality:65, maxWidth:1200);
-      if (!context.mounted) return;
+      if (!context.mounted) { return; }
       if(file!=null) {
         final bytes=await file.readAsBytes();
-        if(!context.mounted) return;
-        if(bytes.length>2*1024*1024) throw StateError('Photo exceeds local storage limit');
+        if(!context.mounted) { return; }
+        if(bytes.length>2*1024*1024) { throw StateError('Photo exceeds local storage limit'); }
         Navigator.pop(context,bytes);
       }
     } catch (_) {
-      if (!context.mounted) return;
+      if (!context.mounted) { return; }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Camera is not available in this preview.'),

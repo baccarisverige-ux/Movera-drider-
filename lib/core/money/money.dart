@@ -13,16 +13,16 @@ class Money {
     value=value.replaceFirst(RegExp(r'\s*(kr|SEK)$',caseSensitive:false),'').trim();
     var sign=1;
     if(value.startsWith('-')) {sign=-1;value=value.substring(1);}
-    if(value.startsWith('+')) value=value.substring(1);
+    if(value.startsWith('+')) { value=value.substring(1); }
     final decimal=RegExp(r'[,.](\d{1,2})$').firstMatch(value);
     var fraction=0;
     if(decimal!=null) {
       fraction=int.parse(decimal.group(1)!.padRight(2,'0'));
       value=value.substring(0,decimal.start);
     }
-    if(!RegExp(r'^(\d+|\d{1,3}([ .,]\d{3})+)$').hasMatch(value)) return null;
+    if(!RegExp(r'^(\d+|\d{1,3}([ .,]\d{3})+)$').hasMatch(value)) { return null; }
     final major=int.tryParse(value.replaceAll(RegExp(r'[ .,]'),''));
-    if(major==null) return null;
+    if(major==null) { return null; }
     return Money.ore(sign*(major*100+fraction));
   }
 
@@ -64,7 +64,7 @@ class Money {
     final buffer = StringBuffer();
     for (var i = 0; i < digits.length; i++) {
       final remaining = digits.length - i;
-      if (i > 0 && remaining % 3 == 0) buffer.write(' ');
+      if (i > 0 && remaining % 3 == 0) { buffer.write(' '); }
       buffer.write(digits[i]);
     }
     return buffer.toString();

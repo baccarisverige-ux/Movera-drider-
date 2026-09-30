@@ -15,8 +15,8 @@ class _DriverVehiclesState extends State<DriverVehicles> {
   @override
   void initState() { super.initState(); _load(); }
   Future<void> _load() async {
-    try { final rows=await _store.list();if(mounted) setState(() {_vehicles=rows;_failed=false;}); }
-    catch(_) { if(mounted) setState(()=>_failed=true); }
+    try { final rows=await _store.list();if(mounted) { setState(() {_vehicles=rows;_failed=false;}); } }
+    catch(_) { if(mounted) { setState(()=>_failed=true); } }
   }
   static const Color _ink = Color(0xFF252E3A);
   static const Color _muted = Color(0xFF7D898F);
@@ -50,7 +50,7 @@ class _DriverVehiclesState extends State<DriverVehicles> {
                 context,
                 MaterialPageRoute<void>(builder: (_) => const AddVehicle()),
               );
-              if(mounted) await _load();
+              if(mounted) { await _load(); }
             },
             icon: const Icon(Icons.add_rounded, color: _ink),
           ),
@@ -117,7 +117,7 @@ class _DriverVehiclesState extends State<DriverVehicles> {
                           ),
                         ),
                       );
-                      if(mounted) await _load();
+                      if(mounted) { await _load(); }
                     },
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFFF4F6F7),

@@ -105,7 +105,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                                   BoxShadow(
                                     offset: const Offset(0, 4),
                                     // ignore: deprecated_member_use
-                                    color: Color(0xff606060).withOpacity(0.12),
+                                    color: Color(0xff606060).withValues(alpha: 0.12),
                                     spreadRadius: 6,
                                     blurRadius: 40,
                                   ),

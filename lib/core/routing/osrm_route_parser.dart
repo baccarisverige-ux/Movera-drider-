@@ -22,7 +22,7 @@ class OsrmRouteParser {
 
     final points = <GeoPoint>[];
     for (final coordinate in coordinatesJson) {
-      if (coordinate is! List || coordinate.length < 2) continue;
+      if (coordinate is! List || coordinate.length < 2) { continue; }
       final longitude = coordinate[0];
       final latitude = coordinate[1];
       if (longitude is num && latitude is num) {
@@ -47,17 +47,17 @@ class OsrmRouteParser {
 
   List<RouteInstruction> parseInstructions(Map<String, dynamic> route) {
     final legs = route['legs'];
-    if (legs is! List) return const <RouteInstruction>[];
+    if (legs is! List) { return const <RouteInstruction>[]; }
 
     final instructions = <RouteInstruction>[];
     for (final leg in legs) {
-      if (leg is! Map<String, dynamic>) continue;
+      if (leg is! Map<String, dynamic>) { continue; }
       final steps = leg['steps'];
-      if (steps is! List) continue;
+      if (steps is! List) { continue; }
       for (final step in steps) {
-        if (step is! Map<String, dynamic>) continue;
+        if (step is! Map<String, dynamic>) { continue; }
         final parsed = _parseStep(step);
-        if (parsed != null) instructions.add(parsed);
+        if (parsed != null) { instructions.add(parsed); }
       }
     }
     return instructions;
@@ -65,13 +65,13 @@ class OsrmRouteParser {
 
   RouteInstruction? _parseStep(Map<String, dynamic> step) {
     final maneuver = step['maneuver'];
-    if (maneuver is! Map<String, dynamic>) return null;
+    if (maneuver is! Map<String, dynamic>) { return null; }
 
     final location = maneuver['location'];
-    if (location is! List || location.length < 2) return null;
+    if (location is! List || location.length < 2) { return null; }
     final longitude = location[0];
     final latitude = location[1];
-    if (longitude is! num || latitude is! num) return null;
+    if (longitude is! num || latitude is! num) { return null; }
 
     final type = RouteManeuverTypeX.fromOsrm(
       maneuver['type'] is String ? maneuver['type'] as String : null,

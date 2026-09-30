@@ -64,7 +64,7 @@ class SettingsRepository {
     final tail = result.catchError((Object _) {});
     _pending = tail;
     tail.then((_) {
-      if (identical(_pending, tail)) _pending = null;
+      if (identical(_pending, tail)) { _pending = null; }
     });
     return result;
   }

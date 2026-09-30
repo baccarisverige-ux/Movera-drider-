@@ -71,8 +71,8 @@ class _RideRequestsState extends State<RideRequests> {
   final List<_RadarTrip> _offers = <_RadarTrip>[];
   List<_RadarTrip> get _visibleOffers {
     final nearby = _offers.where((offer) {
-      if (!offer.isNearby) return false;
-      if (!widget.destinationModeActive) return true;
+      if (!offer.isNearby) { return false; }
+      if (!widget.destinationModeActive) { return true; }
       return offer.followsDestination;
     }).toList()
       ..sort((a, b) => a.pickupKm.compareTo(b.pickupKm));
@@ -123,7 +123,7 @@ class _RideRequestsState extends State<RideRequests> {
   }
 
   void _onDispatchOffers(List<RideOffer> offers) {
-    if (!mounted) return;
+    if (!mounted) { return; }
     _latestDispatchOffers = offers;
 
     // First emission is the stable snapshot. Later additions wait for Refresh.
@@ -157,7 +157,7 @@ class _RideRequestsState extends State<RideRequests> {
   }
 
   void _refreshFromRadarSignal() {
-    if (!_hasNewTripSignal) return;
+    if (!_hasNewTripSignal) { return; }
 
     setState(() {
       final lingering = _offers.where((trip) {
@@ -188,8 +188,8 @@ class _RideRequestsState extends State<RideRequests> {
 
   bool _isOfferStillVisible(_RadarTrip trip) {
     return _offers.any((offer) {
-      if (offer.id != trip.id || !offer.isNearby) return false;
-      if (!widget.destinationModeActive) return true;
+      if (offer.id != trip.id || !offer.isNearby) { return false; }
+      if (!widget.destinationModeActive) { return true; }
       return offer.followsDestination;
     });
   }
@@ -216,7 +216,7 @@ class _RideRequestsState extends State<RideRequests> {
 
   Future<void> _claimTrip(_RadarTrip trip) async {
     final result = await _dispatch.claimOffer(trip.id);
-    if (!mounted || _matchingOfferId != trip.id) return;
+    if (!mounted || _matchingOfferId != trip.id) { return; }
 
     if (result.isSuccess) {
       _resolveMatchWon(trip);
@@ -243,7 +243,7 @@ class _RideRequestsState extends State<RideRequests> {
     _matchNoticeTimer = Timer(
       const Duration(milliseconds: 500),
       () {
-        if (!mounted) return;
+        if (!mounted) { return; }
         final navigator = Navigator.of(context);
         final ride = AcceptRide(
           offerId: trip.id,
@@ -268,7 +268,7 @@ class _RideRequestsState extends State<RideRequests> {
         navigator.push(ActiveRideTransition(ride));
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
+          if (!mounted) { return; }
           setState(() {
             _matchingOfferId = null;
             _offers.removeWhere((offer) => offer.id == trip.id);
@@ -297,7 +297,7 @@ class _RideRequestsState extends State<RideRequests> {
     _matchNoticeTimer = Timer(
       const Duration(milliseconds: 2600),
       () {
-        if (!mounted) return;
+        if (!mounted) { return; }
         setState(() => _matchNotice = null);
       },
     );
@@ -331,7 +331,7 @@ class _RideRequestsState extends State<RideRequests> {
     _claimedRemovalTimers[id] = Timer(
       const Duration(milliseconds: 2800),
       () {
-        if (!mounted) return;
+        if (!mounted) { return; }
         setState(() {
           _offers.removeWhere((offer) => offer.id == id);
           _offerStates.remove(id);
@@ -419,9 +419,9 @@ class _RideRequestsState extends State<RideRequests> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.07),
+                color: Colors.white.withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -490,7 +490,7 @@ class _RideRequestsState extends State<RideRequests> {
             height: 34,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(17),
             ),
             alignment: Alignment.center,
@@ -637,10 +637,10 @@ class _RideRequestsState extends State<RideRequests> {
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(0.65)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.65)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.11),
+            color: Colors.black.withValues(alpha: 0.11),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -923,9 +923,9 @@ class _RideRequestsState extends State<RideRequests> {
               width: 58,
               height: 58,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: const Icon(
                 Icons.radar_rounded,
@@ -1030,7 +1030,7 @@ class _LiveDot extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: (dark ? _RideRequestsState._green : _RideRequestsState._mint)
-                .withOpacity(0.38),
+                .withValues(alpha: 0.38),
             blurRadius: 7,
             spreadRadius: 1,
           ),

@@ -19,7 +19,7 @@ class DriverLocation {
         !accuracy.isFinite ||
         accuracy < 0 ||
         accuracy > 50)
-      return false;
+      { return false; }
     final age = now.difference(at);
     return !age.isNegative &&
         age <= const Duration(seconds: 30) &&

@@ -46,7 +46,7 @@ class InMemoryVehicleRepository implements VehicleRepository {
   @override
   DriverVehicle? get active {
     for (final vehicle in _vehicles) {
-      if (vehicle.status == VehicleStatus.active) return vehicle;
+      if (vehicle.status == VehicleStatus.active) { return vehicle; }
     }
     return null;
   }
