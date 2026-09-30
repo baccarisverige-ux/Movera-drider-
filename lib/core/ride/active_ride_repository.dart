@@ -1,3 +1,4 @@
+import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
 
 enum ActiveRideStage {
@@ -137,10 +138,12 @@ class PersistedActiveRide {
   /// the PWA. Six hours matches Rider's active-ride snapshot.
   static const freshnessWindow = Duration(hours: 6);
 
-  bool get isFresh {
+  bool get isFresh => isFreshAt(DateTime.now());
+
+  bool isFreshAt(DateTime now) {
     final at = savedAt;
     if (at == null) return true;
-    return DateTime.now().difference(at) < freshnessWindow;
+    return now.difference(at) < freshnessWindow;
   }
 
   PersistedActiveRide stamped([DateTime? at]) {
@@ -174,6 +177,7 @@ class PersistedActiveRide {
   }
 
   Map<String, dynamic> toJson() => {
+        'schemaVersion': 2,
         'tripId': tripId,
         'stage': stage.name,
         if (nextTripId != null || next != null)
@@ -207,6 +211,8 @@ class PersistedActiveRide {
       };
 
   static PersistedActiveRide? fromJson(Map<String, dynamic> json) {
+    final version = json['schemaVersion'] ?? 1;
+    if (version != 1 && version != 2) return null;
     final tripId = json['tripId'] as String?;
     if (tripId == null || tripId.isEmpty) return null;
     final stageName = json['stage'] as String?;
@@ -282,4 +288,9 @@ class MemoryActiveRideRepository implements ActiveRideRepository {
   Future<void> clear() async {
     _ride = null;
   }
+}
+
+/// Terminal markers survive cleanup failure. Active IDs are never reused.
+abstract interface class TerminalRideRepository {
+ Future<void> markTerminal(String tripId, TripStatus status);
 }

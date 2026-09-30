@@ -58,7 +58,7 @@ class ActiveRideController extends ChangeNotifier {
 
   Future<bool> complete({bool clearSnapshot = true}) async {
     if (terminal || saving || _stage != ActiveRideStage.onTrip) return false;
-    if (clearSnapshot && !await _write(_repository.clear)) return false;
+    if (clearSnapshot && !await _write(() => _finish(TripStatus.completed))) return false;
     _terminalStatus = TripStatus.completed;
     notifyListeners();
     return true;
@@ -68,7 +68,7 @@ class ActiveRideController extends ChangeNotifier {
     TripStatus status = TripStatus.cancelledByDriver,
   }) async {
     if (terminal || saving || !_isCancellationTerminal(status)) return false;
-    if (!await _write(_repository.clear)) return false;
+    if (!await _write(() => _finish(status))) return false;
     _terminalStatus = status;
     notifyListeners();
     return true;
@@ -78,6 +78,14 @@ class ActiveRideController extends ChangeNotifier {
     return status == TripStatus.cancelledByRider ||
         status == TripStatus.cancelledByDriver ||
         status == TripStatus.cancelledByAdmin;
+  }
+
+  Future<void> _finish(TripStatus status) async {
+    final repository = _repository;
+    if (repository is TerminalRideRepository && tripId != null) {
+      await repository.markTerminal(tripId!, status);
+    }
+    await repository.clear();
   }
 
   bool _disposed = false;
@@ -107,7 +115,7 @@ class ActiveRideController extends ChangeNotifier {
     final stored = await _repository.read();
     if (stored == null) return;
     if (tripId != null && stored.tripId != tripId) return;
-    if (!stored.isFresh) return;
+    // Stale rides remain available for explicit recovery in Home.
     _stage = stored.stage;
     notifyListeners();
   }

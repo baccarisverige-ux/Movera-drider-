@@ -1,3 +1,4 @@
+import 'package:movera/core/contracts/trip_status.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -332,6 +333,27 @@ class _DriverHomeState extends State<DriverHome>
     if (repo == null) return;
     final snapshot = await repo.read();
     if (!mounted || snapshot == null) return;
+
+    if (!snapshot.isFresh) {
+      final resume = await showDialog<bool>(context: context, barrierDismissible: false,
+        builder: (context) => AlertDialog(title: const Text('Unresolved trip'),
+          content: const Text('This saved trip is older than six hours. Resume it or close it explicitly.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Close trip')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Resume trip'))]));
+      if (!mounted) return;
+      if (resume != true) {
+        try {
+          if (repo is TerminalRideRepository) await repo.markTerminal(snapshot.tripId, TripStatus.cancelledByDriver);
+          await repo.clear();
+        } catch (_) {
+          _didAttemptActiveRideRestore = false;
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('Could not close saved trip. Please retry.'),
+            action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); })));
+        }
+        return;
+      }
+    }
 
     DriverLog.info(
       'Restoring active ride ${snapshot.tripId} at ${snapshot.stage.name}',
