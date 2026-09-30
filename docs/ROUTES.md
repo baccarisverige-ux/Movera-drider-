@@ -1,6 +1,6 @@
 # Driver route inventory
 
-Static inventory at phase 30. Canonical entry: MoveraApp → DriverHome. No files deleted. Legacy auth is opt-in via MOVERA_ENABLE_LEGACY_AUTH; disabled by default. Demo services remain labelled.
+Refreshed for Phase 46. Canonical entry: MoveraApp → DriverHome. Legacy auth is opt-in via MOVERA_ENABLE_LEGACY_AUTH and disabled by default. Demo/local services remain labelled.
 
 | Screen | Source | Classification | Constructor references outside its source |
 |---|---|---|---|
@@ -31,23 +31,20 @@ Static inventory at phase 30. Canonical entry: MoveraApp → DriverHome. No file
 | DrivingLogs | `lib/presentation/driver/driving logs/driving_logs.dart` | demo reachable | `lib/presentation/driver/side menu/side_menu.dart` |
 | EarningStatsScreen | `lib/presentation/driver/earning stats/earning_stats.dart` | demo reachable | `lib/presentation/driver/analytics/analytics.dart`, `lib/presentation/driver/analytics/components/earnings.dart` |
 | EmergencyContactsScreen | `lib/presentation/driver/settings/emergency_contacts.dart` | demo reachable | `lib/presentation/driver/settings/settings.dart` |
-| LegalDocumentScreen | `lib/presentation/driver/profile/legal_document.dart` | orphan candidate — not deleted | none |
+| LegalDocumentScreen | `lib/presentation/driver/profile/legal_document.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart` |
 | MyBank | `lib/presentation/driver/my bank/my_bank.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart`, `lib/presentation/driver/my wallet/wallet.dart` |
-| OnboardingScreen | `lib/presentation/common/onboarding/onboarding.dart` | demo reachable | `lib/presentation/common/splash/splash.dart` |
+| OnboardingScreen | `lib/presentation/common/onboarding/onboarding.dart` | orphan candidate — retained | none after legacy Splash removal |
 | PinVerification | `lib/presentation/driver/pin verification/pin_verification.dart` | demo reachable | `lib/presentation/driver/settings/settings.dart` |
 | Preferences | `lib/presentation/driver/preferences/preferences.dart` | demo reachable | `lib/presentation/driver/side menu/side_menu.dart` |
 | ProgressWidget | `lib/presentation/driver/auth/additional detail/navigation.dart` | legacy gated | none |
 | Promotions | `lib/presentation/driver/promotions/promotions.dart` | demo reachable | `lib/presentation/driver/side menu/side_menu.dart` |
-| ReceiverMessage | `lib/presentation/common/chat/chat.dart` | orphan candidate — not deleted | none |
 | ScheduledRidesScreen | `lib/presentation/driver/scheduled rides/scheduled_rides.dart` | demo reachable | `lib/presentation/driver/home/home.dart`, `lib/presentation/driver/side menu/side_menu.dart` |
 | SelectDocumentType | `lib/presentation/driver/auth/additional detail/screens/upload document/select document type/select_doc_typ.dart` | legacy gated | `lib/presentation/driver/auth/additional detail/navigation.dart` |
-| SenderMessage | `lib/presentation/common/chat/chat.dart` | orphan candidate — not deleted | none |
+| SenderMessage | `lib/presentation/common/chat/chat.dart` | internal local-chat helper | used by `Chat._sendMessage()` |
 | Settings | `lib/presentation/driver/settings/settings.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart`, `lib/presentation/driver/side menu/side_menu.dart` |
 | SoundAndVoice | `lib/presentation/driver/settings/sound & voice/sound_voice.dart` | demo reachable | `lib/presentation/driver/settings/settings.dart` |
-| Splash | `lib/presentation/common/splash/splash.dart` | orphan candidate — not deleted | none |
 | SupportInboxScreen | `lib/presentation/driver/support/support_inbox.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart`, `lib/presentation/driver/side menu/side_menu.dart`, `lib/presentation/driver/home/components/driver_sheet_nav.dart` |
 | TakeIdPhoto | `lib/presentation/driver/auth/additional detail/screens/upload document/take id photo/take_id_photo.dart` | legacy gated | `lib/presentation/driver/auth/additional detail/screens/upload document/select document type/select_doc_typ.dart` |
-| UploadVehiclePhotos | `lib/presentation/driver/add vehicle/upload photos/upload_photos.dart` | orphan candidate — not deleted | none |
 | VehicleDocuments | `lib/presentation/driver/add vehicle/add_vehicle.dart` | demo reachable | `lib/presentation/driver/vehicles/vehicles.dart` |
 | WalletScreen | `lib/presentation/driver/my wallet/wallet.dart` | demo reachable | `lib/presentation/driver/side menu/side_menu.dart`, `lib/presentation/driver/home/components/driver_sheet_nav.dart` |
 | WithdrawAmountSuccessfully | `lib/presentation/driver/my wallet/components/withdraw_sucess.dart` | demo reachable | `lib/presentation/driver/my wallet/components/choose_bank.dart` |
@@ -60,4 +57,4 @@ Static inventory at phase 30. Canonical entry: MoveraApp → DriverHome. No file
 - Reservations: ScheduledRidesScreen → nonbinding preview detail.
 - Logout: DriverStarter displays demo account boundary; legacy sign-in is disabled by default.
 
-Orphan candidates are retained until runtime reachability and device checks justify deletion. This inventory does not certify all navigation behavior.
+Phase 45 removed the unreferenced legacy Splash, UploadVehiclePhotos screen, stale `accept ride/components/cancel_ride.dart` helper and unused ReceiverMessage widget. LegalDocumentScreen was initially suspected to be orphaned, but analyzer verification proved it remains reachable from Profile, so it is retained. Remaining orphan candidates are not deleted without new reachability proof. This inventory does not by itself certify runtime navigation behavior.
