@@ -2,6 +2,7 @@ import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'dart:async';
+import 'package:movera/core/session/driver_route_observer.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -85,7 +86,42 @@ class DriverHome extends StatefulWidget {
 }
 
 class _DriverHomeState extends State<DriverHome>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver, RouteAware {
+  bool _routeVisible = true;
+  bool _foreground = true;
+  int _locationEpoch = 0;
+  bool get _liveVisible => _routeVisible && _foreground;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) driverRouteObserver.subscribe(this, route);
+  }
+  @override
+  void didPushNext() { _routeVisible = false; _pauseHomeUpdates(); }
+  @override
+  void didPopNext() { _routeVisible = true; _resumeHomeUpdates(); }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    if (_liveVisible) { _resumeHomeUpdates(); } else { _pauseHomeUpdates(); }
+  }
+  void _pauseHomeUpdates() {
+    _locationEpoch++;
+    _driverLocationSubscription?.cancel();
+    _driverLocationSubscription = null;
+    _cancelAllOfferTimers();
+    _offerSimulationTimer?.cancel(); _directOfferTimer?.cancel();
+    _expandedDirectOfferTimer?.cancel(); _radarOfferTwoTimer?.cancel(); _radarOfferThreeTimer?.cancel();
+    _goOnlinePulseController.stop(); _radarSweepController.stop();
+  }
+  void _resumeHomeUpdates() {
+    if (!mounted || !_liveVisible) return;
+    unawaited(_startDriverLocation());
+    _goOnlinePulseController.repeat(reverse: true); _radarSweepController.repeat();
+    setState(() {});
+  }
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final PanelController _panelController = PanelController();
   final PanelController _destinationPanelController = PanelController();
@@ -150,7 +186,7 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _sheetToneTimer;
   late final DriverSessionController _driverSession;
   late final bool _ownsDriverSession;
-  bool get _isOnline => _recoveryResolved && _driverSession.availableForOffers;
+  bool get _isOnline => _liveVisible && _recoveryResolved && _driverSession.availableForOffers;
   bool get _isGoingOnline => _driverSession.isGoingOnline;
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
@@ -238,6 +274,7 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final widgetTest =
         WidgetsBinding.instance.runtimeType.toString().contains('Test');
     isAccountActivated = widgetTest || !widget.accountPending;
@@ -305,7 +342,7 @@ class _DriverHomeState extends State<DriverHome>
         builder: (context) => AlertDialog(title: const Text('Unresolved trip'),
           content: Text(snapshot!.hasVerifiedEndpoints ? 'This saved trip is older than six hours. Resume it or close it explicitly.' : 'Saved route coordinates are unavailable. Close this trip explicitly before accepting another.'),
           actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Close trip')),
-            FilledButton(onPressed: snapshot.hasVerifiedEndpoints ? () => Navigator.pop(context, true) : null, child: const Text('Resume trip'))]));
+            FilledButton(onPressed: snapshot!.hasVerifiedEndpoints ? () => Navigator.pop(context, true) : null, child: const Text('Resume trip'))]));
       if (!mounted) return;
       if (resume != true) {
         try {
@@ -395,9 +432,12 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   Future<void> _startDriverLocation({bool moveCamera = false}) async {
+    final epoch = ++_locationEpoch;
+    if (!_liveVisible) return;
     try {
       final position = await _driverLocationService.getCurrentPosition();
       if (!mounted) return;
+      if (!_liveVisible || epoch != _locationEpoch) return;
       _applyDriverLocation(position);
       _listenToDriverLocation();
       if (moveCamera || !_didCenterOnLiveLocation) {
@@ -430,7 +470,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _applyDriverLocation(DriverLocation location) {
-    if (!mounted) return;
+    if (!mounted || !_liveVisible || !location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs() > 90 || location.point.longitude.abs() > 180) return;
 
     final next = location.point.toLatLng();
     final heading =
@@ -440,7 +480,7 @@ class _DriverHomeState extends State<DriverHome>
     setState(() {
       _driverPosition = next;
       _driverHeading = heading;
-      _hasLiveDriverLocation = true;
+      _hasLiveDriverLocation = location.isUsableAt(DateTime.now());
       _markers = {
         Marker(
           markerId: const MarkerId('driver_location'),
@@ -5109,6 +5149,9 @@ class _DriverHomeState extends State<DriverHome>
 
   @override
   void dispose() {
+    _locationEpoch++;
+    WidgetsBinding.instance.removeObserver(this);
+    driverRouteObserver.unsubscribe(this);
     _sheetTrace.dispose();
     _destinationOpenTimer?.cancel();
     _radarSubscription?.cancel();

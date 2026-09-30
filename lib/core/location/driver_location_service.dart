@@ -19,11 +19,11 @@ class DriverLocationService implements DriverLocationRepository {
   const DriverLocationService();
 
   LocationSettings get _settings => LocationSettings(
-        accuracy: kIsWeb
-            ? LocationAccuracy.high
-            : LocationAccuracy.bestForNavigation,
-        timeLimit: const Duration(seconds: 8),
-      );
+    accuracy: kIsWeb
+        ? LocationAccuracy.high
+        : LocationAccuracy.bestForNavigation,
+    timeLimit: const Duration(seconds: 8),
+  );
 
   @override
   Future<DriverLocation> getCurrentPosition() async {
@@ -44,9 +44,7 @@ class DriverLocationService implements DriverLocationRepository {
   }
 
   @override
-  Stream<DriverLocation> watchPosition({
-    int distanceFilterMeters = 8,
-  }) async* {
+  Stream<DriverLocation> watchPosition({int distanceFilterMeters = 8}) async* {
     await _ensurePermission();
 
     yield* Geolocator.getPositionStream(
@@ -63,15 +61,15 @@ class DriverLocationService implements DriverLocationRepository {
     return DriverLocation(
       point: GeoPoint(position.latitude, position.longitude),
       headingDegrees: position.heading,
+      measuredAt: position.timestamp,
+      accuracyMeters: position.accuracy,
     );
   }
 
   Future<void> _ensurePermission() async {
     final enabled = await Geolocator.isLocationServiceEnabled();
     if (!enabled) {
-      throw const DriverLocationException(
-        'Location services are turned off.',
-      );
+      throw const DriverLocationException('Location services are turned off.');
     }
 
     var permission = await Geolocator.checkPermission();
@@ -80,9 +78,7 @@ class DriverLocationService implements DriverLocationRepository {
     }
 
     if (permission == LocationPermission.denied) {
-      throw const DriverLocationException(
-        'Location permission was denied.',
-      );
+      throw const DriverLocationException('Location permission was denied.');
     }
 
     if (permission == LocationPermission.deniedForever) {

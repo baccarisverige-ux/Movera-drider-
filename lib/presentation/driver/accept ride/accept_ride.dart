@@ -402,6 +402,8 @@ class _AcceptRideState extends State<AcceptRide>
   Set<Polyline> _cachedPolylines = <Polyline>{};
   double? _routeDurationSeconds;
   bool _hasLiveLocation = false;
+  DriverLocation? _lastLocation;
+  int _locationEpoch = 0;
   bool _routeLoading = false;
   bool _stageTransitioning = false;
   DriverRealtimeEvent? _pendingProjection;
@@ -486,6 +488,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   @override
   void dispose() {
+    _locationEpoch++;
     _projectionRetry?.cancel();
     _sheetTrace.dispose();
     _rideSheetPositionGuardTimer?.cancel();
@@ -615,6 +618,8 @@ class _AcceptRideState extends State<AcceptRide>
   void _pauseLiveUpdates() {
     if (_liveUpdatesPaused) return;
     _liveUpdatesPaused = true;
+    _locationEpoch++;
+    _hasLiveLocation = false;
     _positionSubscription?.cancel();
     _positionSubscription = null;
     if (_radarPulseController.isAnimating) {
@@ -706,7 +711,7 @@ class _AcceptRideState extends State<AcceptRide>
     final target = _arrivalTarget;
     if (target == null) return false;
     if (_arrivalDemo) return true;
-    if (!_hasLiveLocation) return false;
+    if (!_hasLiveLocation || _lastLocation?.isUsableAt(DateTime.now()) != true) return false;
     return GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
           GeoPointMaps.fromLatLng(target),
         ) <=
@@ -1010,23 +1015,29 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Future<void> _startLiveLocation() async {
+    final epoch = ++_locationEpoch;
+    if (_liveUpdatesPaused) return;
     try {
       final position = await _locationService.getCurrentPosition();
       if (!mounted) return;
 
+      if (_liveUpdatesPaused || epoch != _locationEpoch) return;
       await _applyDriverPosition(position, forceRoute: true);
+      if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) return;
 
       _positionSubscription?.cancel();
       _positionSubscription = _locationService
           .watchPosition(distanceFilterMeters: kIsWeb ? 20 : 8)
           .listen(
         (position) {
+          if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) return;
           _applyDriverPosition(position);
         },
         onError: (Object error) {
           if (!mounted) return;
           _navigation.keepLastKnown(status: 'Location updating…');
           setState(() {
+            _hasLiveLocation = false;
             _locationStatus = 'Location updating…';
           });
         },
@@ -1059,10 +1070,11 @@ class _AcceptRideState extends State<AcceptRide>
       return;
     }
     _lastGpsAppliedAt = DateTime.now();
+    _lastLocation = location;
 
     _navigation.setVehicle(location);
     _driverPosition = next;
-    _hasLiveLocation = true;
+    _hasLiveLocation = location.isUsableAt(DateTime.now());
     _locationStatus = _navigation.status;
     _vehicle.moveTo(next, _navigation.snapshot.headingDegrees);
 
@@ -1107,6 +1119,7 @@ class _AcceptRideState extends State<AcceptRide>
     await _navigation.ensureRoute(
       origin: GeoPointMaps.fromLatLng(_driverPosition),
       destination: GeoPointMaps.fromLatLng(target),
+      targetLabel: _stage == ActiveRideStage.onTrip && _stopCursor < widget.stopAddresses.length ? 'Stop ${_stopCursor + 1}' : null,
       force: force,
     );
     if (!mounted) return;
@@ -2540,7 +2553,7 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  bool get _freshRadarLocation => _hasLiveLocation && hasFreshLocation(
+  bool get _freshRadarLocation => _hasLiveLocation && _lastLocation?.isUsableAt(DateTime.now()) == true && hasFreshLocation(
     GeoPointMaps.fromLatLng(_driverPosition), _lastGpsAppliedAt, DateTime.now());
 
   Widget _buildMapControls() {
