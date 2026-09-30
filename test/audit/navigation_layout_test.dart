@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -64,7 +66,17 @@ void main() {
  }
  testWidgets('document preview screenshot smoke produces a PNG',(tester) async {
   final key=GlobalKey();
-  await tester.pumpWidget(MaterialApp(home:RepaintBoundary(key:key,child:const DocumentPreview(title:'License'))));
+  await tester.binding.setSurfaceSize(const Size(375,812));
+  addTearDown(()=>tester.binding.setSurfaceSize(null));
+  final sdkRoot=Platform.environment['FLUTTER_ROOT'];
+  if(sdkRoot != null) {
+    final font=File('$sdkRoot/bin/cache/dart-sdk/bin/resources/devtools/assets/packages/devtools_app_shared/fonts/Roboto/Roboto-Regular.ttf');
+    await tester.runAsync(() async {
+      final loader=FontLoader('EvidenceRoboto')..addFont(Future.value(ByteData.sublistView(await font.readAsBytes())));
+      await loader.load();
+    });
+  }
+  await tester.pumpWidget(MaterialApp(theme: ThemeData(fontFamily: sdkRoot == null ? null : 'EvidenceRoboto'), home:RepaintBoundary(key:key,child:const DocumentPreview(title:'License'))));
   await tester.pumpAndSettle();
   final boundary=key.currentContext!.findRenderObject() as RenderRepaintBoundary;
   await tester.runAsync(() async {

@@ -50,6 +50,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 25));
     }
     expect(find.text('Local ticket draft'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Help with pickup'), 200);
+    await tester.pumpAndSettle();
     expect(find.text('Help with pickup'), findsOneWidget);
     expect(find.text('LOCAL DRAFT'), findsOneWidget);
     expect(tester.takeException(), isNull);
