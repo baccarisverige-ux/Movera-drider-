@@ -45,8 +45,10 @@ void main() {
     await tester.drag(action,const Offset(320,0));
     for(var i=0;i<10;i++) { await tester.pump(const Duration(milliseconds:30)); }
     expect((await repo.read())!.stage,ActiveRideStage.waitingForRider);
-    ScaffoldMessenger.of(tester.element(action)).clearSnackBars();
+    ScaffoldMessenger.of(tester.element(action)).removeCurrentSnackBar();
+    await tester.pump();
     await tester.pump(const Duration(milliseconds:400));
+    await tester.pump();
     await tester.ensureVisible(action);
     await tester.drag(action,const Offset(320,0));
     for(var i=0;i<10;i++) { await tester.pump(const Duration(milliseconds:30)); }
