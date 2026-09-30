@@ -492,7 +492,7 @@ class _DriverHomeState extends State<DriverHome>
           flat: true,
           anchor: const Offset(0.5, 0.5),
           rotation: _driverHeading,
-          zIndex: 12,
+          zIndexInt: 12,
         ),
       };
     });
@@ -516,7 +516,7 @@ class _DriverHomeState extends State<DriverHome>
           flat: true,
           anchor: const Offset(0.5, 0.5),
           rotation: _driverHeading,
-          zIndex: 12,
+          zIndexInt: 12,
         ),
       };
     });

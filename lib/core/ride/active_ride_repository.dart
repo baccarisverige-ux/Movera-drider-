@@ -1,11 +1,7 @@
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
 
-enum ActiveRideStage {
-  headingToPickup,
-  waitingForRider,
-  onTrip,
-}
+enum ActiveRideStage { headingToPickup, waitingForRider, onTrip }
 
 /// Queued next trip captured with the live ride so a reload can resume both.
 class PersistedQueuedTrip {
@@ -40,26 +36,34 @@ class PersistedQueuedTrip {
   final int tripMinutes;
 
   Map<String, dynamic> toJson() => {
-        'tripId': tripId,
-        'riderName': riderName,
-        'fare': fare,
-        'category': category,
-        'pickup': pickup,
-        'dropoff': dropoff,
-        'pickupLat': pickupLat,
-        'pickupLng': pickupLng,
-        'dropoffLat': dropoffLat,
-        'dropoffLng': dropoffLng,
-        'rating': rating,
-        'pickupMinutes': pickupMinutes,
-        'tripMinutes': tripMinutes,
-      };
+    'tripId': tripId,
+    'riderName': riderName,
+    'fare': fare,
+    'category': category,
+    'pickup': pickup,
+    'dropoff': dropoff,
+    'pickupLat': pickupLat,
+    'pickupLng': pickupLng,
+    'dropoffLat': dropoffLat,
+    'dropoffLng': dropoffLng,
+    'rating': rating,
+    'pickupMinutes': pickupMinutes,
+    'tripMinutes': tripMinutes,
+  };
 
   static PersistedQueuedTrip? fromJson(Map<String, dynamic>? json) {
-    if (json == null) { return null; }
+    if (json == null) {
+      return null;
+    }
     final tripId = json['tripId'] as String?;
-    if (tripId == null || tripId.trim().isEmpty) { return null; }
-    if (!['pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng'].every((key) => validCoordinate(json[key], latitude: key.endsWith('Lat')))) { return null; }
+    if (tripId == null || tripId.trim().isEmpty) {
+      return null;
+    }
+    if (!['pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng'].every(
+      (key) => validCoordinate(json[key], latitude: key.endsWith('Lat')),
+    )) {
+      return null;
+    }
     return PersistedQueuedTrip(
       tripId: tripId,
       riderName: json['riderName'] as String? ?? '',
@@ -138,8 +142,11 @@ class PersistedActiveRide {
   final bool destinationModeActive;
   final String? destinationAddress;
   final GeoPoint? destinationPoint;
-  bool get hasVerifiedEndpoints => validCoordinate(pickupLat, latitude: true) && validCoordinate(pickupLng, latitude: false) && validCoordinate(dropoffLat, latitude: true) && validCoordinate(dropoffLng, latitude: false);
-
+  bool get hasVerifiedEndpoints =>
+      validCoordinate(pickupLat, latitude: true) &&
+      validCoordinate(pickupLng, latitude: false) &&
+      validCoordinate(dropoffLat, latitude: true) &&
+      validCoordinate(dropoffLng, latitude: false);
 
   /// How long a saved live trip may sit untouched and still be restored.
   ///
@@ -151,7 +158,9 @@ class PersistedActiveRide {
 
   bool isFreshAt(DateTime now) {
     final at = savedAt;
-    if (at == null) { return true; }
+    if (at == null) {
+      return true;
+    }
     final age = now.difference(at);
     return age >= const Duration(minutes: -2) && age < freshnessWindow;
   }
@@ -190,63 +199,100 @@ class PersistedActiveRide {
   }
 
   Map<String, dynamic> toJson() => {
-        'schemaVersion': 2,
-        'tripId': tripId,
-        'stage': stage.name,
-        if (nextTripId != null || next != null)
-          'nextTripId': nextTripId ?? next?.tripId,
-        if (arrivedAt != null) 'arrivedAt': arrivedAt!.toIso8601String(),
-        if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
-        if (savedAt != null) 'savedAt': savedAt!.toIso8601String(),
-        if (riderName != null) 'riderName': riderName,
-        if (riderRating != null) 'riderRating': riderRating,
-        if (riderTrips != null) 'riderTrips': riderTrips,
-        if (fare != null) 'fare': fare,
-        if (category != null) 'category': category,
-        if (matchedVia != null) 'matchedVia': matchedVia,
-        if (pickupAddress != null) 'pickupAddress': pickupAddress,
-        if (pickupArea != null) 'pickupArea': pickupArea,
-        if (dropoffAddress != null) 'dropoffAddress': dropoffAddress,
-        if (stopAddresses.isNotEmpty) 'stopAddresses': stopAddresses,
-        if (stopPoints.isNotEmpty)
-          'stopPoints': [
-            for (final point in stopPoints)
-              {'latitude': point.latitude, 'longitude': point.longitude},
-          ],
-        if (pickupLat != null) 'pickupLat': pickupLat,
-        if (pickupLng != null) 'pickupLng': pickupLng,
-        if (dropoffLat != null) 'dropoffLat': dropoffLat,
-        if (dropoffLng != null) 'dropoffLng': dropoffLng,
-        if (waitSeconds != null) 'waitSeconds': waitSeconds,
-        'stopIndex': stopIndex,
-        'paidStopWait': paidStopWait,
-        if (next != null) 'next': next!.toJson(),
-        'destinationModeActive': destinationModeActive,
-        if (destinationAddress != null) 'destinationAddress': destinationAddress,
-        if (destinationPoint != null) 'destinationPoint': {'latitude': destinationPoint!.latitude, 'longitude': destinationPoint!.longitude},
-      };
+    'schemaVersion': 2,
+    'tripId': tripId,
+    'stage': stage.name,
+    if (nextTripId != null || next != null)
+      'nextTripId': nextTripId ?? next?.tripId,
+    if (arrivedAt != null) 'arrivedAt': arrivedAt!.toIso8601String(),
+    if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
+    if (savedAt != null) 'savedAt': savedAt!.toIso8601String(),
+    if (riderName != null) 'riderName': riderName,
+    if (riderRating != null) 'riderRating': riderRating,
+    if (riderTrips != null) 'riderTrips': riderTrips,
+    if (fare != null) 'fare': fare,
+    if (category != null) 'category': category,
+    if (matchedVia != null) 'matchedVia': matchedVia,
+    if (pickupAddress != null) 'pickupAddress': pickupAddress,
+    if (pickupArea != null) 'pickupArea': pickupArea,
+    if (dropoffAddress != null) 'dropoffAddress': dropoffAddress,
+    if (stopAddresses.isNotEmpty) 'stopAddresses': stopAddresses,
+    if (stopPoints.isNotEmpty)
+      'stopPoints': [
+        for (final point in stopPoints)
+          {'latitude': point.latitude, 'longitude': point.longitude},
+      ],
+    if (pickupLat != null) 'pickupLat': pickupLat,
+    if (pickupLng != null) 'pickupLng': pickupLng,
+    if (dropoffLat != null) 'dropoffLat': dropoffLat,
+    if (dropoffLng != null) 'dropoffLng': dropoffLng,
+    if (waitSeconds != null) 'waitSeconds': waitSeconds,
+    'stopIndex': stopIndex,
+    'paidStopWait': paidStopWait,
+    if (next != null) 'next': next!.toJson(),
+    'destinationModeActive': destinationModeActive,
+    if (destinationAddress != null) 'destinationAddress': destinationAddress,
+    if (destinationPoint != null)
+      'destinationPoint': {
+        'latitude': destinationPoint!.latitude,
+        'longitude': destinationPoint!.longitude,
+      },
+  };
 
   static PersistedActiveRide? fromJson(Map<String, dynamic> json) {
     final version = json['schemaVersion'] ?? 1;
-    if (version != 1 && version != 2) { return null; }
+    if (version != 1 && version != 2) {
+      return null;
+    }
     final tripId = json['tripId'] as String?;
-    if (tripId == null || tripId.trim().isEmpty) { return null; }
+    if (tripId == null || tripId.trim().isEmpty) {
+      return null;
+    }
     final stageName = json['stage'] as String?;
-    final stage = ActiveRideStage.values.where((value) => value.name == stageName);
-    if (stage.isEmpty) { return null; }
+    final stage = ActiveRideStage.values.where(
+      (value) => value.name == stageName,
+    );
+    if (stage.isEmpty) {
+      return null;
+    }
     for (final key in ['arrivedAt', 'startedAt', 'savedAt']) {
-      if (json[key] != null && (json[key] is! String || DateTime.tryParse(json[key] as String) == null)) { return null; }
+      if (json[key] != null &&
+          (json[key] is! String ||
+              DateTime.tryParse(json[key] as String) == null)) {
+        return null;
+      }
     }
     for (final key in ['pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng']) {
-      if (json[key] != null && !validCoordinate(json[key], latitude: key.endsWith('Lat'))) { return null; }
+      if (json[key] != null &&
+          !validCoordinate(json[key], latitude: key.endsWith('Lat'))) {
+        return null;
+      }
     }
     final stops = json['stopPoints'];
-    if (stops != null && (stops is! List || stops.any((point) => point is! Map || !validCoordinate(point['latitude'], latitude: true) || !validCoordinate(point['longitude'], latitude: false)))) { return null; }
+    if (stops != null &&
+        (stops is! List ||
+            stops.any(
+              (point) =>
+                  point is! Map ||
+                  !validCoordinate(point['latitude'], latitude: true) ||
+                  !validCoordinate(point['longitude'], latitude: false),
+            ))) {
+      return null;
+    }
     final destination = json['destinationPoint'];
-    if (destination != null && (destination is! Map || !validCoordinate(destination['latitude'], latitude: true) || !validCoordinate(destination['longitude'], latitude: false))) { return null; }
+    if (destination != null &&
+        (destination is! Map ||
+            !validCoordinate(destination['latitude'], latitude: true) ||
+            !validCoordinate(destination['longitude'], latitude: false))) {
+      return null;
+    }
     final nextJson = json['next'];
-    final next = nextJson is Map ? PersistedQueuedTrip.fromJson(Map<String,dynamic>.from(nextJson)) : null;
-    if (nextJson != null && next == null) { return null; }
+    final next = nextJson is Map
+        ? PersistedQueuedTrip.fromJson(Map<String, dynamic>.from(nextJson))
+        : null;
+    if (nextJson != null && next == null) {
+      return null;
+    }
     return PersistedActiveRide(
       tripId: tripId,
       stage: stage.first,
@@ -263,16 +309,20 @@ class PersistedActiveRide {
       pickupAddress: json['pickupAddress'] as String?,
       pickupArea: json['pickupArea'] as String?,
       dropoffAddress: json['dropoffAddress'] as String?,
-      stopAddresses: (json['stopAddresses'] as List?)
-              ?.whereType<String>()
-              .toList(growable: false) ??
+      stopAddresses:
+          (json['stopAddresses'] as List?)?.whereType<String>().toList(
+            growable: false,
+          ) ??
           const <String>[],
-      stopPoints: (json['stopPoints'] as List?)
+      stopPoints:
+          (json['stopPoints'] as List?)
               ?.whereType<Map>()
-              .map((point) => GeoPoint(
-                    (point['latitude'] as num).toDouble(),
-                    (point['longitude'] as num).toDouble(),
-                  ))
+              .map(
+                (point) => GeoPoint(
+                  (point['latitude'] as num).toDouble(),
+                  (point['longitude'] as num).toDouble(),
+                ),
+              )
               .toList(growable: false) ??
           const <GeoPoint>[],
       pickupLat: (json['pickupLat'] as num?)?.toDouble(),
@@ -285,7 +335,12 @@ class PersistedActiveRide {
       next: next,
       destinationModeActive: json['destinationModeActive'] == true,
       destinationAddress: json['destinationAddress'] as String?,
-      destinationPoint: destination is Map ? GeoPoint((destination['latitude'] as num).toDouble(), (destination['longitude'] as num).toDouble()) : null,
+      destinationPoint: destination is Map
+          ? GeoPoint(
+              (destination['latitude'] as num).toDouble(),
+              (destination['longitude'] as num).toDouble(),
+            )
+          : null,
     );
   }
 }
@@ -327,12 +382,14 @@ abstract interface class TerminalRideRepository {
     String? reasonCode,
     String? actor,
     DateTime? occurredAt,
+    bool authoritative = false,
   });
 
   Future<void> clearForTrip(String tripId);
 }
 
-bool validCoordinate(Object? value, {required bool latitude}) => value is num && value.isFinite && value.abs() <= (latitude ? 90 : 180);
+bool validCoordinate(Object? value, {required bool latitude}) =>
+    value is num && value.isFinite && value.abs() <= (latitude ? 90 : 180);
 
 /// A journal may replace only its own trip or replay its already-installed next trip.
 abstract interface class RideHandoffRepository {

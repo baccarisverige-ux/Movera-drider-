@@ -84,7 +84,7 @@ class AppDropdownField extends StatelessWidget {
       items: items
           .map(
             (e) => DropdownMenuItem<String>(
-              initialValue: e,
+              value: e,
               child: TextWidget(
                 text: e,
                 color: AppColor.title,

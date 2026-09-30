@@ -786,7 +786,7 @@ class _HistoryRideCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ride.pickup + ' → ' + ride.dropoff,
+                      '${ride.pickup} → ${ride.dropoff}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

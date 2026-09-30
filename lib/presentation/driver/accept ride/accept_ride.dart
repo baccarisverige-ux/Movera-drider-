@@ -806,7 +806,7 @@ class _AcceptRideState extends State<AcceptRide>
         await _handleRiderCancelled();
       } else if (status.isTerminal) {
         await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
-          _waybills.current ?? _buildCurrentWaybill(), status: status);
+          _waybills.current ?? _buildCurrentWaybill(), status: status, authoritative:true);
         if (!mounted) { return; }
         if (!await _rideLifecycle.applyProjection(status)) { return; }
         _pauseLiveUpdates();
@@ -831,8 +831,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   Future<void> _handleRiderCancelled() async {
     if (!mounted ||
-        _handlingRiderCancellation ||
-        _rideLifecycle.terminal) {
+        _handlingRiderCancellation) {
       return;
     }
 
@@ -846,11 +845,12 @@ class _AcceptRideState extends State<AcceptRide>
       await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
         _waybills.current ?? _buildCurrentWaybill(),
         status: TripStatus.cancelledByRider,
+        authoritative:true,
         cancellationReasonCode: 'rider_cancelled',
         cancellationActor: 'rider',
         next: next);
       if (!mounted) { return; }
-      if (!await _rideLifecycle.cancel(status: TripStatus.cancelledByRider, clearSnapshot: false)) {
+      if (!await _rideLifecycle.applyProjection(TripStatus.cancelledByRider)) {
         _handlingRiderCancellation=false; return;
       }
     } catch (_) {
@@ -1379,6 +1379,14 @@ class _AcceptRideState extends State<AcceptRide>
     await _completeCurrentTrip();
   }
 
+  bool get _pendingTerminal => _pendingProjection?.kind==DriverRealtimeKind.riderCancelled || _pendingProjection?.status?.isTerminal==true;
+  Future<bool> _yieldToAuthoritativeTerminal() async {
+    if(!_pendingTerminal) return false;
+    _completionInFlight=false;_cancellationInFlight=false;_stageTransitioning=false;
+    await _drainProjection();
+    return true;
+  }
+
   Future<void> _completeCurrentTrip() async {
     if (_completionInFlight || _cancellationInFlight || _handlingRiderCancellation || !mounted || _rideLifecycle.terminal) { return; }
     _completionInFlight = true;
@@ -1390,6 +1398,7 @@ class _AcceptRideState extends State<AcceptRide>
       await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
         _waybills.current ?? _buildCurrentWaybill(), next: next);
       if (!mounted) { return; }
+      if (await _yieldToAuthoritativeTerminal()) return;
       if (!await _rideLifecycle.complete(clearSnapshot: false)) {
         _completionInFlight = false; _stageTransitioning = false; return;
       }
@@ -3801,6 +3810,7 @@ class _AcceptRideState extends State<AcceptRide>
       _cancellationInFlight=false;
       return;
     }
+    if(await _yieldToAuthoritativeTerminal()) return;
     // The journal has already applied terminal cleanup and queued handoff.
     if (!await _rideLifecycle.cancel(clearSnapshot: false)) { _cancellationInFlight=false; return; }
     if (!mounted) { return; }

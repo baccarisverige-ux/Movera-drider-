@@ -13,3 +13,5 @@ Final corrections await session restore storage, exercise the intended support b
 ## Merge gates
 
 All nine PRs stay draft and unmerged. Review in order 47→55. Each head must pass analyze, complete tests and release web build. Re-run affected mobile interactions on the final merged candidate. Physical device evidence and operational backend integration remain pending as described in phases 53 and 54.
+
+Terminal updates received during a pending local completion/cancellation now take precedence before navigation. The replayable journal records an explicit authoritative projection flag, replacing tentative local terminal history/markers once and retaining the same trip ID. Ordinary retries continue to preserve the original local marker. This resolves the completion-versus-rider-cancellation race rather than merely delaying the event.
