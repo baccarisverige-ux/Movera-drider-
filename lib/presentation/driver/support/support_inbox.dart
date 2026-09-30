@@ -43,12 +43,15 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
     }
     subject.addListener(() { unawaited(saveDraft()); });
     message.addListener(() { unawaited(saveDraft()); });
+    ModalRoute<dynamic>? draftRoute;
     final created = await showModalBottomSheet<_Ticket>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
+        builder: (context, setSheetState) {
+          draftRoute = ModalRoute.of(context);
+          return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
           child: SingleChildScrollView(child: Container(
             padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
@@ -87,10 +90,13 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
               ]),
             ),
           )),
-        ),
+        ); },
       ),
     );
     await saveDraft();
+    // The pop result precedes the closing animation; controllers remain live
+    // until the route has removed its text fields from the widget tree.
+    await draftRoute?.completed;
     subject.dispose();
     message.dispose();
     if (created != null && mounted) {
