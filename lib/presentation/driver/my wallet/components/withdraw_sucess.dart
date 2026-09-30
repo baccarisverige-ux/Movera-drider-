@@ -33,7 +33,7 @@ class WithdrawAmountSuccessfully extends StatelessWidget {
 
                     20.height,
                     TextWidget(
-                      text: 'Withdraw request sent!',
+                      text: 'Simulated — no money moved',
                       fontSize: 24,
                       color: AppColor.title,
                       fontWeight: fwBold,
@@ -42,7 +42,7 @@ class WithdrawAmountSuccessfully extends StatelessWidget {
                     8.height,
                     TextWidget(
                       text:
-                          "Withdrawal request has been sent and is under process. It will take 3-5 business days to clear your amount.",
+                          "This is a local demo. No withdrawal request was sent and no payment will be processed.",
                       fontSize: 16,
                       color: AppColor.title,
                       fontWeight: fwNormal,
@@ -51,9 +51,9 @@ class WithdrawAmountSuccessfully extends StatelessWidget {
                     45.height,
                     _infoRow('Total amount', '\$50'),
                     16.height,
-                    _infoRow('Request ID', '1310481814'),
+                    _infoRow('Request ID', 'None — simulation'),
                     16.height,
-                    _infoRow('Date & Time', 'April 12, 10:30 PM'),
+                    _infoRow('Status', 'Demo only'),
                   ],
                 ),
               ),
