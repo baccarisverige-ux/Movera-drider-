@@ -58,24 +58,15 @@ class PrefsActiveRideRepository implements ActiveRideRepository {
 
   @override
   Future<void> save(PersistedActiveRide ride) => _enqueue(() async {
-    try {
-      final prefs = await _load();
-      final stamped = ride.stamped();
-      await prefs.setString(key, jsonEncode(stamped.toJson()));
-    } catch (error, stack) {
-      DriverLog.warn('Active-ride snapshot save failed: $error');
-      DriverLog.error('Active-ride snapshot save failed', error, stack);
+    final prefs = await _load();
+    if (!await prefs.setString(key, jsonEncode(ride.stamped().toJson()))) {
+      throw StateError('Active ride could not be saved');
     }
   });
 
   @override
   Future<void> clear() => _enqueue(() async {
-    try {
-      final prefs = await _load();
-      await prefs.remove(key);
-    } catch (error, stack) {
-      DriverLog.warn('Active-ride snapshot clear failed: $error');
-      DriverLog.error('Active-ride snapshot clear failed', error, stack);
-    }
+    final prefs = await _load();
+    if (!await prefs.remove(key)) throw StateError('Active ride could not be cleared');
   });
 }
