@@ -48,7 +48,7 @@ class _PinVerificationState extends State<PinVerification> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
           const Text(
-            'A 4-digit PIN confirms you are picking up the right rider.',
+            'PIN verification preview - this preference is not saved or enforced in the demo.',
             style: TextStyle(
               color: _muted,
               fontSize: 13,
@@ -68,7 +68,7 @@ class _PinVerificationState extends State<PinVerification> {
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('PIN preference saved on this device.'),
+                    content: Text('PIN verification is not connected in this demo.'),
                   ),
                 );
                 Navigator.pop(context);
@@ -80,7 +80,7 @@ class _PinVerificationState extends State<PinVerification> {
                 ),
               ),
               child: const Text(
-                'Save',
+                'Close preview',
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
             ),

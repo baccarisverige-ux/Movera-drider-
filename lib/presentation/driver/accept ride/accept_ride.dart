@@ -848,7 +848,7 @@ class _AcceptRideState extends State<AcceptRide>
       return;
     }
     if (_stage == ActiveRideStage.headingToPickup) {
-      _confirmPickupArrival();
+      await _confirmPickupArrival();
       return;
     }
     if (_stage == ActiveRideStage.onTrip &&
@@ -1192,10 +1192,10 @@ class _AcceptRideState extends State<AcceptRide>
         }
         if (_tripEndedTooQuickly) {
           _stageTransitioning = false;
-          unawaited(_askBeforeShortFinish());
+          await _askBeforeShortFinish();
           return;
         }
-        unawaited(_completeCurrentTrip());
+        await _completeCurrentTrip();
         return;
     }
   }
@@ -1288,7 +1288,7 @@ class _AcceptRideState extends State<AcceptRide>
       },
     );
     if (finish != true || !mounted || _stage != ActiveRideStage.onTrip) return;
-    unawaited(_completeCurrentTrip());
+    await _completeCurrentTrip();
   }
 
   Future<void> _completeCurrentTrip() async {
@@ -3145,15 +3145,15 @@ class _AcceptRideState extends State<AcceptRide>
                 'assets/icons/movera_flag.svg',
             },
             accent: accent,
-            onConfirmed: () {
+            onConfirmed: () async {
               _setMapGesturesBlocked(false);
               if (_stage == ActiveRideStage.headingToPickup ||
                   (_stage == ActiveRideStage.onTrip &&
                    !_paidStopWait &&
                    _stopCursor < widget.stopAddresses.length)) {
-                _onArrivedTap();
+                await _onArrivedTap();
               } else {
-                _advanceRide();
+                await _advanceRide();
               }
             },
           ),
@@ -3931,7 +3931,7 @@ class _SlideRideAction extends StatefulWidget {
   final String confirmedLabel;
   final String iconAsset;
   final Color accent;
-  final VoidCallback onConfirmed;
+  final Future<void> Function() onConfirmed;
 
   @override
   State<_SlideRideAction> createState() => _SlideRideActionState();
@@ -3945,6 +3945,7 @@ class _SlideRideActionState extends State<_SlideRideAction> {
   double _fraction = 0;
   bool _dragging = false;
   bool _confirmed = false;
+  bool _confirming = false;
 
   @override
   void didUpdateWidget(covariant _SlideRideAction oldWidget) {
@@ -3964,7 +3965,7 @@ class _SlideRideActionState extends State<_SlideRideAction> {
   }
 
   void _update(double delta, double maxTravel) {
-    if (_confirmed || maxTravel <= 0) return;
+    if (_confirmed || _confirming || maxTravel <= 0) return;
     final next = (_fraction + (delta / maxTravel)).clamp(0.0, 1.0);
     setState(() {
       _dragging = true;
@@ -3972,23 +3973,23 @@ class _SlideRideActionState extends State<_SlideRideAction> {
     });
   }
 
-  void _finish() {
-    if (_confirmed) return;
+  void _cancelDrag() {
+    if (_confirming || !mounted) return;
+    setState(() { _dragging = false; _fraction = 0; _confirmed = false; });
+  }
 
-    if (_fraction >= _trigger) {
-      setState(() {
-        _confirmed = true;
-        _dragging = false;
-        _fraction = 1;
-      });
-      HapticFeedback.mediumImpact();
-      widget.onConfirmed();
-    } else {
-      setState(() {
-        _dragging = false;
-        _fraction = 0;
-      });
-      HapticFeedback.selectionClick();
+  Future<void> _finish() async {
+    if (_confirming) return;
+    if (_fraction < _trigger) { _cancelDrag(); return; }
+    setState(() { _confirmed = true; _confirming = true; _dragging = false; _fraction = 1; });
+    HapticFeedback.mediumImpact();
+    try {
+      await widget.onConfirmed();
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The action could not be completed. Please retry.')));
+    } finally {
+      if (mounted) setState(() { _confirmed = false; _confirming = false; _fraction = 0; _dragging = false; });
     }
   }
 
@@ -4006,7 +4007,7 @@ class _SlideRideActionState extends State<_SlideRideAction> {
             onHorizontalDragUpdate: (details) =>
                 _update(details.delta.dx, maxTravel),
             onHorizontalDragEnd: (_) => _finish(),
-            onHorizontalDragCancel: _finish,
+            onHorizontalDragCancel: _cancelDrag,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
