@@ -422,6 +422,7 @@ class _AcceptRideState extends State<AcceptRide>
     _realtimeSubscription =
         _realtime.subscribe(widget.offerId).listen(_onRealtimeEvent);
     _rideLifecycle.snapshotBuilder = _buildSnapshot;
+    _rideLifecycle.addListener(_onPersistenceChanged);
     _rideLifecycle.addListener(_syncNavigationStage);
     _syncNavigationStage();
     _restoreQueuedNextFromSnapshot();
@@ -744,7 +745,7 @@ class _AcceptRideState extends State<AcceptRide>
     _nextTripRadarMatchTimer?.cancel();
     _pauseLiveUpdates();
 
-    if (!_rideLifecycle.cancel(status: TripStatus.cancelledByRider)) {
+    if (!await _rideLifecycle.cancel(status: TripStatus.cancelledByRider)) {
       _handlingRiderCancellation = false;
       return;
     }
@@ -762,6 +763,14 @@ class _AcceptRideState extends State<AcceptRide>
     if (navigator.canPop()) {
       navigator.pop();
     }
+  }
+
+  void _onPersistenceChanged() {
+    if (!mounted || _rideLifecycle.persistenceError == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: const Text('Trip progress could not be saved. Keep this screen open and retry.'),
+      action: SnackBarAction(label: 'Retry', onPressed: () { _rideLifecycle.persistNow(); }),
+    ));
   }
 
   void _blockedArrival() {
@@ -788,7 +797,7 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  void _onArrivedTap() {
+  Future<void> _onArrivedTap() async {
     if (!_nearArrivalTarget) {
       _blockedArrival();
       return;
@@ -803,12 +812,12 @@ class _AcceptRideState extends State<AcceptRide>
       _paidStopWait = true;
       _waitSeconds = 0;
       _startWaitTimer();
-      _rideLifecycle.persistNow();
+      await _rideLifecycle.persistNow();
       if (mounted) setState(() {});
     }
   }
 
-  void _confirmPickupArrival() {
+  Future<void> _confirmPickupArrival() async {
     if (_stageTransitioning ||
         !mounted ||
         _rideLifecycle.terminal ||
@@ -817,7 +826,7 @@ class _AcceptRideState extends State<AcceptRide>
     }
 
     _stageTransitioning = true;
-    if (!_rideLifecycle.transitionTo(ActiveRideStage.waitingForRider)) {
+    if (!await _rideLifecycle.transitionTo(ActiveRideStage.waitingForRider)) {
       _stageTransitioning = false;
       return;
     }
@@ -825,7 +834,7 @@ class _AcceptRideState extends State<AcceptRide>
     _waitSeconds = 0;
     _routeLoading = false;
     _startWaitTimer();
-    _rideLifecycle.persistNow();
+    await _rideLifecycle.persistNow();
     unawaited(
       _realtime.sendSignal(
         tripId: widget.offerId,
@@ -1101,7 +1110,7 @@ class _AcceptRideState extends State<AcceptRide>
     } catch (_) {}
   }
 
-  void _advanceRide() {
+  Future<void> _advanceRide() async {
     if (_stageTransitioning || !mounted || _rideLifecycle.terminal) return;
 
     _stageTransitioning = true;
@@ -1112,7 +1121,7 @@ class _AcceptRideState extends State<AcceptRide>
         return;
 
       case ActiveRideStage.waitingForRider:
-        if (!_rideLifecycle.transitionTo(ActiveRideStage.onTrip)) {
+        if (!await _rideLifecycle.transitionTo(ActiveRideStage.onTrip)) {
           _stageTransitioning = false;
           return;
         }
@@ -1122,7 +1131,7 @@ class _AcceptRideState extends State<AcceptRide>
         _nextTripRadarDemoTimer?.cancel();
         _nextTripRadarMatchTimer?.cancel();
         _onTripStartedAt = DateTime.now();
-        _rideLifecycle.persistNow();
+        await _rideLifecycle.persistNow();
         _onTripRadarState = _OnTripRadarState.scanning;
         _nextTripRadarOffer = null;
         if (mounted) setState(() {});
@@ -1136,7 +1145,7 @@ class _AcceptRideState extends State<AcceptRide>
           _paidStopWait = false;
           _waitTimer?.cancel();
           _stopCursor += 1;
-          _rideLifecycle.persistNow();
+          await _rideLifecycle.persistNow();
           _stageTransitioning = false;
           if (mounted) setState(() {});
           unawaited(_refreshOnTripRoute());
@@ -1297,7 +1306,7 @@ class _AcceptRideState extends State<AcceptRide>
       }
     }
     if (!mounted) return;
-    if (!_rideLifecycle.complete(clearSnapshot: !queuedNext || widget.activeRideRepository == null)) {
+    if (!await _rideLifecycle.complete(clearSnapshot: !queuedNext || widget.activeRideRepository == null)) {
       _completionInFlight = false;
       _stageTransitioning = false;
       return;
@@ -3692,11 +3701,12 @@ class _AcceptRideState extends State<AcceptRide>
     _submitTripCancellation(reason);
   }
 
-  void _submitTripCancellation(_TripCancellationReason reason) {
+  Future<void> _submitTripCancellation(_TripCancellationReason reason) async {
     _waitTimer?.cancel();
     _nextTripRadarDemoTimer?.cancel();
     _nextTripRadarMatchTimer?.cancel();
-    _rideLifecycle.cancel();
+    if (!await _rideLifecycle.cancel()) return;
+    if (!mounted) return;
     _waybills.discardCurrent();
 
     final offer = _nextTripRadarOffer;
