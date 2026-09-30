@@ -406,14 +406,14 @@ class _RideMeta extends StatelessWidget {
       children: [
         Icon(icon, color: const Color(0xFF89949B), size: 15),
         const SizedBox(width: 4),
-        Text(
+        Flexible(child: Text(
           label,
           style: const TextStyle(
             color: Color(0xFF89949B),
             fontSize: 10,
             fontWeight: FontWeight.w600,
           ),
-        ),
+        )),
       ],
     );
   }
