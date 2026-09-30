@@ -1,3 +1,4 @@
+import 'package:movera/core/settings/settings_repository.dart';
 import 'package:flutter/material.dart';
 
 class Accessibility extends StatefulWidget {
@@ -14,6 +15,21 @@ class _AccessibilityState extends State<Accessibility> {
 
   bool _flash = false;
   bool _vibration = false;
+
+  final _settings = SettingsRepository();
+  bool _settingsTouched = false;
+  Future<void> _restoreSettings() async {
+    final data=await _settings.read('accessibility'); if(!mounted || _settingsTouched) return;
+    setState(() { if(data['flash'] is bool) _flash=data['flash'] as bool;if(data['vibration'] is bool) _vibration=data['vibration'] as bool; });
+  }
+  Future<bool> _persistSettings() async {
+    _settingsTouched=true;
+    try { await _settings.save('accessibility',{'flash':_flash,'vibration':_vibration}); return true; }
+    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); return false; }
+  }
+
+  @override
+  void initState() { super.initState(); _restoreSettings(); }
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +58,7 @@ class _AccessibilityState extends State<Accessibility> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
+          const Text('Local demo preferences — saved on this device; effects are previews.'),
           _tile(
             title: 'Hearing',
             detail: 'Tell riders if you are deaf or hard of hearing.',
@@ -54,7 +71,7 @@ class _AccessibilityState extends State<Accessibility> {
                     backgroundColor: Colors.white,
                     title: const Text('Hearing'),
                     content: const Text(
-                      'Riders can be told you are deaf or hard of hearing. This stays on this device.',
+                      'Demo preview — no information is shared with riders.',
                     ),
                     actions: [
                       TextButton(
@@ -64,7 +81,7 @@ class _AccessibilityState extends State<Accessibility> {
                       FilledButton(
                         onPressed: () => Navigator.pop(dialogContext),
                         style: FilledButton.styleFrom(backgroundColor: _ink),
-                        child: const Text('Share on trips'),
+                        child: const Text('Close preview'),
                       ),
                     ],
                   );
@@ -79,7 +96,7 @@ class _AccessibilityState extends State<Accessibility> {
             trailing: Switch.adaptive(
               value: _flash,
               activeTrackColor: _ink,
-              onChanged: (value) => setState(() => _flash = value),
+              onChanged: (value) { setState(() => _flash = value); _persistSettings(); },
             ),
           ),
           const SizedBox(height: 10),
@@ -89,7 +106,7 @@ class _AccessibilityState extends State<Accessibility> {
             trailing: Switch.adaptive(
               value: _vibration,
               activeTrackColor: _ink,
-              onChanged: (value) => setState(() => _vibration = value),
+              onChanged: (value) { setState(() => _vibration = value); _persistSettings(); },
             ),
           ),
         ],
