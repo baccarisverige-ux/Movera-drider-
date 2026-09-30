@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movera/core/safety/emergency_dial.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Future<T?> showSafetyToolKitSheet<T>(BuildContext context) {
@@ -74,8 +75,11 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
     );
 
     if (call == true && mounted) {
-      await launchUrl(Uri.parse('tel:112'));
-      _showMessage('Calling 112…');
+      final result = await handoffEmergencyDial(() => launchUrl(Uri.parse('tel:112')));
+      if (!mounted) return;
+      _showMessage(result == EmergencyDialResult.opened
+        ? 'Emergency dialer opened — confirm the call on your device.'
+        : 'Could not open the dialer. Dial 112 manually.');
     }
   }
 

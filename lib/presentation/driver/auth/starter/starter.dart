@@ -30,7 +30,7 @@ class DriverStarter extends StatelessWidget {
                   ),
                   38.height,
                   TextWidget(
-                    text: "Ready to drive!",
+                    text: "Demo mode — no account",
                     color: AppColor.title,
                     fontSize: 34,
                     fontWeight: fwExtraBold,

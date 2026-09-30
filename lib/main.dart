@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:movera/widgets/demo_mode_banner.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -88,7 +89,7 @@ class _MoveraAppState extends State<MoveraApp> {
             ).copyWith(scaffoldBackgroundColor: AppColor.bg),
             builder: (context, child) {
               return LayoutViewport(
-                child: child ?? const SizedBox.shrink(),
+                child: Column(children: [const DemoModeBanner(), Expanded(child: child ?? const SizedBox.shrink())]),
               );
             },
             home: DriverHome(
