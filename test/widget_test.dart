@@ -69,6 +69,8 @@ Future<void> _tapArrived(WidgetTester tester) async {
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pump(const Duration(milliseconds: 240));
+  // Flush awaited durability and the frame that unlocks the next action.
+  for(var i=0;i<4;i++) { await tester.pump(const Duration(milliseconds:16)); }
 }
 
 Future<void> _slideActiveRideAction(WidgetTester tester) async {
@@ -78,6 +80,8 @@ Future<void> _slideActiveRideAction(WidgetTester tester) async {
   await tester.ensureVisible(action);
   await tester.drag(action, const Offset(320, 0));
   await tester.pump(const Duration(milliseconds: 240));
+  // Flush awaited durability and the frame that unlocks the next action.
+  for(var i=0;i<4;i++) { await tester.pump(const Duration(milliseconds:16)); }
 }
 
 Future<void> _openPanel(WidgetTester tester) async {

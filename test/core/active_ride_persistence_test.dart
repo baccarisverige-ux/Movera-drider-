@@ -10,10 +10,10 @@ import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('active ride snapshot round-trips JSON and keeps next trip', () {
+  test('active ride snapshot round-trips JSON and keeps next trip', () async {
     final original = PersistedActiveRide(
       tripId: 'nearby-1',
       stage: ActiveRideStage.onTrip,
@@ -80,7 +80,7 @@ void main() {
     ]);
   });
 
-  test('stale snapshots older than six hours are not fresh', () {
+  test('stale snapshots older than six hours are not fresh', () async {
     final stale = PersistedActiveRide(
       tripId: 'old-1',
       stage: ActiveRideStage.headingToPickup,
@@ -180,16 +180,16 @@ void main() {
     expect(ride.stage, ActiveRideStage.headingToPickup);
   });
 
-  test('controller initialStage restores mid-trip without walking transitions', () {
+  test('controller initialStage restores mid-trip without walking transitions', () async {
     final ride = ActiveRideController(
       tripId: 'nearby-1',
       initialStage: ActiveRideStage.onTrip,
     );
     expect(ride.stage, ActiveRideStage.onTrip);
-    expect(ride.complete(), isTrue);
+    expect(await ride.complete(), isTrue);
   });
 
-  test('fromPersisted reconstructs the same trip so Home can reopen it', () {
+  test('fromPersisted reconstructs the same trip so Home can reopen it', () async {
     final snapshot = PersistedActiveRide(
       tripId: 'nearby-1',
       stage: ActiveRideStage.waitingForRider,
@@ -225,7 +225,7 @@ void main() {
     expect(ride.matchedVia, 'Movera direct match');
   });
 
-  test('active ride map is not rebuilt from the live vehicle pose ticker', () {
+  test('active ride map is not rebuilt from the live vehicle pose ticker', () async {
     final source = File(
       'lib/presentation/driver/accept ride/accept_ride.dart',
     ).readAsStringSync();

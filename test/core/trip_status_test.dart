@@ -20,17 +20,17 @@ void main() {
   });
 
   test('ActiveRideController exposes canonical status without changing stages',
-      () {
+      () async {
     final ride = ActiveRideController(tripId: 'trip-1');
     expect(ride.tripStatus, TripStatus.driverToPickup);
 
-    expect(ride.transitionTo(ActiveRideStage.waitingForRider), isTrue);
+    expect(await ride.transitionTo(ActiveRideStage.waitingForRider), isTrue);
     expect(ride.tripStatus, TripStatus.arrived);
 
-    expect(ride.transitionTo(ActiveRideStage.onTrip), isTrue);
+    expect(await ride.transitionTo(ActiveRideStage.onTrip), isTrue);
     expect(ride.tripStatus, TripStatus.inTrip);
 
-    expect(ride.complete(), isTrue);
+    expect(await ride.complete(), isTrue);
     expect(ride.tripStatus, TripStatus.completed);
   });
 }
