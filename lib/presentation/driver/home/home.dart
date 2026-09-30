@@ -1,3 +1,4 @@
+import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'dart:async';
@@ -281,6 +282,8 @@ class _DriverHomeState extends State<DriverHome>
     pickupPosition: LatLng(59.3356, 18.0378),
     dropoffPosition: LatLng(59.3108, 18.0222),
   );
+
+  late final SheetTrace _sheetTrace = SheetTrace('home', () => _panelController.isAttached ? _panelController.panelPosition : 0);
 
   @override
   void initState() {
@@ -1471,6 +1474,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _onSheetPointerDown(PointerDownEvent event) {
+    _sheetTrace.down();
     _sheetPointerActive = true;
     _sheetPointerLastY = event.position.dy;
     _sheetPointerLastMs = DateTime.now().millisecondsSinceEpoch;
@@ -1484,6 +1488,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _onSheetPointerEnd(PointerEvent event) {
+    _sheetTrace.up(_sheetPointerVelocity);
     _trackSheetPointer(event);
     _sheetPointerActive = false;
     if (_mainPanelPosition <= 0.001) {
@@ -5247,6 +5252,7 @@ class _DriverHomeState extends State<DriverHome>
 
   @override
   void dispose() {
+    _sheetTrace.dispose();
     _destinationOpenTimer?.cancel();
     _radarSubscription?.cancel();
     _homeSheetPositionGuardTimer?.cancel();
