@@ -1,3 +1,4 @@
+import 'package:movera/core/contracts/trip_status.dart';
 import 'dart:convert';
 
 import 'package:movera/core/logging/driver_log.dart';
@@ -9,12 +10,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// On Flutter web this is `localStorage` key `flutter.movera_driver_active_ride`.
 /// Stale snapshots older than [PersistedActiveRide.freshnessWindow] are dropped
 /// so an abandoned trip cannot revive days later.
-class PrefsActiveRideRepository implements ActiveRideRepository {
+class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRepository {
   PrefsActiveRideRepository({Future<SharedPreferences> Function()? load})
     : _load = load ?? SharedPreferences.getInstance;
 
   /// SharedPreferences key. Web localStorage prefix is `flutter.`.
   static const key = 'movera_driver_active_ride';
+  static const terminalKey = 'movera_driver_terminal_trips';
 
   final Future<SharedPreferences> Function() _load;
 
@@ -44,10 +46,9 @@ class PrefsActiveRideRepository implements ActiveRideRepository {
       final ride = PersistedActiveRide.fromJson(
         Map<String, dynamic>.from(decoded),
       );
-      if (ride == null || !ride.isFresh) {
-        await prefs.remove(key);
-        return null;
-      }
+      if (ride == null) return null;
+      final terminal = prefs.getStringList(terminalKey) ?? <String>[];
+      if (terminal.any((item) => item.startsWith('${ride.tripId}|'))) return null;
       return ride;
     } catch (error, stack) {
       DriverLog.warn('Active-ride snapshot unreadable: $error');
@@ -62,6 +63,25 @@ class PrefsActiveRideRepository implements ActiveRideRepository {
     if (!await prefs.setString(key, jsonEncode(ride.stamped().toJson()))) {
       throw StateError('Active ride could not be saved');
     }
+  });
+
+  @override
+  Future<void> markTerminal(String tripId, TripStatus status) => _enqueue(() async {
+    if (![TripStatus.completed, TripStatus.cancelledByRider, TripStatus.cancelledByDriver, TripStatus.cancelledByAdmin].contains(status)) throw ArgumentError('Terminal status required');
+    final prefs = await _load();
+    final ids = prefs.getStringList(terminalKey) ?? <String>[];
+    if (!ids.any((item) => item.startsWith('$tripId|'))) ids.add('$tripId|${status.name}');
+    if (!await prefs.setStringList(terminalKey, ids)) throw StateError('Terminal marker could not be saved');
+  });
+
+  @override
+  Future<void> clearForTrip(String tripId) => _enqueue(() async {
+    final prefs = await _load();
+    final raw = prefs.getString(key);
+    if (raw == null) return;
+    final data = jsonDecode(raw);
+    if (data is! Map || data['tripId'] != tripId) return;
+    if (!await prefs.remove(key)) throw StateError('Trip cleanup failed');
   });
 
   @override

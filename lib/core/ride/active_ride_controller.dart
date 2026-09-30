@@ -58,7 +58,7 @@ class ActiveRideController extends ChangeNotifier {
 
   Future<bool> complete({bool clearSnapshot = true}) async {
     if (terminal || saving || _stage != ActiveRideStage.onTrip) return false;
-    if (clearSnapshot && !await _write(_repository.clear)) return false;
+    if (clearSnapshot && !await _write(() => _finish(TripStatus.completed))) return false;
     _terminalStatus = TripStatus.completed;
     if (!_disposed) notifyListeners();
     return true;
@@ -68,7 +68,7 @@ class ActiveRideController extends ChangeNotifier {
     TripStatus status = TripStatus.cancelledByDriver,
   }) async {
     if (terminal || saving || !_isCancellationTerminal(status)) return false;
-    if (!await _write(_repository.clear)) return false;
+    if (!await _write(() => _finish(status))) return false;
     _terminalStatus = status;
     if (!_disposed) notifyListeners();
     return true;
@@ -80,6 +80,17 @@ class ActiveRideController extends ChangeNotifier {
         status == TripStatus.cancelledByAdmin;
   }
 
+  Future<void> _finish(TripStatus status) async {
+    final repository = _repository;
+    if (repository is TerminalRideRepository && tripId != null) {
+      await (repository as TerminalRideRepository).markTerminal(tripId!, status);
+      await (repository as TerminalRideRepository).clearForTrip(tripId!);
+    } else {
+      await repository.clear();
+    }
+  }
+
+  bool recoveryRequired = false;
   bool _disposed = false;
   bool _writing = false;
   Object? persistenceError;
@@ -107,7 +118,8 @@ class ActiveRideController extends ChangeNotifier {
     final stored = await _repository.read();
     if (stored == null) return;
     if (tripId != null && stored.tripId != tripId) return;
-    if (!stored.isFresh) return;
+    recoveryRequired = !stored.isFresh;
+    if (recoveryRequired) { if (!_disposed) notifyListeners(); return; }
     _stage = stored.stage;
     if (!_disposed) notifyListeners();
   }
