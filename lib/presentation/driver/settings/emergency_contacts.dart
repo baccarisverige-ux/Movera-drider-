@@ -31,12 +31,12 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
 
   final List<_EmergencyContact> _contacts = [
     const _EmergencyContact(
-      name: 'Anna Johansson',
+      name: 'Example contact — Anna Johansson',
       phone: '+46 70 123 45 67',
       relation: 'Partner',
     ),
     const _EmergencyContact(
-      name: 'Movera Safety desk',
+      name: 'Emergency services — 112',
       phone: '112',
       relation: 'Emergency',
     ),
