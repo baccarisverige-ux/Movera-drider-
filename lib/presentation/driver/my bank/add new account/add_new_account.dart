@@ -129,9 +129,9 @@ class AddNewAccount extends StatelessWidget {
           vertical: ResSize.h * 20,
         ),
         child: CustomButton(
-          centerContent: "Add Account",
+          centerContent: "Preview — account not saved",
           onPressed: () {
-            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Preview only — account not saved.')));
           },
         ),
       ),

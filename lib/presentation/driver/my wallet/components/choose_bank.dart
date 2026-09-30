@@ -80,7 +80,7 @@ class _WithdrawBottomSheetState extends State<WithdrawBottomSheet> {
                             4.height,
                             TextWidget(
                               text:
-                                  'Select bank where you want to receive the amount',
+                                  'Simulation only — sample banks, no money moved',
                               fontSize: 12,
                               color: AppColor.subtitle,
                               fontWeight: fwMedium,
@@ -161,7 +161,7 @@ class _WithdrawBottomSheetState extends State<WithdrawBottomSheet> {
                   }),
                   29.height,
                   CustomButton(
-                    centerContent: "Confirm",
+                    centerContent: "Simulate withdrawal",
                     onPressed: () => Navigator.push(
                       context,
                       BottomToTopTransition(const WithdrawAmountSuccessfully()),
