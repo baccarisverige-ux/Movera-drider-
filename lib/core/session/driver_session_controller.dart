@@ -32,12 +32,12 @@ class DriverSessionController extends ChangeNotifier {
   void _save(Future<void> Function() operation) {
     _writes = _writes.then((_) => operation()).catchError((Object error) {
       persistenceError = error;
-      if (!_disposed) notifyListeners();
+      if (!_disposed) { notifyListeners(); }
     });
   }
 
   void beginTrip(String tripId) {
-    if (_disposed) return;
+    if (_disposed) { return; }
     _revision++;
     _activeTripId = tripId;
     _status = DriverOnlineStatus.onTrip;
@@ -56,10 +56,10 @@ class DriverSessionController extends ChangeNotifier {
   bool get isSuspended => _status == DriverOnlineStatus.suspended;
 
   void setOnline(bool value) {
-    if (_disposed || _activeTripId != null || (isSuspended && value)) return;
+    if (_disposed || _activeTripId != null || (isSuspended && value)) { return; }
     _revision++;
     final next = value ? DriverOnlineStatus.online : DriverOnlineStatus.offline;
-    if (_status == next) return;
+    if (_status == next) { return; }
     _status = next;
     notifyListeners();
     _save(() => _repository.saveOnline(value));
@@ -67,16 +67,16 @@ class DriverSessionController extends ChangeNotifier {
 
   /// Home connecting animation. Driver is not available for offers yet.
   void beginGoingOnline() {
-    if (_disposed || _activeTripId != null || isSuspended) return;
+    if (_disposed || _activeTripId != null || isSuspended) { return; }
     _revision++;
-    if (_status == DriverOnlineStatus.goingOnline) return;
+    if (_status == DriverOnlineStatus.goingOnline) { return; }
     _status = DriverOnlineStatus.goingOnline;
     notifyListeners();
     _save(() => _repository.saveOnline(false));
   }
 
   void completeGoingOnline() {
-    if (_disposed || _status != DriverOnlineStatus.goingOnline) return;
+    if (_disposed || _status != DriverOnlineStatus.goingOnline) { return; }
     _revision++;
     _status = DriverOnlineStatus.online;
     notifyListeners();
@@ -84,7 +84,7 @@ class DriverSessionController extends ChangeNotifier {
   }
 
   void suspend() {
-    if (_disposed || _status == DriverOnlineStatus.suspended) return;
+    if (_disposed || _status == DriverOnlineStatus.suspended) { return; }
     _revision++;
     _status = DriverOnlineStatus.suspended;
     notifyListeners();
@@ -96,19 +96,20 @@ class DriverSessionController extends ChangeNotifier {
     final revision = _revision;
     try {
       final stored = await _repository.readOnline();
-      if (_disposed || revision != _revision) return;
-      if (stored == true) _save(() => _repository.saveOnline(false));
-      if (_status == DriverOnlineStatus.offline) return;
+      if (_disposed || revision != _revision) { return; }
+      if (stored == true) { _save(() => _repository.saveOnline(false)); await _writes; }
+      if (_disposed || revision != _revision) { return; }
+      if (_status == DriverOnlineStatus.offline) { return; }
       _status = DriverOnlineStatus.offline;
       notifyListeners();
     } catch (error) {
       persistenceError = error;
-      if (!_disposed) notifyListeners();
+      if (!_disposed) { notifyListeners(); }
     }
   }
 
   void stayOnlineAfterTrip() {
-    if (_disposed) return;
+    if (_disposed) { return; }
     _revision++;
     _activeTripId = null;
     _status = DriverOnlineStatus.online;
@@ -122,13 +123,13 @@ class DriverSessionController extends ChangeNotifier {
   }
 
   bool consumeResumeHomeAfterTrip() {
-    if (!_resumeHomeAfterTrip) return false;
+    if (!_resumeHomeAfterTrip) { return false; }
     _resumeHomeAfterTrip = false;
     return true;
   }
 
   void reset() {
-    if (_disposed) return;
+    if (_disposed) { return; }
     _revision++;
     _activeTripId = null;
     if (_status == DriverOnlineStatus.offline && !_resumeHomeAfterTrip) {
