@@ -6,6 +6,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:movera/core/logging/driver_log.dart';
 import 'package:movera/widgets/preview_unavailable.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -394,7 +395,6 @@ class _AcceptRideState extends State<AcceptRide>
   List<LatLng> _roadRoutePoints = <LatLng>[];
   List<LatLng> _cachedPolylinePoints = const <LatLng>[];
   Set<Polyline> _cachedPolylines = <Polyline>{};
-  double? _routeDistanceMeters;
   double? _routeDurationSeconds;
   bool _hasLiveLocation = false;
   bool _routeLoading = false;
@@ -863,7 +863,7 @@ class _AcceptRideState extends State<AcceptRide>
       if (pointsChanged && mappedRoute != null) {
         _roadGeoPoints = mappedRoute.points;
         _roadRoutePoints = mappedRoute.latLngPoints;
-        _routeDistanceMeters = mappedRoute.distanceMeters;
+
         _routeDurationSeconds = mappedRoute.durationSeconds;
       }
       _routeLoading = status != null;
@@ -991,7 +991,7 @@ class _AcceptRideState extends State<AcceptRide>
       setState(() {
         _roadGeoPoints = [];
         _roadRoutePoints = [];
-        _routeDistanceMeters = null;
+
         _routeDurationSeconds = null;
         _locationStatus = 'Stop location unavailable';
       });
@@ -1009,7 +1009,7 @@ class _AcceptRideState extends State<AcceptRide>
       if (route != null && route.points.length >= 2) {
         _roadGeoPoints = route.points;
         _roadRoutePoints = route.latLngPoints;
-        _routeDistanceMeters = route.distanceMeters;
+
         _routeDurationSeconds = route.durationSeconds;
       }
       _routeLoading = _navigation.status != null;

@@ -44,7 +44,6 @@ import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/movera_radar_orb.dart';
@@ -137,7 +136,6 @@ class _DriverHomeState extends State<DriverHome>
 
   static const double _homeExpandedFraction = 0.86;
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
-  static const Duration _radarOfferLifetime = Duration(milliseconds: 30000);
   static const int _maxHomeRadarOffers = 4;
   double _sheetPointerVelocity = 0;
   double _sheetPointerLastY = 0;
