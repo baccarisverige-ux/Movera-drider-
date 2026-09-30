@@ -41,12 +41,15 @@ void main() {
     expect(tester.widget<TextField>(subject).controller!.text, 'Help with pickup');
     expect(tester.widget<TextField>(message).controller!.text, 'Keep this draft locally');
     await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+    expect(save.hitTestable(), findsOneWidget);
     await tester.tap(save);
     await tester.pumpAndSettle();
     // Route disposal and acknowledged local writes finish after the pop animation.
     for (var i = 0; i < 30 && find.text('Help with pickup').evaluate().isEmpty; i++) {
       await tester.pump(const Duration(milliseconds: 25));
     }
+    expect(find.text('Local ticket draft'), findsNothing);
     expect(find.text('Help with pickup'), findsOneWidget);
     expect(find.text('LOCAL DRAFT'), findsOneWidget);
     expect(tester.takeException(), isNull);

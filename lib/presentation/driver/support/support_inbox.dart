@@ -81,6 +81,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                 SizedBox(width: double.infinity, child: FilledButton(
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 54), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), backgroundColor: const Color(0xFF202A30), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
                   onPressed: () {
+                    assert(() { debugPrint('AUDIT SUPPORT save clicked valid=${subject.text.trim().isNotEmpty && message.text.trim().isNotEmpty}'); return true; }());
                     if (subject.text.trim().isEmpty || message.text.trim().isEmpty) return;
                     Navigator.pop(sheetContext, _Ticket(subject.text.trim(), message.text.trim(), 'LOCAL DRAFT', false));
                   },
@@ -92,7 +93,9 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
         ),
       )),
     );
+    assert(() { debugPrint('AUDIT SUPPORT pop result=${created != null}'); return true; }());
     await saveDraft();
+    assert(() { debugPrint('AUDIT SUPPORT draft saved mounted=$mounted'); return true; }());
     if (created != null && mounted) {
       setState(() => tickets.insert(0, created));
       try { await _saveTickets(); await _repository.update('draft',{'subject':'','message':'','category':'Trip & rider'}); } catch(_) {}
