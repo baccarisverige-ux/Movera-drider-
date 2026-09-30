@@ -64,10 +64,11 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                 const Text('Local ticket draft', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF20282E))),
                 const SizedBox(height: 18),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: category,
                   decoration: _decoration('Category'),
                   items: ['Trip & rider', 'Wallet & payments', 'Scheduled rides', 'Account & documents', 'Technical issue', 'Something else']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e, maxLines: 1, overflow: TextOverflow.ellipsis))).toList(),
                   onChanged: (v) { if (v != null) { setSheetState(() => category = v); unawaited(saveDraft()); } },
                 ),
                 const SizedBox(height: 12),
@@ -75,8 +76,8 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                 const SizedBox(height: 12),
                 TextField(controller: message, minLines: 4, maxLines: 6, decoration: _decoration('Tell us what happened')),
                 const SizedBox(height: 18),
-                SizedBox(width: double.infinity, height: 54, child: FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF202A30), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+                SizedBox(width: double.infinity, child: FilledButton(
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 54), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), backgroundColor: const Color(0xFF202A30), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
                   onPressed: () {
                     if (subject.text.trim().isEmpty || message.text.trim().isEmpty) return;
                     Navigator.pop(sheetContext, _Ticket(subject.text.trim(), message.text.trim(), 'LOCAL DRAFT', false));
