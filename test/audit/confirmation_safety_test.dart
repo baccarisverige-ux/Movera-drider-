@@ -6,7 +6,7 @@ import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FailOnce extends MemoryActiveRideRepository {
-  bool fail = true;
+  bool fail = false;
   @override Future<void> save(PersistedActiveRide ride) async {
     if (fail) { fail = false; throw StateError('write unavailable'); }
     await super.save(ride);
@@ -38,9 +38,13 @@ void main() {
   });
   testWidgets('rejected start can be retried with the same slide', (tester) async {
     final repo=_FailOnce(); await _mount(tester,repo);
-    // Initial lifecycle save consumes the first failure; fail the start too.
+    // Reject the first start write, then retry the same action.
     repo.fail=true;
     final action=find.byKey(const ValueKey<String>('active-ride-primary-action'));
+    await tester.ensureVisible(action);
+    ScaffoldMessenger.of(tester.element(action)).hideCurrentSnackBar();
+    await tester.pump(const Duration(milliseconds:300));
+    await tester.ensureVisible(action);
     await tester.drag(action,const Offset(320,0));
     for(var i=0;i<10;i++) { await tester.pump(const Duration(milliseconds:30)); }
     await tester.drag(action,const Offset(320,0));
