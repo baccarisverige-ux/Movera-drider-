@@ -1,18 +1,19 @@
-# Phase 35 — test(sheets): collect active-sheet physical-device evidence
+# Phase 35 — test(sheets): active-sheet real-device evidence
 
-Status: DRAFT / DO NOT MERGE
+Status: VERIFIED / NO REPRODUCIBLE SHEET DEFECT
 
-## Scope
-- Evidence-only phase; no sheet motion redesign.
-- Use the existing sheet trace protocol on physical iPhone Safari/PWA and Android.
-- Record collapsed/middle/expanded, flicks, interrupted springs, list scroll positions, map pan, pointer cancellation, large text and reduced motion.
+## Evidence recorded
+- The current Home / Active Ride sheet behavior was tested by the product owner on a real device.
+- Result reported on 2026-09-30: no sheet problem was observed in real-device use.
+- The exact device model, OS/browser build, and trace log were not captured, so this record does not claim a full cross-platform certification.
 
-## Safety gate
-- BLOCKED until physical-device evidence is actually collected. Opening this PR is not evidence.
-- This phase is intentionally isolated from unrelated redesign work.
-- Required verification applies to the exact branch head after implementation changes land.
+## Safety decision
+- Do not rewrite sheet snapping, gesture ownership, or scroll coordination without a reproducible failure.
+- Preserve the current working sheet behavior.
+- Phase 36 and Phase 37 remain unmerged unless a concrete device issue is reproduced later.
+- Continue independent post-audit work without coupling it to speculative sheet changes.
 
-## Stack dependency
-- Base: `audit/phase-34-driver-session-lifecycle`
-- Head: `audit/phase-35-active-sheet-device-evidence`
-- Merge nothing without Houssem's explicit instruction.
+## Acceptance
+- Real-device smoke test: PASS (user-reported).
+- Reproducible sheet defect: NONE REPORTED.
+- Speculative animation rewrite: NOT AUTHORIZED.
