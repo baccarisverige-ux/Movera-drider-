@@ -11,6 +11,55 @@ enum DriverRealtimeKind {
   riderOnTheWay,
 }
 
+enum DriverRealtimeDisposition {
+  accepted,
+  acceptedWithGap,
+  staleOrDuplicate,
+  blockedAfterTerminal,
+}
+
+class DriverRealtimeSequenceGate {
+  final Map<String, int> _lastSequenceByTrip = <String, int>{};
+  final Set<String> _terminalTrips = <String>{};
+
+  DriverRealtimeDisposition evaluate(DriverRealtimeEvent event) {
+    final last = _lastSequenceByTrip[event.tripId];
+    if (last != null && event.sequence <= last) {
+      return DriverRealtimeDisposition.staleOrDuplicate;
+    }
+
+    if (_terminalTrips.contains(event.tripId)) {
+      _lastSequenceByTrip[event.tripId] = event.sequence;
+      return DriverRealtimeDisposition.blockedAfterTerminal;
+    }
+
+    final hasGap = last != null && event.sequence > last + 1;
+    _lastSequenceByTrip[event.tripId] = event.sequence;
+    if (_isTerminal(event)) {
+      _terminalTrips.add(event.tripId);
+    }
+    return hasGap
+        ? DriverRealtimeDisposition.acceptedWithGap
+        : DriverRealtimeDisposition.accepted;
+  }
+
+  int? lastSequenceFor(String tripId) => _lastSequenceByTrip[tripId];
+
+  bool isTerminal(String tripId) => _terminalTrips.contains(tripId);
+
+  bool _isTerminal(DriverRealtimeEvent event) {
+    if (event.kind == DriverRealtimeKind.riderCancelled) return true;
+    final status = event.status;
+    return status == TripStatus.completed ||
+        status == TripStatus.cancelledByRider ||
+        status == TripStatus.cancelledByDriver ||
+        status == TripStatus.cancelledByAdmin ||
+        status == TripStatus.noShow ||
+        status == TripStatus.expired ||
+        status == TripStatus.failed;
+  }
+}
+
 class DriverRealtimeEvent {
   const DriverRealtimeEvent({
     required this.tripId,
@@ -62,7 +111,10 @@ class MemoryDriverRealtime implements DriverRealtime {
   int get sequence => _sequence;
 
   void publish(DriverRealtimeEvent event) {
-    _lastByTrip[event.tripId] = event;
+    final previous = _lastByTrip[event.tripId];
+    if (previous == null || event.sequence > previous.sequence) {
+      _lastByTrip[event.tripId] = event;
+    }
     if (event.sequence > _sequence) _sequence = event.sequence;
     _controller.add(event);
   }
