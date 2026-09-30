@@ -72,7 +72,7 @@ class DriverProfile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Andrew Johns',
+                        'Sample driver profile',
                         style: TextStyle(
                           color: _ink,
                           fontSize: 17,
@@ -81,7 +81,7 @@ class DriverProfile extends StatelessWidget {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Joined 2024',
+                        'Demo — no verified account',
                         style: TextStyle(
                           color: _muted,
                           fontSize: 12,

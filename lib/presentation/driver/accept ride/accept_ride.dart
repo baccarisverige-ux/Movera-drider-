@@ -142,7 +142,7 @@ class AcceptRide extends StatefulWidget {
     return AcceptRide(
       key: key,
       offerId: snapshot.tripId,
-      riderName: snapshot.riderName ?? 'Angelica',
+      riderName: snapshot.riderName ?? 'Rider data unavailable',
       riderRating: snapshot.riderRating ?? 4.9,
       riderTrips: snapshot.riderTrips ?? 312,
       fare: snapshot.fare ?? '—',
