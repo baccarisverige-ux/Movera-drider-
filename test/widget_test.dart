@@ -236,7 +236,7 @@ void main() {
     expect(scaffoldState.isDrawerOpen, isTrue);
     final drawer = find.byKey(const ValueKey<String>('driver-side-menu'));
     expect(drawer, findsOneWidget);
-    expect(tester.getSize(drawer).height, 700);
+    expect(tester.getSize(drawer).height, tester.getSize(find.byType(DriverHome)).height);
     expect(find.byTooltip('Close menu'), findsNothing);
     _expectNoException(tester);
 
