@@ -17,6 +17,8 @@ class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRep
   /// SharedPreferences key. Web localStorage prefix is `flutter.`.
   static const key = 'movera_driver_active_ride';
   static const terminalKey = 'movera_driver_terminal_trips';
+  static const maxTerminalMarkers = 256;
+  static const terminalRetention = Duration(days: 90);
 
   final Future<SharedPreferences> Function() _load;
 
@@ -80,20 +82,63 @@ class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRep
     }
     final prefs = await _load();
     final ids = prefs.getStringList(terminalKey) ?? <String>[];
-    if (!ids.any((item) => _terminalTripId(item) == tripId)) {
-      final at = (occurredAt ?? DateTime.now()).toUtc().toIso8601String();
-      ids.add([
-        tripId,
-        status.name,
-        reasonCode ?? '',
-        actor ?? '',
-        at,
-      ].join('|'));
-    }
-    if (!await prefs.setStringList(terminalKey, ids)) {
+    final at = (occurredAt ?? DateTime.now()).toUtc();
+    final existing = ids.where((item) => _terminalTripId(item) == tripId);
+    final marker = existing.isNotEmpty
+        ? existing.first
+        : [
+            tripId,
+            status.name,
+            reasonCode ?? '',
+            actor ?? '',
+            at.toIso8601String(),
+          ].join('|');
+
+    ids.removeWhere((item) => _terminalTripId(item) == tripId);
+    ids.add(marker);
+
+    final retained = _pruneTerminalMarkers(
+      ids,
+      currentTripId: tripId,
+      now: at,
+    );
+    if (!await prefs.setStringList(terminalKey, retained)) {
       throw StateError('Terminal marker could not be saved');
     }
   });
+
+  static List<String> _pruneTerminalMarkers(
+    List<String> markers, {
+    required String currentTripId,
+    required DateTime now,
+  }) {
+    final seen = <String>{};
+    final newestFirst = <String>[];
+
+    for (final marker in markers.reversed) {
+      final id = _terminalTripId(marker);
+      if (id.isEmpty || !seen.add(id)) continue;
+
+      if (id != currentTripId) {
+        final timestamp = _terminalTimestamp(marker);
+        if (timestamp != null &&
+            now.difference(timestamp) > terminalRetention) {
+          continue;
+        }
+      }
+
+      newestFirst.add(marker);
+      if (newestFirst.length >= maxTerminalMarkers) break;
+    }
+
+    return newestFirst.reversed.toList(growable: false);
+  }
+
+  static DateTime? _terminalTimestamp(String marker) {
+    final parts = marker.split('|');
+    if (parts.length < 5 || parts[4].isEmpty) return null;
+    return DateTime.tryParse(parts[4])?.toUtc();
+  }
 
   static String _terminalTripId(String marker) {
     final separator = marker.indexOf('|');
