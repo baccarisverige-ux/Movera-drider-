@@ -18,8 +18,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Race ticket'));await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField),'Save me');
-    await tester.tap(find.byType(IconButton).last);await tester.pump();
-    await tester.tap(find.byType(IconButton).last);await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('local-reply-save')));await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('local-reply-save')));await tester.pump();
     await tester.enterText(find.byType(TextField),'New draft');
     expect(repo.writes,1);
     repo.result.complete();await tester.pump();await tester.pump();
