@@ -1,95 +1,62 @@
-# Movera Drider — Phase 0 Baseline
+# Movera Drider — current protected baseline
 
-## Scope lock
+## Scope
 
 This repository is **Movera Drider**: `baccarisverige-ux/Movera-drider-`.
+The separate Rider repository is out of scope.
 
-The separate Rider repository `baccarisverige-ux/-movera-rider` is out of scope and must not be modified by Drider work.
+The application remains a Flutter frontend/demo. Architecture and reliability work must preserve the current product design unless a later task explicitly authorizes redesign.
 
-Phase 0 freezes the current Drider visual product. Architecture work must preserve existing screens/design unless a later task explicitly authorizes a design change.
+## Canonical bootstrap
 
-## Reconstructed upload
+The current app starts directly on the Driver surface:
 
-The original upload was delivered as four ZIP parts and reconstructed without conflicting duplicate paths. The project is Flutter and contains Android, iOS, web, Linux, macOS and Windows targets.
+`MoveraApp → LayoutViewport → ScreenUtilInit → GetMaterialApp → DriverHome`
 
-## Current bootstrap
+The old Splash bootstrap is not part of the canonical app entry. Legacy authentication remains opt-in behind `MOVERA_ENABLE_LEGACY_AUTH`.
 
-`lib/main.dart` currently starts:
+## Current runtime boundaries
 
-`MoveraApp -> ScreenUtilInit -> GetMaterialApp -> Splash -> OnboardingScreen`
+- Driver session state is owned by `DriverSessionController`.
+- Active trip state and recovery use `ActiveRideController` / `ActiveRideRepository`.
+- Completed/cancelled terminal transitions use the replayable `CompletionJournal`.
+- Terminal markers prevent completed/cancelled snapshots from resurrecting.
+- Completed-trip History is a separate projection and does not invent missing tip/payment facts.
+- Driver realtime remains an in-memory/backend-ready seam. Events are sequence-gated per trip; duplicate/reordered events are ignored and terminal events dominate later non-terminal events.
+- Driver location, routing, dispatch, support and settings remain replaceable boundaries rather than production backend integrations.
+- Canonical market/currency remains Stockholm / SEK.
 
-The onboarding flow is intended to enter `DriverStarter`. The uploaded onboarding file contained stale imports to missing Rider screens; Phase 1 removes those stale references and keeps the flow inside Drider.
+## Post-audit protections now present
 
-## Current source layout
+- Home/active-trip lifecycle ownership and explicit `DriverOnlineStatus.onTrip`.
+- Cold start remains offline.
+- Replayable completion/cancellation journal.
+- Driver/rider cancellation metadata survives terminal cleanup.
+- Active-trip stale recovery and exact-trip cleanup.
+- Bounded terminal-marker retention with legacy-marker compatibility.
+- History archive idempotency by `tripId`.
+- Truthful local/demo labels for contact, chat, support, settings, analytics, earnings, queue, promotions and driving-log preview data.
+- Support optimistic state rolls back when local persistence fails.
+- Settings persistence is isolated per section so one corrupted section does not erase unrelated sections.
+- Realtime sequence ordering, reconnect replay of the newest known event and terminal dominance.
+- Conservative orphan cleanup only after analyzer proof.
 
-The existing application is organized primarily as:
+## Sheet behavior
 
-- `lib/constants`
-- `lib/models`
-- `lib/presentation/common`
-- `lib/presentation/driver`
-- `lib/widgets`
+A real-device smoke test was reported by the product owner on 2026-09-30 with no sheet defect observed. Device model/platform and the full trace matrix were not captured. Because no reproducible issue exists, the current Home and Active Ride sheet behavior is protected from speculative Phase 36/37 rewrites.
 
-There is not yet a clear application/domain/data/infrastructure separation. This will be introduced incrementally after the baseline is buildable and protected by tests.
+## Product limits
 
-## Existing Driver feature inventory
+This repository does **not** establish a live production backend for dispatch, payments, support, chat delivery, reservations, document review, OTP, safety recording/sharing or account verification. Local/demo state must not be described as a successful production action.
 
-The uploaded Driver presentation includes these major areas:
+## Current verification gate
 
-- Accept ride / cancel ride
-- Add vehicle / upload vehicle photos
-- Analytics: acceptance, cancellation, earnings, ratings, reviews
-- Driver authentication and account creation
-- Driver additional details / document upload / ID capture
-- Documents
-- Driving logs
-- Earning stats
-- Home / recent rides / destination panel / account activation
-- Bank accounts
-- Queue position / airport queue
-- Wallet / withdrawal
-- PIN verification
-- Preferences
-- Profile
-- Promotions
-- Ride completed
-- Ride history / history details
-- Ride requests
-- Safety toolkits
-- Pickup/drop-off location search and pickup confirmation
-- Settings / accessibility / sound and voice
-- Side menu
-- Vehicles
-- Common splash, onboarding and chat
-
-## Current technical observations
-
-- State/navigation currently depends heavily on widgets and GetX/imperative navigation.
-- `pubspec.yaml` has no HTTP/Dio/Firebase/backend client dependency; no production backend should be invented during foundation work.
-- The original `test/widget_test.dart` was Flutter's unrelated counter template and provided no Drider coverage.
-- The uploaded root contained an accidental `tatus` file containing terminal `less` help; Phase 1 removes it.
-- Several source folders contain spaces or punctuation. They are preserved during baseline stabilization to avoid unsafe mass renames; normalization belongs to a later architecture migration.
-- Android application id is `se.movera.driver`. Release signing uses `MOVERA_UPLOAD_STORE_*` env vars when present, otherwise debug keys for local/CI previews.
-- Canonical vocabulary lives in `docs/DECISIONS.md` (tripId, TripStatus, SEK/Stockholm). Driver online status after a cold start is always offline.
-
-- Large assets exist and should be optimized later only after visual regression protection is in place.
-
-## Baseline rules
-
-1. Do not redesign screens during architecture phases unless explicitly authorized.
-2. Do not fabricate backend responses or production data.
-3. UI must not become the long-term source of truth for ride state.
-4. Every structural migration must be incremental and test-gated.
-5. Keep Drider work isolated from the separate Movera Rider repository.
-6. A phase is not complete until analyzer/tests for the exact branch head are verified.
-
-## Phase 1 verification gate
-
-The initial CI gate is:
+Every implementation PR must pass on its exact head:
 
 1. `flutter pub get`
-2. `flutter analyze --no-fatal-infos --no-fatal-warnings`
+2. `flutter analyze --no-fatal-infos`
 3. `flutter test`
 4. `flutter build web --release`
+5. verification artifact upload
 
-Any failures found by this gate are treated as baseline defects and fixed before architecture migration begins.
+No newer commit is covered by an older successful workflow run.
