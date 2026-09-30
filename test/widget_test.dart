@@ -1,3 +1,4 @@
+import 'package:movera/core/ride/completion_journal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -69,6 +70,8 @@ Future<void> _tapArrived(WidgetTester tester) async {
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pump(const Duration(milliseconds: 240));
+  // Flush awaited durability and the frame that unlocks the next action.
+  for(var i=0;i<4;i++) { await tester.pump(const Duration(milliseconds:16)); }
 }
 
 Future<void> _slideActiveRideAction(WidgetTester tester) async {
@@ -78,6 +81,8 @@ Future<void> _slideActiveRideAction(WidgetTester tester) async {
   await tester.ensureVisible(action);
   await tester.drag(action, const Offset(320, 0));
   await tester.pump(const Duration(milliseconds: 240));
+  // Flush awaited durability and the frame that unlocks the next action.
+  for(var i=0;i<4;i++) { await tester.pump(const Duration(milliseconds:16)); }
 }
 
 Future<void> _openPanel(WidgetTester tester) async {
@@ -142,6 +147,7 @@ Future<void> seedCompletedRideForHistory() async {
 
 void main() {
   setUp(() {
+    CompletionJournal.resetForTesting();
     SharedPreferences.setMockInitialValues({});
   });
 

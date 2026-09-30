@@ -51,7 +51,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         child: Column(
           children: [
             _buildHeader(context),
-            const Padding(padding: EdgeInsets.all(12), child: Text('Preview — not binding. Accept/cancel changes are temporary and reset on reopening.')),
+            const Padding(padding: EdgeInsets.all(12), child: Text('Preview — not binding. Decisions reset when reopened.', style: TextStyle(fontSize: 12))),
             _buildTabs(),
             Expanded(
               child: ListView.separated(
@@ -203,7 +203,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 15),
       child: Container(
-        height: 46,
+        height: 46 * MediaQuery.textScalerOf(context).scale(13) / 13,
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: const Color(0xFFF0F2F3),

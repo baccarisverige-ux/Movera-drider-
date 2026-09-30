@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movera/core/contracts/trip_status.dart';
@@ -16,6 +17,8 @@ class CompletionJournal {
  final Future<SharedPreferences> Function() load;
  final void Function(String step)? afterWrite;
  static Future<void> _pending=Future<void>.value();
+ @visibleForTesting
+ static void resetForTesting() { _pending=Future<void>.value(); }
  Future<void> _serial(Future<void> Function() action) {
  final result=_pending.then((_)=>action()); _pending=result.catchError((Object _) {}); return result;
  }

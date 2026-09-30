@@ -300,7 +300,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  Text(
+                  Expanded(child: Text(
                     _searchController.text.trim().isEmpty
                         ? 'Suggested addresses'
                         : 'Results',
@@ -308,9 +308,9 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                       color: _ink,
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                    ),
+                    )),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   if (_searchController.text.trim().isNotEmpty)
                     Text(
                       '${results.length} found',

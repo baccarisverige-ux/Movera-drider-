@@ -48,6 +48,9 @@ void main() {
    testWidgets('${screen.key} navigation and 200% layout at $size',(tester) async {
     await tester.binding.setSurfaceSize(size);addTearDown(()=>tester.binding.setSurfaceSize(null));
     final nav=GlobalKey<NavigatorState>();
+    final previous=FlutterError.onError;
+    FlutterError.onError=(details) { FlutterError.dumpErrorToConsole(details, forceReport: true); previous?.call(details); };
+    addTearDown(() => FlutterError.onError=previous);
     await tester.pumpWidget(ScreenUtilInit(designSize:const Size(375,812),builder:(_,__)=>MaterialApp(
       navigatorKey:nav,builder:(context,child)=>MediaQuery(data:MediaQuery.of(context).copyWith(textScaler:TextScaler.linear(2)),child:child!),
       home:const Scaffold(body:Text('Crawl root')))));

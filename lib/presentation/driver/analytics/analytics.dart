@@ -338,7 +338,7 @@ class Analytics extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
+              Flexible(child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: busy ? const Color(0xFFE8F5EF) : const Color(0xFFF3F5F4),
@@ -352,16 +352,16 @@ class Analytics extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
+              )),
               const SizedBox(width: 8),
-              Text(
+              Flexible(child: Text(
                 '${area.demandPercent}%',
                 style: const TextStyle(
                   color: _ink,
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
                 ),
-              ),
+              )),
             ],
           ),
           const SizedBox(height: 8),

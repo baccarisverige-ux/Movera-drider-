@@ -116,9 +116,9 @@ class _PreferencesState extends State<Preferences> {
         ),
         titleSpacing: 2,
         title: const Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          const Text('Local demo preferences — saved on this device; effects are previews.'),
             Text(
               'Ride preferences',
               style: TextStyle(
@@ -144,12 +144,14 @@ class _PreferencesState extends State<Preferences> {
         top: false,
         child: Column(
           children: [
+            const Padding(padding: EdgeInsets.all(8), child: Text('Local demo preferences', style: TextStyle(fontSize: 12))),
             _buildSummary(),
             Expanded(
               child: GridView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: MediaQuery.textScalerOf(context).scale(14) > 20 ? 1 : 2,
+                  mainAxisExtent: MediaQuery.textScalerOf(context).scale(14) > 20 ? 330 : null,
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
                   childAspectRatio: 0.78,
