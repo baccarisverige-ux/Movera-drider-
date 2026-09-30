@@ -158,7 +158,7 @@ class DriverDocuments extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Padding(
+                    Flexible(child: Padding(
                       padding: const EdgeInsets.only(top: 1),
                       child: Text(
                         items[i].status,
@@ -170,7 +170,7 @@ class DriverDocuments extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
+                    )),
                     const SizedBox(width: 4),
                     const Icon(
                       Icons.chevron_right_rounded,
