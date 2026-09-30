@@ -1,0 +1,63 @@
+# Driver route inventory
+
+Static inventory at phase 30. Canonical entry: MoveraApp → DriverHome. No files deleted. Legacy auth is opt-in via MOVERA_ENABLE_LEGACY_AUTH; disabled by default. Demo services remain labelled.
+
+| Screen | Source | Classification | Constructor references outside its source |
+|---|---|---|---|
+| AcceptRide | `lib/presentation/driver/accept ride/accept_ride.dart` | demo reachable | `lib/presentation/driver/ride requests/ride_requests.dart`, `lib/presentation/driver/home/home.dart` |
+| AcceptanceRate | `lib/presentation/driver/analytics/acceptance rate/acceptance_rate.dart` | demo reachable | `lib/presentation/driver/analytics/analytics.dart`, `lib/presentation/driver/analytics/components/insights.dart` |
+| Accessibility | `lib/presentation/driver/settings/accessibility/accessibility.dart` | demo reachable | `lib/presentation/driver/settings/settings.dart` |
+| AddNewAccount | `lib/presentation/driver/my bank/add new account/add_new_account.dart` | demo reachable | `lib/presentation/driver/my bank/my_bank.dart` |
+| AddVehicle | `lib/presentation/driver/add vehicle/add_vehicle.dart` | demo reachable | `lib/presentation/driver/vehicles/vehicles.dart` |
+| AdditionalInfoNavigation | `lib/presentation/driver/auth/additional detail/navigation.dart` | legacy gated | `lib/presentation/driver/auth/sign in/sign_in.dart` |
+| Analytics | `lib/presentation/driver/analytics/analytics.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart`, `lib/presentation/driver/home/components/recent_rides.dart` |
+| CancelationRate | `lib/presentation/driver/analytics/cancelation rate/cancelation_rate.dart` | demo reachable | `lib/presentation/driver/analytics/analytics.dart`, `lib/presentation/driver/analytics/components/insights.dart` |
+| Chat | `lib/presentation/common/chat/chat.dart` | demo reachable | `lib/presentation/driver/accept ride/accept_ride.dart` |
+| DocumentPreview | `lib/presentation/driver/documents/document_preview.dart` | demo reachable | `lib/presentation/driver/documents/documents.dart` |
+| DriverCreateAccount | `lib/presentation/driver/auth/create acc/create_acc.dart` | legacy gated | `lib/presentation/driver/auth/starter/starter.dart`, `lib/presentation/driver/auth/sign in/sign_in.dart` |
+| DriverCreateAccountPhone | `lib/presentation/driver/auth/create acc/create_acc_phone.dart` | legacy gated | `lib/presentation/driver/auth/create acc/create_acc.dart` |
+| DriverDestinationPicker | `lib/presentation/driver/destination mode/destination_picker.dart` | demo reachable | `lib/presentation/driver/home/home.dart` |
+| DriverDocuments | `lib/presentation/driver/documents/documents.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart`, `lib/presentation/driver/home/home.dart` |
+| DriverHome | `lib/presentation/driver/home/home.dart` | demo reachable | `lib/main.dart`, `lib/presentation/driver/ride completed/ride_completed.dart` |
+| DriverPhoneVerification | `lib/presentation/driver/auth/phone verification/phone_verify.dart` | legacy gated | `lib/presentation/driver/auth/create acc/create_acc_phone.dart` |
+| DriverProfile | `lib/presentation/driver/profile/profile.dart` | demo reachable | `lib/core/driver/driver_profile.dart`, `lib/presentation/driver/side menu/side_menu.dart` |
+| DriverRideCompleted | `lib/presentation/driver/ride completed/ride_completed.dart` | demo reachable | `lib/presentation/driver/accept ride/accept_ride.dart` |
+| DriverRideHistory | `lib/presentation/driver/ride history/ride_history.dart` | demo reachable | `lib/presentation/driver/home/home.dart`, `lib/presentation/driver/side menu/side_menu.dart` |
+| DriverRideHistoryDetail | `lib/presentation/driver/ride history/history detail/history_detail.dart` | demo reachable | `lib/presentation/driver/ride history/ride_history.dart` |
+| DriverSignIn | `lib/presentation/driver/auth/sign in/sign_in.dart` | legacy gated | `lib/presentation/driver/auth/starter/starter.dart` |
+| DriverSignInPhone | `lib/presentation/driver/auth/sign in phone/sign_in_phone.dart` | legacy gated | `lib/presentation/driver/auth/sign in/sign_in.dart` |
+| DriverStarter | `lib/presentation/driver/auth/starter/starter.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart`, `lib/presentation/common/onboarding/onboarding.dart` |
+| DriverVehicles | `lib/presentation/driver/vehicles/vehicles.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart` |
+| DrivingLogs | `lib/presentation/driver/driving logs/driving_logs.dart` | demo reachable | `lib/presentation/driver/side menu/side_menu.dart` |
+| EarningStatsScreen | `lib/presentation/driver/earning stats/earning_stats.dart` | demo reachable | `lib/presentation/driver/analytics/analytics.dart`, `lib/presentation/driver/analytics/components/earnings.dart` |
+| EmergencyContactsScreen | `lib/presentation/driver/settings/emergency_contacts.dart` | demo reachable | `lib/presentation/driver/settings/settings.dart` |
+| LegalDocumentScreen | `lib/presentation/driver/profile/legal_document.dart` | orphan candidate — not deleted | none |
+| MyBank | `lib/presentation/driver/my bank/my_bank.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart`, `lib/presentation/driver/my wallet/wallet.dart` |
+| OnboardingScreen | `lib/presentation/common/onboarding/onboarding.dart` | demo reachable | `lib/presentation/common/splash/splash.dart` |
+| PinVerification | `lib/presentation/driver/pin verification/pin_verification.dart` | demo reachable | `lib/presentation/driver/settings/settings.dart` |
+| Preferences | `lib/presentation/driver/preferences/preferences.dart` | demo reachable | `lib/presentation/driver/side menu/side_menu.dart` |
+| ProgressWidget | `lib/presentation/driver/auth/additional detail/navigation.dart` | legacy gated | none |
+| Promotions | `lib/presentation/driver/promotions/promotions.dart` | demo reachable | `lib/presentation/driver/side menu/side_menu.dart` |
+| ReceiverMessage | `lib/presentation/common/chat/chat.dart` | orphan candidate — not deleted | none |
+| ScheduledRidesScreen | `lib/presentation/driver/scheduled rides/scheduled_rides.dart` | demo reachable | `lib/presentation/driver/home/home.dart`, `lib/presentation/driver/side menu/side_menu.dart` |
+| SelectDocumentType | `lib/presentation/driver/auth/additional detail/screens/upload document/select document type/select_doc_typ.dart` | legacy gated | `lib/presentation/driver/auth/additional detail/navigation.dart` |
+| SenderMessage | `lib/presentation/common/chat/chat.dart` | orphan candidate — not deleted | none |
+| Settings | `lib/presentation/driver/settings/settings.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart`, `lib/presentation/driver/side menu/side_menu.dart` |
+| SoundAndVoice | `lib/presentation/driver/settings/sound & voice/sound_voice.dart` | demo reachable | `lib/presentation/driver/settings/settings.dart` |
+| Splash | `lib/presentation/common/splash/splash.dart` | orphan candidate — not deleted | none |
+| SupportInboxScreen | `lib/presentation/driver/support/support_inbox.dart` | demo reachable | `lib/presentation/driver/profile/profile.dart`, `lib/presentation/driver/side menu/side_menu.dart`, `lib/presentation/driver/home/components/driver_sheet_nav.dart` |
+| TakeIdPhoto | `lib/presentation/driver/auth/additional detail/screens/upload document/take id photo/take_id_photo.dart` | legacy gated | `lib/presentation/driver/auth/additional detail/screens/upload document/select document type/select_doc_typ.dart` |
+| UploadVehiclePhotos | `lib/presentation/driver/add vehicle/upload photos/upload_photos.dart` | orphan candidate — not deleted | none |
+| VehicleDocuments | `lib/presentation/driver/add vehicle/add_vehicle.dart` | demo reachable | `lib/presentation/driver/vehicles/vehicles.dart` |
+| WalletScreen | `lib/presentation/driver/my wallet/wallet.dart` | demo reachable | `lib/presentation/driver/side menu/side_menu.dart`, `lib/presentation/driver/home/components/driver_sheet_nav.dart` |
+| WithdrawAmountSuccessfully | `lib/presentation/driver/my wallet/components/withdraw_sucess.dart` | demo reachable | `lib/presentation/driver/my wallet/components/choose_bank.dart` |
+
+## Canonical tasks
+- Active trips: Home → AcceptRide → DriverRideCompleted → Home or queued AcceptRide.
+- History: RideHistory → detail, with illustrative route map.
+- Documents: DriverDocuments → item-specific DocumentPreview (no legacy upload).
+- Support: SupportInboxScreen → local conversation draft.
+- Reservations: ScheduledRidesScreen → nonbinding preview detail.
+- Logout: DriverStarter displays demo account boundary; legacy sign-in is disabled by default.
+
+Orphan candidates are retained until runtime reachability and device checks justify deletion. This inventory does not certify all navigation behavior.
