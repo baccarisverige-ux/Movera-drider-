@@ -42,11 +42,12 @@ void main() {
     repo.fail=true;
     final action=find.byKey(const ValueKey<String>('active-ride-primary-action'));
     await tester.ensureVisible(action);
-    ScaffoldMessenger.of(tester.element(action)).hideCurrentSnackBar();
-    await tester.pump(const Duration(milliseconds:300));
-    await tester.ensureVisible(action);
     await tester.drag(action,const Offset(320,0));
     for(var i=0;i<10;i++) { await tester.pump(const Duration(milliseconds:30)); }
+    expect((await repo.read())!.stage,ActiveRideStage.waitingForRider);
+    ScaffoldMessenger.of(tester.element(action)).clearSnackBars();
+    await tester.pump(const Duration(milliseconds:400));
+    await tester.ensureVisible(action);
     await tester.drag(action,const Offset(320,0));
     for(var i=0;i<10;i++) { await tester.pump(const Duration(milliseconds:30)); }
     expect((await repo.read())!.stage,ActiveRideStage.onTrip);
