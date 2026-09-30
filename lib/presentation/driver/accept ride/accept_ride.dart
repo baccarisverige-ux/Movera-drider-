@@ -805,8 +805,10 @@ class _AcceptRideState extends State<AcceptRide>
       if (status == TripStatus.cancelledByRider) {
         await _handleRiderCancelled();
       } else if (status.isTerminal) {
+        final secured = _onTripRadarState == _OnTripRadarState.secured ? _nextTripRadarOffer : null;
+        final next = secured == null ? null : _snapshotForOffer(secured);
         await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
-          _waybills.current ?? _buildCurrentWaybill(), status: status, authoritative:true);
+          _waybills.current ?? _buildCurrentWaybill(), status: status, authoritative:true, next:next);
         if (!mounted) { return; }
         if (!await _rideLifecycle.applyProjection(status)) { return; }
         _pauseLiveUpdates();
