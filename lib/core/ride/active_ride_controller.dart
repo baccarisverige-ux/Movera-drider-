@@ -52,7 +52,7 @@ class ActiveRideController extends ChangeNotifier {
 
     if (!await _write(() => _repository.save(_snapshot(next)))) return false;
     _stage = next;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
     return true;
   }
 
@@ -60,7 +60,7 @@ class ActiveRideController extends ChangeNotifier {
     if (terminal || saving || _stage != ActiveRideStage.onTrip) return false;
     if (clearSnapshot && !await _write(() => _finish(TripStatus.completed))) return false;
     _terminalStatus = TripStatus.completed;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
     return true;
   }
 
@@ -71,7 +71,7 @@ class ActiveRideController extends ChangeNotifier {
     if (terminal || saving || !_isCancellationTerminal(status)) return false;
     if (clearSnapshot && !await _write(() => _finish(status))) return false;
     _terminalStatus = status;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
     return true;
   }
 
@@ -85,10 +85,13 @@ class ActiveRideController extends ChangeNotifier {
     final repository = _repository;
     if (repository is TerminalRideRepository && tripId != null) {
       await (repository as TerminalRideRepository).markTerminal(tripId!, status);
+      await (repository as TerminalRideRepository).clearForTrip(tripId!);
+    } else {
+      await repository.clear();
     }
-    await repository.clear();
   }
 
+  bool recoveryRequired = false;
   bool _disposed = false;
   bool _writing = false;
   Object? persistenceError;
@@ -116,8 +119,9 @@ class ActiveRideController extends ChangeNotifier {
     final stored = await _repository.read();
     if (stored == null) return;
     if (tripId != null && stored.tripId != tripId) return;
-    // Stale rides remain available for explicit recovery in Home.
+    recoveryRequired = !stored.isFresh;
+    if (recoveryRequired) { if (!_disposed) notifyListeners(); return; }
     _stage = stored.stage;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 }

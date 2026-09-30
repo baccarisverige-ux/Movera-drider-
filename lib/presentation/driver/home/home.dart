@@ -310,7 +310,7 @@ class _DriverHomeState extends State<DriverHome>
       if (resume != true) {
         try {
           if (repo is TerminalRideRepository) await (repo as TerminalRideRepository).markTerminal(snapshot.tripId, TripStatus.cancelledByDriver);
-          await repo.clear();
+          if (repo is TerminalRideRepository) { await (repo as TerminalRideRepository).clearForTrip(snapshot.tripId); } else { await repo.clear(); }
         } catch (_) {
           _didAttemptActiveRideRestore = false;
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(

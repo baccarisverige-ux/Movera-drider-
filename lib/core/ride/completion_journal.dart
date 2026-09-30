@@ -60,7 +60,8 @@ class CompletionJournal {
  } else {
  // Clear only A; do not erase an independently accepted newer trip.
  final current=await active.read();
- if(current==null || current.tripId==id) await active.clear();
+ if(repository is TerminalRideRepository) { await (repository as TerminalRideRepository).clearForTrip(id); }
+ else if(current==null || current.tripId==id) { await active.clear(); }
  }
  afterWrite?.call('snapshot');
  if(!await prefs.remove(key)) throw StateError('Completion journal cleanup failed');

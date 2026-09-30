@@ -1264,7 +1264,8 @@ class _AcceptRideState extends State<AcceptRide>
       if (!await _rideLifecycle.complete(clearSnapshot: false)) {
         _completionInFlight = false; _stageTransitioning = false; return;
       }
-    } catch (_) {
+    } catch (error, stack) {
+      DriverLog.error('Trip completion journal failed', error, stack);
       _completionInFlight = false; _stageTransitioning = false;
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Could not finish saving this trip. Retry completion; the receipt will not duplicate.')));

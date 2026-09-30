@@ -75,6 +75,16 @@ class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRep
   });
 
   @override
+  Future<void> clearForTrip(String tripId) => _enqueue(() async {
+    final prefs = await _load();
+    final raw = prefs.getString(key);
+    if (raw == null) return;
+    final data = jsonDecode(raw);
+    if (data is! Map || data['tripId'] != tripId) return;
+    if (!await prefs.remove(key)) throw StateError('Trip cleanup failed');
+  });
+
+  @override
   Future<void> clear() => _enqueue(() async {
     final prefs = await _load();
     if (!await prefs.remove(key)) throw StateError('Active ride could not be cleared');

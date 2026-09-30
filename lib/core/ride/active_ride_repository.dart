@@ -293,4 +293,5 @@ class MemoryActiveRideRepository implements ActiveRideRepository {
 /// Terminal markers survive cleanup failure. Active IDs are never reused.
 abstract interface class TerminalRideRepository {
  Future<void> markTerminal(String tripId, TripStatus status);
+ Future<void> clearForTrip(String tripId);
 }
