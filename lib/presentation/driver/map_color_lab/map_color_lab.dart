@@ -6,6 +6,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/movera_map_style_lab.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 class MoveraMapColorLabScreen extends StatefulWidget {
   const MoveraMapColorLabScreen({super.key});
@@ -112,9 +113,10 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return SafeArea(
-              top: false,
-              child: Container(
+            return PointerInterceptor(
+              child: SafeArea(
+                top: false,
+                child: Container(
                 height: MediaQuery.sizeOf(context).height * 0.68,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
                 decoration: const BoxDecoration(
@@ -175,6 +177,7 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
                       ),
                     ),
                   ],
+                  ),
                 ),
               ),
             );
@@ -250,8 +253,9 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
             top: top + 10,
             left: 12,
             right: 12,
-            child: Material(
-              color: Colors.white.withValues(alpha: 0.96),
+            child: PointerInterceptor(
+              child: Material(
+                color: Colors.white.withValues(alpha: 0.96),
               elevation: 3,
               shadowColor: Colors.black.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(18),
@@ -306,7 +310,8 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
                             : Icons.check_circle_outline_rounded,
                       ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -320,8 +325,9 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
             snap: true,
             snapSizes: const [0.20, 0.43, 0.78],
             builder: (context, scrollController) {
-              return Material(
-                color: Colors.white,
+              return PointerInterceptor(
+                child: Material(
+                  color: Colors.white,
                 elevation: 16,
                 shadowColor: Colors.black.withValues(alpha: 0.18),
                 borderRadius: const BorderRadius.vertical(
@@ -387,7 +393,8 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
                     ),
                     const SizedBox(height: 6),
                     ...MoveraMapStyleController.fields.map(_buildFieldTile),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
