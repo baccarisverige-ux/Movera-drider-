@@ -1,103 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/my%20bank/add%20new%20account/add_new_account.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
 
-class MyBank extends StatefulWidget {
+class MyBank extends StatelessWidget {
   const MyBank({super.key});
-
-  @override
-  State<MyBank> createState() => _MyBankState();
-}
-
-class _MyBankState extends State<MyBank> {
-  final List<_BankItem> _banks = [];
-  int _payoutIndex = 0;
-
-  Future<void> _openAccount(_BankItem bank, int index) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  bank.name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF252E3A),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${bank.bank}\n${bank.account}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.4,
-                    color: Color(0xFF7D898F),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (_payoutIndex != index)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.check_circle_outline),
-                    title: const Text('Mark as local draft'),
-                    onTap: () {
-                      setState(() => _payoutIndex = index);
-                      Navigator.pop(sheetContext);
-                    },
-                  ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.edit_outlined),
-                  title: const Text('Edit account'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    Navigator.push(
-                      context,
-                      TopToBottomTransition(AddNewAccount()),
-                    );
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.delete_outline, color: Color(0xFFE31E37)),
-                  title: const Text(
-                    'Remove account',
-                    style: TextStyle(color: Color(0xFFE31E37)),
-                  ),
-                  onTap: () {
-                    setState(() {
-                      _banks.removeAt(index);
-                      if (_payoutIndex >= _banks.length) {
-                        _payoutIndex = _banks.isEmpty ? 0 : _banks.length - 1;
-                      }
-                    });
-                    Navigator.pop(sheetContext);
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,115 +35,38 @@ class _MyBankState extends State<MyBank> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Add a local preview draft',
             onPressed: () {
-              Navigator.push(context, TopToBottomTransition(AddNewAccount()));
+              Navigator.push(context, TopToBottomTransition(const AddNewAccount()));
             },
             icon: Icon(Icons.add_rounded, size: ResSize.h * 25),
           ),
         ],
       ),
       body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
         children: [
           12.height,
-          if (_banks.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'No payout account is connected. Adding one here is a local draft only and does not start weekly payouts.',
-                style: TextStyle(color: Color(0xFF7D898F)),
-              ),
+          const Text(
+            'No payout account connected',
+            style: TextStyle(
+              color: Color(0xFF252E3A),
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
             ),
-          ...List.generate(_banks.length, (index) {
-            final _BankItem bank = _banks[index];
-            final selected = index == _payoutIndex;
-            return Padding(
-              padding: EdgeInsets.only(bottom: 8 * ResSize.h),
-              child: InkWell(
-                onTap: () => _openAccount(bank, index),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenHorizPadding,
-                    vertical: ResSize.h * 10,
-                  ),
-                  decoration: BoxDecoration(color: AppColor.white),
-                  child: Row(
-                    children: [
-                      Container(
-                        height: ResSize.h * 52,
-                        width: ResSize.w * 52,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2F2F2F),
-                          borderRadius: BorderRadius.circular(8 * ResSize.w),
-                        ),
-                        child: Center(
-                          child: TextWidget(
-                            text: bank.initials,
-                            fontSize: 20,
-                            color: AppColor.white,
-                            fontWeight: fwSemiBold,
-                          ),
-                        ),
-                      ),
-                      12.width,
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            TextWidget(
-                              text: bank.name,
-                              fontSize: 16,
-                              color: AppColor.title,
-                              fontWeight: fwSemiBold,
-                            ),
-                            TextWidget(
-                              text: bank.account,
-                              fontSize: 14,
-                              color: AppColor.subtitle,
-                              fontWeight: fwSemiBold,
-                            ),
-                            if (selected)
-                              const Text(
-                                'Weekly payouts',
-                                style: TextStyle(
-                                  color: Color(0xFF19865C),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Image.asset(AppAssets.delete, height: ResSize.h * 20),
-                          14.width,
-                          Image.asset(
-                            AppAssets.editNote,
-                            height: ResSize.h * 20,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Local preview only. No bank is connected, nothing is verified, and no payout is scheduled.',
+            style: TextStyle(color: Color(0xFF7D898F), height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Adding an account keeps a draft on this screen only. It does not connect a payout account or move money.',
+            style: TextStyle(color: Color(0xFF7D898F), height: 1.4),
+          ),
         ],
       ),
     );
   }
-}
-
-class _BankItem {
-  final String initials;
-  final String name;
-  final String account;
-  final String bank;
-  const _BankItem({
-    required this.initials,
-    required this.name,
-    required this.account,
-    required this.bank,
-  });
 }

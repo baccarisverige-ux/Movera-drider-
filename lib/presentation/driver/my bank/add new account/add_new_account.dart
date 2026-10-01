@@ -42,6 +42,11 @@ class AddNewAccount extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               20.height,
+              const Text(
+                'Local preview draft. This does not verify a bank, connect a payout account, or move money.',
+                style: TextStyle(color: Color(0xFF7D898F), height: 1.4),
+              ),
+              16.height,
               TextWidget(
                 text: 'Bank Information',
                 color: AppColor.title,

@@ -256,7 +256,7 @@ class WalletScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
-              'Weekly',
+              'Not set',
               style: TextStyle(
                 color: _green,
                 fontSize: 10.5,
