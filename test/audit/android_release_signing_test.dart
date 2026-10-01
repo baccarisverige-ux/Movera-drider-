@@ -13,5 +13,8 @@ void main() {
       gradle.contains('else {\n                signingConfigs.getByName("debug")'),
       isFalse,
     );
+    final wrapper = File('android/gradle/wrapper/gradle-wrapper.properties')
+        .readAsStringSync();
+    expect(wrapper, contains('gradle-8.14.3-all.zip'));
   });
 }
