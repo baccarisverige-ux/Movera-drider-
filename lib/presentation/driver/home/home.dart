@@ -528,7 +528,7 @@ class _DriverHomeState extends State<DriverHome>
         isOnline: _isOnline,
         accountActive: isAccountActivated,
       ),
-      _HomeMapSheet(this).body: showRideRequests
+      body: showRideRequests
           ? Stack(
               fit: StackFit.expand,
               children: [
@@ -585,7 +585,7 @@ class _DriverHomeState extends State<DriverHome>
                   hideMainPanel = false;
                 });
               },
-              _HomeMapSheet(this).body: _HomeMapSheet(this).body(isDestinationPanel: true),
+              body: _HomeMapSheet(this).body(isDestinationPanel: true),
             )
           : SlidingUpPanel(
               color: Colors.transparent,
@@ -683,7 +683,7 @@ class _DriverHomeState extends State<DriverHome>
                             : _HomeMapSheet(this).panelColumn(sc),
                       ),
                     ),
-              _HomeMapSheet(this).body: AbsorbPointer(
+              body: AbsorbPointer(
                 absorbing: _blockMapGestures,
                 child: _HomeMapSheet(this).body(),
               ),
