@@ -13,7 +13,13 @@ void main() {
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'))
         .where(
-          (file) => file.readAsStringSync().contains('flutter_sliding_up_panel'),
+          (file) =>
+              file.readAsStringSync().contains(
+                "import 'package:flutter_sliding_up_panel",
+              ) ||
+              file.readAsStringSync().contains(
+                'import "package:flutter_sliding_up_panel',
+              ),
         )
         .map((file) => file.path)
         .toList();
