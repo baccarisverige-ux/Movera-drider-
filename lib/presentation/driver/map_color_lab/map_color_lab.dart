@@ -75,7 +75,7 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
     var red = (argb >> 16) & 0xFF;
     var green = (argb >> 8) & 0xFF;
     var blue = argb & 0xFF;
-    final next = value.round().clamp(0, 255);
+    final next = value.round().clamp(0, 255).toInt();
     if (shift == 16) {
       red = next;
     } else if (shift == 8) {
