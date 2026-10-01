@@ -9,7 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// for existing installs.
 class SettingsRepository {
   static const key = 'movera_driver_settings';
-  static const _sectionPrefix = 'movera_driver_settings_section_';
+  static const sectionPrefix = 'movera_driver_settings_section_';
+  static const _sectionPrefix = sectionPrefix;
   static Future<void>? _pending;
 
   String _sectionKey(String section) => '$_sectionPrefix$section';
