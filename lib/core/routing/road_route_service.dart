@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -23,12 +24,29 @@ class RoadRouteException implements Exception {
 class RoadRouteService implements RouteRepository {
   RoadRouteService({
     http.Client? client,
+    bool? ownsClient,
     OsrmRouteParser parser = const OsrmRouteParser(),
+    this.timeout = const Duration(seconds: 8),
   })  : _client = client ?? http.Client(),
+        _ownsClient = ownsClient ?? client == null,
         _parser = parser;
 
   final http.Client _client;
+  final bool _ownsClient;
   final OsrmRouteParser _parser;
+  final Duration timeout;
+  var _closed = false;
+
+  /// Closes the HTTP client only when this service created it.
+  void dispose() {
+    if (_closed) {
+      return;
+    }
+    _closed = true;
+    if (_ownsClient) {
+      _client.close();
+    }
+  }
 
   @override
   Future<RoadRoute> drivingRoute({
@@ -51,9 +69,20 @@ class RoadRouteService implements RouteRepository {
       },
     );
 
-    final response = await _client
-        .get(uri, headers: const {'Accept': 'application/json'})
-        .timeout(const Duration(seconds: 8));
+    final http.Response response;
+    try {
+      response = await _client
+          .get(uri, headers: const {'Accept': 'application/json'})
+          .timeout(timeout);
+    } on TimeoutException {
+      throw const RoadRouteException(
+        'Routing is taking too long. The trip is still active.',
+      );
+    } on http.ClientException {
+      throw const RoadRouteException(
+        'Routing is offline. The trip is still active.',
+      );
+    }
 
     if (response.statusCode != 200) {
       throw RoadRouteException(

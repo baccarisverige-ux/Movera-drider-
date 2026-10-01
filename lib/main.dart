@@ -16,7 +16,6 @@ import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/ride/prefs_active_ride_repository.dart';
 import 'package:movera/core/routing/road_route_service.dart';
-import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/session/driver_session_repository.dart';
 import 'package:movera/core/waybill/waybill.dart';
@@ -45,7 +44,7 @@ class _MoveraAppState extends State<MoveraApp> {
   late final DriverSessionController _session;
   late final WaybillRepository _waybills;
   late final DriverLocationRepository _location;
-  late final RouteRepository _routing;
+  late final RoadRouteService _routing;
   late final DispatchRepository _dispatch;
   late final DriverHomeConfigRepository _homeConfig;
   late final ActiveRideRepository _activeRide;
@@ -67,6 +66,7 @@ class _MoveraAppState extends State<MoveraApp> {
   @override
   void dispose() {
     _session.dispose();
+    _routing.dispose();
     final dispatch = _dispatch;
     if (dispatch is DemoDispatchRepository) {
       dispatch.dispose();
