@@ -6,6 +6,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/movera_map_style_lab.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 class MoveraMapColorLabScreen extends StatefulWidget {
   const MoveraMapColorLabScreen({super.key});
@@ -24,6 +25,8 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
   String? _message;
   bool _spectrumVisible = false;
   Color? _spectrumStartColor;
+  int _editorPointers = 0;
+  bool _editorPointerActive = false;
 
   @override
   void initState() {
@@ -153,6 +156,21 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
     setState(() => _message = 'Map style JSON copied');
   }
 
+  void _handleEditorPointerDown(PointerDownEvent event) {
+    _editorPointers += 1;
+    if (_editorPointerActive) return;
+    setState(() => _editorPointerActive = true);
+  }
+
+  void _handleEditorPointerEnd(PointerEvent event) {
+    if (_editorPointers > 0) {
+      _editorPointers -= 1;
+    }
+    if (_editorPointers == 0 && _editorPointerActive) {
+      setState(() => _editorPointerActive = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final selected = _style.color(_selectedKey);
@@ -167,8 +185,8 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
               flex: 9,
               child: Container(
                 color: Colors.white,
-                child: const CustomGoogleMap(
-                  initialPosition: CameraPosition(
+                child: CustomGoogleMap(
+                  initialPosition: const CameraPosition(
                     target: LatLng(59.3293, 18.0686),
                     zoom: 13.2,
                   ),
@@ -180,10 +198,10 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
                   trafficEnabled: false,
                   buildingsEnabled: true,
                   indoorViewEnabled: false,
-                  scrollGesturesEnabled: true,
-                  zoomGesturesEnabled: true,
-                  rotateGesturesEnabled: true,
-                  tiltGesturesEnabled: true,
+                  scrollGesturesEnabled: !_editorPointerActive,
+                  zoomGesturesEnabled: !_editorPointerActive,
+                  rotateGesturesEnabled: !_editorPointerActive,
+                  tiltGesturesEnabled: !_editorPointerActive,
                   mapType: MapType.normal,
                 ),
               ),
@@ -191,7 +209,15 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
             Container(height: 1, color: const Color(0xFFE3E7E9)),
             Expanded(
               flex: 11,
-              child: _buildEditorWorkspace(selected),
+              child: PointerInterceptor(
+                child: Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: _handleEditorPointerDown,
+                  onPointerUp: _handleEditorPointerEnd,
+                  onPointerCancel: _handleEditorPointerEnd,
+                  child: _buildEditorWorkspace(selected),
+                ),
+              ),
             ),
           ],
         ),
