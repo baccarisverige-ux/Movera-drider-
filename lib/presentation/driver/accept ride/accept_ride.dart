@@ -48,6 +48,8 @@ import 'package:movera/widgets/navigation_transition.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
+part 'accept_ride_trip.dart';
+
 class AcceptRide extends StatefulWidget {
   const AcceptRide({
     super.key,
@@ -377,6 +379,12 @@ class _AcceptRideState extends State<AcceptRide>
   ActiveRideStage get _stage => _rideLifecycle.stage;
   Timer? _waitTimer;
   StreamSubscription<DriverRealtimeEvent>? _realtimeSubscription;
+  late final VoidCallback _onNavigationChangedListener =
+      _AcceptRideTrip(this)._onNavigationChanged;
+  late final VoidCallback _syncNavigationStageListener =
+      _AcceptRideTrip(this)._syncNavigationStage;
+  late final void Function(CameraPosition) _onCameraMoveListener =
+      _AcceptRideTrip(this)._onCameraMove;
   late final DriverRealtime _realtime;
   late final bool _ownsRealtime;
   bool _riderOnTheWay = false;
@@ -431,19 +439,19 @@ class _AcceptRideState extends State<AcceptRide>
     _waybills =
         widget.waybillRepository ?? InMemoryWaybillRepository.instance;
     _navigation = NavigationController(routeRepository: _routeService);
-    _navigation.addListener(_onNavigationChanged);
+    _navigation.addListener(_onNavigationChangedListener);
     _ownsRealtime = widget.realtime == null;
     _realtime = widget.realtime ?? MemoryDriverRealtime();
     _realtimeSubscription =
-        _realtime.subscribe(widget.offerId).listen(_onRealtimeEvent, onError: (Object error) {
+        _realtime.subscribe(widget.offerId).listen(_AcceptRideTrip(this)._onRealtimeEvent, onError: (Object error) {
           if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip updates disconnected. Reconnecting is required.'))); }
         });
-    unawaited(_resyncTrip());
-    _rideLifecycle.snapshotBuilder = _buildSnapshot;
-    _rideLifecycle.addListener(_onPersistenceChanged);
-    _rideLifecycle.addListener(_syncNavigationStage);
-    _syncNavigationStage();
-    _restoreQueuedNextFromSnapshot();
+    unawaited(_AcceptRideTrip(this)._resyncTrip());
+    _rideLifecycle.snapshotBuilder = _AcceptRideTrip(this)._buildSnapshot;
+    _rideLifecycle.addListener(_AcceptRideTrip(this)._onPersistenceChanged);
+    _rideLifecycle.addListener(_syncNavigationStageListener);
+    _syncNavigationStageListener();
+    _AcceptRideTrip(this)._restoreQueuedNextFromSnapshot();
     final restored = widget.restoredSnapshot;
     _stopCursor = math.min(math.max(0, restored?.stopIndex ?? 0), widget.stopAddresses.length);
     _paidStopWait = restored?.paidStopWait == true;
@@ -457,11 +465,11 @@ class _AcceptRideState extends State<AcceptRide>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) { return; }
       widget.sessionController?.beginTrip(widget.offerId);
-      if(_waybills.current?.tripId != widget.offerId) { _waybills.beginCurrent(_buildCurrentWaybill()); }
+      if(_waybills.current?.tripId != widget.offerId) { _waybills.beginCurrent(_AcceptRideTrip(this)._buildCurrentWaybill()); }
       if (widget.restoredSnapshot?.next != null && _nextTripRadarOffer != null) {
-        _waybills.secureNext(_buildNextWaybill(_nextTripRadarOffer!));
+        _waybills.secureNext(_AcceptRideTrip(this)._buildNextWaybill(_nextTripRadarOffer!));
       }
-      _resumeStageSideEffects();
+      _AcceptRideTrip(this)._resumeStageSideEffects();
       _rideLifecycle.persistNow();
     });
     _radarPulseController = AnimationController(
@@ -485,8 +493,8 @@ class _AcceptRideState extends State<AcceptRide>
         headingDegrees: 0,
       ),
     );
-    unawaited(_prepareDriverVehicleMarker());
-    _startLiveLocation();
+    unawaited(_AcceptRideTrip(this)._prepareDriverVehicleMarker());
+    _AcceptRideTrip(this)._startLiveLocation();
   }
 
   @override
@@ -515,9 +523,9 @@ class _AcceptRideState extends State<AcceptRide>
     _radarPulseController.dispose();
     _radarSweepController.dispose();
     _positionSubscription?.cancel();
-    _rideLifecycle.removeListener(_syncNavigationStage);
+    _rideLifecycle.removeListener(_syncNavigationStageListener);
     _rideLifecycle.dispose();
-    _navigation.removeListener(_onNavigationChanged);
+    _navigation.removeListener(_onNavigationChangedListener);
     _navigation.dispose();
     _vehicle.dispose();
     _snapSheet.dispose();
@@ -530,177 +538,33 @@ class _AcceptRideState extends State<AcceptRide>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
-        _resumeLiveUpdates();
-        unawaited(_resyncTrip());
+        _AcceptRideTrip(this)._resumeLiveUpdates();
+        unawaited(_AcceptRideTrip(this)._resyncTrip());
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
         _rideLifecycle.persistNow();
-        _pauseLiveUpdates();
+        _AcceptRideTrip(this)._pauseLiveUpdates();
     }
   }
 
-  PersistedActiveRide _buildSnapshot(ActiveRideStage stage) {
-    final offer = _nextTripRadarOffer;
-    final securedOffer =
-        _onTripRadarState == _OnTripRadarState.secured ? offer : null;
-    return PersistedActiveRide(
-      tripId: widget.offerId,
-      stage: stage,
-      destinationModeActive: widget.destinationModeActive,
-      destinationAddress: widget.destinationAddress,
-      destinationPoint: widget.destinationPosition == null ? null : GeoPointMaps.fromLatLng(widget.destinationPosition!),
-      nextTripId: securedOffer?.id,
-      riderName: widget.riderName,
-      riderRating: widget.riderRating,
-      riderTrips: widget.riderTrips,
-      fare: widget.fare,
-      category: widget.category,
-      matchedVia: widget.matchedVia,
-      pickupAddress: widget.pickupAddress,
-      pickupArea: widget.pickupArea,
-      dropoffAddress: widget.dropoffAddress,
-      stopAddresses: widget.stopAddresses,
-      stopPoints: widget.stopPositions.map(GeoPointMaps.fromLatLng).toList(),
-      pickupLat: widget.pickupPosition.latitude,
-      pickupLng: widget.pickupPosition.longitude,
-      dropoffLat: widget.dropoffPosition.latitude,
-      dropoffLng: widget.dropoffPosition.longitude,
-      waitSeconds: _waitSeconds,
-      stopIndex: _stopCursor,
-      paidStopWait: _paidStopWait,
-      startedAt: _onTripStartedAt,
-      next: securedOffer == null
-          ? null
-          : PersistedQueuedTrip(
-              tripId: securedOffer.id,
-              riderName: securedOffer.riderName,
-              fare: securedOffer.fare,
-              category: securedOffer.category,
-              pickup: securedOffer.pickup,
-              dropoff: securedOffer.dropoff,
-              pickupLat: securedOffer.pickupPosition.latitude,
-              pickupLng: securedOffer.pickupPosition.longitude,
-              dropoffLat: securedOffer.dropoffPosition.latitude,
-              dropoffLng: securedOffer.dropoffPosition.longitude,
-              rating: securedOffer.rating,
-              pickupMinutes: securedOffer.pickupMinutes,
-              tripMinutes: securedOffer.tripMinutes,
-            ),
-    );
-  }
 
-  void _restoreQueuedNextFromSnapshot() {
-    final next = widget.restoredSnapshot?.next;
-    if (next == null) { return; }
-    _onTripRadarState = _OnTripRadarState.secured;
-    _nextTripRadarOffer = _NextTripRadarOffer(
-      id: next.tripId,
-      category: next.category,
-      fare: next.fare,
-      rating: next.rating,
-      pickupMinutes: next.pickupMinutes,
-      tripMinutes: next.tripMinutes,
-      riderName: next.riderName,
-      pickup: next.pickup,
-      dropoff: next.dropoff,
-      pickupPosition: LatLng(next.pickupLat, next.pickupLng),
-      dropoffPosition: LatLng(next.dropoffLat, next.dropoffLng),
-    );
-  }
 
-  void _resumeStageSideEffects() {
-    switch (widget.initialStage) {
-      case ActiveRideStage.headingToPickup:
-        return;
-      case ActiveRideStage.waitingForRider:
-        _startWaitTimer();
-        unawaited(_focusWaitingPickup());
-      case ActiveRideStage.onTrip:
-        if (_onTripRadarState != _OnTripRadarState.secured) {
-          _startOnTripRadar();
-        }
-        unawaited(_refreshOnTripRoute(fitCamera: true));
-    }
-  }
 
-  void _pauseLiveUpdates() {
-    if (_liveUpdatesPaused) { return; }
-    _liveUpdatesPaused = true;
-    _locationEpoch++;
-    _hasLiveLocation = false;
-    _positionSubscription?.cancel();
-    _positionSubscription = null;
-    if (_radarPulseController.isAnimating) {
-      _radarPulseController.stop();
-    }
-    if (_radarSweepController.isAnimating) {
-      _radarSweepController.stop();
-    }
-  }
 
-  void _resumeLiveUpdates() {
-    if (!_liveUpdatesPaused) { return; }
-    _liveUpdatesPaused = false;
-    if (!MediaQuery.disableAnimationsOf(context) && !_radarPulseController.isAnimating) {
-      _radarPulseController.repeat(reverse: true);
-    }
-    if (!MediaQuery.disableAnimationsOf(context) && !_radarSweepController.isAnimating) {
-      _radarSweepController.repeat();
-    }
-    unawaited(_startLiveLocation());
-  }
 
-  WaybillRecord _buildCurrentWaybill() {
-    return WaybillRecord(
-      tripId: widget.offerId,
-      statusLabel: 'Current trip',
-      issuedAt: DateTime.now(),
-      fare: widget.fare,
-      service: widget.category,
-      riderName: widget.riderName,
-      pickup: widget.pickupAddress,
-      dropoff: widget.dropoffAddress,
-      source: widget.matchedVia,
-      driverName: 'Movera Driver',
-      vehicle: 'Movera partner vehicle',
-      licensePlate: 'MVR 418',
-      passengerCapacity: 4,
-    );
-  }
 
-  WaybillRecord _buildNextWaybill(_NextTripRadarOffer offer) {
-    return WaybillRecord(
-      tripId: offer.id,
-      statusLabel: 'Next trip secured',
-      issuedAt: DateTime.now(),
-      fare: offer.fare,
-      service: offer.category,
-      riderName: offer.riderName,
-      pickup: offer.pickup,
-      dropoff: offer.dropoff,
-      source: 'Demo Radar',
-      driverName: 'Movera Driver',
-      vehicle: 'Movera partner vehicle',
-      licensePlate: 'MVR 418',
-      passengerCapacity: 4,
-    );
-  }
 
   LatLng? get _routeTarget {
     if (_stage == ActiveRideStage.onTrip &&
         _stopCursor < widget.stopAddresses.length) {
-      return _stopPoint(_stopCursor);
+      return _AcceptRideTrip(this)._stopPoint(_stopCursor);
     }
     if (_stage == ActiveRideStage.onTrip) { return widget.dropoffPosition; }
     return widget.pickupPosition;
   }
 
-  LatLng? _stopPoint(int index) {
-    if (index < 0 || index >= widget.stopPositions.length) { return null; }
-    return widget.stopPositions[index];
-  }
 
   bool get _arrivalDemo {
     final binding = WidgetsBinding.instance.runtimeType.toString();
@@ -712,7 +576,7 @@ class _AcceptRideState extends State<AcceptRide>
     if (_stage == ActiveRideStage.onTrip &&
         !_paidStopWait &&
         _stopCursor < widget.stopAddresses.length) {
-      return _stopPoint(_stopCursor);
+      return _AcceptRideTrip(this)._stopPoint(_stopCursor);
     }
     return null;
   }
@@ -732,274 +596,16 @@ class _AcceptRideState extends State<AcceptRide>
       _stage == ActiveRideStage.waitingForRider || _paidStopWait;
 
 
-  void _syncNavigationStage() {
-    _navigation.setStage(_rideLifecycle.stage);
-  }
 
-  void _onRealtimeEvent(DriverRealtimeEvent event) {
-    if (!mounted || event.tripId != widget.offerId) { return; }
 
-    final disposition = _realtimeGate.evaluate(event);
-    if (disposition == DriverRealtimeDisposition.staleOrDuplicate ||
-        disposition == DriverRealtimeDisposition.blockedAfterTerminal) {
-      return;
-    }
 
-    if (disposition == DriverRealtimeDisposition.acceptedWithGap) {
-      unawaited(_resyncTrip());
-    }
-    if (event.status != null || event.kind == DriverRealtimeKind.riderCancelled) {
-      _pendingProjection = event;
-      unawaited(_drainProjection());
-      return;
-    }
 
-    switch (event.kind) {
-      case DriverRealtimeKind.riderOnTheWay:
-        if (_rideLifecycle.terminal) { return; }
-        setState(() => _riderOnTheWay = true);
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-          SnackBar(
-            content: Text(
-              event.message?.trim().isNotEmpty == true
-                  ? event.message!
-                  : '${widget.riderName} is on the way',
-            ),
-            backgroundColor: _ink,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        );
-      case DriverRealtimeKind.riderCancelled:
-        unawaited(_handleRiderCancelled());
-      case DriverRealtimeKind.tripProjection:
-      case DriverRealtimeKind.location:
-      case DriverRealtimeKind.driverArrived:
-        return;
-    }
-  }
 
-  Future<void> _resyncTrip() async {
-    try { await _realtime.reconnectAndResync(widget.offerId); }
-    catch (_) {
-      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Trip updates could not be refreshed.'),
-        action: SnackBarAction(label: 'Retry', onPressed: () => unawaited(_resyncTrip())))); }
-    }
-  }
 
-  Future<void> _drainProjection() async {
-    if (!mounted || _drainingProjection || _pendingProjection == null) { return; }
-    if (_rideLifecycle.saving || _completionInFlight || _cancellationInFlight || _stageTransitioning) {
-      _projectionRetry ??= Timer(const Duration(milliseconds: 100), () {
-        _projectionRetry = null; unawaited(_drainProjection());
-      });
-      return;
-    }
-    _drainingProjection = true;
-    final event = _pendingProjection!;
-    final status = event.kind == DriverRealtimeKind.riderCancelled ? TripStatus.cancelledByRider : event.status!;
-    try {
-      if (status == TripStatus.cancelledByRider) {
-        await _handleRiderCancelled();
-      } else if (status.isTerminal) {
-        final secured = _onTripRadarState == _OnTripRadarState.secured ? _nextTripRadarOffer : null;
-        final next = secured == null ? null : _snapshotForOffer(secured);
-        await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
-          _waybills.current ?? _buildCurrentWaybill(), status: status, authoritative:true, next:next);
-        if (!mounted) { return; }
-        if (!await _rideLifecycle.applyProjection(status)) { return; }
-        _pauseLiveUpdates();
-        _waybills.discardCurrent();
-        widget.sessionController?.stayOnlineAfterTrip();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Trip ended: ${status.wireName}')));
-          if (Navigator.of(context).canPop()) { Navigator.of(context).pop(); }
-        }
-      } else {
-        if (!await _rideLifecycle.applyProjection(status)) { return; }
-        if (mounted) { setState(() {}); _resumeStageSideEffects(); }
-      }
-      if (status == TripStatus.cancelledByRider && !_rideLifecycle.terminal) { return; }
-      if (identical(event, _pendingProjection)) { _pendingProjection = null; }
-    } catch (_) {
-      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Trip update could not be saved.'),
-        action: SnackBarAction(label: 'Retry', onPressed: () => unawaited(_drainProjection())))); }
-    } finally { _drainingProjection = false; }
-  }
 
-  Future<void> _handleRiderCancelled() async {
-    if (!mounted ||
-        _handlingRiderCancellation) {
-      return;
-    }
 
-    _handlingRiderCancellation = true;
-    final wasOnTrip = _stage == ActiveRideStage.onTrip;
 
-    if (_completionInFlight || _cancellationInFlight) { _handlingRiderCancellation=false; return; }
-    final secured = _onTripRadarState == _OnTripRadarState.secured ? _nextTripRadarOffer : null;
-    final next = secured == null ? null : _snapshotForOffer(secured);
-    try {
-      await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
-        _waybills.current ?? _buildCurrentWaybill(),
-        status: TripStatus.cancelledByRider,
-        authoritative:true,
-        cancellationReasonCode: 'rider_cancelled',
-        cancellationActor: 'rider',
-        next: next);
-      if (!mounted) { return; }
-      if (!await _rideLifecycle.applyProjection(TripStatus.cancelledByRider)) {
-        _handlingRiderCancellation=false; return;
-      }
-    } catch (_) {
-      _handlingRiderCancellation=false;
-      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Could not save rider cancellation. Retry.'),
-        action: SnackBarAction(label:'Retry',onPressed:(){ _handleRiderCancelled(); }))); }
-      return;
-    }
-    if(!mounted) { return; }
-    _waitTimer?.cancel();
-    _nextTripRadarDemoTimer?.cancel();
-    _nextTripRadarMatchTimer?.cancel();
-    _pauseLiveUpdates();
 
-    _waybills.discardCurrent();
-
-    await showRiderCancelledSheet(
-      context,
-      riderName: widget.riderName,
-      wasOnTrip: wasOnTrip,
-    );
-    if (!mounted) { return; }
-
-    widget.sessionController?.stayOnlineAfterTrip();
-    if(next!=null) {
-      _waybills.promoteNextToCurrent();
-      Navigator.of(context).pushReplacement(BottomToTopTransition(AcceptRide.fromPersisted(next,
-        waybillRepository:_waybills,sessionController:widget.sessionController,
-        locationRepository:widget.locationRepository,routeRepository:widget.routeRepository,
-        activeRideRepository:widget.activeRideRepository)));
-      return;
-    }
-    final navigator = Navigator.of(context);
-    if (navigator.canPop()) {
-      navigator.pop();
-    }
-  }
-
-  void _onPersistenceChanged() {
-    if (!mounted || _rideLifecycle.persistenceError == null) { return; }
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Text('Trip progress could not be saved. Keep this screen open and retry.'),
-      action: SnackBarAction(label: 'Retry', onPressed: () { _rideLifecycle.persistNow(); }),
-    ));
-  }
-
-  void _blockedArrival() {
-    if (_arrivalTarget == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('This stop needs a verified map location before arrival.'),
-      ));
-      return;
-    }
-    if (!_arrivalDemo && !_hasLiveLocation) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Location unavailable. Enable location to confirm arrival.'),
-      ));
-      return;
-    }
-    final where = _stage == ActiveRideStage.onTrip ? 'stop' : 'pickup';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Move within 100 m of the $where to arrive.'),
-        backgroundColor: _ink,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
-  }
-
-  Future<void> _onArrivedTap() async {
-    if (!_nearArrivalTarget) {
-      _blockedArrival();
-      return;
-    }
-    if (_stage == ActiveRideStage.headingToPickup) {
-      await _confirmPickupArrival();
-      return;
-    }
-    if (_stage == ActiveRideStage.onTrip &&
-        !_paidStopWait &&
-        _stopCursor < widget.stopAddresses.length) {
-      _paidStopWait = true;
-      _waitSeconds = 0;
-      _startWaitTimer();
-      await _rideLifecycle.persistNow();
-      if (mounted) { setState(() {}); }
-    }
-  }
-
-  Future<void> _confirmPickupArrival() async {
-    if (_stageTransitioning ||
-        !mounted ||
-        _rideLifecycle.terminal ||
-        _stage != ActiveRideStage.headingToPickup) {
-      return;
-    }
-
-    _stageTransitioning = true;
-    if (!await _rideLifecycle.transitionTo(ActiveRideStage.waitingForRider)) {
-      _stageTransitioning = false;
-      return;
-    }
-
-    _waitSeconds = 0;
-    _routeLoading = false;
-    _startWaitTimer();
-    await _rideLifecycle.persistNow();
-    unawaited(
-      _realtime.sendSignal(
-        tripId: widget.offerId,
-        kind: DriverRealtimeKind.driverArrived,
-        message: 'Your driver has arrived at the pickup point.',
-      ),
-    );
-    if (mounted) { setState(() {}); }
-    _unlockStageAfterFrame();
-  }
-
-  void _onNavigationChanged() {
-    if (!mounted || _stageTransitioning) { return; }
-    final route = _navigation.route;
-    final status = _navigation.status;
-    final pointsChanged = route != null &&
-        route.points.length >= 2 &&
-        !identical(_roadGeoPoints, route.points);
-    final mappedRoute = route;
-    if (!pointsChanged && status == _locationStatus) { return; }
-    setState(() {
-      if (pointsChanged && mappedRoute != null) {
-        _roadGeoPoints = mappedRoute.points;
-        _roadRoutePoints = mappedRoute.latLngPoints;
-
-        _routeDurationSeconds = mappedRoute.durationSeconds;
-      }
-      _routeLoading = status != null;
-      _locationStatus = status;
-    });
-  }
-
-  Future<void> _prepareDriverVehicleMarker() async {
-    final icon = await MoveraVehicleMarker.createIcon();
-    if (!mounted) { return; }
-    setState(() => _driverVehicleIcon = icon);
-  }
 
   Set<Polyline> get _polylines {
     if (_roadRoutePoints.length < 2) {
@@ -1026,86 +632,7 @@ class _AcceptRideState extends State<AcceptRide>
     return _cachedPolylines;
   }
 
-  Future<void> _startLiveLocation() async {
-    final epoch = ++_locationEpoch;
-    if (_liveUpdatesPaused) { return; }
-    try {
-      final position = await _locationService.getCurrentPosition();
-      if (!mounted) { return; }
 
-      if (_liveUpdatesPaused || epoch != _locationEpoch) { return; }
-      await _applyDriverPosition(position, forceRoute: true);
-      if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) { return; }
-
-      _positionSubscription?.cancel();
-      _positionSubscription = _locationService
-          .watchPosition(distanceFilterMeters: kIsWeb ? 20 : 8)
-          .listen(
-        (position) {
-          if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) { return; }
-          _applyDriverPosition(position);
-        },
-        onError: (Object error) {
-          if (!mounted) { return; }
-          _navigation.keepLastKnown(status: 'Location updating…');
-          setState(() {
-            _hasLiveLocation = false;
-            _locationStatus = 'Location updating…';
-          });
-        },
-      );
-    } catch (_) {
-      if (!mounted) { return; }
-      _navigation.keepLastKnown(status: 'Location updating…');
-      setState(() {
-        _hasLiveLocation = false;
-        _locationStatus = 'Location updating…';
-      });
-      unawaited(_refreshRoadRoute(force: true));
-    }
-  }
-
-  Future<void> _applyDriverPosition(
-    DriverLocation location, {
-    bool forceRoute = false,
-  }) async {
-    if(!location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs()>90 || location.point.longitude.abs()>180) { return; }
-    final next = location.point.toLatLng();
-    if (!mounted) { return; }
-
-    if (!forceRoute &&
-        kIsWeb &&
-        _lastGpsAppliedAt != null &&
-        DateTime.now().difference(_lastGpsAppliedAt!) <
-            const Duration(milliseconds: 800)) {
-      _vehicle.moveTo(next, _navigation.snapshot.headingDegrees);
-      return;
-    }
-    _lastGpsAppliedAt = DateTime.now();
-    _lastLocation = location;
-
-    _navigation.setVehicle(location);
-    _driverPosition = next;
-    _hasLiveLocation = location.isUsableAt(DateTime.now());
-    _locationStatus = _navigation.status;
-    _vehicle.moveTo(next, _navigation.snapshot.headingDegrees);
-
-    final lastSnap = _lastSnapshotAt;
-    if (lastSnap == null ||
-        DateTime.now().difference(lastSnap) > const Duration(minutes: 2)) {
-      _lastSnapshotAt = DateTime.now();
-      _rideLifecycle.persistNow();
-    }
-
-    if (_stage != ActiveRideStage.waitingForRider && !_paidStopWait) {
-      await _refreshRoadRoute(force: forceRoute);
-      await _followVehicle();
-    }
-
-    if (_stage == ActiveRideStage.onTrip) {
-      _maybeScheduleOnTripRadarDemoOffer();
-    }
-  }
 
   bool get _allowExternalRouting {
     return !WidgetsBinding.instance.runtimeType
@@ -1113,74 +640,8 @@ class _AcceptRideState extends State<AcceptRide>
         .contains('TestWidgetsFlutterBinding');
   }
 
-  Future<void> _refreshRoadRoute({bool force = false}) async {
-    if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) { return; }
-    if (!_allowExternalRouting) { return; }
 
-    final target = _routeTarget;
-    if (target == null) {
-      setState(() {
-        _roadGeoPoints = [];
-        _roadRoutePoints = [];
 
-        _routeDurationSeconds = null;
-        _locationStatus = 'Stop location unavailable';
-      });
-      return;
-    }
-    await _navigation.ensureRoute(
-      origin: GeoPointMaps.fromLatLng(_driverPosition),
-      destination: GeoPointMaps.fromLatLng(target),
-      targetLabel: _stage == ActiveRideStage.onTrip && _stopCursor < widget.stopAddresses.length ? 'Stop ${_stopCursor + 1}' : null,
-      force: force,
-    );
-    if (!mounted) { return; }
-
-    final route = _navigation.route;
-    setState(() {
-      if (route != null && route.points.length >= 2) {
-        _roadGeoPoints = route.points;
-        _roadRoutePoints = route.latLngPoints;
-
-        _routeDurationSeconds = route.durationSeconds;
-      }
-      _routeLoading = _navigation.status != null;
-      _locationStatus = _navigation.status;
-    });
-  }
-
-  Future<void> _followVehicle({bool force = false}) async {
-    if (!_allowExternalRouting) { return; }
-    if (!force && !_navigation.followCamera) { return; }
-    final controller = _mapController;
-    if (controller == null) { return; }
-    final now = DateTime.now();
-    if (!force &&
-        _lastCameraFollowAt != null &&
-        now.difference(_lastCameraFollowAt!) < const Duration(milliseconds: 900)) {
-      return;
-    }
-    _lastCameraFollowAt = now;
-    _cameraProgrammatic = true;
-    try {
-      await controller.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: _vehicle.current.position,
-            zoom: 16.8,
-            bearing: _vehicle.current.headingDegrees,
-            tilt: 30,
-          ),
-        ),
-      );
-    } catch (_) {}
-    _cameraProgrammatic = false;
-  }
-
-  void _onCameraMove(CameraPosition position) {
-    if (_cameraProgrammatic) { return; }
-    _navigation.pauseFollow();
-  }
 
   String get _routeEtaText {
     final seconds = _routeDurationSeconds;
@@ -1190,106 +651,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
 
-  Future<void> _fitRoute() async {
-    final controller = _mapController;
-    if (controller == null) { return; }
 
-    final points = _roadRoutePoints.isNotEmpty
-        ? _roadRoutePoints
-        : <LatLng>[_driverPosition, if (_routeTarget != null) _routeTarget!];
-    var minLat = points.first.latitude;
-    var maxLat = points.first.latitude;
-    var minLng = points.first.longitude;
-    var maxLng = points.first.longitude;
-
-    for (final point in points.skip(1)) {
-      minLat = math.min(minLat, point.latitude);
-      maxLat = math.max(maxLat, point.latitude);
-      minLng = math.min(minLng, point.longitude);
-      maxLng = math.max(maxLng, point.longitude);
-    }
-
-    if ((maxLat - minLat).abs() < 0.0004) {
-      minLat -= 0.003;
-      maxLat += 0.003;
-    }
-    if ((maxLng - minLng).abs() < 0.0004) {
-      minLng -= 0.003;
-      maxLng += 0.003;
-    }
-
-    try {
-      final insets = MapOverlayInsets.forActiveRide(
-        safeTop: MediaQuery.paddingOf(context).top,
-        collapsedSheet: MoveraSheetMetrics.activeCollapsedHeight +
-            MediaQuery.paddingOf(context).bottom,
-      );
-      await controller.animateCamera(
-        CameraUpdate.newLatLngBounds(
-          LatLngBounds(
-            southwest: LatLng(minLat, minLng),
-            northeast: LatLng(maxLat, maxLng),
-          ),
-          insets.boundsPadding,
-        ),
-      );
-    } catch (_) {}
-  }
-
-  Future<void> _advanceRide() async {
-    if (_stageTransitioning || !mounted || _rideLifecycle.terminal) { return; }
-
-    _stageTransitioning = true;
-
-    switch (_stage) {
-      case ActiveRideStage.headingToPickup:
-        _stageTransitioning = false;
-        return;
-
-      case ActiveRideStage.waitingForRider:
-        if (!await _rideLifecycle.transitionTo(ActiveRideStage.onTrip)) {
-          _stageTransitioning = false;
-          return;
-        }
-        _waitTimer?.cancel();
-        _paidStopWait = false;
-        _stopCursor = 0;
-        _nextTripRadarDemoTimer?.cancel();
-        _nextTripRadarMatchTimer?.cancel();
-        _onTripStartedAt = DateTime.now();
-        await _rideLifecycle.persistNow();
-        _onTripRadarState = _OnTripRadarState.scanning;
-        _nextTripRadarOffer = null;
-        if (mounted) { setState(() {}); }
-        _maybeScheduleOnTripRadarDemoOffer();
-        _unlockStageAfterFrame();
-        unawaited(_refreshOnTripRoute());
-        return;
-
-      case ActiveRideStage.onTrip:
-        if (_paidStopWait) {
-          _paidStopWait = false;
-          _waitTimer?.cancel();
-          _stopCursor += 1;
-          await _rideLifecycle.persistNow();
-          _stageTransitioning = false;
-          if (mounted) { setState(() {}); }
-          unawaited(_refreshOnTripRoute());
-          return;
-        }
-        if (_stopCursor < widget.stopAddresses.length) {
-          _stageTransitioning = false;
-          return;
-        }
-        if (_tripEndedTooQuickly) {
-          _stageTransitioning = false;
-          await _askBeforeShortFinish();
-          return;
-        }
-        await _completeCurrentTrip();
-        return;
-    }
-  }
 
   bool get _tripEndedTooQuickly {
     final started = _onTripStartedAt;
@@ -1297,176 +659,11 @@ class _AcceptRideState extends State<AcceptRide>
     return DateTime.now().difference(started) < const Duration(seconds: 90);
   }
 
-  Future<void> _askBeforeShortFinish() async {
-    final finish = await showMoveraModalSheet<bool>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.32),
-      heightFactor: 0.5,
-      builder: (sheetContext) {
-        return MoveraModalSheet(
-          key: const ValueKey<String>('short-trip-finish-sheet'),
-          heightFactor: 0.5,
-          color: Colors.white,
-          radius: 28,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'This ride just started',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Expanded(
-                  child: Text(
-                    'Very little time has passed since pickup. Go back if the rider is still with you, or confirm that the trip is finished.',
-                    style: TextStyle(
-                      color: _muted,
-                      fontSize: 13,
-                      height: 1.35,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(sheetContext, false),
-                    style: FilledButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: _ink,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      'Go back to the ride',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(sheetContext, true),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _ink,
-                      side: const BorderSide(color: Color(0xFFD5DCDF)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      'Confirm finish',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-    if (finish != true || !mounted || _stage != ActiveRideStage.onTrip) { return; }
-    await _completeCurrentTrip();
-  }
 
   bool get _pendingTerminal => _pendingProjection?.kind==DriverRealtimeKind.riderCancelled || _pendingProjection?.status?.isTerminal==true;
-  Future<bool> _yieldToAuthoritativeTerminal() async {
-    if(!_pendingTerminal) return false;
-    _completionInFlight=false;_cancellationInFlight=false;_stageTransitioning=false;
-    await _drainProjection();
-    return true;
-  }
 
-  Future<void> _completeCurrentTrip() async {
-    if (_completionInFlight || _cancellationInFlight || _handlingRiderCancellation || !mounted || _rideLifecycle.terminal) { return; }
-    _completionInFlight = true;
-    _stageTransitioning = true;
-    final offer = _nextTripRadarOffer;
-    final queuedNext = _onTripRadarState == _OnTripRadarState.secured && offer != null;
-    final next = queuedNext ? _snapshotForOffer(offer) : null;
-    try {
-      await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
-        _waybills.current ?? _buildCurrentWaybill(), next: next);
-      if (!mounted) { return; }
-      if (await _yieldToAuthoritativeTerminal()) return;
-      if (!await _rideLifecycle.complete(clearSnapshot: false)) {
-        _completionInFlight = false; _stageTransitioning = false; return;
-      }
-    } catch (error, stack) {
-      DriverLog.error('Trip completion journal failed', error, stack);
-      _completionInFlight = false; _stageTransitioning = false;
-      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Could not finish saving this trip. Retry completion; the receipt will not duplicate.'))); }
-      return;
-    }
-    _waitTimer?.cancel();
-    _nextTripRadarDemoTimer?.cancel();
-    _nextTripRadarMatchTimer?.cancel();
-    if(!mounted) { return; }
-    _waybills.completeCurrent();
-    final nextRide = queuedNext
-        ? AcceptRide(
-            offerId: offer.id,
-            riderName: offer.riderName,
-            riderRating: offer.rating,
-            fare: offer.fare,
-            category: offer.category,
-            matchedVia: 'Demo Radar',
-            pickupAddress: offer.pickup,
-            pickupArea: offer.pickup.split(',').last.trim(),
-            dropoffAddress: offer.dropoff,
-            pickupPosition: offer.pickupPosition,
-            dropoffPosition: offer.dropoffPosition,
-            locationRepository: widget.locationRepository,
-            routeRepository: widget.routeRepository,
-            waybillRepository: _waybills,
-            sessionController: widget.sessionController,
-            activeRideRepository: widget.activeRideRepository,
-            destinationModeActive: widget.destinationModeActive,
-            destinationAddress: widget.destinationAddress,
-            destinationPosition: widget.destinationPosition,
-          )
-        : null;
-    Navigator.of(context).pushReplacement(
-      BottomToTopTransition(
-        DriverRideCompleted(
-          waybillRepository: _waybills,
-          sessionController: widget.sessionController,
-          activeRideRepository: widget.activeRideRepository,
-          nextRide: nextRide,
-        ),
-      ),
-    );
-  }
 
-  PersistedActiveRide _snapshotForOffer(_NextTripRadarOffer offer) => PersistedActiveRide(
-    tripId: offer.id, stage: ActiveRideStage.headingToPickup,
-      destinationModeActive: widget.destinationModeActive,
-      destinationAddress: widget.destinationAddress,
-      destinationPoint: widget.destinationPosition == null ? null : GeoPointMaps.fromLatLng(widget.destinationPosition!), riderName: offer.riderName,
-    riderRating: offer.rating, fare: offer.fare, category: offer.category, matchedVia: 'Demo Radar',
-    pickupAddress: offer.pickup, dropoffAddress: offer.dropoff,
-    pickupLat: offer.pickupPosition.latitude, pickupLng: offer.pickupPosition.longitude,
-    dropoffLat: offer.dropoffPosition.latitude, dropoffLng: offer.dropoffPosition.longitude);
 
-  void _unlockStageAfterFrame() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _stageTransitioning = false;
-    });
-  }
 
   void _setMapGesturesBlocked(bool value) {
     if (!mounted || _blockMapGestures == value) { return; }
@@ -1571,56 +768,9 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  Future<void> _refreshOnTripRoute({bool fitCamera = false}) async {
-    await _refreshRoadRoute(force: true);
-    if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
-    if (fitCamera) {
-      await _fitRoute();
-    }
-  }
 
-  Future<void> _focusWaitingPickup() async {
-    final controller = _mapController;
-    if (controller == null) { return; }
 
-    try {
-      await controller.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: widget.pickupPosition,
-            zoom: 17.2,
-          ),
-        ),
-      );
-    } catch (_) {}
-  }
 
-  void _startOnTripRadar() {
-    if (_onTripRadarState == _OnTripRadarState.stopped) { return; }
-    _nextTripRadarDemoTimer?.cancel();
-    _nextTripRadarMatchTimer?.cancel();
-
-    if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
-
-    setState(() {
-      _onTripRadarState = _OnTripRadarState.scanning;
-      _nextTripRadarOffer = null;
-    });
-
-    _maybeScheduleOnTripRadarDemoOffer();
-  }
-
-  void _toggleOnTripRadar() {
-    if (_stage != ActiveRideStage.onTrip) { return; }
-    if (_onTripRadarState == _OnTripRadarState.secured) { return; }
-    if (_onTripRadarOn) {
-      _stopOnTripRadar();
-      return;
-    }
-    _onTripRadarDeclined = false;
-    setState(() => _onTripRadarState = _OnTripRadarState.off);
-    _startOnTripRadar();
-  }
 
   bool get _onTripRadarOn =>
       _onTripRadarState == _OnTripRadarState.scanning ||
@@ -1628,172 +778,23 @@ class _AcceptRideState extends State<AcceptRide>
       _onTripRadarState == _OnTripRadarState.matching ||
       _onTripRadarState == _OnTripRadarState.secured;
 
-  bool _dropoffFollowsDestination(LatLng dropoff) {
-    if (!widget.destinationModeActive) { return true; }
-    final destination = widget.destinationPosition;
-    if (destination == null) { return true; }
-
-    final latitudeRadians = _driverPosition.latitude * math.pi / 180;
-    final longitudeScale = math.cos(latitudeRadians);
-    final destinationX =
-        (destination.longitude - _driverPosition.longitude) * longitudeScale;
-    final destinationY = destination.latitude - _driverPosition.latitude;
-    final offerX = (dropoff.longitude - _driverPosition.longitude) * longitudeScale;
-    final offerY = dropoff.latitude - _driverPosition.latitude;
-    final destinationLength = math.sqrt(
-      destinationX * destinationX + destinationY * destinationY,
-    );
-    final offerLength = math.sqrt(offerX * offerX + offerY * offerY);
-    if (destinationLength == 0 || offerLength == 0) { return true; }
-    final cosine = (destinationX * offerX + destinationY * offerY) /
-        (destinationLength * offerLength);
-    return cosine >= 0.45;
-  }
 
   _NextTripRadarOffer get _uniqueDemoNext => _NextTripRadarOffer(
     id:'${widget.offerId}-next',category:_demoNextTripOffer.category,fare:_demoNextTripOffer.fare,rating:_demoNextTripOffer.rating,
     pickupMinutes:_demoNextTripOffer.pickupMinutes,tripMinutes:_demoNextTripOffer.tripMinutes,riderName:_demoNextTripOffer.riderName,
     pickup:_demoNextTripOffer.pickup,dropoff:_demoNextTripOffer.dropoff,pickupPosition:_demoNextTripOffer.pickupPosition,dropoffPosition:_demoNextTripOffer.dropoffPosition);
-  _NextTripRadarOffer _onTripRadarOfferForDestination() {
-    if (!widget.destinationModeActive) { return _uniqueDemoNext; }
-    final destination = widget.destinationPosition;
-    if (destination == null) { return _uniqueDemoNext; }
-    final address = widget.destinationAddress?.trim();
-    return _NextTripRadarOffer(
-      id: '${widget.offerId}-next-destination',
-      category: _demoNextTripOffer.category,
-      fare: _demoNextTripOffer.fare,
-      rating: _demoNextTripOffer.rating,
-      pickupMinutes: _demoNextTripOffer.pickupMinutes,
-      tripMinutes: _demoNextTripOffer.tripMinutes,
-      riderName: _demoNextTripOffer.riderName,
-      pickup: _demoNextTripOffer.pickup,
-      dropoff: address == null || address.isEmpty
-          ? 'Along your destination'
-          : address,
-      pickupPosition: _demoNextTripOffer.pickupPosition,
-      dropoffPosition: destination,
-    );
-  }
 
-  void _stopOnTripRadar() {
-    _nextTripRadarDemoTimer?.cancel();
-    _nextTripRadarMatchTimer?.cancel();
-    _nextTripOfferExpiry?.cancel();
-    if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
-    if (_onTripRadarState == _OnTripRadarState.secured) { return; }
-    setState(() {
-      _onTripRadarState = _OnTripRadarState.stopped;
-      _nextTripRadarOffer = null;
-    });
-  }
 
-  void _maybeScheduleOnTripRadarDemoOffer() {
-    if (!mounted ||
-        _stage != ActiveRideStage.onTrip ||
-        _onTripRadarState != _OnTripRadarState.scanning ||
-        _onTripRadarDeclined ||
-        (_nextTripRadarDemoTimer?.isActive ?? false)) {
-      return;
-    }
 
-    // Offers are explicitly simulated. A future live adapter must pass the freshness gate.
-    if (_hasLiveLocation) {
-      final metersToDropoff =
-          GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
-        GeoPointMaps.fromLatLng(widget.dropoffPosition),
-      );
-      if (metersToDropoff > _nextTripRadarRadiusMeters) { return; }
-    }
 
-    _nextTripRadarDemoTimer = Timer(
-      const Duration(milliseconds: 2200),
-      () {
-        if (!mounted ||
-            _stage != ActiveRideStage.onTrip ||
-            _onTripRadarState != _OnTripRadarState.scanning) {
-          return;
-        }
 
-        setState(() {
-          final offer = _onTripRadarOfferForDestination();
-          if (!_dropoffFollowsDestination(offer.dropoffPosition)) { return; }
-          _nextTripRadarOffer = offer;
-          _onTripRadarState = _OnTripRadarState.offerAvailable;
-        });
-        _armOnTripOfferExpiry();
-        _hideRideSheetForOffer();
-      },
-    );
-  }
-
-  void _armOnTripOfferExpiry() {
-    _nextTripOfferExpiry?.cancel();
-    if (_onTripRadarState != _OnTripRadarState.offerAvailable) { return; }
-    _nextTripOfferExpiry = Timer(_onTripOfferLifetime, () {
-      if (!mounted || _onTripRadarState != _OnTripRadarState.offerAvailable) {
-        return;
-      }
-      _denyNextTripRadar();
-    });
-  }
-
-  void _hideRideSheetForOffer() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_ridePanelController.isAttached) { return; }
-      if (_onTripRadarState == _OnTripRadarState.offerAvailable) {
-        _ridePanelController.close();
-      }
-    });
-  }
-
-  void _restoreRideSheet() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_ridePanelController.isAttached) { return; }
-      _ridePanelController.open();
-    });
-  }
 
   bool get _incomingOfferOpen =>
       _stage == ActiveRideStage.onTrip &&
       _onTripRadarState == _OnTripRadarState.offerAvailable &&
       _nextTripRadarOffer != null;
 
-  void _acceptNextTripRadar() {
-    final offer = _nextTripRadarOffer;
-    if (offer == null || _stage != ActiveRideStage.onTrip) { return; }
-    if (_onTripRadarState == _OnTripRadarState.secured ||
-        _onTripRadarState == _OnTripRadarState.matching) {
-      return;
-    }
-    setState(() => _onTripRadarState = _OnTripRadarState.matching);
-    _nextTripOfferExpiry?.cancel();
-    _restoreRideSheet();
-    _nextTripRadarMatchTimer?.cancel();
-    _nextTripRadarMatchTimer = Timer(const Duration(milliseconds: 900), () {
-      if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
-      setState(() => _onTripRadarState = _OnTripRadarState.secured);
-      _waybills.secureNext(_buildNextWaybill(offer));
-      _rideLifecycle.persistNow();
-    });
-  }
 
-  void _denyNextTripRadar() {
-    if (_stage != ActiveRideStage.onTrip) { return; }
-    if (_onTripRadarState == _OnTripRadarState.secured ||
-        _onTripRadarState == _OnTripRadarState.matching) {
-      return;
-    }
-    _nextTripRadarDemoTimer?.cancel();
-    _nextTripRadarMatchTimer?.cancel();
-    _nextTripOfferExpiry?.cancel();
-    setState(() {
-      _onTripRadarDeclined = true;
-      _nextTripRadarOffer = null;
-      _onTripRadarState = _OnTripRadarState.scanning;
-    });
-    _restoreRideSheet();
-  }
 
   Widget _buildIncomingRideCard() {
     final offer = _nextTripRadarOffer;
@@ -2009,7 +1010,7 @@ class _AcceptRideState extends State<AcceptRide>
                 Expanded(
                   child: OutlinedButton(
                     key: const ValueKey<String>('on-trip-radar-deny'),
-                    onPressed: _denyNextTripRadar,
+                    onPressed: _AcceptRideTrip(this)._denyNextTripRadar,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _ink,
                       side: const BorderSide(color: Color(0xFFD5DCDF)),
@@ -2028,7 +1029,7 @@ class _AcceptRideState extends State<AcceptRide>
                 Expanded(
                   child: FilledButton(
                     key: const ValueKey<String>('on-trip-radar-match-next'),
-                    onPressed: _acceptNextTripRadar,
+                    onPressed: _AcceptRideTrip(this)._acceptNextTripRadar,
                     style: FilledButton.styleFrom(
                       elevation: 0,
                       backgroundColor: const Color(0xFF252E3A),
@@ -2254,13 +1255,6 @@ class _AcceptRideState extends State<AcceptRide>
     );
   }
 
-  void _startWaitTimer() {
-    _waitTimer?.cancel();
-    _waitTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || !_countingWait) { return; }
-      setState(() => _waitSeconds++);
-    });
-  }
 
   String get _waitLabel {
     final minutes = _waitSeconds ~/ 60;
@@ -2268,22 +1262,12 @@ class _AcceptRideState extends State<AcceptRide>
     return '$minutes:$seconds';
   }
 
-  String _stopWord(int number) {
-    return switch (number) {
-      1 => 'first',
-      2 => 'second',
-      3 => 'third',
-      4 => 'fourth',
-      5 => 'fifth',
-      _ => '$number',
-    };
-  }
 
   String get _slideLabel {
     if (_paidStopWait) {
       final next = _stopCursor + 2;
       if (next <= widget.stopAddresses.length) {
-        return 'Slide to ${_stopWord(next)} stop';
+        return 'Slide to ${_AcceptRideTrip(this)._stopWord(next)} stop';
       }
       return 'Slide to drop-off';
     }
@@ -2321,7 +1305,7 @@ class _AcceptRideState extends State<AcceptRide>
           ? null
           : () {
               if (_waitSeconds < 300 || !mounted) { return; }
-              _confirmCancellationReason(_noShowReason);
+              _AcceptRideTrip(this)._confirmCancellationReason(_noShowReason);
             },
     );
   }
@@ -2482,13 +1466,13 @@ class _AcceptRideState extends State<AcceptRide>
                     ).edgeInsets,
                     blockGestures: _blockMapGestures,
                     initialTarget: _driverPosition,
-                    onCameraMove: _onCameraMove,
+                    onCameraMove: _onCameraMoveListener,
                     onMapCreated: (controller) {
                       final firstCreate = _mapController == null;
                       _mapController = controller;
                       if (!firstCreate) { return; }
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) { unawaited(_fitRoute()); }
+                        if (mounted) { unawaited(_AcceptRideTrip(this)._fitRoute()); }
                       });
                     },
                   ),
@@ -2515,7 +1499,7 @@ class _AcceptRideState extends State<AcceptRide>
                           address: _nextStopAddress,
                           radarSwitch: _stage == ActiveRideStage.onTrip,
                           radarOn: _onTripRadarOn,
-                          onRadarToggle: _toggleOnTripRadar,
+                          onRadarToggle: _AcceptRideTrip(this)._toggleOnTripRadar,
                           waitSeconds: _stage == ActiveRideStage.waitingForRider
                               ? _waitSeconds
                               : null,
@@ -2573,7 +1557,7 @@ class _AcceptRideState extends State<AcceptRide>
               : Icons.near_me_outlined,
       radarSwitch: onTrip,
       radarOn: _onTripRadarOn,
-      onRadarToggle: _toggleOnTripRadar,
+      onRadarToggle: _AcceptRideTrip(this)._toggleOnTripRadar,
       waitSeconds: waiting ? _waitSeconds : null,
       onWaitTap: _openWaitingTime,
     );
@@ -2590,7 +1574,7 @@ class _AcceptRideState extends State<AcceptRide>
           icon: Icons.my_location_rounded,
           onTap: () {
             _navigation.resumeFollow();
-            unawaited(_followVehicle(force: true));
+            unawaited(_AcceptRideTrip(this)._followVehicle(force: true));
           },
         ),
         const SizedBox(height: 9),
@@ -2680,9 +1664,9 @@ class _AcceptRideState extends State<AcceptRide>
                       ActiveRideStage.onTrip =>
                         _paidStopWait ? 'STOP WAIT' : 'ON TRIP',
                     },
-                    onArrived: _arrivalTarget != null ? _onArrivedTap : null,
+                    onArrived: _arrivalTarget != null ? _AcceptRideTrip(this)._onArrivedTap : null,
                     arrivedEnabled: _nearArrivalTarget,
-                    onArrivedBlocked: _blockedArrival,
+                    onArrivedBlocked: _AcceptRideTrip(this)._blockedArrival,
                     riderReply: _riderOnTheWay ? 'RIDER ON THE WAY' : null,
                     onWaitTap: _countingWait ? _openWaitingTime : null,
                     riderName: widget.riderName,
@@ -3175,7 +2159,7 @@ class _AcceptRideState extends State<AcceptRide>
             height: 48,
             child: FilledButton(
               key: const ValueKey<String>('active-ride-arrived-button'),
-              onPressed: _nearArrivalTarget ? _onArrivedTap : _blockedArrival,
+              onPressed: _nearArrivalTarget ? _AcceptRideTrip(this)._onArrivedTap : _AcceptRideTrip(this)._blockedArrival,
               style: FilledButton.styleFrom(
                 elevation: 0,
                 backgroundColor:
@@ -3261,9 +2245,9 @@ class _AcceptRideState extends State<AcceptRide>
                   (_stage == ActiveRideStage.onTrip &&
                    !_paidStopWait &&
                    _stopCursor < widget.stopAddresses.length)) {
-                await _onArrivedTap();
+                await _AcceptRideTrip(this)._onArrivedTap();
               } else {
-                await _advanceRide();
+                await _AcceptRideTrip(this)._advanceRide();
               }
             },
           ),
@@ -3659,227 +2643,10 @@ class _AcceptRideState extends State<AcceptRide>
     );
 
     if (!mounted || reason == null) { return; }
-    await _confirmCancellationReason(reason);
+    await _AcceptRideTrip(this)._confirmCancellationReason(reason);
   }
 
-  Future<void> _confirmCancellationReason(
-    _TripCancellationReason reason,
-  ) async {
-    final isOnTrip = _stage == ActiveRideStage.onTrip;
 
-    final confirmed = await showMoveraModalSheet<bool>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.34),
-      heightFactor: 0.56,
-      builder: (sheetContext) {
-        return MoveraModalSheet(
-          key: const ValueKey<String>('trip-cancellation-confirmation'),
-          heightFactor: 0.56,
-          color: const Color(0xFFF8FAF9),
-          radius: 28,
-          child: SafeArea(
-            top: false,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-              children: [
-                const SizedBox(height: 17),
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFECEE),
-                    borderRadius: BorderRadius.circular(17),
-                  ),
-                  child: Icon(
-                    isOnTrip
-                        ? Icons.stop_circle_outlined
-                        : Icons.close_rounded,
-                    color: _danger,
-                    size: 25,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  isOnTrip ? 'End this trip early?' : 'Cancel this trip?',
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  reason.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (isOnTrip) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF5E8),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: Color(0xFFB87512),
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Only end the trip after you have stopped in a safe place and the rider can exit safely.',
-                            style: TextStyle(
-                              color: Color(0xFF8B641F),
-                              fontSize: 10,
-                              height: 1.35,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 17),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton(
-                    key: const ValueKey<String>(
-                      'confirm-trip-cancellation',
-                    ),
-                    onPressed: () => Navigator.pop(sheetContext, true),
-                    style: FilledButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: _danger,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Text(
-                      isOnTrip ? 'End trip early' : 'Cancel trip',
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 7),
-                TextButton(
-                  onPressed: () => Navigator.pop(sheetContext, false),
-                  child: const Text(
-                    'Keep trip',
-                    style: TextStyle(
-                      color: _ink,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (confirmed != true || !mounted) { return; }
-    _submitTripCancellation(reason);
-  }
-
-  Future<void> _submitTripCancellation(_TripCancellationReason reason) async {
-    if(_cancellationInFlight || _completionInFlight || _handlingRiderCancellation) { return; }
-    _cancellationInFlight=true;
-    try {
-      final secured = _onTripRadarState == _OnTripRadarState.secured ? _nextTripRadarOffer : null;
-      await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
-        _waybills.current ?? _buildCurrentWaybill(),
-        status: TripStatus.cancelledByDriver,
-        cancellationReasonCode: reason.code,
-        cancellationActor: 'driver',
-        next: secured == null ? null : _snapshotForOffer(secured));
-    } catch (_) {
-      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save cancellation. Retry.'))); }
-      _cancellationInFlight=false;
-      return;
-    }
-    if(await _yieldToAuthoritativeTerminal()) return;
-    // The journal has already applied terminal cleanup and queued handoff.
-    if (!await _rideLifecycle.cancel(clearSnapshot: false)) { _cancellationInFlight=false; return; }
-    if (!mounted) { return; }
-    _waitTimer?.cancel();
-    _nextTripRadarDemoTimer?.cancel();
-    _nextTripRadarMatchTimer?.cancel();
-    _waybills.discardCurrent();
-
-    final offer = _nextTripRadarOffer;
-    final queuedNext =
-        _onTripRadarState == _OnTripRadarState.secured && offer != null;
-    final nextRide = queuedNext
-        ? AcceptRide(
-            offerId: offer.id,
-            riderName: offer.riderName,
-            riderRating: offer.rating,
-            fare: offer.fare,
-            category: offer.category,
-            matchedVia: 'Demo Radar',
-            pickupAddress: offer.pickup,
-            pickupArea: offer.pickup.split(',').last.trim(),
-            dropoffAddress: offer.dropoff,
-            pickupPosition: offer.pickupPosition,
-            dropoffPosition: offer.dropoffPosition,
-            locationRepository: widget.locationRepository,
-            routeRepository: widget.routeRepository,
-            waybillRepository: _waybills,
-            sessionController: widget.sessionController,
-            activeRideRepository: widget.activeRideRepository,
-          )
-        : null;
-    if (nextRide != null) {
-      _waybills.promoteNextToCurrent();
-    } else {
-      _waybills.clearNext();
-    }
-
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.showSnackBar(
-      SnackBar(
-        content: Text(
-          queuedNext
-              ? 'First trip ended · starting the next one'
-              : _stage == ActiveRideStage.onTrip
-                  ? 'Trip ended early · ${reason.title}'
-                  : 'Trip cancelled · ${reason.title}',
-        ),
-        backgroundColor: _ink,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-      ),
-    );
-
-    final navigator = Navigator.of(context);
-    if (nextRide != null) {
-      navigator.pushReplacement(BottomToTopTransition(nextRide));
-      return;
-    }
-    if (navigator.canPop()) {
-      navigator.pop();
-    }
-  }
 
 }
 
