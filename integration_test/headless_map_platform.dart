@@ -11,6 +11,8 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 /// crashes before the trip UI can run. This implementation stays inside
 /// Flutter. It does not certify the native map.
 class HeadlessMapPlatform extends GoogleMapsFlutterPlatform {
+  final Set<int> _created = <int>{};
+
   @override
   Widget buildView(
     int creationId,
@@ -25,7 +27,9 @@ class HeadlessMapPlatform extends GoogleMapsFlutterPlatform {
         const <Factory<OneSequenceGestureRecognizer>>{},
     Map<String, dynamic> mapOptions = const <String, dynamic>{},
   }) {
-    onPlatformViewCreated(creationId);
+    if (_created.add(creationId)) {
+      onPlatformViewCreated(creationId);
+    }
     return const SizedBox.shrink(key: ValueKey<String>('headless-map'));
   }
 

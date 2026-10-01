@@ -68,9 +68,9 @@ void main() {
 
   testWidgets('launch, accept, complete, and return home once', (tester) async {
     WaybillStore.reset();
-    addTearDown(() {
+    addTearDown(() async {
       WaybillStore.reset();
-      tester.binding.setSurfaceSize(null);
+      await tester.binding.setSurfaceSize(null);
     });
     await tester.binding.setSurfaceSize(const Size(375, 812));
     await tester.pumpWidget(const MoveraApp());
@@ -107,7 +107,9 @@ void main() {
   testWidgets('driver cancel reason can be dismissed without ending the trip', (
     tester,
   ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
     await tester.binding.setSurfaceSize(const Size(390, 844));
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
