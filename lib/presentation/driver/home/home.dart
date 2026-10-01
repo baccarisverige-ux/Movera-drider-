@@ -34,6 +34,7 @@ import 'package:movera/presentation/driver/documents/documents.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
+import 'package:movera/presentation/driver/map_color_lab/map_color_lab.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
 import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
