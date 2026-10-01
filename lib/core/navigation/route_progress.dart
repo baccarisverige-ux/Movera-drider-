@@ -55,32 +55,20 @@ class RouteProgressCalculator {
       );
     }
 
-    var closestIndex = 0;
-    var closestDistance = double.infinity;
-    for (var i = 0; i < points.length; i++) {
-      final d = position.distanceMetersTo(points[i]);
-      if (d < closestDistance) {
-        closestDistance = d;
-        closestIndex = i;
-      }
-    }
+    final projection = _project(points, position);
+    final closestIndex = projection.index;
+    final closestDistance = projection.distance;
+    final remaining = projection.total - projection.along;
 
-    var remaining = 0.0;
-    for (var i = closestIndex; i < points.length - 1; i++) {
-      remaining += points[i].distanceMetersTo(points[i + 1]);
-    }
-
-    var instructionIndex = instructionHint.clamp(
-      0,
-      math.max(0, route.instructions.length - 1),
-    ).toInt();
+    var instructionIndex = instructionHint
+        .clamp(0, math.max(0, route.instructions.length - 1))
+        .toInt();
     while (instructionIndex < route.instructions.length) {
       final instruction = route.instructions[instructionIndex];
-      final toManeuver =
-          position.distanceMetersTo(instruction.maneuverLocation);
-      final passed = closestIndex > 0 &&
-          _hasPassed(points, closestIndex, instruction.maneuverLocation);
-      if (toManeuver > passedManeuverMeters && !passed) {
+      final maneuver = _project(points, instruction.maneuverLocation);
+      final toManeuver = math.max(0.0, maneuver.along - projection.along);
+      final passed = projection.along > maneuver.along + 4;
+      if (!passed || instruction.isArrival) {
         return RouteProgress(
           closestIndex: closestIndex,
           distanceFromRouteMeters: closestDistance,
@@ -94,37 +82,56 @@ class RouteProgressCalculator {
       instructionIndex++;
     }
 
-    final last =
-        route.instructions.isEmpty ? null : route.instructions.last;
+    final last = route.instructions.isEmpty ? null : route.instructions.last;
     final toLast = last == null
         ? remaining
-        : position.distanceMetersTo(last.maneuverLocation);
+        : math.max(
+            0.0,
+            _project(points, last.maneuverLocation).along - projection.along,
+          );
 
     return RouteProgress(
       closestIndex: closestIndex,
       distanceFromRouteMeters: closestDistance,
       remainingMeters: remaining,
       instructionIndex: math.max(0, route.instructions.length - 1),
-      nextInstruction:
-          last?.copyWith(distanceMeters: toLast) ?? last,
+      nextInstruction: last?.copyWith(distanceMeters: toLast) ?? last,
       distanceToManeuverMeters: toLast,
       offRoute: closestDistance > offRouteThresholdMeters,
     );
   }
 
-  bool _hasPassed(
+  /// Project onto route segments rather than treating sparse vertices as roads.
+  ({int index, double distance, double along, double total}) _project(
     List<GeoPoint> points,
-    int closestIndex,
-    GeoPoint maneuver,
+    GeoPoint position,
   ) {
-    var bestBefore = double.infinity;
-    var bestAfter = double.infinity;
-    for (var i = 0; i <= closestIndex; i++) {
-      bestBefore = math.min(bestBefore, points[i].distanceMetersTo(maneuver));
+    var total = 0.0, bestDistance = double.infinity, along = 0.0;
+    var index = 0;
+    final scale = math.cos(position.latitude * math.pi / 180);
+    for (var i = 0; i < points.length - 1; i++) {
+      final a = points[i], b = points[i + 1];
+      final dx = (b.longitude - a.longitude) * scale;
+      final dy = b.latitude - a.latitude;
+      final px = (position.longitude - a.longitude) * scale;
+      final py = position.latitude - a.latitude;
+      final length2 = dx * dx + dy * dy;
+      final t = length2 == 0
+          ? 0.0
+          : ((px * dx + py * dy) / length2).clamp(0.0, 1.0);
+      final projected = GeoPoint(
+        a.latitude + (b.latitude - a.latitude) * t,
+        a.longitude + (b.longitude - a.longitude) * t,
+      );
+      final distance = position.distanceMetersTo(projected);
+      final length = a.distanceMetersTo(b);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        along = total + length * t;
+        index = i;
+      }
+      total += length;
     }
-    for (var i = closestIndex; i < points.length; i++) {
-      bestAfter = math.min(bestAfter, points[i].distanceMetersTo(maneuver));
-    }
-    return bestBefore + 4 < bestAfter;
+    return (index: index, distance: bestDistance, along: along, total: total);
   }
 }

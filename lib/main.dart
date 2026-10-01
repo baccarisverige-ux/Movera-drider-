@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:movera/core/session/driver_route_observer.dart';
 
 import 'package:movera/core/session/driver_runtime_scope.dart';
 
@@ -84,6 +85,7 @@ class _MoveraAppState extends State<MoveraApp> {
         builder: (_, __) {
           return GetMaterialApp(
             navigatorKey: _navigatorKey,
+            navigatorObservers: [driverRouteObserver],
             title: 'Movera Driver',
             debugShowCheckedModeBanner: false,
             theme: ThemeData.light(useMaterial3: true)

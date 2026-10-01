@@ -41,7 +41,9 @@ class NavigationController extends ChangeNotifier {
   NavigationController({
     required this.routeRepository,
     this.offRouteThresholdMeters = 50,
-  }) : _progress = const RouteProgressCalculator();
+  }) : _progress = RouteProgressCalculator(
+         offRouteThresholdMeters: offRouteThresholdMeters,
+       );
 
   final RouteRepository routeRepository;
   final double offRouteThresholdMeters;
@@ -63,6 +65,9 @@ class NavigationController extends ChangeNotifier {
   bool _userPausedFollow = false;
   String? _status;
   Timer? _rerouteDebounce;
+  bool _disposed = false;
+  bool _routeInFlight = false;
+  String? _targetLabel;
 
   NavigationSnapshot get snapshot => _snapshot;
   RoadRoute? get route => _route;
@@ -125,7 +130,10 @@ class NavigationController extends ChangeNotifier {
     required GeoPoint origin,
     required GeoPoint destination,
     bool force = false,
+    String? targetLabel,
   }) async {
+    if (_disposed) return;
+    _targetLabel = targetLabel;
     if (_stage == ActiveRideStage.waitingForRider) return;
 
     _destination = destination;
@@ -142,6 +150,7 @@ class NavigationController extends ChangeNotifier {
     _lastRouteOrigin = origin;
     _lastRouteAt = now;
     final token = ++_routeRequestToken;
+    _routeInFlight = true;
     _status = _route == null ? 'Route updating…' : _status;
 
     try {
@@ -149,19 +158,22 @@ class NavigationController extends ChangeNotifier {
         origin: origin,
         destination: destination,
       );
-      if (token != _routeRequestToken) return;
+      if (_disposed || token != _routeRequestToken) return;
       _route = route;
       _instructionHint = 0;
       _status = null;
       _rebuildBanner();
     } catch (_) {
-      if (token != _routeRequestToken) return;
+      if (_disposed || token != _routeRequestToken) return;
       _status = 'Route updating…';
       _rebuildBanner();
+    } finally {
+      if (token == _routeRequestToken) _routeInFlight = false;
     }
   }
 
   void _rebuildBanner() {
+    if (_disposed) return;
     final waiting = _stage == ActiveRideStage.waitingForRider;
     if (waiting) {
       _snapshot = NavigationSnapshot(
@@ -218,7 +230,9 @@ class NavigationController extends ChangeNotifier {
     final instruction = progress?.nextInstruction;
     if (instruction == null) {
       return NavigationBanner(
-        primary: arrivingToPickup ? 'Navigate to pickup' : 'Navigate to drop-off',
+        primary: arrivingToPickup
+            ? 'Navigate to pickup'
+            : 'Navigate to ${_targetLabel ?? 'drop-off'}',
         distanceLabel: _status ?? 'Route updating…',
         symbol: arrivingToPickup
             ? NavigationBannerSymbol.straight
@@ -227,8 +241,9 @@ class NavigationController extends ChangeNotifier {
       );
     }
 
-    final meters = progress?.distanceToManeuverMeters ?? instruction.distanceMeters;
-    if (instruction.isArrival || meters < 40) {
+    final meters =
+        progress?.distanceToManeuverMeters ?? instruction.distanceMeters;
+    if (instruction.isArrival) {
       if (arrivingToPickup) {
         return NavigationBanner(
           primary: meters < 25 ? 'Pickup ahead' : 'Pickup',
@@ -239,7 +254,9 @@ class NavigationController extends ChangeNotifier {
         );
       }
       return NavigationBanner(
-        primary: meters < 25 ? 'Drop-off ahead' : 'Drop-off',
+        primary: _targetLabel != null
+            ? '${_targetLabel!}${meters < 25 ? ' ahead' : ''}'
+            : (meters < 25 ? 'Drop-off ahead' : 'Drop-off'),
         distanceLabel: 'in ${RouteInstructionCopy.formatDistance(meters)}',
         roadName: instruction.roadName,
         symbol: NavigationBannerSymbol.arrive,
@@ -253,10 +270,7 @@ class NavigationController extends ChangeNotifier {
       exitNumber: instruction.exitNumber,
     );
     return NavigationBanner(
-      primary: RouteInstructionCopy.livePrimary(
-        action: action,
-        meters: meters,
-      ),
+      primary: RouteInstructionCopy.livePrimary(action: action, meters: meters),
       distanceLabel: RouteInstructionCopy.formatDistance(meters),
       roadName: instruction.roadName,
       symbol: RouteInstructionCopy.symbolFor(
@@ -269,14 +283,20 @@ class NavigationController extends ChangeNotifier {
 
   void _scheduleReroute() {
     final destination = _destination;
-    if (destination == null) return;
-    _rerouteDebounce?.cancel();
+    if (_disposed ||
+        destination == null ||
+        _rerouteDebounce != null ||
+        _routeInFlight)
+      return;
     _rerouteDebounce = Timer(const Duration(seconds: 2), () {
+      _rerouteDebounce = null;
+      if (_disposed) return;
       unawaited(
         ensureRoute(
           origin: _snapshot.vehicle,
           destination: destination,
           force: true,
+          targetLabel: _targetLabel,
         ),
       );
     });
@@ -284,6 +304,8 @@ class NavigationController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _routeRequestToken++;
     _rerouteDebounce?.cancel();
     super.dispose();
   }
