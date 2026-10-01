@@ -30,6 +30,16 @@ Future<void> _elapse(WidgetTester tester, Duration duration) async {
   }
 }
 
+/// The "OFF" glyph sits inside the collapsed sheet's hit region. The radar
+/// ring above that sheet is the control that calls go-online.
+Future<void> _goOnlineFromHome(WidgetTester tester) async {
+  final orb = find.byKey(const ValueKey<String>('trip-radar-touch-target'));
+  expect(orb, findsOneWidget);
+  final rect = tester.getRect(orb);
+  await tester.tapAt(Offset(rect.center.dx, rect.top + 12));
+  await tester.pump();
+}
+
 Future<void> _tapArrived(WidgetTester tester) async {
   final button = find.byKey(const ValueKey<String>('active-ride-arrived-button'));
   expect(button, findsOneWidget);
@@ -83,7 +93,11 @@ void main() {
     expect(find.byKey(const ValueKey<String>('headless-map')), findsWidgets);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('OFF'));
+    await _goOnlineFromHome(tester);
+    expect(
+      find.text('Resolve saved trip recovery before going online.'),
+      findsNothing,
+    );
     await _elapse(tester, const Duration(milliseconds: 4500));
     expect(
       find.text('Accept'),
