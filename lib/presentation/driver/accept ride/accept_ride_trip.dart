@@ -173,7 +173,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       switch (event.kind) {
         case DriverRealtimeKind.riderOnTheWay:
           if (_rideLifecycle.terminal) { return; }
-          setState(() => _riderOnTheWay = true);
+          _rebuild(() => _riderOnTheWay = true);
           ScaffoldMessenger.maybeOf(context)?.showSnackBar(
             SnackBar(
               content: Text(
@@ -235,7 +235,7 @@ extension _AcceptRideTrip on _AcceptRideState {
           }
         } else {
           if (!await _rideLifecycle.applyProjection(status)) { return; }
-          if (mounted) { setState(() {}); _resumeStageSideEffects(); }
+          if (mounted) { _rebuild(() {}); _resumeStageSideEffects(); }
         }
         if (status == TripStatus.cancelledByRider && !_rideLifecycle.terminal) { return; }
         if (identical(event, _pendingProjection)) { _pendingProjection = null; }
@@ -351,7 +351,7 @@ extension _AcceptRideTrip on _AcceptRideState {
         _waitSeconds = 0;
         _startWaitTimer();
         await _rideLifecycle.persistNow();
-        if (mounted) { setState(() {}); }
+        if (mounted) { _rebuild(() {}); }
       }
     }
     Future<void> _confirmPickupArrival() async {
@@ -379,7 +379,7 @@ extension _AcceptRideTrip on _AcceptRideState {
           message: 'Your driver has arrived at the pickup point.',
         ),
       );
-      if (mounted) { setState(() {}); }
+      if (mounted) { _rebuild(() {}); }
       _unlockStageAfterFrame();
     }
     void _onNavigationChanged() {
@@ -391,7 +391,7 @@ extension _AcceptRideTrip on _AcceptRideState {
           !identical(_roadGeoPoints, route.points);
       final mappedRoute = route;
       if (!pointsChanged && status == _locationStatus) { return; }
-      setState(() {
+      _rebuild(() {
         if (pointsChanged && mappedRoute != null) {
           _roadGeoPoints = mappedRoute.points;
           _roadRoutePoints = mappedRoute.latLngPoints;
@@ -405,7 +405,7 @@ extension _AcceptRideTrip on _AcceptRideState {
     Future<void> _prepareDriverVehicleMarker() async {
       final icon = await MoveraVehicleMarker.createIcon();
       if (!mounted) { return; }
-      setState(() => _driverVehicleIcon = icon);
+      _rebuild(() => _driverVehicleIcon = icon);
     }
     Future<void> _startLiveLocation() async {
       final epoch = ++_locationEpoch;
@@ -429,7 +429,7 @@ extension _AcceptRideTrip on _AcceptRideState {
           onError: (Object error) {
             if (!mounted) { return; }
             _navigation.keepLastKnown(status: 'Location updating…');
-            setState(() {
+            _rebuild(() {
               _hasLiveLocation = false;
               _locationStatus = 'Location updating…';
             });
@@ -438,7 +438,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       } catch (_) {
         if (!mounted) { return; }
         _navigation.keepLastKnown(status: 'Location updating…');
-        setState(() {
+        _rebuild(() {
           _hasLiveLocation = false;
           _locationStatus = 'Location updating…';
         });
@@ -492,7 +492,7 @@ extension _AcceptRideTrip on _AcceptRideState {
 
       final target = _routeTarget;
       if (target == null) {
-        setState(() {
+        _rebuild(() {
           _roadGeoPoints = [];
           _roadRoutePoints = [];
 
@@ -510,7 +510,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       if (!mounted) { return; }
 
       final route = _navigation.route;
-      setState(() {
+      _rebuild(() {
         if (route != null && route.points.length >= 2) {
           _roadGeoPoints = route.points;
           _roadRoutePoints = route.latLngPoints;
@@ -621,7 +621,7 @@ extension _AcceptRideTrip on _AcceptRideState {
           await _rideLifecycle.persistNow();
           _onTripRadarState = _OnTripRadarState.scanning;
           _nextTripRadarOffer = null;
-          if (mounted) { setState(() {}); }
+          if (mounted) { _rebuild(() {}); }
           _maybeScheduleOnTripRadarDemoOffer();
           _unlockStageAfterFrame();
           unawaited(_refreshOnTripRoute());
@@ -634,7 +634,7 @@ extension _AcceptRideTrip on _AcceptRideState {
             _stopCursor += 1;
             await _rideLifecycle.persistNow();
             _stageTransitioning = false;
-            if (mounted) { setState(() {}); }
+            if (mounted) { _rebuild(() {}); }
             unawaited(_refreshOnTripRoute());
             return;
           }
@@ -845,7 +845,7 @@ extension _AcceptRideTrip on _AcceptRideState {
 
       if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
 
-      setState(() {
+      _rebuild(() {
         _onTripRadarState = _OnTripRadarState.scanning;
         _nextTripRadarOffer = null;
       });
@@ -860,7 +860,7 @@ extension _AcceptRideTrip on _AcceptRideState {
         return;
       }
       _onTripRadarDeclined = false;
-      setState(() => _onTripRadarState = _OnTripRadarState.off);
+      _rebuild(() => _onTripRadarState = _OnTripRadarState.off);
       _startOnTripRadar();
     }
     bool _dropoffFollowsDestination(LatLng dropoff) {
@@ -911,7 +911,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       _nextTripOfferExpiry?.cancel();
       if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
       if (_onTripRadarState == _OnTripRadarState.secured) { return; }
-      setState(() {
+      _rebuild(() {
         _onTripRadarState = _OnTripRadarState.stopped;
         _nextTripRadarOffer = null;
       });
@@ -943,7 +943,7 @@ extension _AcceptRideTrip on _AcceptRideState {
             return;
           }
 
-          setState(() {
+          _rebuild(() {
             final offer = _onTripRadarOfferForDestination();
             if (!_dropoffFollowsDestination(offer.dropoffPosition)) { return; }
             _nextTripRadarOffer = offer;
@@ -985,13 +985,13 @@ extension _AcceptRideTrip on _AcceptRideState {
           _onTripRadarState == _OnTripRadarState.matching) {
         return;
       }
-      setState(() => _onTripRadarState = _OnTripRadarState.matching);
+      _rebuild(() => _onTripRadarState = _OnTripRadarState.matching);
       _nextTripOfferExpiry?.cancel();
       _restoreRideSheet();
       _nextTripRadarMatchTimer?.cancel();
       _nextTripRadarMatchTimer = Timer(const Duration(milliseconds: 900), () {
         if (!mounted || _stage != ActiveRideStage.onTrip) { return; }
-        setState(() => _onTripRadarState = _OnTripRadarState.secured);
+        _rebuild(() => _onTripRadarState = _OnTripRadarState.secured);
         _waybills.secureNext(_buildNextWaybill(offer));
         _rideLifecycle.persistNow();
       });
@@ -1005,7 +1005,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       _nextTripRadarDemoTimer?.cancel();
       _nextTripRadarMatchTimer?.cancel();
       _nextTripOfferExpiry?.cancel();
-      setState(() {
+      _rebuild(() {
         _onTripRadarDeclined = true;
         _nextTripRadarOffer = null;
         _onTripRadarState = _OnTripRadarState.scanning;
@@ -1016,7 +1016,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       _waitTimer?.cancel();
       _waitTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted || !_countingWait) { return; }
-        setState(() => _waitSeconds++);
+        _rebuild(() => _waitSeconds++);
       });
     }
     String _stopWord(int number) {

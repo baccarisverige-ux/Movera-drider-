@@ -377,6 +377,8 @@ class _AcceptRideState extends State<AcceptRide>
     initialStage: widget.initialStage,
   );
   ActiveRideStage get _stage => _rideLifecycle.stage;
+  // Trip orchestration lives in an extension, which cannot call setState.
+  void _rebuild(VoidCallback update) => setState(update);
   Timer? _waitTimer;
   StreamSubscription<DriverRealtimeEvent>? _realtimeSubscription;
   late final VoidCallback _onNavigationChangedListener =

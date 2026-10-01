@@ -21,5 +21,7 @@ void main() {
     expect(trip, contains('Future<void> _advanceRide'));
     expect(trip, contains('void _onRealtimeEvent'));
     expect(trip, contains('Future<void> _completeCurrentTrip'));
+    expect(ride, contains('void _rebuild('));
+    expect(trip, isNot(contains('setState(')));
   });
 }
