@@ -67,6 +67,9 @@ dependencies:
   flutter_svg: ^2.0.17
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
+  google_maps_flutter_platform_interface: 2.14.0
   shared_preferences_platform_interface: ^2.4.1
   flutter_test:
     sdk: flutter

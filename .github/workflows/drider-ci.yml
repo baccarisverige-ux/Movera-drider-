@@ -48,6 +48,9 @@ jobs:
       - name: Test
         run: flutter test
 
+      - name: Critical lifecycle
+        run: flutter test integration_test/driver_lifecycle_test.dart -d flutter-tester
+
       - name: Build web
         run: flutter build web --release
 
