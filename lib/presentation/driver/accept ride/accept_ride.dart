@@ -27,6 +27,7 @@ import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
+import 'package:movera/core/safety/rider_contact.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
@@ -2689,7 +2690,7 @@ class _AcceptRideState extends State<AcceptRide>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text(
-                            'Rider phone contact is not connected in this demo.',
+                            RiderContactPolicy.unavailableMessage,
                           ),
                           backgroundColor: _ink,
                           behavior: SnackBarBehavior.floating,
@@ -2702,7 +2703,9 @@ class _AcceptRideState extends State<AcceptRide>
                     onMessage: () {
                       Navigator.push(
                         context,
-                        BottomToTopTransition(const Chat()),
+                        BottomToTopTransition(
+                          Chat(riderDisplayName: widget.riderName),
+                        ),
                       );
                     },
                   )

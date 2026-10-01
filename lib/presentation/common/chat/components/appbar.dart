@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
+import 'package:movera/core/safety/rider_contact.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ChatAppBar extends StatelessWidget {
-  const ChatAppBar({super.key});
+  const ChatAppBar({
+    super.key,
+    required this.riderDisplayName,
+  });
+
+  final String riderDisplayName;
 
   @override
   Widget build(BuildContext context) {
@@ -34,18 +39,30 @@ class ChatAppBar extends StatelessWidget {
               size: ResSize.h * 23,
             ),
           ),
-          TextWidget(
-            text: "Driver’s name",
-            color: AppColor.title,
-            fontSize: 16,
-            fontWeight: fwBold,
+          Expanded(
+            child: TextWidget(
+              text: riderDisplayName,
+              color: AppColor.title,
+              fontSize: 16,
+              fontWeight: fwBold,
+            ),
           ),
         ],
       ),
       actions: [
         IconButton(
+          tooltip: RiderContactPolicy.available
+              ? 'Call rider'
+              : RiderContactPolicy.unavailableMessage,
           onPressed: () {
-            launchUrl(Uri.parse('tel:+46701234567'));
+            if (RiderContactPolicy.available) {
+              return;
+            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(RiderContactPolicy.unavailableMessage),
+              ),
+            );
           },
           icon: Image.asset(AppAssets.phoneOutl, height: ResSize.h * 23),
         ),
