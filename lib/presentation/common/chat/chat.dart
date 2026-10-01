@@ -9,7 +9,9 @@ import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
 
 class Chat extends StatefulWidget {
-  const Chat({super.key});
+  const Chat({super.key, required this.riderDisplayName});
+
+  final String riderDisplayName;
 
   @override
   State<Chat> createState() => _ChatState();
@@ -48,7 +50,7 @@ class _ChatState extends State<Chat> {
       backgroundColor: Color(0xffFAFAFA),
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(ResSize.h * 75),
-        child: ChatAppBar(),
+        child: ChatAppBar(riderDisplayName: widget.riderDisplayName),
       ),
       body: SizedBox(
         child: Column(
