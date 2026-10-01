@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/main.dart';
@@ -9,8 +8,11 @@ import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Frontend-only lifecycle against the real [MoveraApp] composition root.
+/// Lifecycle against the real [MoveraApp] composition root.
+///
 /// Demo services are the ones [MoveraApp] already injects. No backend.
+/// This stays on the widget-test binding because the Linux CI image has no
+/// map platform view for `integration_test` on a device.
 
 Future<void> _advance(WidgetTester tester, Duration duration) async {
   await tester.pump();
@@ -52,7 +54,7 @@ Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
 }
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
     CompletionJournal.resetForTesting();
