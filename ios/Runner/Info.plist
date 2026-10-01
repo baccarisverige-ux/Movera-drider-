@@ -7,9 +7,7 @@
     <key>NSCameraUsageDescription</key>
     <string>Movera Driver uses the camera to capture vehicle and document photos you choose to attach.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>This app needs access to location when open.</string>
-    <key>NSLocationAlwaysUsageDescription</key>
-    <string>This app needs access to location when in the background.</string>
+    <string>Movera Driver uses your location while the app is open to show nearby trips and navigation. Background location is not used.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
