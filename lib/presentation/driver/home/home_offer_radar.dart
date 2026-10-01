@@ -99,7 +99,7 @@ extension _HomeOfferRadar on _DriverHomeState {
     }
     void _clearDirectOfferRoute() {
       if (!mounted) { return; }
-      setState(() {
+      _rebuild(() {
         _isDirectOfferRoutePreview = false;
         _directOfferRouteMarkers = {};
         _directOfferRoutePolylines = {};
@@ -123,7 +123,7 @@ extension _HomeOfferRadar on _DriverHomeState {
       }
 
       _outsideOfferTimeoutTimer?.cancel();
-      setState(() {
+      _rebuild(() {
         _outsideRadarOffer = offer;
       });
 
@@ -145,7 +145,7 @@ extension _HomeOfferRadar on _DriverHomeState {
       _outsideOfferTimeoutTimer = null;
       if (!mounted) { return; }
 
-      setState(() {
+      _rebuild(() {
         _outsideRadarOffer = null;
       });
       _clearDirectOfferRoute();
@@ -165,7 +165,7 @@ extension _HomeOfferRadar on _DriverHomeState {
       // Dispatch owns offer expiry and claim state for both Home and Radar.
 
       if (_outsideRadarOffer != null) {
-        setState(() {
+        _rebuild(() {
           _hasRideOffers = true;
           _pendingRadarHomeOffers.add(offer);
         });
@@ -179,7 +179,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         return;
       }
 
-      setState(() {
+      _rebuild(() {
         _hasRideOffers = true;
         _pendingRadarHomeOffers.add(offer);
       });
@@ -192,7 +192,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         return;
       }
 
-      setState(() {
+      _rebuild(() {
         _hasRideOffers = true;
         _radarHomeOffers.add(offer);
         _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
@@ -220,7 +220,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         if (next.length >= _DriverHomeState._maxHomeRadarOffers) { break; }
       }
 
-      setState(() {
+      _rebuild(() {
         _radarHomeOffers
           ..clear()
           ..addAll(next);
@@ -240,7 +240,7 @@ extension _HomeOfferRadar on _DriverHomeState {
       }
 
       // Keep detected trips pending until the driver explicitly refreshes.
-      setState(() {
+      _rebuild(() {
         _hasRideOffers = true;
       });
     }
@@ -248,7 +248,7 @@ extension _HomeOfferRadar on _DriverHomeState {
       _radarOfferTimeoutTimers.remove(offer.id)?.cancel();
       if (!mounted) { return; }
 
-      setState(() {
+      _rebuild(() {
         _radarHomeOffers.removeWhere((item) => item.id == offer.id);
         _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
         _homeRadarMatchStates.remove(offer.id);
@@ -272,7 +272,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         return;
       }
 
-      setState(() {
+      _rebuild(() {
         _homeRadarMatchingOfferId = offer.id;
         _homeRadarMatchStates[offer.id] = _HomeRadarMatchState.resolving;
         _homeRadarMatchNotice = const _HomeRadarMatchNotice(
@@ -332,7 +332,7 @@ extension _HomeOfferRadar on _DriverHomeState {
     void _resolveHomeRadarMatchWon(_HomeDirectOffer offer) {
       _homeRadarNoticeTimer?.cancel();
 
-      setState(() {
+      _rebuild(() {
         _homeRadarMatchingOfferId = null;
         _homeRadarMatchStates.remove(offer.id);
         _homeRadarMatchNotice = const _HomeRadarMatchNotice(
@@ -351,7 +351,7 @@ extension _HomeOfferRadar on _DriverHomeState {
       );
     }
     void _resolveHomeRadarMatchLost(_HomeDirectOffer offer) {
-      setState(() {
+      _rebuild(() {
         _homeRadarMatchingOfferId = null;
         _homeRadarMatchStates[offer.id] =
             _HomeRadarMatchState.claimedElsewhere;
@@ -367,7 +367,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         const Duration(milliseconds: 2600),
         () {
           if (!mounted) { return; }
-          setState(() => _homeRadarMatchNotice = null);
+          _rebuild(() => _homeRadarMatchNotice = null);
         },
       );
 
@@ -411,7 +411,7 @@ extension _HomeOfferRadar on _DriverHomeState {
             return;
           }
 
-          setState(() {
+          _rebuild(() {
             _homeRadarMatchStates[matchedOffer.id] =
                 _HomeRadarMatchState.claimedElsewhere;
           });
@@ -486,7 +486,7 @@ extension _HomeOfferRadar on _DriverHomeState {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) { return; }
-        setState(() {
+        _rebuild(() {
           _outsideRadarOffer = null;
           _radarHomeOffers.clear();
           _pendingRadarHomeOffers.clear();
@@ -533,7 +533,7 @@ extension _HomeOfferRadar on _DriverHomeState {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) { return; }
-        setState(() {
+        _rebuild(() {
           _outsideRadarOffer = null;
           _radarHomeOffers.clear();
           _pendingRadarHomeOffers.clear();

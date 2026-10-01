@@ -23,5 +23,7 @@ void main() {
     expect(offers, contains('Duration(milliseconds: 50000)'));
     expect(offers, contains('Duration(milliseconds: 40000)'));
     expect(home, contains('Duration(milliseconds: 1400)'));
+    expect(home, contains('void _rebuild('));
+    expect(offers, isNot(contains('setState(')));
   });
 }

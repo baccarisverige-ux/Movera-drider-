@@ -192,6 +192,8 @@ class _DriverHomeState extends State<DriverHome>
   late final bool _ownsDriverSession;
   bool get _isOnline => _liveVisible && _recoveryResolved && _driverSession.availableForOffers;
   bool get _isGoingOnline => _driverSession.isGoingOnline;
+  // Offer orchestration lives in an extension, which cannot call setState.
+  void _rebuild(VoidCallback update) => setState(update);
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
   bool _showTodaySummaryPopup = false;
