@@ -315,6 +315,8 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
             minChildSize: 0.20,
             initialChildSize: 0.43,
             maxChildSize: 0.78,
+            expand: false,
+            shouldCloseOnMinExtent: false,
             snap: true,
             snapSizes: const [0.20, 0.43, 0.78],
             builder: (context, scrollController) {
