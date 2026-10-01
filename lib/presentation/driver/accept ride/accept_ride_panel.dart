@@ -1516,7 +1516,7 @@ extension _AcceptRidePanel on _AcceptRideState {
           : _stage == ActiveRideStage.waitingForRider &&
                   !_paidStopWait &&
                   _waitSeconds >= 300
-              ? <_TripCancellationReason>[_AcceptRideState._noShowReason, ..._preTripCancellationReasons]
+              ? <_TripCancellationReason>[_AcceptRideState._noShowReason, ..._AcceptRideState._preTripCancellationReasons]
               : _AcceptRideState._preTripCancellationReasons;
 
       final reason = await showMoveraModalSheet<_TripCancellationReason>(
