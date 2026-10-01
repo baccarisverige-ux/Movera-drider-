@@ -1,0 +1,16 @@
+# Android permissions
+
+Minimum set for the current Driver frontend:
+
+| Permission | Why it stays |
+| --- | --- |
+| `INTERNET` | Demo road routing and map tiles |
+| `ACCESS_FINE_LOCATION` | When-in-use driver location while the app is open |
+| `ACCESS_COARSE_LOCATION` | Coarse fallback for the same when-in-use location |
+
+Camera and document photos use the image picker. That API does not need
+`READ_EXTERNAL_STORAGE` or `WRITE_EXTERNAL_STORAGE` on current target SDKs.
+Those legacy storage permissions are not requested.
+
+Denial or cancel of camera, location, or the picker must leave the draft on
+screen. It must not crash and must not invent a captured file.
