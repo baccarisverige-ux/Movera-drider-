@@ -146,7 +146,7 @@ class WalletScreen extends StatelessWidget {
                     ),
                     SizedBox(width: 7),
                     Text(
-                      'Current balance',
+                      'Preview only',
                       style: TextStyle(
                         color: _green,
                         fontSize: 10.5,
@@ -174,7 +174,7 @@ class WalletScreen extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           const Text(
-            '2 994,80 kr',
+            '0,00 kr',
             style: TextStyle(
               color: _text,
               fontSize: 38,
@@ -185,7 +185,7 @@ class WalletScreen extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Earnings waiting for the next automatic payout',
+            'No payout balance until a payment service is connected.',
             style: TextStyle(
               color: _muted,
               fontSize: 12,
@@ -227,7 +227,7 @@ class WalletScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Automatic weekly payout',
+                  'No automatic payout',
                   style: TextStyle(
                     color: _text,
                     fontSize: 13.5,
@@ -236,7 +236,7 @@ class WalletScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Next payout · 21 Sep',
+                  'Payout date is not available',
                   style: TextStyle(
                     color: _muted,
                     fontSize: 10.5,
@@ -316,23 +316,12 @@ class WalletScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: _line),
       ),
-      child: const Column(
-        children: [
-          _PayoutRow(
-            amount: '3 072,88 kr',
-            date: '14 Sep',
-          ),
-          Divider(
-            height: 1,
-            indent: 66,
-            endIndent: 16,
-            color: _line,
-          ),
-          _PayoutRow(
-            amount: '4 780,29 kr',
-            date: '7 Sep',
-          ),
-        ],
+      child: const Padding(
+        padding: EdgeInsets.fromLTRB(16, 18, 16, 18),
+        child: Text(
+          'No payouts yet. Local preview cannot invent earnings.',
+          style: TextStyle(color: _muted, fontSize: 13, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
@@ -387,7 +376,7 @@ class WalletScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Bank account ·•••• 41',
+                  'No payout account connected',
                   style: TextStyle(
                     color: _muted,
                     fontSize: 10.5,
@@ -398,8 +387,8 @@ class WalletScreen extends StatelessWidget {
             ),
           ),
           const Icon(
-            Icons.verified_rounded,
-            color: _greenMid,
+            Icons.info_outline_rounded,
+            color: _muted,
             size: 20,
           ),
         ],
@@ -412,83 +401,3 @@ class WalletScreen extends StatelessWidget {
   }
 }
 
-class _PayoutRow extends StatelessWidget {
-  final String amount;
-  final String date;
-
-  const _PayoutRow({
-    required this.amount,
-    required this.date,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: WalletScreen._mint,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.arrow_downward_rounded,
-              color: WalletScreen._green,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Weekly payout',
-                  style: TextStyle(
-                    color: WalletScreen._text,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'Sent automatically',
-                  style: TextStyle(
-                    color: WalletScreen._muted,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                amount,
-                style: const TextStyle(
-                  color: WalletScreen._text,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                date,
-                style: const TextStyle(
-                  color: WalletScreen._muted,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
