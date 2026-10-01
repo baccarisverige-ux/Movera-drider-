@@ -1,0 +1,109 @@
+import 'package:movera/core/history/prefs_trip_history_repository.dart';
+import 'package:movera/core/ride/completion_journal.dart';
+import 'package:movera/core/ride/prefs_active_ride_repository.dart';
+import 'package:movera/core/settings/settings_repository.dart';
+import 'package:movera/core/support/local_support_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Class of a local key. This store is recoverable demo state, not secure storage.
+enum LocalDataClass {
+  /// Needed to restore an in-progress trip until logout or terminal cleanup.
+  recovery,
+
+  /// Rider names, addresses, phones, photos, or free text.
+  personal,
+
+  /// Non-personal preview preferences.
+  preference,
+}
+
+class LocalDataRecord {
+  const LocalDataRecord({
+    required this.key,
+    required this.dataClass,
+    required this.purpose,
+    required this.retention,
+  });
+
+  final String key;
+  final LocalDataClass dataClass;
+  final String purpose;
+  final String retention;
+}
+
+/// Inventory of Driver keys written through SharedPreferences.
+///
+/// Web maps these keys into localStorage with a `flutter.` prefix.
+const localDataInventory = <LocalDataRecord>[
+  LocalDataRecord(
+    key: PrefsActiveRideRepository.key,
+    dataClass: LocalDataClass.recovery,
+    purpose: 'Restore the active trip after a process restart.',
+    retention: 'Until the trip ends, or until logout clears local data.',
+  ),
+  LocalDataRecord(
+    key: PrefsActiveRideRepository.terminalKey,
+    dataClass: LocalDataClass.recovery,
+    purpose: 'Stop a finished trip from coming back after restart.',
+    retention: 'Until logout. Not personal free text.',
+  ),
+  LocalDataRecord(
+    key: CompletionJournal.key,
+    dataClass: LocalDataClass.recovery,
+    purpose: 'Replay a completion that was interrupted locally.',
+    retention: 'Until the journal entry is applied, or until logout.',
+  ),
+  LocalDataRecord(
+    key: PrefsTripHistoryRepository.key,
+    dataClass: LocalDataClass.personal,
+    purpose: 'Local history rows, including rider and address labels.',
+    retention: 'Until logout. Not sent to a server.',
+  ),
+  LocalDataRecord(
+    key: LocalSupportRepository.key,
+    dataClass: LocalDataClass.personal,
+    purpose: 'Unsent support draft text.',
+    retention: 'Until logout.',
+  ),
+  LocalDataRecord(
+    key: SettingsRepository.key,
+    dataClass: LocalDataClass.personal,
+    purpose: 'Legacy settings blob. May include contacts or vehicle drafts.',
+    retention: 'Until logout.',
+  ),
+  LocalDataRecord(
+    key: '${SettingsRepository.sectionPrefix}*',
+    dataClass: LocalDataClass.personal,
+    purpose: 'Section settings such as trusted-contact phones and vehicle drafts.',
+    retention: 'Until logout.',
+  ),
+];
+
+/// Removes classified personal and recovery keys.
+///
+/// Active-trip recovery still works until this runs. After it runs, terminal
+/// and active trips cannot resurrect from local storage. Keys outside the
+/// Movera inventory are left untouched.
+Future<void> clearLocalUserData({
+  Future<SharedPreferences> Function()? load,
+}) async {
+  final prefs = await (load ?? SharedPreferences.getInstance)();
+  const exact = <String>[
+    PrefsActiveRideRepository.key,
+    PrefsActiveRideRepository.terminalKey,
+    CompletionJournal.key,
+    PrefsTripHistoryRepository.key,
+    LocalSupportRepository.key,
+    SettingsRepository.key,
+  ];
+  for (final key in exact) {
+    await prefs.remove(key);
+  }
+  final sectionKeys = prefs
+      .getKeys()
+      .where((key) => key.startsWith(SettingsRepository.sectionPrefix))
+      .toList(growable: false);
+  for (final key in sectionKeys) {
+    await prefs.remove(key);
+  }
+}

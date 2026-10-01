@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movera/core/privacy/local_data.dart';
 import 'package:movera/core/session/driver_runtime_scope.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/driver/analytics/analytics.dart';
@@ -283,7 +284,7 @@ class DriverProfile extends StatelessWidget {
           backgroundColor: Colors.white,
           title: const Text('Log out?'),
           content: const Text(
-            'You will return to the sign-in screen on this device.',
+            'Local preview data on this device will be cleared, including trip history, contacts, and drafts. You will return to the sign-in screen offline.',
           ),
           actions: [
             TextButton(
@@ -302,6 +303,10 @@ class DriverProfile extends StatelessWidget {
       },
     );
     if (leave == true && context.mounted) {
+      await clearLocalUserData();
+      if (!context.mounted) {
+        return;
+      }
       DriverRuntimeScope.maybeOf(context)?.session.reset();
       Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const DriverStarter()),
