@@ -1,3 +1,5 @@
+import 'package:movera/core/contracts/trip_status.dart';
+import 'package:movera/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/history/trip_history.dart';
 import 'package:movera/core/history/prefs_trip_history_repository.dart';
@@ -46,7 +48,11 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
           dropoff: record.dropoff,
           distance: record.distance,
           duration: record.duration,
-          earnings: record.fare,
+          earnings: record.status == TripStatus.completed ? record.fare : '—',
+          status:record.status,
+          fareMoney:record.fareMoney,
+          cancellationActor:record.cancellationActor,
+          cancellationReasonCode:record.cancellationReasonCode,
           riderName: record.riderName,
           completedAt: at,
         );
@@ -85,14 +91,16 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
   }
 
   String get _periodEarnings {
-    final total = _periodRidesList.fold<double>(0, (sum, ride) {
-      final amount = ride.earnings.replaceAll(RegExp(r'[^0-9,\.]'), '').replaceAll(',', '.');
-      return sum + (double.tryParse(amount) ?? 0);
-    });
-    return '${total.toStringAsFixed(2)} kr';
+    var total=0;
+    for(final ride in _periodRidesList.where((ride)=>ride.status==TripStatus.completed)) {
+      if(ride.fareMoney==null) return 'Unavailable';
+      total+=ride.fareMoney!.minorUnits;
+    }
+    return Money.ore(total).formatted;
   }
 
-  String get _periodRides => _periodRidesList.length.toString();
+  String get _periodRides => _periodRidesList.where((ride)=>ride.status==TripStatus.completed).length.toString();
+
   String get _periodHours => '—';
 
   void _showOverview() {
@@ -732,6 +740,10 @@ class _HistoryRideCard extends StatelessWidget {
                   category: ride.category,
                   distance: ride.distance,
                   duration: ride.duration,
+                  status:ride.status,
+                  fareMinorUnits:ride.fareMoney?.minorUnits,
+                  cancellationActor:ride.cancellationActor,
+                  cancellationReasonCode:ride.cancellationReasonCode,
                 ),
               ),
             ),
@@ -828,9 +840,9 @@ class _HistoryRideCard extends StatelessWidget {
           ),
           if (!compact) ...[
             const SizedBox(height: 9),
-            const Row(
+            Row(
               children: [
-                SizedBox(
+                const SizedBox(
                   height: 6,
                   width: 6,
                   child: DecoratedBox(
@@ -842,7 +854,7 @@ class _HistoryRideCard extends StatelessWidget {
                 ),
                 SizedBox(width: 6),
                 Text(
-                  'Completed',
+                  ride.status == TripStatus.completed ? 'Completed' : ride.status.wireName,
                   style: TextStyle(
                     color: Color(0xFF315E4D),
                     fontSize: 9.5,
@@ -873,6 +885,10 @@ class _HistoryRide {
     required this.earnings,
     required this.riderName,
     this.completedAt,
+    this.status=TripStatus.completed,
+    this.fareMoney,
+    this.cancellationActor,
+    this.cancellationReasonCode,
   });
 
   final String id;
@@ -886,4 +902,8 @@ class _HistoryRide {
   final String earnings;
   final String riderName;
   final DateTime? completedAt;
+  final TripStatus status;
+  final Money? fareMoney;
+  final String? cancellationActor;
+  final String? cancellationReasonCode;
 }

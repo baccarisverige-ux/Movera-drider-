@@ -1,3 +1,5 @@
+import 'package:movera/core/contracts/trip_status.dart';
+import 'package:movera/core/money/money.dart';
 import 'package:movera/core/logging/driver_log.dart';
 import 'dart:convert';
 
@@ -13,7 +15,7 @@ class PrefsTripHistoryRepository {
 
   static const key = 'movera_driver_completed_trips';
   final Future<SharedPreferences> Function() _load;
-  Future<void> _pending = Future<void>.value();
+  static Future<void>? _pending;
 
   Future<List<TripHistoryRecord>> list() async {
     await _pending;
@@ -29,6 +31,10 @@ class PrefsTripHistoryRepository {
       duration: data['duration'] as String? ?? '—',
       tip: data['tip'] as String? ?? '—',
       paymentMethod: data['paymentMethod'] as String? ?? '—',
+      status: TripStatus.values.byName(data['status'] as String? ?? 'completed'),
+      fareMinorUnits: data['fareMinorUnits'] as int?,
+      cancellationActor: data['cancellationActor'] as String?,
+      cancellationReasonCode: data['cancellationReasonCode'] as String?,
       completedAt: DateTime.tryParse(data['completedAt'] as String? ?? ''),
     )).toList(growable: false);
   }
@@ -63,8 +69,12 @@ class PrefsTripHistoryRepository {
     String? duration,
     String? tip,
     String? paymentMethod,
+    TripStatus status=TripStatus.completed,
+    String? cancellationActor,
+    String? cancellationReasonCode,
   }) {
-    final result = _pending.then((_) async {
+    final previous = _pending;
+    Future<void> write() async {
       final prefs = await _load();
       final raw = prefs.getString(key);
       final rows = _decode(raw);
@@ -79,6 +89,10 @@ class PrefsTripHistoryRepository {
         'pickup': record.pickup,
         'dropoff': record.dropoff,
         'fare': record.fare,
+        'status':status.name,
+        if(status==TripStatus.completed && Money.parseSekLabel(record.fare)!=null) 'fareMinorUnits':Money.parseSekLabel(record.fare)!.minorUnits,
+        if(cancellationActor!=null) 'cancellationActor':cancellationActor,
+        if(cancellationReasonCode!=null) 'cancellationReasonCode':cancellationReasonCode,
         'category': record.service,
         if (distance?.trim().isNotEmpty == true) 'distance': distance!.trim(),
         if (duration?.trim().isNotEmpty == true) 'duration': duration!.trim(),
@@ -89,8 +103,11 @@ class PrefsTripHistoryRepository {
       });
       final success = await prefs.setString(key, jsonEncode({'schemaVersion':1,'rows':rows.take(maxReceipts).toList()}));
       if (!success) throw StateError('Could not archive completed trip');
-    });
-    _pending = result.catchError((Object _) {});
+    }
+    final result=previous==null ? write() : previous.then((_)=>write());
+    final tail=result.catchError((Object _) {});
+    _pending=tail;
+    tail.then((_) { if(identical(_pending,tail)) _pending=null; });
     return result;
   }
 }

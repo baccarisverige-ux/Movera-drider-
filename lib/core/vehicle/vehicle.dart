@@ -58,7 +58,7 @@ class InMemoryVehicleRepository implements VehicleRepository {
         const DriverVehicle(
           vehicleId: 'V-418',
           make: 'Mercedes-Benz',
-          model: 'C200',
+          model: 'E 220',
           year: 2022,
           licensePlate: 'MVR 418',
           color: 'Black',

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AddVehicle extends StatefulWidget {
@@ -17,6 +20,8 @@ class _AddVehicleState extends State<AddVehicle> {
   final TextEditingController _model = TextEditingController();
   final TextEditingController _plate = TextEditingController();
   String? _year;
+  bool _saving = false;
+  late final String _vehicleId = 'local-${DateTime.now().microsecondsSinceEpoch}';
 
   @override
   void initState() {
@@ -211,12 +216,17 @@ class _AddVehicleState extends State<AddVehicle> {
               width: double.infinity,
               height: 52,
               child: FilledButton(
-                onPressed: _ready
-                    ? () {
-                        Navigator.push(
+                onPressed: _ready && !_saving
+                    ? () async {
+                        setState(()=>_saving=true);
+                        try {
+                          await LocalVehicleStore().upsert({'id':_vehicleId,'make':_make.text.trim(),'model':_model.text.trim(),'year':_year!,'plate':_plate.text.trim()});
+                          if(!mounted) return;
+                        await Navigator.push(
                           context,
                           MaterialPageRoute<void>(
                             builder: (_) => VehicleDocuments(
+                              vehicleId: _vehicleId,
                               make: _make.text.trim(),
                               model: _model.text.trim(),
                               year: _year!,
@@ -224,6 +234,9 @@ class _AddVehicleState extends State<AddVehicle> {
                             ),
                           ),
                         );
+                        } catch(_) {
+                          if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local vehicle draft. Retry.')));
+                        } finally { if(mounted) setState(()=>_saving=false); }
                       }
                     : null,
                 style: FilledButton.styleFrom(
@@ -299,12 +312,14 @@ class _AddVehicleState extends State<AddVehicle> {
 class VehicleDocuments extends StatefulWidget {
   const VehicleDocuments({
     super.key,
+    this.vehicleId,
     required this.make,
     required this.model,
     required this.year,
     required this.plate,
   });
 
+  final String? vehicleId;
   final String make;
   final String model;
   final String year;
@@ -318,6 +333,22 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _line = Color(0xFFE6E8EA);
 
+  final _store=LocalVehicleStore();
+  Map<String,dynamic>? _draft;
+  bool _busy=false;
+  @override
+  void initState() { super.initState(); _restore(); }
+  Future<void> _restore() async {
+    try {
+      final rows=await _store.list();
+      final matching=rows.where((row)=>row['id']==widget.vehicleId);
+      if(mounted) setState(() {
+        _draft=matching.isEmpty ? null : matching.first;
+        _registrationDone=_draft?['registrationPhoto'] is String;
+        _insuranceDone=_draft?['insurancePhoto'] is String;
+      });
+    } catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Could not load local vehicle documents.'),action:SnackBarAction(label:'Retry',onPressed:_restore))); }
+  }
   bool _registrationDone = false;
   bool _insuranceDone = false;
 
@@ -328,13 +359,19 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
     required List<String> checks,
     required bool registration,
   }) async {
-    final saved = await Navigator.push<bool>(
+    if(_busy || _draft==null) return;
+    final saved = await Navigator.push<Uint8List>(
       context,
       MaterialPageRoute(
         builder: (_) => _VehiclePhotoPage(title: title, checks: checks),
       ),
     );
-    if (saved != true || !mounted) return;
+    if (saved == null || !mounted) return;
+    setState(()=>_busy=true);
+    final updated={..._draft!, (registration ? 'registrationPhoto' : 'insurancePhoto'):base64Encode(saved)};
+    try { await _store.upsert(updated); if(!mounted) return; _draft=updated; }
+    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Photo could not be saved locally. Retry.')));return; }
+    finally { if(mounted) setState(()=>_busy=false); }
     setState(() {
       if (registration) {
         _registrationDone = true;
@@ -358,7 +395,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Permanently remove vehicle?',
+                'Remove local vehicle draft?',
                 style: TextStyle(
                   color: _ink,
                   fontSize: 18,
@@ -367,7 +404,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
               ),
               const SizedBox(height: 14),
               Text(
-                'This will permanently remove $_name from your account.',
+                'This removes $_name and its saved document photos from this device.',
                 style: const TextStyle(
                   color: _ink,
                   fontSize: 15,
@@ -416,7 +453,10 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
         );
       },
     );
-    if (remove == true && mounted) {
+    if (remove == true && mounted && widget.vehicleId != null) {
+      try { await _store.remove(widget.vehicleId!); }
+      catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not remove local draft. Retry.')));return; }
+      if(!mounted) return;
       Navigator.of(context).pop();
     }
   }
@@ -448,7 +488,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Please provide the following documents for this vehicle.',
+            'Document photos stay on this device. No upload or verification service is connected.',
             style: TextStyle(
               color: _ink,
               fontSize: 16,
@@ -459,7 +499,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
           const SizedBox(height: 22),
           _docRow(
             title: 'Vehicle Registration Certificate (Front Page)',
-            note: _registrationDone ? 'Completed' : 'Recommended next step',
+            note: _registrationDone ? 'Saved locally — not verified' : 'Recommended next step',
             noteColor: _registrationDone
                 ? const Color(0xFF1F7A4D)
                 : const Color(0xFF3D5A80),
@@ -476,7 +516,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
           const Divider(height: 1, color: _line),
           _docRow(
             title: 'Insurance Letter',
-            note: _insuranceDone ? 'Completed' : null,
+            note: _insuranceDone ? 'Saved locally — not verified' : null,
             noteColor: const Color(0xFF1F7A4D),
             onTap: () => _openPhoto(
               title: 'Take a photo of your Insurance Letter',
@@ -487,6 +527,8 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
               registration: false,
             ),
           ),
+          for(final key in ['registrationPhoto','insurancePhoto'])
+            if(_draft?[key] is String) Padding(padding:const EdgeInsets.symmetric(vertical:8), child:Image.memory(base64Decode(_draft![key] as String),height:160,fit:BoxFit.contain)),
           const SizedBox(height: 22),
           SizedBox(
             width: double.infinity,
@@ -567,9 +609,14 @@ class _VehiclePhotoPage extends StatelessWidget {
 
   Future<void> _take(BuildContext context) async {
     try {
-      final file = await ImagePicker().pickImage(source: ImageSource.camera);
+      final file = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality:65, maxWidth:1200);
       if (!context.mounted) return;
-      if (file != null) Navigator.pop(context, true);
+      if(file!=null) {
+        final bytes=await file.readAsBytes();
+        if(!context.mounted) return;
+        if(bytes.length>2*1024*1024) throw StateError('Photo exceeds local storage limit');
+        Navigator.pop(context,bytes);
+      }
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -627,7 +674,7 @@ class _VehiclePhotoPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 22),
                 const Text(
-                  'Before uploading the image, check the following:',
+                  'Before saving the local photo, check the following:',
                   style: TextStyle(
                     color: _ink,
                     fontSize: 16,

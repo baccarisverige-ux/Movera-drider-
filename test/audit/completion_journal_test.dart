@@ -19,12 +19,12 @@ void main() {
  expect(await active.read(),isNull);
  });
 
- test('rider cancellation retains queued B without creating a receipt', () async {
+ test('rider cancellation retains queued B and archives its terminal outcome', () async {
  SharedPreferences.setMockInitialValues({});final active=PrefsActiveRideRepository();
  await active.save(const PersistedActiveRide(tripId:'A',stage:ActiveRideStage.onTrip));
  await CompletionJournal(active:active).finish(WaybillRecord(tripId:'A',statusLabel:'Current',issuedAt:DateTime(2026),fare:'10',service:'Demo',riderName:'Sample',pickup:'P',dropoff:'D',source:'Demo',driverName:'Sample',vehicle:'Sample',licensePlate:'Sample',passengerCapacity:4),
  status:TripStatus.cancelledByRider,next:const PersistedActiveRide(tripId:'B',stage:ActiveRideStage.headingToPickup));
- expect((await active.read())?.tripId,'B');expect(await PrefsTripHistoryRepository().list(),isEmpty);
+ expect((await active.read())?.tripId,'B');expect((await PrefsTripHistoryRepository().list()).single.status,TripStatus.cancelledByRider);
  });
  for(final step in ['journal','archive','terminal','snapshot','cleanup']) {
  test('interruption after $step recovers exactly one receipt and queued B', () async {

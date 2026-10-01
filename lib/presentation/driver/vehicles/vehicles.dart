@@ -1,9 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:movera/presentation/driver/add%20vehicle/add_vehicle.dart';
 
-class DriverVehicles extends StatelessWidget {
+class DriverVehicles extends StatefulWidget {
   const DriverVehicles({super.key});
 
+  @override
+  State<DriverVehicles> createState() => _DriverVehiclesState();
+}
+class _DriverVehiclesState extends State<DriverVehicles> {
+  final _store=LocalVehicleStore();
+  List<Map<String,dynamic>> _vehicles=[];
+  bool _failed=false;
+  @override
+  void initState() { super.initState(); _load(); }
+  Future<void> _load() async {
+    try { final rows=await _store.list();if(mounted) setState(() {_vehicles=rows;_failed=false;}); }
+    catch(_) { if(mounted) setState(()=>_failed=true); }
+  }
   static const Color _ink = Color(0xFF252E3A);
   static const Color _muted = Color(0xFF7D898F);
   static const Color _line = Color(0xFFE6E8EA);
@@ -31,11 +45,12 @@ class DriverVehicles extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute<void>(builder: (_) => const AddVehicle()),
               );
+              if(mounted) await _load();
             },
             icon: const Icon(Icons.add_rounded, color: _ink),
           ),
@@ -44,7 +59,9 @@ class DriverVehicles extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
-          Container(
+          if(_failed) TextButton(onPressed:_load, child:const Text('Could not load local vehicle drafts — Retry')),
+          const Text('Local vehicle drafts — not activated or verified'),
+          for(final vehicle in _vehicles) Container(
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -54,8 +71,8 @@ class DriverVehicles extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '2022 Mercedes-Benz E 220',
+                Text(
+                  '${vehicle['year']} ${vehicle['make']} ${vehicle['model']}',
                   style: TextStyle(
                     color: _ink,
                     fontSize: 26,
@@ -65,8 +82,8 @@ class DriverVehicles extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'USD89R',
+                Text(
+                  vehicle['plate'] as String,
                   style: TextStyle(
                     color: _ink,
                     fontSize: 15,
@@ -87,18 +104,20 @@ class DriverVehicles extends StatelessWidget {
                   width: double.infinity,
                   height: 46,
                   child: FilledButton(
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute<void>(
-                          builder: (_) => const VehicleDocuments(
-                            make: 'Mercedes-Benz',
-                            model: 'E 220',
-                            year: '2022',
-                            plate: 'USD89R',
+                          builder: (_) => VehicleDocuments(
+                            vehicleId: vehicle['id'] as String,
+                            make: vehicle['make'] as String,
+                            model: vehicle['model'] as String,
+                            year: vehicle['year'] as String,
+                            plate: vehicle['plate'] as String,
                           ),
                         ),
                       );
+                      if(mounted) await _load();
                     },
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFFF4F6F7),

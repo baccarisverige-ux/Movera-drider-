@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movera/core/settings/settings_repository.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
@@ -31,18 +32,32 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
 
   final List<_EmergencyContact> _contacts = [
     const _EmergencyContact(
-      name: 'Example contact — Anna Johansson',
-      phone: '+46 70 123 45 67',
-      relation: 'Partner',
-    ),
-    const _EmergencyContact(
       name: 'Emergency services — 112',
       phone: '112',
       relation: 'Emergency',
     ),
   ];
 
+  final _settings=SettingsRepository();
+  bool _loading=true;
+  @override
+  void initState() { super.initState(); _restore(); }
+  Future<void> _restore() async {
+    try {
+      final data=await _settings.read('contacts');
+      final rows=data['rows'];
+      if(mounted) setState(() {
+        if(rows is List) {
+          _contacts.removeWhere((c)=>c.phone!='112');
+          for(final row in rows) { if(row is Map && row['name'] is String && row['phone'] is String && _validPhone(row['phone'] as String)) _contacts.add(_EmergencyContact(name:row['name'] as String,phone:row['phone'] as String,relation:row['relation'] as String? ?? 'Trusted contact')); }
+        }
+        _loading=false;
+      });
+    } catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Could not load trusted contacts.'),action:SnackBarAction(label:'Retry',onPressed:_restore))); }
+  }
+  bool _validPhone(String phone) => RegExp(r'^\+?[0-9]{7,15}$').hasMatch(phone.replaceAll(RegExp(r'[\s()-]'),'')) || phone=='112';
   Future<void> _addContact() async {
+    if(_loading) return;
     final name = TextEditingController();
     final phone = TextEditingController();
     final relation = TextEditingController(text: 'Family');
@@ -93,7 +108,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                 height: 48,
                 child: FilledButton(
                   onPressed: () {
-                    if (name.text.trim().isEmpty || phone.text.trim().isEmpty) {
+                    if (name.text.trim().isEmpty || !_validPhone(phone.text.trim())) {
                       return;
                     }
                     Navigator.pop(
@@ -122,7 +137,10 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     phone.dispose();
     relation.dispose();
     if (created != null && mounted) {
-      setState(() => _contacts.add(created));
+      final updated=[..._contacts,created];
+      try { await _settings.save('contacts',{'rows':updated.where((c)=>c.phone!='112').map((c)=>{'name':c.name,'phone':c.phone,'relation':c.relation}).toList()}); }
+      catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Contact could not be saved. Retry.')));return; }
+      if(mounted) setState(() => _contacts.add(created));
     }
   }
 
@@ -130,7 +148,9 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     final uri = Uri.parse(
       'tel:${contact.phone.replaceAll(RegExp(r'[^0-9+]'), '')}',
     );
-    await launchUrl(uri);
+    try {
+      if(!await launchUrl(uri) && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Dialer is unavailable.')));
+    } catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Dialer is unavailable.'))); }
   }
 
   @override
@@ -169,7 +189,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
         children: [
           const Text(
-            'These people can be reached from Safety tools. Contacts stay on this device.',
+            'Trusted contacts stay on this device. Calling opens your dialer.',
             style: TextStyle(color: _muted, fontSize: 12.5, height: 1.4),
           ),
           const SizedBox(height: 16),

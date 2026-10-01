@@ -1,3 +1,5 @@
+import 'package:movera/core/contracts/trip_status.dart';
+import 'package:movera/core/money/money.dart';
 /// Completed-trip projection for History (D7).
 ///
 /// Distinct from [WaybillRecord]: a waybill is the live/queued slip, history
@@ -16,6 +18,10 @@ class TripHistoryRecord {
     this.tip = '—',
     this.paymentMethod = '—',
     this.completedAt,
+    this.status = TripStatus.completed,
+    this.fareMinorUnits,
+    this.cancellationActor,
+    this.cancellationReasonCode,
   });
 
   final String tripId;
@@ -30,6 +36,12 @@ class TripHistoryRecord {
   final String tip;
   final String paymentMethod;
   final DateTime? completedAt;
+  final TripStatus status;
+  final int? fareMinorUnits;
+  final String? cancellationActor;
+  final String? cancellationReasonCode;
+  Money? get fareMoney => status != TripStatus.completed ? null : fareMinorUnits == null ? Money.parseSekLabel(fare) : Money.ore(fareMinorUnits!);
+
 }
 
 abstract interface class TripHistoryRepository {
