@@ -18,9 +18,16 @@ import 'headless_map_platform.dart';
 /// The map platform is a Flutter stand-in so this can run on the headless
 /// tester. It does not certify the native Google Map.
 
-Future<void> _advance(WidgetTester tester, Duration duration) async {
-  await tester.pump();
-  await tester.pump(duration);
+/// Pumps frames across [duration]. The integration binding waits in real
+/// time, so one `pump` does not advance tickers the way a widget test does.
+Future<void> _elapse(WidgetTester tester, Duration duration) async {
+  const step = Duration(milliseconds: 50);
+  var left = duration;
+  while (left > Duration.zero) {
+    final slice = left < step ? left : step;
+    await tester.pump(slice);
+    left -= slice;
+  }
 }
 
 Future<void> _tapArrived(WidgetTester tester) async {
@@ -28,10 +35,7 @@ Future<void> _tapArrived(WidgetTester tester) async {
   expect(button, findsOneWidget);
   await tester.ensureVisible(button);
   await tester.tap(button);
-  await tester.pump(const Duration(milliseconds: 240));
-  for (var i = 0; i < 4; i++) {
-    await tester.pump(const Duration(milliseconds: 16));
-  }
+  await _elapse(tester, const Duration(milliseconds: 300));
 }
 
 Future<void> _slide(WidgetTester tester) async {
@@ -39,22 +43,19 @@ Future<void> _slide(WidgetTester tester) async {
   expect(action, findsOneWidget);
   await tester.ensureVisible(action);
   await tester.drag(action, const Offset(320, 0));
-  await tester.pump(const Duration(milliseconds: 240));
-  for (var i = 0; i < 4; i++) {
-    await tester.pump(const Duration(milliseconds: 16));
-  }
+  await _elapse(tester, const Duration(milliseconds: 300));
 }
 
 Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
-  await tester.pump(const Duration(milliseconds: 220));
+  await _elapse(tester, const Duration(milliseconds: 250));
   final confirm = find.text('Confirm finish');
   if (confirm.evaluate().isNotEmpty) {
     await tester.tap(confirm);
   }
-  for (var i = 0; i < 60 && find.byType(DriverRideCompleted).evaluate().isEmpty; i++) {
-    await tester.pump(const Duration(milliseconds: 25));
+  for (var i = 0; i < 40 && find.byType(DriverRideCompleted).evaluate().isEmpty; i++) {
+    await _elapse(tester, const Duration(milliseconds: 50));
   }
-  await tester.pump(const Duration(milliseconds: 1100));
+  await _elapse(tester, const Duration(milliseconds: 400));
 }
 
 void main() {
@@ -74,20 +75,20 @@ void main() {
     });
     await tester.binding.setSurfaceSize(const Size(375, 812));
     await tester.pumpWidget(const MoveraApp());
-    await tester.pump(const Duration(milliseconds: 120));
+    await _elapse(tester, const Duration(milliseconds: 200));
     expect(find.byType(DriverHome), findsOneWidget);
     expect(find.text('Demo mode — no account'), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('headless-map')), findsWidgets);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('OFF'));
-    await tester.pump(const Duration(milliseconds: 3800));
+    await _elapse(tester, const Duration(milliseconds: 3800));
     final acceptButton = find.ancestor(
       of: find.text('Accept'),
       matching: find.byType(FilledButton),
     );
     tester.widget<FilledButton>(acceptButton).onPressed!.call();
-    await _advance(tester, const Duration(milliseconds: 520));
+    await _elapse(tester, const Duration(milliseconds: 520));
     expect(find.byType(AcceptRide), findsOneWidget);
 
     await _tapArrived(tester);
@@ -97,7 +98,7 @@ void main() {
     expect(find.byType(DriverRideCompleted), findsOneWidget);
 
     await tester.tap(find.text('Done'));
-    await tester.pump(const Duration(milliseconds: 420));
+    await _elapse(tester, const Duration(milliseconds: 500));
     expect(find.byType(DriverHome), findsOneWidget);
     expect(find.text('OFF'), findsOneWidget);
     expect(find.byType(AcceptRide), findsNothing);
@@ -112,16 +113,16 @@ void main() {
     });
     await tester.binding.setSurfaceSize(const Size(390, 844));
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
-    await tester.pump(const Duration(milliseconds: 160));
+    await _elapse(tester, const Duration(milliseconds: 200));
 
     await _tapArrived(tester);
     await _slide(tester);
     expect(find.textContaining('Dropping off'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey<String>('active-ride-trip-options')));
-    await tester.pump(const Duration(milliseconds: 220));
+    await _elapse(tester, const Duration(milliseconds: 250));
     await tester.tap(find.byKey(const ValueKey<String>('active-ride-cancel-option')));
-    await tester.pump(const Duration(milliseconds: 260));
+    await _elapse(tester, const Duration(milliseconds: 300));
     expect(
       find.byKey(const ValueKey<String>('trip-cancellation-reasons-sheet')),
       findsOneWidget,
@@ -131,9 +132,9 @@ void main() {
         const ValueKey<String>('trip-cancel-reason-rider_requested_early_end'),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 260));
+    await _elapse(tester, const Duration(milliseconds: 300));
     await tester.tap(find.text('Keep trip'));
-    await tester.pump(const Duration(milliseconds: 220));
+    await _elapse(tester, const Duration(milliseconds: 250));
     expect(find.textContaining('Dropping off'), findsOneWidget);
     expect(find.byType(DriverHome), findsNothing);
     expect(tester.takeException(), isNull);
