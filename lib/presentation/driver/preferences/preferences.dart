@@ -60,18 +60,18 @@ class _PreferencesState extends State<Preferences> {
   bool _settingsTouched = false;
   Future<void> _restoreSettings() async {
     try {
-    final data=await _settings.read('categories'); if(!mounted || _settingsTouched) return;
-    setState(() { if(data['selected'] is List && (data['selected'] as List).length==_categories.length && (data['selected'] as List).every((v)=>v is bool)) _selected=List<bool>.from(data['selected'] as List); });
+    final data=await _settings.read('categories'); if(!mounted || _settingsTouched) { return; }
+    setState(() { if(data['selected'] is List && (data['selected'] as List).length==_categories.length && (data['selected'] as List).every((v)=>v is bool)) { _selected=List<bool>.from(data['selected'] as List); } });
       } catch (_) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Could not load saved preferences.'),
-        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings)));
+        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings))); }
     }
   }
   Future<bool> _persistSettings() async {
     _settingsTouched=true;
     try { await _settings.save('categories',{'selected':_selected}); return true; }
-    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); return false; }
+    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); } return false; }
   }
 
   @override
@@ -92,7 +92,7 @@ class _PreferencesState extends State<Preferences> {
   }
 
   Future<void> _save() async {
-    if (!await _persistSettings() || !mounted) return;
+    if (!await _persistSettings() || !mounted) { return; }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

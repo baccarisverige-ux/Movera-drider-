@@ -121,7 +121,7 @@ class InMemoryWaybillRepository implements WaybillRepository {
   @override
   void completeCurrent() {
     final active = current;
-    if (active == null) return;
+    if (active == null) { return; }
 
     _last.value = active.copyWith(
       statusLabel: 'Completed',
@@ -143,7 +143,7 @@ class InMemoryWaybillRepository implements WaybillRepository {
   @override
   WaybillRecord? promoteNextToCurrent() {
     final queued = next;
-    if (queued == null) return null;
+    if (queued == null) { return null; }
     _current.value = queued.copyWith(statusLabel: 'Current trip');
     _next.value = null;
     return queued;

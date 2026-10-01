@@ -29,7 +29,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
       _loading=false;
     });
     } catch (_) {
-      if (mounted) { setState(() { _restoreFailed = true; _loading = true; }); }
+      if (mounted) { setState(() { _restoreFailed = true; _loading = false; }); }
     }
   }
   Future<void> _saveTickets() async {

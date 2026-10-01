@@ -92,7 +92,7 @@ class _SelectDocumentTypeState extends State<SelectDocumentType> {
                       borderRadius: BorderRadius.circular(8),
                       color: selectedTab == index
                           // ignore: deprecated_member_use
-                          ? Color(0xff215277).withOpacity(0.10)
+                          ? Color(0xff215277).withValues(alpha: 0.10)
                           : Colors.transparent,
                       border: selectedTab == index
                           ? Border.all(color: Colors.transparent, width: 0)

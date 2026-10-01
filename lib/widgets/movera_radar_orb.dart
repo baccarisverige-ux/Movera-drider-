@@ -90,9 +90,9 @@ class MoveraRadarOrb extends StatelessWidget {
                       height: 102 * s,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: accent.withOpacity(active ? 0.04 : 0.025),
+                        color: accent.withValues(alpha: active ? 0.04 : 0.025),
                         border: Border.all(
-                          color: accent.withOpacity(active ? 0.30 : 0.15),
+                          color: accent.withValues(alpha: active ? 0.30 : 0.15),
                           width: 1.2,
                         ),
                       ),
@@ -106,9 +106,9 @@ class MoveraRadarOrb extends StatelessWidget {
                         height: 96 * s,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: accent.withOpacity(offer ? 0.045 : 0.025),
+                          color: accent.withValues(alpha: offer ? 0.045 : 0.025),
                           border: Border.all(
-                            color: accent.withOpacity(offer ? 0.42 : 0.20),
+                            color: accent.withValues(alpha: offer ? 0.42 : 0.20),
                             width: offer ? 1.35 : 1.0,
                           ),
                         ),
@@ -119,9 +119,9 @@ class MoveraRadarOrb extends StatelessWidget {
                     height: 90 * s,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: accent.withOpacity(active ? 0.045 : 0.03),
+                      color: accent.withValues(alpha: active ? 0.045 : 0.03),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.72),
+                        color: Colors.white.withValues(alpha: 0.72),
                         width: 1.2,
                       ),
                     ),
@@ -131,14 +131,14 @@ class MoveraRadarOrb extends StatelessWidget {
                     height: 79 * s,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFFBFD9CF).withOpacity(0.12),
+                      color: const Color(0xFFBFD9CF).withValues(alpha: 0.12),
                       border: Border.all(
-                        color: accent.withOpacity(active ? 0.38 : 0.19),
+                        color: accent.withValues(alpha: active ? 0.38 : 0.19),
                         width: 1.1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: accent.withOpacity(glowStrength),
+                          color: accent.withValues(alpha: glowStrength),
                           blurRadius: active ? 19 : 11,
                           spreadRadius: active ? 5 : 2,
                         ),
@@ -162,8 +162,8 @@ class MoveraRadarOrb extends StatelessWidget {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  accent.withOpacity(0),
-                                  accent.withOpacity(offer ? 0.95 : 0.78),
+                                  accent.withValues(alpha: 0),
+                                  accent.withValues(alpha: offer ? 0.95 : 0.78),
                                 ],
                               ),
                             ),
@@ -174,7 +174,7 @@ class MoveraRadarOrb extends StatelessWidget {
                   Material(
                     color: Colors.transparent,
                     elevation: 16,
-                    shadowColor: const Color(0xFF12201C).withOpacity(0.38),
+                    shadowColor: const Color(0xFF12201C).withValues(alpha: 0.38),
                     shape: const CircleBorder(),
                     clipBehavior: Clip.antiAlias,
                     child: Ink(
@@ -200,7 +200,7 @@ class MoveraRadarOrb extends StatelessWidget {
                         ),
                         border: Border.all(
                           color: offer
-                              ? accent.withOpacity(0.82)
+                              ? accent.withValues(alpha: 0.82)
                               : const Color(0xD9E7ECEE),
                           width: offer ? 1.9 : 1.6,
                         ),
@@ -208,8 +208,8 @@ class MoveraRadarOrb extends StatelessWidget {
                       child: InkWell(
                         onTap: null,
                         customBorder: const CircleBorder(),
-                        splashColor: accent.withOpacity(0.14),
-                        highlightColor: accent.withOpacity(0.07),
+                        splashColor: accent.withValues(alpha: 0.14),
+                        highlightColor: accent.withValues(alpha: 0.07),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
@@ -249,7 +249,7 @@ class MoveraRadarOrb extends StatelessWidget {
                                   Container(
                                     width: 10 * s,
                                     height: 1,
-                                    color: Colors.white.withOpacity(0.36),
+                                    color: Colors.white.withValues(alpha: 0.36),
                                   ),
                                   SizedBox(height: 4 * s),
                                   Text(
@@ -273,7 +273,7 @@ class MoveraRadarOrb extends StatelessWidget {
                                   height: 8 * s,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 1.1,
-                                    color: accent.withOpacity(0.90),
+                                    color: accent.withValues(alpha: 0.90),
                                   ),
                                 ),
                               ),

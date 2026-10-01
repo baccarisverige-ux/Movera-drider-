@@ -190,7 +190,7 @@ class DriverSideMenu extends StatelessWidget {
                     border: Border.all(color: const Color(0xFFDCE4E0)),
                     boxShadow: [
                       BoxShadow(
-                        color: _ink.withOpacity(0.08),
+                        color: _ink.withValues(alpha: 0.08),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -265,7 +265,7 @@ class DriverSideMenu extends StatelessWidget {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.10),
+                  color: statusColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(
@@ -298,7 +298,7 @@ class DriverSideMenu extends StatelessWidget {
           border: Border.all(color: _line),
           boxShadow: [
             BoxShadow(
-              color: _ink.withOpacity(0.035),
+              color: _ink.withValues(alpha: 0.035),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -450,7 +450,7 @@ class DriverSideMenu extends StatelessWidget {
             height: 32,
             width: 32,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.07),
+              color: Colors.white.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(

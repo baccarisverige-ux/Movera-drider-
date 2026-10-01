@@ -1,5 +1,6 @@
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/money/money.dart';
+
 /// Completed-trip projection for History (D7).
 ///
 /// Distinct from [WaybillRecord]: a waybill is the live/queued slip, history
@@ -40,8 +41,11 @@ class TripHistoryRecord {
   final int? fareMinorUnits;
   final String? cancellationActor;
   final String? cancellationReasonCode;
-  Money? get fareMoney => status != TripStatus.completed ? null : fareMinorUnits == null ? Money.parseSekLabel(fare) : Money.ore(fareMinorUnits!);
-
+  Money? get fareMoney => status != TripStatus.completed
+      ? null
+      : fareMinorUnits == null
+      ? Money.parseSekLabel(fare)
+      : Money.ore(fareMinorUnits!);
 }
 
 abstract interface class TripHistoryRepository {
@@ -52,7 +56,7 @@ abstract interface class TripHistoryRepository {
 
 class MemoryTripHistoryRepository implements TripHistoryRepository {
   MemoryTripHistoryRepository({List<TripHistoryRecord>? seed})
-      : _rows = List<TripHistoryRecord>.from(seed ?? stockholmSeed);
+    : _rows = List<TripHistoryRecord>.from(seed ?? stockholmSeed);
 
   final List<TripHistoryRecord> _rows;
 
@@ -87,7 +91,9 @@ class MemoryTripHistoryRepository implements TripHistoryRepository {
   @override
   TripHistoryRecord? byTripId(String tripId) {
     for (final row in _rows) {
-      if (row.tripId == tripId) return row;
+      if (row.tripId == tripId) {
+        return row;
+      }
     }
     return null;
   }

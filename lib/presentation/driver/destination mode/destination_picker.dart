@@ -96,7 +96,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _searchFocus.requestFocus();
+      if (mounted) { _searchFocus.requestFocus(); }
     });
   }
 

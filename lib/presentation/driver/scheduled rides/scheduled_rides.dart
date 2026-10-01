@@ -118,7 +118,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
       ),
     );
 
-    if (!mounted || action == null) return;
+    if (!mounted || action == null) { return; }
 
     if (action == _ScheduledRideAction.accepted) {
       setState(() {
@@ -226,7 +226,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         color: selected ? Colors.white : Colors.transparent,
         borderRadius: BorderRadius.circular(13),
         elevation: selected ? 1 : 0,
-        shadowColor: const Color(0xFF1A2730).withOpacity(0.12),
+        shadowColor: const Color(0xFF1A2730).withValues(alpha: 0.12),
         child: InkWell(
           borderRadius: BorderRadius.circular(13),
           onTap: () => setState(() => _selectedTab = index),
@@ -441,7 +441,7 @@ class _RoutePreview extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1A2730).withOpacity(0.16),
+                  color: const Color(0xFF1A2730).withValues(alpha: 0.16),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -473,7 +473,7 @@ class _RoutePreviewPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, background);
 
     final street = Paint()
-      ..color = Colors.white.withOpacity(0.88)
+      ..color = Colors.white.withValues(alpha: 0.88)
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
@@ -682,11 +682,11 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.94),
+                  color: Colors.white.withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(13),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1A2730).withOpacity(0.08),
+                      color: const Color(0xFF1A2730).withValues(alpha: 0.08),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),
@@ -720,11 +720,11 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                 height: 38,
                 width: 38,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.94),
+                  color: Colors.white.withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(13),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1A2730).withOpacity(0.08),
+                      color: const Color(0xFF1A2730).withValues(alpha: 0.08),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),
@@ -744,7 +744,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF24333A).withOpacity(0.94),
+                  color: const Color(0xFF24333A).withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Row(
@@ -810,7 +810,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.94),
+                  color: Colors.white.withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -1147,7 +1147,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
-          top: BorderSide(color: const Color(0xFFE8EBED).withOpacity(0.9)),
+          top: BorderSide(color: const Color(0xFFE8EBED).withValues(alpha: 0.9)),
         ),
       ),
       child: ride.accepted
@@ -1186,7 +1186,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  'Accept  •  ' + ride.price,
+                  'Accept  •  ${ride.price}',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -1205,7 +1205,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
       builder: (sheetContext) => const _CancelReasonSheet(),
     );
 
-    if (reason == null || !context.mounted) return;
+    if (reason == null || !context.mounted) { return; }
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -1295,7 +1295,7 @@ class _PlanRow extends StatelessWidget {
           height: 38,
           width: 38,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.09),
+            color: Colors.white.withValues(alpha: 0.09),
             borderRadius: BorderRadius.circular(13),
           ),
           child: Icon(icon, color: Colors.white, size: 20),
@@ -1317,7 +1317,7 @@ class _PlanRow extends StatelessWidget {
               Text(
                 body,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.68),
+                  color: Colors.white.withValues(alpha: 0.68),
                   fontSize: 11,
                   height: 1.35,
                   fontWeight: FontWeight.w500,

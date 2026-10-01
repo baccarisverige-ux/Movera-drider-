@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -26,9 +25,9 @@ class ColorPickerDialog {
     ];
 
     Get.dialog(
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       Dialog.fullscreen(
-        backgroundColor: Colors.black.withOpacity(0.5),
+        backgroundColor: Colors.black.withValues(alpha: 0.5),
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: screenHorizPadding + ResSize.h * 16,

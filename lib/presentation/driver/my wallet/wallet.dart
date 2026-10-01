@@ -112,7 +112,7 @@ class WalletScreen extends StatelessWidget {
         border: Border.all(color: const Color(0xFFD8E9E1)),
         boxShadow: [
           BoxShadow(
-            color: _green.withOpacity(0.07),
+            color: _green.withValues(alpha: 0.07),
             blurRadius: 20,
             offset: const Offset(0, 9),
           ),
@@ -129,7 +129,7 @@ class WalletScreen extends StatelessWidget {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: _white.withOpacity(0.88),
+                  color: _white.withValues(alpha: 0.88),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Row(
@@ -161,7 +161,7 @@ class WalletScreen extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: _white.withOpacity(0.88),
+                  color: _white.withValues(alpha: 0.88),
                   borderRadius: BorderRadius.circular(13),
                 ),
                 child: const Icon(

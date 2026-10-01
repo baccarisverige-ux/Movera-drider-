@@ -36,7 +36,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
   Future<void> _loadHistory() async {
     try {
       final records = await PrefsTripHistoryRepository().list();
-      if (!mounted) return;
+      if (!mounted) { return; }
       setState(() => _rides = records.map((record) {
         final at = record.completedAt;
         return _HistoryRide(
@@ -58,7 +58,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
         );
       }).toList());
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) { return; }
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Could not load ride history.'),
       ));
@@ -69,7 +69,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
     final now = DateTime.now();
     return _rides.where((ride) {
       final at = ride.completedAt;
-      if (at == null) return false;
+      if (at == null) { return false; }
       return switch (_period) {
         _HistoryPeriod.today => at.year == now.year && at.month == now.month && at.day == now.day,
         _HistoryPeriod.week => now.difference(at).inDays < 7 && !at.isAfter(now),
@@ -93,7 +93,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
   String get _periodEarnings {
     var total=0;
     for(final ride in _periodRidesList.where((ride)=>ride.status==TripStatus.completed)) {
-      if(ride.fareMoney==null) return 'Unavailable';
+      if(ride.fareMoney==null) { return 'Unavailable'; }
       total+=ride.fareMoney!.minorUnits;
     }
     return Money.ore(total).formatted;
@@ -104,12 +104,12 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
   String get _periodHours => '—';
 
   void _showOverview() {
-    if (_view == _HistoryView.overview) return;
+    if (_view == _HistoryView.overview) { return; }
     setState(() => _view = _HistoryView.overview);
   }
 
   void _showAllRides() {
-    if (_view == _HistoryView.rides) return;
+    if (_view == _HistoryView.rides) { return; }
     setState(() => _view = _HistoryView.rides);
   }
 
@@ -156,7 +156,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
           Material(
             color: Colors.white,
             elevation: 1,
-            shadowColor: Colors.black.withOpacity(0.08),
+            shadowColor: Colors.black.withValues(alpha: 0.08),
             shape: const CircleBorder(),
             child: IconButton(
               onPressed: _view == _HistoryView.rides
@@ -320,7 +320,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
             key: const ValueKey<String>('history-view-all-rides'),
             onPressed: _showAllRides,
             icon: const Icon(Icons.list_alt_rounded, size: 18),
-            label: Text('View all ' + visibleRideCount.toString() + ' rides'),
+            label: Text('View all $visibleRideCount rides'),
             style: OutlinedButton.styleFrom(
               foregroundColor: _ink,
               side: const BorderSide(color: _line),
@@ -368,7 +368,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  _periodRides + ' rides in ' + _periodLabel,
+                  '$_periodRides rides in $_periodLabel',
                   style: const TextStyle(
                     color: _ink,
                     fontSize: 11.5,
@@ -580,7 +580,7 @@ class _PeriodButton extends StatelessWidget {
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 7,
                       offset: const Offset(0, 2),
                     ),
@@ -786,7 +786,7 @@ class _HistoryRideCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ride.pickup + ' → ' + ride.dropoff,
+                      '${ride.pickup} → ${ride.dropoff}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -797,11 +797,7 @@ class _HistoryRideCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      ride.category +
-                          ' · ' +
-                          ride.duration +
-                          ' · ' +
-                          ride.distance,
+                      '${ride.category} · ${ride.duration} · ${ride.distance}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

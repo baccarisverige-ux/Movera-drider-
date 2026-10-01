@@ -22,18 +22,18 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
   bool _settingsTouched = false;
   Future<void> _restoreSettings() async {
     try {
-    final data=await _settings.read('sound'); if(!mounted || _settingsTouched) return;
-    setState(() { if(data['generalVolume'] is num) generalVolume=(data['generalVolume'] as num).toDouble().clamp(0.0,1.0);if(data['alwaysPlayRequests'] is bool) alwaysPlayRequests=data['alwaysPlayRequests'] as bool;if(data['voiceNavigation'] is bool) voiceNavigation=data['voiceNavigation'] as bool;if(data['readRiderMessages'] is bool) readRiderMessages=data['readRiderMessages'] as bool; });
+    final data=await _settings.read('sound'); if(!mounted || _settingsTouched) { return; }
+    setState(() { if(data['generalVolume'] is num) { generalVolume=(data['generalVolume'] as num).toDouble().clamp(0.0,1.0); }if(data['alwaysPlayRequests'] is bool) { alwaysPlayRequests=data['alwaysPlayRequests'] as bool; }if(data['voiceNavigation'] is bool) { voiceNavigation=data['voiceNavigation'] as bool; }if(data['readRiderMessages'] is bool) { readRiderMessages=data['readRiderMessages'] as bool; } });
       } catch (_) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Could not load saved preferences.'),
-        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings)));
+        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings))); }
     }
   }
   Future<bool> _persistSettings() async {
     _settingsTouched=true;
     try { await _settings.save('sound',{'generalVolume':generalVolume,'alwaysPlayRequests':alwaysPlayRequests,'voiceNavigation':voiceNavigation,'readRiderMessages':readRiderMessages}); return true; }
-    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); return false; }
+    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); } return false; }
   }
 
   @override

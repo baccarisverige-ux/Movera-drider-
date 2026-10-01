@@ -46,18 +46,18 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     try {
       final data=await _settings.read('contacts');
       final rows=data['rows'];
-      if(mounted) setState(() {
+      if(mounted) { setState(() {
         if(rows is List) {
           _contacts.removeWhere((c)=>c.phone!='112');
-          for(final row in rows) { if(row is Map && row['name'] is String && row['phone'] is String && _validPhone(row['phone'] as String)) _contacts.add(_EmergencyContact(name:row['name'] as String,phone:row['phone'] as String,relation:row['relation'] as String? ?? 'Trusted contact')); }
+          for(final row in rows) { if(row is Map && row['name'] is String && row['phone'] is String && _validPhone(row['phone'] as String)) { _contacts.add(_EmergencyContact(name:row['name'] as String,phone:row['phone'] as String,relation:row['relation'] as String? ?? 'Trusted contact')); } }
         }
         _loading=false;
-      });
-    } catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Could not load trusted contacts.'),action:SnackBarAction(label:'Retry',onPressed:_restore))); }
+      }); }
+    } catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Could not load trusted contacts.'),action:SnackBarAction(label:'Retry',onPressed:_restore))); } }
   }
   bool _validPhone(String phone) => RegExp(r'^\+?[0-9]{7,15}$').hasMatch(phone.replaceAll(RegExp(r'[\s()-]'),'')) || phone=='112';
   Future<void> _addContact() async {
-    if(_loading) return;
+    if(_loading) { return; }
     final name = TextEditingController();
     final phone = TextEditingController();
     final relation = TextEditingController(text: 'Family');
@@ -139,8 +139,8 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     if (created != null && mounted) {
       final updated=[..._contacts,created];
       try { await _settings.save('contacts',{'rows':updated.where((c)=>c.phone!='112').map((c)=>{'name':c.name,'phone':c.phone,'relation':c.relation}).toList()}); }
-      catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Contact could not be saved. Retry.')));return; }
-      if(mounted) setState(() => _contacts.add(created));
+      catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Contact could not be saved. Retry.'))); }return; }
+      if(mounted) { setState(() => _contacts.add(created)); }
     }
   }
 
@@ -149,8 +149,8 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
       'tel:${contact.phone.replaceAll(RegExp(r'[^0-9+]'), '')}',
     );
     try {
-      if(!await launchUrl(uri) && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Dialer is unavailable.')));
-    } catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Dialer is unavailable.'))); }
+      if(!await launchUrl(uri) && mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Dialer is unavailable.'))); }
+    } catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Dialer is unavailable.'))); } }
   }
 
   @override

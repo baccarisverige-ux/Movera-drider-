@@ -131,7 +131,7 @@ class DemoDispatchRepository implements DispatchRepository {
     _ensureDemoSchedule();
     Future<void>.microtask(() => _emitNearby());
     return _nearby.stream.map((offers) {
-      if (!destinationModeActive) return offers;
+      if (!destinationModeActive) { return offers; }
       return offers.where((offer) => offer.followsDestination).toList();
     });
   }
@@ -173,7 +173,7 @@ class DemoDispatchRepository implements DispatchRepository {
   }
 
   void _ensureDemoSchedule() {
-    if (_demoStarted) return;
+    if (_demoStarted) { return; }
     _demoStarted = true;
     _newOfferTimer = Timer(_newOfferDelay, _releaseQueuedOffers);
     _externalClaimTimer = Timer(_externalClaimDelay, () {
@@ -182,7 +182,7 @@ class DemoDispatchRepository implements DispatchRepository {
   }
 
   void _releaseQueuedOffers() {
-    if (_queued.isEmpty) return;
+    if (_queued.isEmpty) { return; }
     _offers = [..._offers, ..._queued];
     _queued = const <RideOffer>[];
     _emitNearby();
@@ -190,13 +190,13 @@ class DemoDispatchRepository implements DispatchRepository {
 
   void _removeOffer(String offerId) {
     final next = _offers.where((item) => item.id != offerId).toList();
-    if (next.length == _offers.length) return;
+    if (next.length == _offers.length) { return; }
     _offers = next;
     _emitNearby();
   }
 
   void _emitNearby() {
-    if (_nearby.isClosed) return;
+    if (_nearby.isClosed) { return; }
     _nearby.add(List<RideOffer>.unmodifiable(_offers));
   }
 

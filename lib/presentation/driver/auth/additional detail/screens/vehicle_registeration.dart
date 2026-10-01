@@ -243,7 +243,7 @@ class _AdditionDetailVehicleRegisterationState
   }
 
   Future<void> _openCamera() async {
-    if (_isPicking) return; // 🚫 Prevent multiple calls
+    if (_isPicking) { return; } // 🚫 Prevent multiple calls
     setState(() => _isPicking = true);
 
     try {

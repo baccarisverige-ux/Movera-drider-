@@ -52,7 +52,7 @@ class CompactTripDock extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE6E8EA)),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF171C20).withOpacity(0.06),
+              color: const Color(0xFF171C20).withValues(alpha: 0.06),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -110,7 +110,7 @@ class CompactTripDock extends StatelessWidget {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF171C20).withOpacity(0.12),
+                              color: const Color(0xFF171C20).withValues(alpha: 0.12),
                               blurRadius: 5,
                               offset: const Offset(0, 2),
                             ),
@@ -361,7 +361,7 @@ class CompactTripDock extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF182B24).withOpacity(0.12),
+            color: const Color(0xFF182B24).withValues(alpha: 0.12),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -384,7 +384,7 @@ class _CompactRoutePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final shadow = Paint()
-      ..color = const Color(0xFF171C20).withOpacity(0.08)
+      ..color = const Color(0xFF171C20).withValues(alpha: 0.08)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 7
       ..strokeCap = StrokeCap.round;

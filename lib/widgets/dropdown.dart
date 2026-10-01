@@ -43,7 +43,7 @@ class AppDropdownField extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       dropdownColor: AppColor.white,
 
-      value: value,
+      initialValue: value,
       isExpanded: true,
       icon: Icon(
         Icons.keyboard_arrow_down_rounded,
@@ -95,7 +95,7 @@ class AppDropdownField extends StatelessWidget {
           )
           .toList(),
       onChanged: (val) {
-        if (val == null) return;
+        if (val == null) { return; }
         controller.text = val;
         if (onChanged != null) onChanged!(val);
       },

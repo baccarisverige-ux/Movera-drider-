@@ -29,7 +29,7 @@ class InAirportQueue extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   // ignore: deprecated_member_use
-                  color: Color(0xff262626).withOpacity(0.12),
+                  color: Color(0xff262626).withValues(alpha: 0.12),
                   blurRadius: 30,
                   spreadRadius: 2,
                   offset: const Offset(0, 4),

@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -13,7 +12,7 @@ class DestinationSetPanel extends StatefulWidget {
   final VoidCallback? onClose;
   final PanelController controller;
 
-  DestinationSetPanel({
+  const DestinationSetPanel({
     super.key,
     required this.onClose,
     required this.controller,

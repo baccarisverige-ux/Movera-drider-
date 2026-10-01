@@ -20,18 +20,18 @@ class _AccessibilityState extends State<Accessibility> {
   bool _settingsTouched = false;
   Future<void> _restoreSettings() async {
     try {
-    final data=await _settings.read('accessibility'); if(!mounted || _settingsTouched) return;
-    setState(() { if(data['flash'] is bool) _flash=data['flash'] as bool;if(data['vibration'] is bool) _vibration=data['vibration'] as bool; });
+    final data=await _settings.read('accessibility'); if(!mounted || _settingsTouched) { return; }
+    setState(() { if(data['flash'] is bool) { _flash=data['flash'] as bool; }if(data['vibration'] is bool) { _vibration=data['vibration'] as bool; } });
       } catch (_) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Could not load saved preferences.'),
-        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings)));
+        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings))); }
     }
   }
   Future<bool> _persistSettings() async {
     _settingsTouched=true;
     try { await _settings.save('accessibility',{'flash':_flash,'vibration':_vibration}); return true; }
-    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); return false; }
+    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); } return false; }
   }
 
   @override

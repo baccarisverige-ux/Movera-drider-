@@ -120,21 +120,21 @@ class _RadarEdgeDashPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (size.width <= 0 || size.height <= 0) return;
+    if (size.width <= 0 || size.height <= 0) { return; }
 
     final edge = _topEdgePath(size);
     final metrics = edge.computeMetrics().toList();
-    if (metrics.isEmpty) return;
+    if (metrics.isEmpty) { return; }
 
     final metric = metrics.first;
     final total = metric.length;
-    if (total <= 0) return;
+    if (total <= 0) { return; }
 
     final half = dashLength / 2;
     final center = progress.clamp(0.0, 1.0) * total;
     final start = (center - half).clamp(0.0, total);
     final end = (center + half).clamp(0.0, total);
-    if (end <= start) return;
+    if (end <= start) { return; }
 
     final dash = metric.extractPath(start, end);
     final paint = Paint()
@@ -147,7 +147,7 @@ class _RadarEdgeDashPainter extends CustomPainter {
 
     // Soft glow under the tiret.
     final glow = Paint()
-      ..color = color.withOpacity(0.35)
+      ..color = color.withValues(alpha: 0.35)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth + 3.5
       ..strokeCap = StrokeCap.round
