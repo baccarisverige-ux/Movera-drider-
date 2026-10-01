@@ -16,5 +16,7 @@ void main() {
     final wrapper = File('android/gradle/wrapper/gradle-wrapper.properties')
         .readAsStringSync();
     expect(wrapper, contains('gradle-8.14.3-all.zip'));
+    final settings = File('android/settings.gradle.kts').readAsStringSync();
+    expect(settings, contains('com.android.application") version "8.11.1"'));
   });
 }
