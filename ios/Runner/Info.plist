@@ -4,6 +4,8 @@
 <dict>
     <key>GoogleMapsApiKey</key>
     <string>$(GOOGLE_MAPS_API_KEY)</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Movera Driver uses the camera to capture vehicle and document photos you choose to attach.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>This app needs access to location when open.</string>
     <key>NSLocationAlwaysUsageDescription</key>
