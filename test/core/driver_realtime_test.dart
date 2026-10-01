@@ -5,6 +5,12 @@ import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/realtime/driver_realtime.dart';
 
 void main() {
+  String activeRideLibrary() {
+    const dir = 'lib/presentation/driver/accept ride';
+    return File('$dir/accept_ride.dart').readAsStringSync() +
+        File('$dir/accept_ride_trip.dart').readAsStringSync();
+  }
+
   test('sequence gate rejects duplicate and reordered events', () {
     final gate = DriverRealtimeSequenceGate();
     final at = DateTime(2026, 9, 30);
@@ -152,9 +158,7 @@ void main() {
   });
 
   test('collapsed active ride keeps the explicit arrival action wired', () {
-    final rideSource = File(
-      'lib/presentation/driver/accept ride/accept_ride.dart',
-    ).readAsStringSync();
+    final rideSource = activeRideLibrary();
     final dockSource = File(
       'lib/presentation/driver/accept ride/compact_trip_dock.dart',
     ).readAsStringSync();
@@ -167,9 +171,7 @@ void main() {
   });
 
   test('active ride consumes rider cancellation as rider-owned terminal state', () {
-    final source = File(
-      'lib/presentation/driver/accept ride/accept_ride.dart',
-    ).readAsStringSync();
+    final source = activeRideLibrary();
 
     expect(
       source.contains('case DriverRealtimeKind.riderCancelled'),
