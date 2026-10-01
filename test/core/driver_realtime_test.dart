@@ -8,7 +8,8 @@ void main() {
   String activeRideLibrary() {
     const dir = 'lib/presentation/driver/accept ride';
     return File('$dir/accept_ride.dart').readAsStringSync() +
-        File('$dir/accept_ride_trip.dart').readAsStringSync();
+        File('$dir/accept_ride_trip.dart').readAsStringSync() +
+        File('$dir/accept_ride_panel.dart').readAsStringSync();
   }
 
   test('sequence gate rejects duplicate and reordered events', () {

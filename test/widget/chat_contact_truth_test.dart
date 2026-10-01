@@ -83,7 +83,9 @@ void main() {
         .readAsStringSync();
     final chat = File('lib/presentation/common/chat/chat.dart').readAsStringSync();
     final ride = File('lib/presentation/driver/accept ride/accept_ride.dart')
-        .readAsStringSync();
+            .readAsStringSync() +
+        File('lib/presentation/driver/accept ride/accept_ride_panel.dart')
+            .readAsStringSync();
     expect(appBar, isNot(contains('tel:')));
     expect(appBar, isNot(contains('46701234567')));
     expect(appBar, isNot(contains('url_launcher')));
