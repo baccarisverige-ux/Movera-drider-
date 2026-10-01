@@ -44,14 +44,50 @@ android {
     buildTypes {
         release {
             val releaseStore = signingConfigs.getByName("release").storeFile
-            signingConfig = if (releaseStore != null) {
-                signingConfigs.getByName("release")
-            } else {
-                // Local/CI unsigned preview only. Production must set
-                // MOVERA_UPLOAD_STORE_FILE and related env vars.
-                signingConfigs.getByName("debug")
+            val preview = System.getenv("MOVERA_ALLOW_DEBUG_SIGNED_PREVIEW") == "true"
+            signingConfig = when {
+                releaseStore != null -> signingConfigs.getByName("release")
+                preview -> signingConfigs.getByName("debug")
+                else -> signingConfigs.getByName("release")
             }
         }
+    }
+}
+
+gradle.taskGraph.whenReady {
+    val requestsRelease = allTasks.any { task ->
+        task.project == project && (
+            task.name == "assembleRelease" ||
+            task.name == "bundleRelease" ||
+            task.name == "packageRelease" ||
+            task.name.startsWith("signRelease")
+        )
+    }
+    if (!requestsRelease) {
+        return@whenReady
+    }
+    val hasStore = !System.getenv("MOVERA_UPLOAD_STORE_FILE").isNullOrBlank()
+    val preview = System.getenv("MOVERA_ALLOW_DEBUG_SIGNED_PREVIEW") == "true"
+    if (!hasStore && !preview) {
+        throw GradleException(
+            "Production Android release refuses debug signing. " +
+                "Set MOVERA_UPLOAD_STORE_FILE, MOVERA_UPLOAD_STORE_PASSWORD, " +
+                "MOVERA_UPLOAD_KEY_ALIAS and MOVERA_UPLOAD_KEY_PASSWORD. " +
+                "An internal preview must set MOVERA_ALLOW_DEBUG_SIGNED_PREVIEW=true " +
+                "and is not a production artifact.",
+        )
+    }
+    if (!hasStore && preview) {
+        logger.lifecycle(
+            "MOVERA: debug-signed INTERNAL PREVIEW. This is not a production release.",
+        )
+    }
+    if (System.getenv("MOVERA_REQUIRE_MAPS_KEY") == "true" &&
+        System.getenv("GOOGLE_MAPS_API_KEY").isNullOrBlank()
+    ) {
+        throw GradleException(
+            "Native release requires GOOGLE_MAPS_API_KEY. Refusing to ship a maps build with an empty key.",
+        )
     }
 }
 
