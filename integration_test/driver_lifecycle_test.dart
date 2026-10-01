@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+import 'package:integration_test/integration_test.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/main.dart';
@@ -8,11 +10,13 @@ import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Lifecycle against the real [MoveraApp] composition root.
+import 'headless_map_platform.dart';
+
+/// Frontend lifecycle on the real [MoveraApp] composition root.
 ///
 /// Demo services are the ones [MoveraApp] already injects. No backend.
-/// This stays on the widget-test binding because the Linux CI image has no
-/// map platform view for `integration_test` on a device.
+/// The map platform is a Flutter stand-in so this can run on the headless
+/// tester. It does not certify the native Google Map.
 
 Future<void> _advance(WidgetTester tester, Duration duration) async {
   await tester.pump();
@@ -54,9 +58,10 @@ Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
+    GoogleMapsFlutterPlatform.instance = HeadlessMapPlatform();
     CompletionJournal.resetForTesting();
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
@@ -72,6 +77,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.byType(DriverHome), findsOneWidget);
     expect(find.text('Demo mode — no account'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('headless-map')), findsWidgets);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('OFF'));
