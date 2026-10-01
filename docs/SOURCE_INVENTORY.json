@@ -1,6 +1,6 @@
 {
-  "app_reachable": 124,
-  "test_reachable": 176,
+  "app_reachable": 130,
+  "test_reachable": 196,
   "outside_app_graph": [
     "lib/core/contracts/driver_trip_gateway.dart",
     "lib/core/documents/driver_document.dart",

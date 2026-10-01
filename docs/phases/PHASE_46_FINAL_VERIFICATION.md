@@ -1,5 +1,7 @@
 # Phase 46 — final global verification
 
+Historical. Phase 46 / pull request #62 is not the current gate. The 16-point frontend record is [../FRONTEND_16_POINT_RECORD.md](../FRONTEND_16_POINT_RECORD.md). This file describes only what Phase 46 required when it merged.
+
 Phase 46 introduces no product feature and no sheet redesign. It consolidates the post-audit verification baseline after Phases 32–45.
 
 ## Required exact-head CI
