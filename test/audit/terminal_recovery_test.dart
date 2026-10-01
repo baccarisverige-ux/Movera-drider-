@@ -36,10 +36,10 @@ void main() {
    TripStatus.completed,
    occurredAt:DateTime.utc(2026,9,30),
  );
- await repo.save(const PersistedActiveRide(
+ await expectLater(repo.save(const PersistedActiveRide(
    tripId:'legacy',
    stage:ActiveRideStage.onTrip,
- ));
+ )),throwsStateError);
  expect(await repo.read(),isNull);
  });
 

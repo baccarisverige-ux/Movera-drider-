@@ -142,7 +142,8 @@ class AcceptRide extends StatefulWidget {
     DriverSessionController? sessionController,
     ActiveRideRepository? activeRideRepository,
   }) {
-    final pickup = snapshot.pickupAddress ?? 'Stockholm';
+    if (!snapshot.hasVerifiedEndpoints) throw StateError('Saved trip requires verified pickup and drop-off coordinates');
+    final pickup = snapshot.pickupAddress ?? 'Address unavailable';
     return AcceptRide(
       key: key,
       offerId: snapshot.tripId,
@@ -158,12 +159,12 @@ class AcceptRide extends StatefulWidget {
       stopAddresses: snapshot.stopAddresses,
       stopPositions: snapshot.stopPoints.map((point) => point.toLatLng()).toList(),
       pickupPosition: LatLng(
-        snapshot.pickupLat ?? 59.3279,
-        snapshot.pickupLng ?? 18.0615,
+        snapshot.pickupLat!,
+        snapshot.pickupLng!,
       ),
       dropoffPosition: LatLng(
-        snapshot.dropoffLat ?? 59.3326,
-        snapshot.dropoffLng ?? 18.0649,
+        snapshot.dropoffLat!,
+        snapshot.dropoffLng!,
       ),
       locationRepository: locationRepository,
       routeRepository: routeRepository,
@@ -173,6 +174,9 @@ class AcceptRide extends StatefulWidget {
       initialStage: snapshot.stage,
       initialWaitSeconds: snapshot.waitSeconds ?? 0,
       restoredSnapshot: snapshot,
+      destinationModeActive: snapshot.destinationModeActive,
+      destinationAddress: snapshot.destinationAddress,
+      destinationPosition: snapshot.destinationPoint?.toLatLng(),
     );
   }
 
@@ -531,6 +535,9 @@ class _AcceptRideState extends State<AcceptRide>
     return PersistedActiveRide(
       tripId: widget.offerId,
       stage: stage,
+      destinationModeActive: widget.destinationModeActive,
+      destinationAddress: widget.destinationAddress,
+      destinationPoint: widget.destinationPosition == null ? null : GeoPointMaps.fromLatLng(widget.destinationPosition!),
       nextTripId: securedOffer?.id,
       riderName: widget.riderName,
       riderRating: widget.riderRating,
@@ -1411,7 +1418,10 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   PersistedActiveRide _snapshotForOffer(_NextTripRadarOffer offer) => PersistedActiveRide(
-    tripId: offer.id, stage: ActiveRideStage.headingToPickup, riderName: offer.riderName,
+    tripId: offer.id, stage: ActiveRideStage.headingToPickup,
+      destinationModeActive: widget.destinationModeActive,
+      destinationAddress: widget.destinationAddress,
+      destinationPoint: widget.destinationPosition == null ? null : GeoPointMaps.fromLatLng(widget.destinationPosition!), riderName: offer.riderName,
     riderRating: offer.rating, fare: offer.fare, category: offer.category, matchedVia: 'Demo Radar',
     pickupAddress: offer.pickup, dropoffAddress: offer.dropoff,
     pickupLat: offer.pickupPosition.latitude, pickupLng: offer.pickupPosition.longitude,
