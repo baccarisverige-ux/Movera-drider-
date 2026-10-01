@@ -18,5 +18,6 @@ void main() {
     expect(wrapper, contains('gradle-8.14.3-all.zip'));
     final settings = File('android/settings.gradle.kts').readAsStringSync();
     expect(settings, contains('com.android.application") version "8.11.1"'));
+    expect(settings, contains('org.jetbrains.kotlin.android") version "2.2.20"'));
   });
 }
