@@ -16,20 +16,7 @@ class MyBank extends StatefulWidget {
 }
 
 class _MyBankState extends State<MyBank> {
-  final List<_BankItem> _banks = [
-    const _BankItem(
-      initials: 'EJ',
-      name: 'Erik Johansson',
-      account: 'SE45 5000 0000 0583 9825 7466',
-      bank: 'Handelsbanken',
-    ),
-    const _BankItem(
-      initials: 'EJ',
-      name: 'Erik Johansson',
-      account: 'SE91 1200 0000 2418 3000 8415',
-      bank: 'Nordea',
-    ),
-  ];
+  final List<_BankItem> _banks = [];
   int _payoutIndex = 0;
 
   Future<void> _openAccount(_BankItem bank, int index) async {
@@ -69,7 +56,7 @@ class _MyBankState extends State<MyBank> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.check_circle_outline),
-                    title: const Text('Use for weekly payouts'),
+                    title: const Text('Mark as local draft'),
                     onTap: () {
                       setState(() => _payoutIndex = index);
                       Navigator.pop(sheetContext);
@@ -152,7 +139,7 @@ class _MyBankState extends State<MyBank> {
             const Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                'No payout accounts yet. Add a Swedish bank account for weekly payouts.',
+                'No payout account is connected. Adding one here is a local draft only and does not start weekly payouts.',
                 style: TextStyle(color: Color(0xFF7D898F)),
               ),
             ),
