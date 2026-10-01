@@ -9,8 +9,10 @@ class MoveraSnapSheetController {
   MoveraSnapSheetController({
     required this.panel,
     required TickerProvider vsync,
+    this.reduceMotion,
   }) : _vsync = vsync;
 
+  final bool Function()? reduceMotion;
   final PanelController panel;
   final TickerProvider _vsync;
   double rangePx = 1;
@@ -39,6 +41,7 @@ class MoveraSnapSheetController {
   }) async {
     if (!panel.isAttached) return;
     stopPanelAnimation();
+    if(reduceMotion?.call()==true) { stopSpring(); panel.panelPosition=target; return; }
     final start = panel.panelPosition;
     if ((start - target).abs() < 0.003) {
       panel.panelPosition = target;
@@ -60,8 +63,10 @@ class MoveraSnapSheetController {
       panel.panelPosition = controller.value.clamp(0.0, 1.0);
     });
     try {
-      await controller.animateWith(simulation);
+      await controller.animateWith(simulation).orCancel;
       if (kDebugMode) debugPrint('SHEET spring-end position=$position target=$target velocity=$velocityPxPerSec');
+    } on TickerCanceled {
+      // A new drag or disposal owns the panel now.
     } finally {
       if (identical(_spring, controller)) {
         controller.dispose();

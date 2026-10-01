@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+Duration _motionDuration(int milliseconds) => WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations ? Duration.zero : Duration(milliseconds: milliseconds);
 
 /// Full-screen slide-up route that is *not* a [PageRoute].
 ///
@@ -27,10 +28,10 @@ class BottomToTopTransition extends ModalRoute<void> {
   bool get maintainState => true;
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 1000);
+  Duration get transitionDuration => _motionDuration(1000);
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 200);
+  Duration get reverseTransitionDuration => _motionDuration(200);
 
   @override
   Widget buildPage(
@@ -48,6 +49,7 @@ class BottomToTopTransition extends ModalRoute<void> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    if (MediaQuery.disableAnimationsOf(context)) return child;
     final curved = CurvedAnimation(
       parent: animation,
       curve: Curves.fastLinearToSlowEaseIn,
@@ -96,7 +98,7 @@ class ActiveRideTransition extends ModalRoute<void> {
 
   @override
   Duration get reverseTransitionDuration =>
-      const Duration(milliseconds: 160);
+      _motionDuration(160);
 
   @override
   Widget buildPage(
@@ -124,9 +126,10 @@ class TopToBottomTransition extends PageRouteBuilder {
   TopToBottomTransition(this.page)
       : super(
           pageBuilder: (context, animation, anotherAnimation) => page,
-          transitionDuration: const Duration(milliseconds: 1000),
-          reverseTransitionDuration: const Duration(milliseconds: 200),
+          transitionDuration: _motionDuration(1000),
+          reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
+            if (MediaQuery.disableAnimationsOf(context)) return child;
             animation = CurvedAnimation(
                 curve: Curves.fastLinearToSlowEaseIn,
                 parent: animation,
@@ -149,9 +152,10 @@ class SwitchTransition extends PageRouteBuilder {
   SwitchTransition(this.page)
       : super(
           pageBuilder: (context, animation, anotherAnimation) => page,
-          transitionDuration: const Duration(milliseconds: 1000),
-          reverseTransitionDuration: const Duration(milliseconds: 200),
+          transitionDuration: _motionDuration(1000),
+          reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
+            if (MediaQuery.disableAnimationsOf(context)) return child;
             animation = CurvedAnimation(
                 curve: Curves.fastLinearToSlowEaseIn,
                 parent: animation,
@@ -175,9 +179,10 @@ class LeftToRightTransition extends PageRouteBuilder {
   LeftToRightTransition(this.page)
       : super(
           pageBuilder: (context, animation, anotherAnimation) => page,
-          transitionDuration: const Duration(milliseconds: 1000),
-          reverseTransitionDuration: const Duration(milliseconds: 200),
+          transitionDuration: _motionDuration(1000),
+          reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
+            if (MediaQuery.disableAnimationsOf(context)) return child;
             animation = CurvedAnimation(
                 curve: Curves.fastLinearToSlowEaseIn,
                 parent: animation,
@@ -201,9 +206,10 @@ class RightToLeftTransition extends PageRouteBuilder {
   RightToLeftTransition(this.page)
       : super(
           pageBuilder: (context, animation, anotherAnimation) => page,
-          transitionDuration: const Duration(milliseconds: 1000),
-          reverseTransitionDuration: const Duration(milliseconds: 200),
+          transitionDuration: _motionDuration(1000),
+          reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
+            if (MediaQuery.disableAnimationsOf(context)) return child;
             animation = CurvedAnimation(
                 curve: Curves.fastLinearToSlowEaseIn,
                 parent: animation,

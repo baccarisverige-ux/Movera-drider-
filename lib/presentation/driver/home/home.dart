@@ -96,6 +96,7 @@ class _DriverHomeState extends State<DriverHome>
     super.didChangeDependencies();
     final route = ModalRoute.of(context);
     if (route != null) driverRouteObserver.subscribe(this, route);
+    if(MediaQuery.disableAnimationsOf(context)) { _goOnlinePulseController.stop(); _radarSweepController.stop(); }
   }
   @override
   void didPushNext() { _routeVisible = false; _pauseHomeUpdates(); }
@@ -118,7 +119,7 @@ class _DriverHomeState extends State<DriverHome>
   void _resumeHomeUpdates() {
     if (!mounted || !_liveVisible) return;
     unawaited(_startDriverLocation());
-    _goOnlinePulseController.repeat(reverse: true); _radarSweepController.repeat();
+    if(!MediaQuery.disableAnimationsOf(context)) { _goOnlinePulseController.repeat(reverse: true); _radarSweepController.repeat(); }
     setState(() {});
   }
 
@@ -305,7 +306,7 @@ class _DriverHomeState extends State<DriverHome>
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat();
-    _snapSheet = MoveraSnapSheetController(panel: _panelController, vsync: this);
+    _snapSheet = MoveraSnapSheetController(panel: _panelController, vsync: this, reduceMotion: () => mounted && MediaQuery.disableAnimationsOf(context));
     _loadMarkers();
     _prepareDriverVehicleMarker();
     _startDriverLocation();

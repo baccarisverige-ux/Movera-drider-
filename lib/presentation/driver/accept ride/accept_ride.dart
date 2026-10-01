@@ -472,10 +472,12 @@ class _AcceptRideState extends State<AcceptRide>
       duration: const Duration(milliseconds: 1600),
     )..repeat();
     _snapSheet = MoveraSnapSheetController(
+      reduceMotion: () => mounted && MediaQuery.disableAnimationsOf(context),
       panel: _ridePanelController,
       vsync: this,
     );
     _vehicle = LiveVehicleAnimator(
+      reduceMotion: () => mounted && MediaQuery.disableAnimationsOf(context),
       vsync: this,
       initial: const LiveVehiclePose(
         position: _fallbackDriverPosition,
@@ -484,6 +486,13 @@ class _AcceptRideState extends State<AcceptRide>
     );
     unawaited(_prepareDriverVehicleMarker());
     _startLiveLocation();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if(MediaQuery.disableAnimationsOf(context)) { _radarPulseController.stop(); _radarSweepController.stop(); }
+    else if(!_liveUpdatesPaused) { _radarPulseController.repeat(reverse:true); _radarSweepController.repeat(); }
   }
 
   @override
@@ -633,10 +642,10 @@ class _AcceptRideState extends State<AcceptRide>
   void _resumeLiveUpdates() {
     if (!_liveUpdatesPaused) return;
     _liveUpdatesPaused = false;
-    if (!_radarPulseController.isAnimating) {
+    if (!MediaQuery.disableAnimationsOf(context) && !_radarPulseController.isAnimating) {
       _radarPulseController.repeat(reverse: true);
     }
-    if (!_radarSweepController.isAnimating) {
+    if (!MediaQuery.disableAnimationsOf(context) && !_radarSweepController.isAnimating) {
       _radarSweepController.repeat();
     }
     unawaited(_startLiveLocation());
@@ -4075,6 +4084,18 @@ class _SlideRideActionState extends State<_SlideRideAction> {
     }
   }
 
+  Future<void> _accessibleConfirm() async {
+    if(_confirming) return;
+    final confirmed=await showDialog<bool>(context:context,builder:(context)=>AlertDialog(
+      title:Text(widget.label.replaceFirst('Slide to ','')),
+      content:const Text('Confirm this trip action?'),
+      actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),
+        FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Confirm'))]));
+    if(!mounted || confirmed!=true || _confirming) return;
+    _fraction=1;
+    await _finish();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -4084,7 +4105,14 @@ class _SlideRideActionState extends State<_SlideRideAction> {
         builder: (context, constraints) {
           final maxTravel = math.max(0.0, constraints.maxWidth - _thumb - 8);
 
-          return GestureDetector(
+          return Semantics(
+            button:true, enabled:!_confirming,
+            label:widget.label.replaceFirst('Slide to ',''),
+            onTap:_confirming ? null : _accessibleConfirm,
+            child:FocusableActionDetector(
+              shortcuts:const <ShortcutActivator,Intent>{SingleActivator(LogicalKeyboardKey.enter):ActivateIntent(),SingleActivator(LogicalKeyboardKey.space):ActivateIntent()},
+              actions:<Type,Action<Intent>>{ActivateIntent:CallbackAction<ActivateIntent>(onInvoke:(_) { _accessibleConfirm();return null; })},
+              child:GestureDetector(
             behavior: HitTestBehavior.opaque,
             onHorizontalDragUpdate: (details) =>
                 _update(details.delta.dx, maxTravel),
@@ -4145,7 +4173,7 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                     left: 64,
                     right: 58,
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 180),
+                      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds:180),
                       child: Text(
                         _confirmed ? widget.confirmedLabel : widget.label,
                         key: ValueKey<String>(
@@ -4171,7 +4199,7 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                     left: 4 + (maxTravel * _fraction),
                     top: 4,
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
+                      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds:180),
                       width: _thumb,
                       height: _thumb,
                       decoration: BoxDecoration(
@@ -4245,7 +4273,7 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                 ],
               ),
             ),
-          );
+          )));
         },
       ),
     );

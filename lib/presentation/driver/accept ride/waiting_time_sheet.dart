@@ -429,6 +429,12 @@ class _WaitingClockState extends State<WaitingClock>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if(MediaQuery.disableAnimationsOf(context)) { _hand.stop(); } else { _hand.repeat(); }
+  }
+
+  @override
   void dispose() {
     _hand.dispose();
     super.dispose();
