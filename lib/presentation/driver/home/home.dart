@@ -195,6 +195,7 @@ class _DriverHomeState extends State<DriverHome>
   bool get _isGoingOnline => _driverSession.isGoingOnline;
   // Offer orchestration lives in an extension, which cannot call setState.
   void _rebuild(VoidCallback update) => setState(update);
+  void openDestinationPanel() => _HomeMapSheet(this).openDestinationPanel();
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
   bool _showTodaySummaryPopup = false;
