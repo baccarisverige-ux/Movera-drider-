@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/movera_map_style_lab.dart';
@@ -97,6 +98,101 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
       _syncHexField();
       _hexFocus.unfocus();
     }
+  }
+
+  Future<void> _openSpectrumPicker() async {
+    final original = _style.color(_selectedKey);
+    var preview = original;
+
+    final keep = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.24),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              top: false,
+              child: Container(
+                height: MediaQuery.sizeOf(context).height * 0.68,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4D9DC),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            _style.setColor(_selectedKey, original);
+                            Navigator.of(sheetContext).pop(false);
+                          },
+                          child: const Text('Cancel'),
+                        ),
+                        const Expanded(
+                          child: Text(
+                            'Color spectrum',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                        ),
+                        FilledButton(
+                          onPressed: () =>
+                              Navigator.of(sheetContext).pop(true),
+                          child: const Text('Done'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ColorPicker(
+                        pickerColor: preview,
+                        onColorChanged: (next) {
+                          preview = next;
+                          _style.setColor(_selectedKey, next);
+                          setModalState(() {});
+                        },
+                        enableAlpha: false,
+                        displayThumbColor: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (keep != true) {
+      _style.setColor(_selectedKey, original);
+      if (mounted) {
+        setState(() => _message = 'Spectrum change cancelled');
+      }
+    } else if (mounted) {
+      setState(() => _message = 'Spectrum color applied live');
+    }
+
+    _syncHexField();
   }
 
   Future<void> _save() async {
@@ -383,6 +479,24 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
             ],
           ),
           const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const ValueKey('map-color-spectrum-open'),
+              onPressed: _openSpectrumPicker,
+              icon: const Icon(Icons.palette_rounded, size: 18),
+              label: const Text('Open color spectrum'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF24493E),
+                side: const BorderSide(color: Color(0xFFD7DEDA)),
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
           _rgbSlider(
             label: 'R',
             value: _channel(color, 16),
