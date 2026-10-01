@@ -1,16 +1,8 @@
-# movera
+# Movera Driver
 
-A new Flutter project.
+Driver frontend for pickup, navigation, and delivery.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+This repository is a local preview. Payments, rider phone contact, and
+dispatch are not connected services. The in-app banner says demo mode so
+a test build is not mistaken for production. Bundle id `se.movera.driver`
+is unchanged.
