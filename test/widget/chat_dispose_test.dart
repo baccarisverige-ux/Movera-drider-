@@ -40,6 +40,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(tester.takeException(), isNull);
     }
+    await tester.pumpAndSettle();
     expect(find.byType(Chat), findsNothing);
   });
 }
