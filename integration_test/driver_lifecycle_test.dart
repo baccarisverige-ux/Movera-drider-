@@ -75,6 +75,8 @@ void main() {
     });
     await tester.binding.setSurfaceSize(const Size(375, 812));
     await tester.pumpWidget(const MoveraApp());
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await _elapse(tester, const Duration(milliseconds: 200));
     expect(find.byType(DriverHome), findsOneWidget);
     expect(find.text('Demo mode — no account'), findsOneWidget);
@@ -82,7 +84,12 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('OFF'));
-    await _elapse(tester, const Duration(milliseconds: 3800));
+    await _elapse(tester, const Duration(milliseconds: 4500));
+    expect(
+      find.text('Accept'),
+      findsWidgets,
+      reason: 'The demo offer did not appear after going online.',
+    );
     final acceptButton = find.ancestor(
       of: find.text('Accept'),
       matching: find.byType(FilledButton),
@@ -113,6 +120,8 @@ void main() {
     });
     await tester.binding.setSurfaceSize(const Size(390, 844));
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await _elapse(tester, const Duration(milliseconds: 200));
 
     await _tapArrived(tester);
