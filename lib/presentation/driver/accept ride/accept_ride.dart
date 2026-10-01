@@ -400,6 +400,9 @@ class _AcceptRideState extends State<AcceptRide>
   bool _hasLiveLocation = false;
   bool _routeLoading = false;
   bool _stageTransitioning = false;
+  DriverRealtimeEvent? _pendingProjection;
+  bool _drainingProjection = false;
+  Timer? _projectionRetry;
   bool _completionInFlight = false;
   bool _cancellationInFlight = false;
   bool _blockMapGestures = false;
@@ -425,7 +428,10 @@ class _AcceptRideState extends State<AcceptRide>
     _ownsRealtime = widget.realtime == null;
     _realtime = widget.realtime ?? MemoryDriverRealtime();
     _realtimeSubscription =
-        _realtime.subscribe(widget.offerId).listen(_onRealtimeEvent);
+        _realtime.subscribe(widget.offerId).listen(_onRealtimeEvent, onError: (Object error) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip updates disconnected. Reconnecting is required.')));
+        });
+    unawaited(_resyncTrip());
     _rideLifecycle.snapshotBuilder = _buildSnapshot;
     _rideLifecycle.addListener(_onPersistenceChanged);
     _rideLifecycle.addListener(_syncNavigationStage);
@@ -443,6 +449,7 @@ class _AcceptRideState extends State<AcceptRide>
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      widget.sessionController?.beginTrip(widget.offerId);
       _waybills.beginCurrent(_buildCurrentWaybill());
       if (widget.restoredSnapshot?.next != null && _nextTripRadarOffer != null) {
         _waybills.secureNext(_buildNextWaybill(_nextTripRadarOffer!));
@@ -475,6 +482,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   @override
   void dispose() {
+    _projectionRetry?.cancel();
     _sheetTrace.dispose();
     _rideSheetPositionGuardTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
@@ -506,6 +514,7 @@ class _AcceptRideState extends State<AcceptRide>
     switch (state) {
       case AppLifecycleState.resumed:
         _resumeLiveUpdates();
+        unawaited(_resyncTrip());
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
@@ -715,10 +724,12 @@ class _AcceptRideState extends State<AcceptRide>
     }
 
     if (disposition == DriverRealtimeDisposition.acceptedWithGap) {
-      final realtime = widget.realtime;
-      if (realtime != null) {
-        unawaited(realtime.reconnectAndResync(widget.offerId));
-      }
+      unawaited(_resyncTrip());
+    }
+    if (event.status != null || event.kind == DriverRealtimeKind.riderCancelled) {
+      _pendingProjection = event;
+      unawaited(_drainProjection());
+      return;
     }
 
     switch (event.kind) {
@@ -747,6 +758,54 @@ class _AcceptRideState extends State<AcceptRide>
       case DriverRealtimeKind.driverArrived:
         return;
     }
+  }
+
+  Future<void> _resyncTrip() async {
+    try { await _realtime.reconnectAndResync(widget.offerId); }
+    catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Trip updates could not be refreshed.'),
+        action: SnackBarAction(label: 'Retry', onPressed: () => unawaited(_resyncTrip()))));
+    }
+  }
+
+  Future<void> _drainProjection() async {
+    if (!mounted || _drainingProjection || _pendingProjection == null) return;
+    if (_rideLifecycle.saving || _completionInFlight || _cancellationInFlight || _stageTransitioning) {
+      _projectionRetry ??= Timer(const Duration(milliseconds: 100), () {
+        _projectionRetry = null; unawaited(_drainProjection());
+      });
+      return;
+    }
+    _drainingProjection = true;
+    final event = _pendingProjection!;
+    final status = event.kind == DriverRealtimeKind.riderCancelled ? TripStatus.cancelledByRider : event.status!;
+    try {
+      if (status == TripStatus.cancelledByRider) {
+        await _handleRiderCancelled();
+      } else if (status.isTerminal) {
+        await CompletionJournal(active: widget.activeRideRepository ?? MemoryActiveRideRepository()).finish(
+          _waybills.current ?? _buildCurrentWaybill(), status: status);
+        if (!mounted) return;
+        if (!await _rideLifecycle.applyProjection(status)) return;
+        _pauseLiveUpdates();
+        _waybills.discardCurrent();
+        widget.sessionController?.stayOnlineAfterTrip();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Trip ended: ${status.wireName}')));
+          if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+        }
+      } else {
+        if (!await _rideLifecycle.applyProjection(status)) return;
+        if (mounted) { setState(() {}); _resumeStageSideEffects(); }
+      }
+      if (status == TripStatus.cancelledByRider && !_rideLifecycle.terminal) return;
+      if (identical(event, _pendingProjection)) _pendingProjection = null;
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Trip update could not be saved.'),
+        action: SnackBarAction(label: 'Retry', onPressed: () => unawaited(_drainProjection()))));
+    } finally { _drainingProjection = false; }
   }
 
   Future<void> _handleRiderCancelled() async {

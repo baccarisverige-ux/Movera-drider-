@@ -77,7 +77,7 @@ class PrefsActiveRideRepository implements ActiveRideRepository, TerminalRideRep
     String? actor,
     DateTime? occurredAt,
   }) => _enqueue(() async {
-    if (![TripStatus.completed, TripStatus.cancelledByRider, TripStatus.cancelledByDriver, TripStatus.cancelledByAdmin].contains(status)) {
+    if (!status.isTerminal) {
       throw ArgumentError('Terminal status required');
     }
     final prefs = await _load();

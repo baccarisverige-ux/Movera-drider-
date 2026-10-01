@@ -59,7 +59,7 @@ class CompletionJournal {
  if(schemaVersion!=1 && schemaVersion!=2) throw StateError('Unsupported completion journal');
  final id=data['tripId'] as String;
  final status=TripStatus.values.byName(data['status'] as String);
- if(![TripStatus.completed,TripStatus.cancelledByDriver,TripStatus.cancelledByRider,TripStatus.cancelledByAdmin].contains(status)) throw StateError('Invalid terminal journal');
+ if(!status.isTerminal) throw StateError('Invalid terminal journal');
  final row=Map<String,dynamic>.from(data['record'] as Map);
  final at=DateTime.parse(data['completedAt'] as String);
  if(status==TripStatus.completed) {

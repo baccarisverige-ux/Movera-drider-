@@ -1,5 +1,6 @@
 import 'package:movera/core/session/demo_features.dart';
 import 'package:flutter/material.dart';
+import 'package:movera/core/session/driver_runtime_scope.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
@@ -43,8 +44,7 @@ class DriverStarter extends StatelessWidget {
                     ),
                     child: TextWidget(
                       textAlign: TextAlign.center,
-                      text:
-                          "Let’s hit the road. Accept rides in real time and make every minute count",
+                      text: "Let’s hit the road. Accept rides in real time and make every minute count",
                       color: AppColor.subtitle,
                       fontSize: 16,
                       fontWeight: fwMedium,
@@ -58,28 +58,47 @@ class DriverStarter extends StatelessWidget {
               child: Column(
                 children: [
                   CustomButton(
-                    centerContent: legacyAuthEnabled ? "Legacy sign-in preview" : "Sign-in unavailable — demo",
-                    onPressed: legacyAuthEnabled ? () {
-                      Navigator.pushReplacement(
-                        context,
-                        BottomToTopTransition(const DriverSignIn()),
-                      );
-                    } : null,
+                    centerContent: legacyAuthEnabled
+                        ? "Legacy sign-in preview"
+                        : "Sign-in unavailable — demo",
+                    onPressed: legacyAuthEnabled
+                        ? () {
+                            Navigator.pushReplacement(
+                              context,
+                              BottomToTopTransition(const DriverSignIn()),
+                            );
+                          }
+                        : null,
                   ),
                   8.height,
                   CustomButton(
-                    centerContent: legacyAuthEnabled ? "Legacy registration preview" : "Registration unavailable — demo",
-                    onPressed: legacyAuthEnabled ? () {
-                      Navigator.push(
-                        context,
-                        BottomToTopTransition(const DriverCreateAccount()),
-                      );
-                    } : null,
+                    centerContent: legacyAuthEnabled
+                        ? "Legacy registration preview"
+                        : "Registration unavailable — demo",
+                    onPressed: legacyAuthEnabled
+                        ? () {
+                            Navigator.push(
+                              context,
+                              BottomToTopTransition(
+                                const DriverCreateAccount(),
+                              ),
+                            );
+                          }
+                        : null,
                     btncolor: Colors.transparent,
                     borderColor: AppColor.primary,
                     borderwidth: 0.5,
                     textColor: AppColor.primary,
                   ),
+                  if (DriverRuntimeScope.maybeOf(context) case final runtime?)
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pushReplacement(
+                        MaterialPageRoute<void>(
+                          builder: (_) => runtime.homeBuilder(),
+                        ),
+                      ),
+                      child: const Text('Return to demo'),
+                    ),
                   20.height,
                 ],
               ),

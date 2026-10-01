@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 
-export 'package:movera/core/ride/active_ride_repository.dart' show ActiveRideStage;
+export 'package:movera/core/ride/active_ride_repository.dart'
+    show ActiveRideStage;
 
 /// Single source of truth for the lifecycle stage of one active ride.
 ///
@@ -15,8 +16,8 @@ class ActiveRideController extends ChangeNotifier {
     ActiveRideRepository? repository,
     ActiveRideStage initialStage = ActiveRideStage.headingToPickup,
     this.snapshotBuilder,
-  })  : _repository = repository ?? MemoryActiveRideRepository(),
-        _stage = initialStage;
+  }) : _repository = repository ?? MemoryActiveRideRepository(),
+       _stage = initialStage;
 
   final String? tripId;
   final ActiveRideRepository _repository;
@@ -56,9 +57,35 @@ class ActiveRideController extends ChangeNotifier {
     return true;
   }
 
+  /// Apply an authoritative projection, including skipped live stages.
+  Future<bool> applyProjection(TripStatus status) async {
+    if (saving || _disposed) return false;
+    if (status.isTerminal) {
+      if (!await _write(() => _finish(status))) return false;
+      _terminalStatus = status;
+    } else {
+      if (terminal) return false;
+      final next = switch (status) {
+        TripStatus.accepted ||
+        TripStatus.driverToPickup => ActiveRideStage.headingToPickup,
+        TripStatus.arrived => ActiveRideStage.waitingForRider,
+        TripStatus.riderOnboard ||
+        TripStatus.inTrip ||
+        TripStatus.approachingDropoff => ActiveRideStage.onTrip,
+        _ => null,
+      };
+      if (next == null || next.index < _stage.index) return false;
+      if (!await _write(() => _repository.save(_snapshot(next)))) return false;
+      _stage = next;
+    }
+    if (!_disposed) notifyListeners();
+    return true;
+  }
+
   Future<bool> complete({bool clearSnapshot = true}) async {
     if (terminal || saving || _stage != ActiveRideStage.onTrip) return false;
-    if (clearSnapshot && !await _write(() => _finish(TripStatus.completed))) return false;
+    if (clearSnapshot && !await _write(() => _finish(TripStatus.completed)))
+      return false;
     _terminalStatus = TripStatus.completed;
     if (!_disposed) notifyListeners();
     return true;
@@ -84,7 +111,10 @@ class ActiveRideController extends ChangeNotifier {
   Future<void> _finish(TripStatus status) async {
     final repository = _repository;
     if (repository is TerminalRideRepository && tripId != null) {
-      await (repository as TerminalRideRepository).markTerminal(tripId!, status);
+      await (repository as TerminalRideRepository).markTerminal(
+        tripId!,
+        status,
+      );
       await (repository as TerminalRideRepository).clearForTrip(tripId!);
     } else {
       await repository.clear();
@@ -97,30 +127,46 @@ class ActiveRideController extends ChangeNotifier {
   Object? persistenceError;
   bool get saving => _writing;
   PersistedActiveRide _snapshot(ActiveRideStage stage) =>
-      snapshotBuilder?.call(stage) ?? PersistedActiveRide(tripId: tripId ?? 'demo', stage: stage);
+      snapshotBuilder?.call(stage) ??
+      PersistedActiveRide(tripId: tripId ?? 'demo', stage: stage);
   Future<bool> _write(Future<void> Function() operation) async {
     if (_writing) return false;
     _writing = true;
     persistenceError = null;
     if (!_disposed) notifyListeners();
-    try { await operation(); return true; }
-    catch (error) { persistenceError = error; return false; }
-    finally { _writing = false; if (!_disposed) notifyListeners(); }
+    try {
+      await operation();
+      return true;
+    } catch (error) {
+      persistenceError = error;
+      return false;
+    } finally {
+      _writing = false;
+      if (!_disposed) notifyListeners();
+    }
   }
+
   /// Errors are observable; fire-and-forget lifecycle saves never throw.
   Future<bool> persistNow() async {
     if (terminal || tripId == null) return true;
     return _write(() => _repository.save(_snapshot(_stage)));
   }
+
   @override
-  void dispose() { _disposed = true; super.dispose(); }
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   Future<void> restore() async {
     final stored = await _repository.read();
     if (stored == null) return;
     if (tripId != null && stored.tripId != tripId) return;
     recoveryRequired = !stored.isFresh;
-    if (recoveryRequired) { if (!_disposed) notifyListeners(); return; }
+    if (recoveryRequired) {
+      if (!_disposed) notifyListeners();
+      return;
+    }
     _stage = stored.stage;
     if (!_disposed) notifyListeners();
   }

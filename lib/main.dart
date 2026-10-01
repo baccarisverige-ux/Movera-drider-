@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:movera/core/session/driver_runtime_scope.dart';
+
 import 'package:flutter/material.dart';
 import 'package:movera/widgets/demo_mode_banner.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -84,27 +86,37 @@ class _MoveraAppState extends State<MoveraApp> {
             navigatorKey: _navigatorKey,
             title: 'Movera Driver',
             debugShowCheckedModeBanner: false,
-            theme: ThemeData.light(
-              useMaterial3: true,
-            ).copyWith(scaffoldBackgroundColor: AppColor.bg),
+            theme: ThemeData.light(useMaterial3: true)
+                .copyWith(scaffoldBackgroundColor: AppColor.bg),
             builder: (context, child) {
-              return LayoutViewport(
-                child: Column(children: [const DemoModeBanner(), Expanded(child: child ?? const SizedBox.shrink())]),
+              return DriverRuntimeScope(
+                session: _session,
+                homeBuilder: _home,
+                child: LayoutViewport(
+                  child: Column(
+                    children: [
+                      const DemoModeBanner(),
+                      Expanded(child: child ?? const SizedBox.shrink()),
+                    ],
+                  ),
+                ),
               );
             },
-            home: DriverHome(
-              accountPending: true,
-              sessionController: _session,
-              waybillRepository: _waybills,
-              locationRepository: _location,
-              routeRepository: _routing,
-              dispatchRepository: _dispatch,
-              homeConfigRepository: _homeConfig,
-              activeRideRepository: _activeRide,
-            ),
+            home: _home(),
           );
         },
       ),
     );
   }
+
+  Widget _home() => DriverHome(
+    accountPending: true,
+    sessionController: _session,
+    waybillRepository: _waybills,
+    locationRepository: _location,
+    routeRepository: _routing,
+    dispatchRepository: _dispatch,
+    homeConfigRepository: _homeConfig,
+    activeRideRepository: _activeRide,
+  );
 }
