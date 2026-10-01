@@ -5,10 +5,11 @@ import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ChatAppBar extends StatelessWidget {
-  const ChatAppBar({super.key});
+  const ChatAppBar({super.key, this.riderName = 'Rider'});
+
+  final String riderName;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +36,7 @@ class ChatAppBar extends StatelessWidget {
             ),
           ),
           TextWidget(
-            text: "Driver’s name",
+            text: riderName,
             color: AppColor.title,
             fontSize: 16,
             fontWeight: fwBold,
@@ -44,8 +45,11 @@ class ChatAppBar extends StatelessWidget {
       ),
       actions: [
         IconButton(
+          tooltip: 'Call unavailable',
           onPressed: () {
-            launchUrl(Uri.parse('tel:+46701234567'));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Rider phone contact is not connected.')),
+            );
           },
           icon: Image.asset(AppAssets.phoneOutl, height: ResSize.h * 23),
         ),
@@ -54,3 +58,4 @@ class ChatAppBar extends StatelessWidget {
     );
   }
 }
+
