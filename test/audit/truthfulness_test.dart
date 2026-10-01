@@ -2,10 +2,24 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 String source(String path) => File('lib/presentation/driver/$path').readAsStringSync();
 void main() {
- test('withdrawal entry and result disclose simulation', () {
- expect(source('my wallet/components/choose_bank.dart'), contains('Simulate withdrawal'));
- expect(source('my wallet/components/withdraw_sucess.dart'), contains('Simulated — no money moved'));
- expect(source('my wallet/components/withdraw_sucess.dart'), isNot(contains('Withdraw request sent!')));
- expect(source('my bank/add new account/add_new_account.dart'), contains('account not saved'));
+ test('obsolete withdrawal simulation cannot re-enter the graph', () {
+  expect(File('lib/presentation/driver/my wallet/components/choose_bank.dart').existsSync(), isFalse);
+  expect(File('lib/presentation/driver/my wallet/components/withdraw_sucess.dart').existsSync(), isFalse);
+  expect(File('lib/presentation/driver/sheets/sheet_snap_state.dart').existsSync(), isFalse);
+  expect(source('my bank/add new account/add_new_account.dart'), contains('account not saved'));
+  expect(source('my wallet/wallet.dart'), isNot(contains('\$50')));
+  final leftovers = Directory('lib')
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'))
+      .where((file) {
+        final text = file.readAsStringSync();
+        return text.contains('choose_bank.dart') ||
+            text.contains('withdraw_sucess.dart') ||
+            text.contains('sheet_snap_state.dart');
+      })
+      .map((file) => file.path)
+      .toList();
+  expect(leftovers, isEmpty);
  });
 }
