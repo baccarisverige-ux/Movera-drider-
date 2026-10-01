@@ -3,35 +3,48 @@ import 'package:movera/core/support/local_support_repository.dart';
 import 'package:flutter/material.dart';
 
 class SupportInboxScreen extends StatefulWidget {
-  const SupportInboxScreen({super.key});
+  const SupportInboxScreen({super.key, this.repository});
+  final LocalSupportRepository? repository;
   @override
   State<SupportInboxScreen> createState() => _SupportInboxScreenState();
 }
 
 class _SupportInboxScreenState extends State<SupportInboxScreen> {
   final List<_Ticket> tickets = [];
-  final _repository = LocalSupportRepository();
+  late final _repository = widget.repository ?? LocalSupportRepository();
+  bool _restoreFailed = false;
   bool _loading = true;
   @override
   void initState() { super.initState(); _restore(); }
   Future<void> _restore() async {
+    try {
     final data=await _repository.read();
-    if(!mounted) return;
+    if(!mounted) { return; }
     setState(() {
+      tickets.clear();
+      _restoreFailed = false;
       for(final row in (data['tickets'] as List? ?? [])) {
-        if(row is Map) { final ticket=_Ticket.fromJson(Map<String,dynamic>.from(row)); if(ticket!=null) tickets.add(ticket); }
+        if(row is Map) { final ticket=_Ticket.fromJson(Map<String,dynamic>.from(row)); if(ticket!=null) { tickets.add(ticket); } }
       }
       _loading=false;
     });
+    } catch (_) {
+      if (mounted) { setState(() { _restoreFailed = true; _loading = true; }); }
+    }
   }
   Future<void> _saveTickets() async {
     try { await _repository.update('tickets',tickets.map((t)=>t.toJson()).toList()); }
-    catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local conversation. Retry.'))); rethrow; }
+    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local conversation. Retry.'))); } rethrow; }
   }
 
   Future<void> _newTicket() async {
-    if(_loading) return;
-    final data=await _repository.read(); if(!mounted) return;
+    if(_loading) { return; }
+    Map<String,dynamic> data;
+    try { data=await _repository.read(); } catch (_) {
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Could not load the local draft.'), action: SnackBarAction(label:'Retry',onPressed:_newTicket))); }
+      return;
+    }
+    if(!mounted) { return; }
     final draft=data['draft'] is Map ? data['draft'] as Map : <String,dynamic>{};
     final subject = TextEditingController(text: draft['subject'] as String? ?? '');
     final message = TextEditingController(text: draft['message'] as String? ?? '');
@@ -39,7 +52,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
     String category=categories.contains(draft['category']) ? draft['category'] as String : 'Trip & rider';
     Future<void> saveDraft() async {
       try { await _repository.update('draft',{'subject':subject.text,'message':message.text,'category':category}); }
-      catch(_) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local draft.'))); }
+      catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local draft.'))); } }
     }
     subject.addListener(() { unawaited(saveDraft()); });
     message.addListener(() { unawaited(saveDraft()); });
@@ -81,7 +94,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                 SizedBox(width: double.infinity, child: FilledButton(
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 54), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), backgroundColor: const Color(0xFF202A30), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
                   onPressed: () {
-                    if (subject.text.trim().isEmpty || message.text.trim().isEmpty) return;
+                    if (subject.text.trim().isEmpty || message.text.trim().isEmpty) { return; }
                     Navigator.pop(sheetContext, _Ticket(subject.text.trim(), message.text.trim(), 'LOCAL DRAFT', false));
                   },
                   child: const Text('Save draft in demo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -128,7 +141,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   );
 
   void _open(_Ticket ticket) {
-    if(_loading) return;
+    if(_loading) { return; }
     setState(() => ticket.unread = false);
     Navigator.push(context, MaterialPageRoute(builder: (_) => _Conversation(ticket: ticket, onChanged: _saveTickets)));
   }
@@ -158,6 +171,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
         ]),
       ),
       const SizedBox(height: 20),
+      if (_restoreFailed) TextButton(onPressed:_restore, child:const Text('Could not load local support — Retry')),
       const Text('Your conversations', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF20282E))),
       const SizedBox(height: 12),
       ...tickets.map((t) => Padding(padding: const EdgeInsets.only(bottom: 10), child: _TicketCard(ticket: t, onTap: () => _open(t)))),
@@ -194,26 +208,28 @@ class _Conversation extends StatefulWidget {
 
 class _ConversationState extends State<_Conversation> {
   final input = TextEditingController();
+  bool _saving = false;
   Future<void> saveMessage() async {
-    if(input.text.trim().isEmpty) return;
-    final text=input.text.trim();
+    if(_saving || input.text.trim().isEmpty) { return; }
+    final rawText=input.text;
+    final text=rawText.trim();
+    final message=_Message(text,false);
+    _saving = true;
     final previousPreview = widget.ticket.preview;
     setState(() {
-      widget.ticket.messages.add(_Message(text,false));
+      widget.ticket.messages.add(message);
       widget.ticket.preview=text;
     });
     try {
       await widget.onChanged();
-      if(mounted) input.clear();
+      if(mounted && input.text == rawText) { input.clear(); }
     } catch(_) {
-      if(mounted) {
-        setState(() {
-          if (widget.ticket.messages.isNotEmpty) {
-            widget.ticket.messages.removeLast();
-          }
-          widget.ticket.preview = previousPreview;
-        });
-      }
+      widget.ticket.messages.remove(message);
+      widget.ticket.preview = previousPreview;
+      if(mounted) { setState(() {}); }
+    } finally {
+      _saving = false;
+      if (mounted) { setState(() {}); }
     }
   }
   @override void dispose() { input.dispose(); super.dispose(); }
@@ -227,7 +243,7 @@ class _ConversationState extends State<_Conversation> {
       )).toList())),
       Container(color: Colors.white, padding: EdgeInsets.fromLTRB(14, 10, 14, MediaQuery.paddingOf(context).bottom + 10), child: Row(children: [
         Expanded(child: TextField(controller: input, decoration: InputDecoration(hintText: 'Write a local draft', filled: true, fillColor: const Color(0xFFF2F4F5), border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none)))),
-        const SizedBox(width: 9), IconButton.filled(onPressed: saveMessage, style: IconButton.styleFrom(backgroundColor: const Color(0xFF202A30)), icon: const Icon(Icons.arrow_upward_rounded)),
+        const SizedBox(width: 9), IconButton.filled(key:const ValueKey('local-reply-save'),onPressed: _saving ? null : saveMessage, style: IconButton.styleFrom(backgroundColor: const Color(0xFF202A30)), icon: const Icon(Icons.arrow_upward_rounded)),
       ])),
     ]),
   );
@@ -243,10 +259,10 @@ class _Ticket {
   _Ticket(this.subject, this.preview, this.status, this.unread) : messages = [_Message(preview, false)];
   Map<String,dynamic> toJson()=>{'subject':subject,'preview':preview,'status':status,'unread':unread,'messages':messages.map((m)=>{'text':m.text,'support':false}).toList()};
   static _Ticket? fromJson(Map<String,dynamic> json) {
-    if(json['subject'] is! String || json['preview'] is! String) return null;
+    if(json['subject'] is! String || json['preview'] is! String) { return null; }
     final ticket=_Ticket(json['subject'] as String,json['preview'] as String,'LOCAL DRAFT',false);
     ticket.messages.clear();
-    for(final row in (json['messages'] as List? ?? [])) { if(row is Map && row['text'] is String) ticket.messages.add(_Message(row['text'] as String,false)); }
+    for(final row in (json['messages'] as List? ?? [])) { if(row is Map && row['text'] is String) { ticket.messages.add(_Message(row['text'] as String,false)); } }
     return ticket;
   }
 }

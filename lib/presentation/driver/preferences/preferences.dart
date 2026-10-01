@@ -59,8 +59,14 @@ class _PreferencesState extends State<Preferences> {
   final _settings = SettingsRepository();
   bool _settingsTouched = false;
   Future<void> _restoreSettings() async {
+    try {
     final data=await _settings.read('categories'); if(!mounted || _settingsTouched) return;
     setState(() { if(data['selected'] is List && (data['selected'] as List).length==_categories.length && (data['selected'] as List).every((v)=>v is bool)) _selected=List<bool>.from(data['selected'] as List); });
+      } catch (_) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Could not load saved preferences.'),
+        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings)));
+    }
   }
   Future<bool> _persistSettings() async {
     _settingsTouched=true;
