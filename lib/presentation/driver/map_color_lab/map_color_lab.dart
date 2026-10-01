@@ -6,7 +6,6 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/movera_map_style_lab.dart';
-import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 class MoveraMapColorLabScreen extends StatefulWidget {
   const MoveraMapColorLabScreen({super.key});
@@ -23,6 +22,8 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
 
   String _selectedKey = 'land';
   String? _message;
+  bool _spectrumVisible = false;
+  Color? _spectrumStartColor;
 
   @override
   void initState() {
@@ -41,29 +42,26 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
   }
 
   void _handleStyleChanged() {
-    if (!mounted) {
-      return;
-    }
-    if (!_hexFocus.hasFocus) {
-      _syncHexField();
-    }
+    if (!mounted) return;
+    if (!_hexFocus.hasFocus) _syncHexField();
     setState(() {});
   }
 
   void _syncHexField() {
     final next = _style.colorHex(_selectedKey);
-    if (_hexController.text != next) {
-      _hexController.value = TextEditingValue(
-        text: next,
-        selection: TextSelection.collapsed(offset: next.length),
-      );
-    }
+    if (_hexController.text == next) return;
+    _hexController.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
   }
 
   void _selectField(String key) {
     setState(() {
       _selectedKey = key;
       _message = null;
+      _spectrumVisible = false;
+      _spectrumStartColor = null;
     });
     _syncHexField();
   }
@@ -78,6 +76,7 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
     var green = (argb >> 8) & 0xFF;
     var blue = argb & 0xFF;
     final next = value.round().clamp(0, 255).toInt();
+
     if (shift == 16) {
       red = next;
     } else if (shift == 8) {
@@ -85,6 +84,7 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
     } else {
       blue = next;
     }
+
     _style.setColor(_selectedKey, Color.fromARGB(255, red, green, blue));
   }
 
@@ -101,304 +101,220 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
     }
   }
 
-  Future<void> _openSpectrumPicker() async {
-    final original = _style.color(_selectedKey);
-    var preview = original;
-
-    final keep = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.24),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return PointerInterceptor(
-              child: SafeArea(
-                top: false,
-                child: Container(
-                height: MediaQuery.sizeOf(context).height * 0.68,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD4D9DC),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            _style.setColor(_selectedKey, original);
-                            Navigator.of(sheetContext).pop(false);
-                          },
-                          child: const Text('Cancel'),
-                        ),
-                        const Expanded(
-                          child: Text(
-                            'Color spectrum',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                        ),
-                        FilledButton(
-                          onPressed: () =>
-                              Navigator.of(sheetContext).pop(true),
-                          child: const Text('Done'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: ColorPicker(
-                        pickerColor: preview,
-                        onColorChanged: (next) {
-                          preview = next;
-                          _style.setColor(_selectedKey, next);
-                          setModalState(() {});
-                        },
-                        enableAlpha: false,
-                        displayThumbColor: true,
-                      ),
-                    ),
-                  ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    if (keep != true) {
-      _style.setColor(_selectedKey, original);
-      if (mounted) {
-        setState(() => _message = 'Spectrum change cancelled');
+  void _toggleSpectrum() {
+    setState(() {
+      if (_spectrumVisible) {
+        _spectrumVisible = false;
+        _spectrumStartColor = null;
+      } else {
+        _spectrumStartColor = _style.color(_selectedKey);
+        _spectrumVisible = true;
       }
-    } else if (mounted) {
-      setState(() => _message = 'Spectrum color applied live');
-    }
+      _message = null;
+    });
+  }
 
+  void _cancelSpectrum() {
+    final original = _spectrumStartColor;
+    if (original != null) {
+      _style.setColor(_selectedKey, original);
+    }
+    setState(() {
+      _spectrumVisible = false;
+      _spectrumStartColor = null;
+      _message = 'Spectrum change cancelled';
+    });
+    _syncHexField();
+  }
+
+  void _keepSpectrum() {
+    setState(() {
+      _spectrumVisible = false;
+      _spectrumStartColor = null;
+      _message = 'Spectrum color applied live';
+    });
     _syncHexField();
   }
 
   Future<void> _save() async {
     try {
       await _style.save();
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() => _message = 'Saved on this device');
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() => _message = 'Could not save locally');
     }
   }
 
   Future<void> _copyJson() async {
     await Clipboard.setData(ClipboardData(text: _style.styleJson));
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     setState(() => _message = 'Map style JSON copied');
   }
 
   @override
   Widget build(BuildContext context) {
     final selected = _style.color(_selectedKey);
-    final top = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          const CustomGoogleMap(
-            initialPosition: CameraPosition(
-              target: LatLng(59.3293, 18.0686),
-              zoom: 13.2,
-            ),
-            myLocationEnabled: false,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-            compassEnabled: true,
-            trafficEnabled: false,
-            buildingsEnabled: true,
-            indoorViewEnabled: false,
-            scrollGesturesEnabled: true,
-            zoomGesturesEnabled: true,
-            rotateGesturesEnabled: true,
-            tiltGesturesEnabled: true,
-            mapType: MapType.normal,
-          ),
-          Positioned(
-            top: top + 10,
-            left: 12,
-            right: 12,
-            child: PointerInterceptor(
-              child: Material(
-                color: Colors.white.withValues(alpha: 0.96),
-              elevation: 3,
-              shadowColor: Colors.black.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(18),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                child: Row(
-                  children: [
-                    IconButton(
-                      tooltip: 'Back',
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back_rounded),
-                    ),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Map Color Lab',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                          Text(
-                            'Move the real map and tune the palette live',
-                            style: TextStyle(
-                              color: Color(0xFF68737A),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Reset current Movera colors',
-                      onPressed: () {
-                        _style.resetDefaults();
-                        setState(
-                          () => _message = 'Reset to current Movera palette',
-                        );
-                      },
-                      icon: const Icon(Icons.restart_alt_rounded),
-                    ),
-                    IconButton(
-                      tooltip: 'Save palette',
-                      onPressed: _save,
-                      icon: Icon(
-                        _style.isDirty
-                            ? Icons.save_outlined
-                            : Icons.check_circle_outline_rounded,
-                      ),
-                    ),
-                    ],
+      backgroundColor: const Color(0xFFF6F7F8),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTopBar(),
+            Expanded(
+              flex: 9,
+              child: Container(
+                color: Colors.white,
+                child: const CustomGoogleMap(
+                  initialPosition: CameraPosition(
+                    target: LatLng(59.3293, 18.0686),
+                    zoom: 13.2,
                   ),
+                  myLocationEnabled: false,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  mapToolbarEnabled: false,
+                  compassEnabled: true,
+                  trafficEnabled: false,
+                  buildingsEnabled: true,
+                  indoorViewEnabled: false,
+                  scrollGesturesEnabled: true,
+                  zoomGesturesEnabled: true,
+                  rotateGesturesEnabled: true,
+                  tiltGesturesEnabled: true,
+                  mapType: MapType.normal,
                 ),
               ),
             ),
-          ),
-          DraggableScrollableSheet(
-            minChildSize: 0.20,
-            initialChildSize: 0.43,
-            maxChildSize: 0.78,
-            expand: false,
-            shouldCloseOnMinExtent: false,
-            snap: true,
-            snapSizes: const [0.20, 0.43, 0.78],
-            builder: (context, scrollController) {
-              return PointerInterceptor(
-                child: Material(
-                  color: Colors.white,
-                elevation: 16,
-                shadowColor: Colors.black.withValues(alpha: 0.18),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 42,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD4D9DC),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
+            Container(height: 1, color: const Color(0xFFE3E7E9)),
+            Expanded(
+              flex: 11,
+              child: _buildEditorWorkspace(selected),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Material(
+      color: Colors.white,
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(6, 5, 6, 5),
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: 'Back',
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Map Color Lab',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Live palette',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: _copyJson,
-                          icon: const Icon(Icons.copy_rounded, size: 16),
-                          label: const Text('Copy JSON'),
-                        ),
-                      ],
+                  ),
+                  Text(
+                    'Map and editor are completely independent',
+                    style: TextStyle(
+                      color: Color(0xFF68737A),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
                     ),
-                    if (_message != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          _message!,
-                          style: const TextStyle(
-                            color: Color(0xFF526069),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    _buildEditor(selected),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Map layers',
-                      style: TextStyle(
-                        color: Color(0xFF727E85),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    ...MoveraMapStyleController.fields.map(_buildFieldTile),
-                    ],
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Reset current Movera colors',
+              onPressed: () {
+                _style.resetDefaults();
+                setState(() {
+                  _message = 'Reset to current Movera palette';
+                  _spectrumVisible = false;
+                  _spectrumStartColor = null;
+                });
+              },
+              icon: const Icon(Icons.restart_alt_rounded),
+            ),
+            IconButton(
+              tooltip: 'Save palette',
+              onPressed: _save,
+              icon: Icon(
+                _style.isDirty
+                    ? Icons.save_outlined
+                    : Icons.check_circle_outline_rounded,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditorWorkspace(Color selected) {
+    return Material(
+      color: Colors.white,
+      child: ListView(
+        key: const ValueKey('map-color-editor-workspace'),
+        primary: false,
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Live palette',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.4,
                   ),
                 ),
-              );
-            },
+              ),
+              TextButton.icon(
+                onPressed: _copyJson,
+                icon: const Icon(Icons.copy_rounded, size: 16),
+                label: const Text('Copy JSON'),
+              ),
+            ],
           ),
+          if (_message != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                _message!,
+                style: const TextStyle(
+                  color: Color(0xFF526069),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          _buildEditor(selected),
+          const SizedBox(height: 14),
+          const Text(
+            'Map layers',
+            style: TextStyle(
+              color: Color(0xFF727E85),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          ...MoveraMapStyleController.fields.map(_buildFieldTile),
         ],
       ),
     );
@@ -492,9 +408,16 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
             width: double.infinity,
             child: OutlinedButton.icon(
               key: const ValueKey('map-color-spectrum-open'),
-              onPressed: _openSpectrumPicker,
-              icon: const Icon(Icons.palette_rounded, size: 18),
-              label: const Text('Open color spectrum'),
+              onPressed: _toggleSpectrum,
+              icon: Icon(
+                _spectrumVisible
+                    ? Icons.expand_less_rounded
+                    : Icons.palette_rounded,
+                size: 18,
+              ),
+              label: Text(
+                _spectrumVisible ? 'Hide color spectrum' : 'Open color spectrum',
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF24493E),
                 side: const BorderSide(color: Color(0xFFD7DEDA)),
@@ -505,7 +428,50 @@ class _MoveraMapColorLabScreenState extends State<MoveraMapColorLabScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          if (_spectrumVisible) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E6E4)),
+              ),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 245,
+                    child: ColorPicker(
+                      pickerColor: color,
+                      onColorChanged: (next) {
+                        _style.setColor(_selectedKey, next);
+                      },
+                      enableAlpha: false,
+                      displayThumbColor: true,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _cancelSpectrum,
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: _keepSpectrum,
+                          child: const Text('Done'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 6),
           _rgbSlider(
             label: 'R',
             value: _channel(color, 16),
