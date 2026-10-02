@@ -648,6 +648,36 @@ extension _HomeMapSheet on _DriverHomeState {
               },
               onTap: (LatLng position) {},
             ),
+            if (!isDestinationPanel && !_destinationModeActive)
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 108,
+                right: screenHorizPadding,
+                child: PointerInterceptor(
+                  child: Material(
+                    color: Colors.white,
+                    elevation: 4,
+                    shadowColor:
+                        const Color(0xFF172027).withValues(alpha: 0.14),
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      key: const ValueKey<String>('map-color-lab-open'),
+                      tooltip: 'Map Color Lab',
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const MoveraMapColorLabScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.palette_outlined,
+                        color: Color(0xFF1C242C),
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             isDestinationPanel
                 ? Align(
                     alignment: Alignment.center,
