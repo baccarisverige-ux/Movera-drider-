@@ -15,6 +15,7 @@ import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/geo/geo_point_maps.dart';
 import 'package:movera/core/routing/route_maps.dart';
+import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/navigation/live_vehicle_animator.dart';
