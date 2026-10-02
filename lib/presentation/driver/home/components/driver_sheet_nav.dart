@@ -36,7 +36,7 @@ class DriverSheetNav {
             notchDepth: notchDepth,
             cornerRadius: 24,
           ),
-          color: inactive ? sheetRed : const Color(0xFFFCFDFD),
+          color: inactive ? sheetRed : Colors.white,
           elevation: 8,
           shadowColor: const Color(0x3311181C),
           clipBehavior: Clip.antiAlias,
@@ -51,11 +51,7 @@ class DriverSheetNav {
                         Color(0xFF8E2E28),
                         Color(0xFF7A2722),
                       ]
-                    : const [
-                        Color(0xFFFFFFFF),
-                        Color(0xFFF8FAFA),
-                        Color(0xFFF1F4F5),
-                      ],
+                    : const [Colors.white, Colors.white],
               ),
             ),
             child: Stack(
@@ -181,7 +177,7 @@ class DriverSheetNav {
         MediaQuery.paddingOf(context).bottom + 5,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFFCFCFD),
+        color: Colors.white,
       ),
       child: Row(
         children: [

@@ -2040,7 +2040,7 @@ extension _HomeMapSheet on _DriverHomeState {
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
         decoration: BoxDecoration(
-          color: const Color(0xFFFCFDFD),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(26),
           border: Border.all(color: const Color(0xFFE0E9E5)),
           boxShadow: [
@@ -2520,12 +2520,12 @@ extension _HomeMapSheet on _DriverHomeState {
               notchDepth: 58,
               cornerRadius: 24,
             ),
-            color: const Color(0xFFFCFDFD),
+            color: Colors.white,
             elevation: 8,
             shadowColor: const Color(0x3311181C),
             clipBehavior: Clip.antiAlias,
             child: Container(
-              color: const Color(0xFFFCFDFD),
+              color: Colors.white,
               child: Column(
                 children: [
                   const SizedBox(height: 88),
