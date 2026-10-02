@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:movera/core/logging/driver_log.dart';
+import 'package:movera/core/storage/local_quarantine.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Local-only settings persistence.
@@ -28,23 +30,47 @@ class SettingsRepository {
             decoded['values'] is Map) {
           return Map<String, dynamic>.from(decoded['values'] as Map);
         }
-        return <String, dynamic>{};
-      } catch (_) {
+        throw const FormatException('Unsupported settings section');
+      } catch (error) {
+        // Keep the unreadable text before a later save replaces the section.
+        await _quarantine(prefs, _sectionKey(section), isolated, error);
         return <String, dynamic>{};
       }
     }
 
-    // Legacy aggregate format. A malformed legacy blob is treated as missing;
-    // future successful writes migrate each touched section to its own key.
+    // Legacy aggregate format. A malformed legacy blob is quarantined and
+    // treated as missing; future writes migrate each section to its own key.
+    final legacy = prefs.getString(key);
+    if (legacy == null) return <String, dynamic>{};
     try {
-      final decoded = jsonDecode(prefs.getString(key) ?? '{}');
-      if (decoded is! Map) return <String, dynamic>{};
+      final decoded = jsonDecode(legacy);
+      if (decoded is! Map) throw const FormatException('Malformed settings');
       final values = decoded[section];
       return values is Map
           ? Map<String, dynamic>.from(values)
           : <String, dynamic>{};
-    } catch (_) {
+    } catch (error) {
+      await _quarantine(prefs, key, legacy, error);
       return <String, dynamic>{};
+    }
+  }
+
+  Future<void> _quarantine(
+    SharedPreferences prefs,
+    String storageKey,
+    String raw,
+    Object error,
+  ) async {
+    try {
+      await LocalQuarantine.store(
+        prefs,
+        source: 'settings',
+        raw: raw,
+        reason: '$storageKey: $error',
+      );
+      await prefs.remove(storageKey);
+    } catch (quarantineError) {
+      DriverLog.warn('Settings quarantine failed: $quarantineError');
     }
   }
 
