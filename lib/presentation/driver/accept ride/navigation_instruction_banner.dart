@@ -78,18 +78,14 @@ class NavigationInstructionBanner extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 62,
-                    height: 62,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF171A1D),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0x24FFFFFF)),
-                    ),
-                    alignment: Alignment.center,
-                    child: CustomPaint(
-                      size: const Size(34, 34),
-                      painter: _CuePainter(symbol: symbol, icon: icon),
+                  SizedBox(
+                    width: 64,
+                    height: 68,
+                    child: Center(
+                      child: CustomPaint(
+                        size: const Size(50, 54),
+                        painter: _CuePainter(symbol: symbol, icon: icon),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 13),
@@ -216,108 +212,154 @@ class _CuePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFF7F8FA)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final fill = Paint()
-      ..color = const Color(0xFFF7F8FA)
-      ..style = PaintingStyle.fill;
     final s = size.width / 22;
     Offset p(double x, double y) => Offset(x * s, y * s);
 
+    final stroke = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.15 * s
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final fill = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
     void arrowHead(Offset tip, double angle) {
-      const spread = 0.62;
-      const length = 5.2;
-      canvas.drawLine(
-        tip,
-        tip + Offset(math.cos(angle + spread), math.sin(angle + spread)) * length * s,
-        paint,
-      );
-      canvas.drawLine(
-        tip,
-        tip + Offset(math.cos(angle - spread), math.sin(angle - spread)) * length * s,
-        paint,
+      final direction = Offset(math.cos(angle), math.sin(angle));
+      final perpendicular = Offset(-direction.dy, direction.dx);
+      final base = tip - direction * 5.3 * s;
+      final halfWidth = 3.8 * s;
+      final head = Path()
+        ..moveTo(tip.dx, tip.dy)
+        ..lineTo(
+          (base + perpendicular * halfWidth).dx,
+          (base + perpendicular * halfWidth).dy,
+        )
+        ..lineTo(
+          (base - perpendicular * halfWidth).dx,
+          (base - perpendicular * halfWidth).dy,
+        )
+        ..close();
+      canvas.drawPath(head, fill);
+    }
+
+    void hardTurn({required bool left}) {
+      final side = left ? -1.0 : 1.0;
+      final path = Path()
+        ..moveTo(p(11, 19).dx, p(11, 19).dy)
+        ..lineTo(p(11, 12).dx, p(11, 12).dy)
+        ..quadraticBezierTo(
+          p(11, 7).dx,
+          p(11, 7).dy,
+          p(11 + 4.6 * side, 7).dx,
+          p(7, 7).dy,
+        )
+        ..lineTo(p(11 + 6.0 * side, 7).dx, p(7, 7).dy);
+      canvas.drawPath(path, stroke);
+      arrowHead(
+        p(11 + 8.1 * side, 7),
+        left ? math.pi : 0,
       );
     }
 
-    void stemTurn({required bool left, double bend = 1}) {
+    void slightTurn({required bool left}) {
+      final side = left ? -1.0 : 1.0;
       final path = Path()
-        ..moveTo(p(left ? 6 : 16, 18).dx, p(11, 18).dy)
-        ..lineTo(p(11, 18).dx, p(11, 11).dy)
+        ..moveTo(p(11, 19).dx, p(11, 19).dy)
+        ..lineTo(p(11, 13).dx, p(11, 13).dy)
         ..quadraticBezierTo(
-          p(11, 6).dx,
-          p(11, 6).dy,
-          p(left ? 11 - 5 * bend : 11 + 5 * bend, 6).dx,
-          p(6, 6).dy,
+          p(11, 10).dx,
+          p(11, 10).dy,
+          p(11 + 2.2 * side, 8.2).dx,
+          p(8.2, 8.2).dy,
+        )
+        ..lineTo(
+          p(11 + 5.1 * side, 4.9).dx,
+          p(4.9, 4.9).dy,
         );
-      canvas.drawPath(path, paint);
-      final tip = p(left ? 5 : 17, 6);
-      arrowHead(tip, left ? math.pi : 0);
+      canvas.drawPath(path, stroke);
+      arrowHead(
+        p(11 + 6.25 * side, 3.55),
+        left ? -2.3 : -0.84,
+      );
     }
 
     final kind = symbol;
     if (kind == NavigationBannerSymbol.left ||
         kind == NavigationBannerSymbol.sharpLeft) {
-      stemTurn(left: true);
+      hardTurn(left: true);
       return;
     }
     if (kind == NavigationBannerSymbol.right ||
         kind == NavigationBannerSymbol.sharpRight) {
-      stemTurn(left: false);
+      hardTurn(left: false);
       return;
     }
     if (kind == NavigationBannerSymbol.slightLeft) {
-      stemTurn(left: true, bend: 0.55);
+      slightTurn(left: true);
       return;
     }
     if (kind == NavigationBannerSymbol.slightRight) {
-      stemTurn(left: false, bend: 0.55);
+      slightTurn(left: false);
       return;
     }
     if (kind == NavigationBannerSymbol.uTurn) {
       final path = Path()
-        ..moveTo(p(15, 18).dx, p(15, 18).dy)
-        ..lineTo(p(15, 8).dx, p(15, 8).dy)
-        ..arcToPoint(p(7, 8), radius: Radius.circular(4 * s), clockwise: false)
-        ..lineTo(p(7, 13).dx, p(7, 13).dy);
-      canvas.drawPath(path, paint);
-      arrowHead(p(7, 14), math.pi / 2);
+        ..moveTo(p(15, 19).dx, p(15, 19).dy)
+        ..lineTo(p(15, 10).dx, p(15, 10).dy)
+        ..cubicTo(
+          p(15, 5).dx,
+          p(15, 5).dy,
+          p(7, 5).dx,
+          p(7, 5).dy,
+          p(7, 10).dx,
+          p(7, 10).dy,
+        )
+        ..lineTo(p(7, 12).dx, p(7, 12).dy);
+      canvas.drawPath(path, stroke);
+      arrowHead(p(7, 15), math.pi / 2);
       return;
     }
     if (kind == NavigationBannerSymbol.roundabout) {
-      canvas.drawCircle(p(11, 11), 5.2 * s, paint);
-      canvas.drawLine(p(11, 18), p(11, 16), paint);
-      arrowHead(p(16.2, 8), -0.7);
+      canvas.drawArc(
+        Rect.fromCircle(center: p(11, 10.5), radius: 5.2 * s),
+        0.6,
+        math.pi * 1.55,
+        false,
+        stroke,
+      );
+      canvas.drawLine(p(11, 19), p(11, 15.7), stroke);
+      arrowHead(p(16.4, 8), -0.75);
       return;
     }
     if (kind == NavigationBannerSymbol.merge) {
-      canvas.drawLine(p(6, 17), p(11, 6), paint);
-      canvas.drawLine(p(16, 17), p(11, 10), paint);
-      arrowHead(p(11, 5), -math.pi / 2);
+      canvas.drawLine(p(11, 19), p(11, 7), stroke);
+      canvas.drawLine(p(5.7, 14), p(11, 9.2), stroke);
+      arrowHead(p(11, 3), -math.pi / 2);
       return;
     }
     if (kind == NavigationBannerSymbol.exit) {
-      canvas.drawLine(p(8, 17), p(8, 7), paint);
-      canvas.drawLine(p(8, 11), p(16, 6), paint);
-      arrowHead(p(16, 5.5), -0.55);
+      canvas.drawLine(p(8, 19), p(8, 6), stroke);
+      canvas.drawLine(p(8, 12), p(15, 6.5), stroke);
+      arrowHead(p(17.2, 4.8), -0.67);
       return;
     }
     if (kind == NavigationBannerSymbol.arrive || icon == Icons.flag_outlined) {
-      canvas.drawCircle(p(11, 11), 6.2 * s, paint);
-      canvas.drawCircle(p(11, 11), 1.7 * s, fill);
+      canvas.drawCircle(p(11, 10), 5.5 * s, stroke);
+      canvas.drawCircle(p(11, 10), 1.7 * s, fill);
+      canvas.drawLine(p(11, 15.5), p(11, 19), stroke);
       return;
     }
     if (icon == Icons.location_on_outlined) {
-      canvas.drawCircle(p(11, 8.5), 3.3 * s, paint);
+      canvas.drawCircle(p(11, 8.5), 3.2 * s, stroke);
       canvas.drawCircle(p(11, 8.5), 1.15 * s, fill);
-      canvas.drawLine(p(11, 12), p(11, 18), paint);
+      canvas.drawLine(p(11, 12), p(11, 19), stroke);
       return;
     }
-    canvas.drawLine(p(11, 17), p(11, 6), paint);
-    arrowHead(p(11, 5), -math.pi / 2);
+
+    canvas.drawLine(p(11, 19), p(11, 7), stroke);
+    arrowHead(p(11, 2.6), -math.pi / 2);
   }
 
   @override
@@ -363,12 +405,12 @@ class _NextStopLineState extends State<_NextStopLine>
     );
 
     return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF171A1D),
-        borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: const Color(0x33FFFFFF)),
+        color: const Color(0xFF3B434D),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0x2EFFFFFF)),
       ),
       child: Row(
         children: [
