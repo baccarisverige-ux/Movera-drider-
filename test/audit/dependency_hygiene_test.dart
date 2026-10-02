@@ -20,4 +20,31 @@ void main() {
         .toList();
     expect(hits, isEmpty);
   });
+
+  test('every direct dependency is imported somewhere in lib/', () {
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    final block = pubspec.split('\ndependencies:\n')[1].split('\ndev_dependencies:')[0];
+    final packages = RegExp(r'^  ([a-z0-9_]+):', multiLine: true)
+        .allMatches(block)
+        .map((m) => m.group(1)!)
+        .where((name) => !{'flutter', 'cupertino_icons'}.contains(name));
+    final source = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+    final unused = packages.where((name) => !source.contains('package:$name/')).toList();
+    expect(unused, isEmpty, reason: 'Remove unused dependencies');
+  });
+
+  test('no source archives are tracked', () {
+    final archives = Directory('.')
+        .listSync()
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.zip'))
+        .map((file) => file.path)
+        .toList();
+    expect(archives, isEmpty);
+  });
 }
