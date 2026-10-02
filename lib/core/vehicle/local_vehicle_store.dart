@@ -1,8 +1,35 @@
 import 'dart:convert';
 import 'package:movera/core/settings/settings_repository.dart';
 
+/// The local photo budget would be exceeded.
+class VehiclePhotoBudgetExceeded implements Exception {
+  const VehiclePhotoBudgetExceeded(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
 /// Device-only drafts; no vehicle activation or document verification.
+///
+/// Photos are kept as base64 inside preferences, which is localStorage on web
+/// (about 5 MB per origin, shared with trips and settings). New photos are
+/// therefore capped per photo and in total so a save cannot exhaust the quota.
 class LocalVehicleStore {
+  /// Largest single new photo kept on the device.
+  static const maxPhotoBytes = 700 * 1024;
+
+  /// Decoded total of all stored photos (~2.7 MB once base64-encoded).
+  static const maxStoredPhotoBytes = 2 * 1024 * 1024;
+
+  static int _photoBytes(Map<String, dynamic> row) {
+    var total = 0;
+    for (final field in ['registrationPhoto', 'insurancePhoto']) {
+      final value = row[field];
+      if (value is String) { total += (value.length * 3) ~/ 4; }
+    }
+    return total;
+  }
+
   final _settings = SettingsRepository();
   static Future<void>? _pending;
   Future<void> _serial(Future<void> Function() write) {
@@ -25,9 +52,35 @@ class LocalVehicleStore {
       return Map<String,dynamic>.from(row);
     }).toList();
   }
+  /// The vehicle shown on waybills and Profile: the first stored row, or the
+  /// demo vehicle. Null when local storage cannot be read.
+  Future<({String vehicle, String plate})?> primaryIdentity() async {
+    try {
+      final rows = await list();
+      if (rows.isEmpty) { return null; }
+      final row = rows.first;
+      return (vehicle: '${row['make']} ${row['model']}'.trim(), plate: row['plate'] as String);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> upsert(Map<String,dynamic> vehicle) => _serial(() async {
     final rows=await list();
+    final previous = rows.where((row)=>row['id']==vehicle['id']).toList();
+    for (final field in ['registrationPhoto','insurancePhoto']) {
+      final value = vehicle[field];
+      final unchanged = previous.isNotEmpty && previous.first[field] == value;
+      if (value is String && !unchanged && (value.length * 3) ~/ 4 > maxPhotoBytes) {
+        throw const VehiclePhotoBudgetExceeded('Photo is too large to keep on this device.');
+      }
+    }
     rows.removeWhere((row)=>row['id']==vehicle['id']);rows.add(Map.of(vehicle));
+    final total = rows.fold<int>(0, (sum, row) => sum + _photoBytes(row));
+    final before = previous.fold<int>(0, (sum, row) => sum + _photoBytes(row));
+    if (total > maxStoredPhotoBytes && _photoBytes(vehicle) > before) {
+      throw const VehiclePhotoBudgetExceeded('Photo storage on this device is full. Remove photos from another vehicle first.');
+    }
     await _settings.save('vehicles',{'rows':rows});
   });
   Future<void> remove(String id) => _serial(() async {

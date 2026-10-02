@@ -62,6 +62,7 @@ class NavigationController extends ChangeNotifier {
   DateTime? _lastRouteAt;
   GeoPoint? _lastRouteOrigin;
   int _instructionHint = 0;
+  double? _progressAlong;
   bool _userPausedFollow = false;
   String? _status;
   Timer? _rerouteDebounce;
@@ -161,6 +162,7 @@ class NavigationController extends ChangeNotifier {
       if (_disposed || token != _routeRequestToken) { return; }
       _route = route;
       _instructionHint = 0;
+      _progressAlong = null;
       _status = null;
       _rebuildBanner();
     } catch (_) {
@@ -200,8 +202,10 @@ class NavigationController extends ChangeNotifier {
         route: route,
         position: _snapshot.vehicle,
         instructionHint: _instructionHint,
+        previousAlongMeters: _progressAlong,
       );
       _instructionHint = progress.instructionIndex;
+      _progressAlong = progress.offRoute ? null : progress.alongMeters;
     }
 
     if (progress != null &&

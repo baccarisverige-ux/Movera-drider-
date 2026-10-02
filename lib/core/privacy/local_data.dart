@@ -2,6 +2,7 @@ import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/ride/prefs_active_ride_repository.dart';
 import 'package:movera/core/settings/settings_repository.dart';
+import 'package:movera/core/storage/local_quarantine.dart';
 import 'package:movera/core/support/local_support_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -77,6 +78,12 @@ const localDataInventory = <LocalDataRecord>[
     purpose: 'Section settings such as trusted-contact phones and vehicle drafts.',
     retention: 'Until logout.',
   ),
+  LocalDataRecord(
+    key: '${LocalQuarantine.prefix}*',
+    dataClass: LocalDataClass.personal,
+    purpose: 'Unreadable or conflicting trip/settings records set aside so the driver is not blocked.',
+    retention: 'Newest ${LocalQuarantine.maxEntries} entries, until logout.',
+  ),
 ];
 
 /// Removes classified personal and recovery keys.
@@ -101,7 +108,9 @@ Future<void> clearLocalUserData({
   }
   final sectionKeys = prefs
       .getKeys()
-      .where((key) => key.startsWith(SettingsRepository.sectionPrefix))
+      .where((key) =>
+          key.startsWith(SettingsRepository.sectionPrefix) ||
+          key.startsWith(LocalQuarantine.prefix))
       .toList(growable: false);
   for (final key in sectionKeys) {
     await prefs.remove(key);

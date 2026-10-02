@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:movera/core/privacy/local_data.dart';
+import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:movera/core/session/driver_runtime_scope.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/driver/analytics/analytics.dart';
@@ -97,12 +98,15 @@ class DriverProfile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _link(
-            context,
-            icon: Icons.directions_car_outlined,
-            title: 'Vehicles',
-            detail: 'Mercedes-Benz E 220',
-            page: DriverVehicles(),
+          FutureBuilder<({String vehicle, String plate})?>(
+            future: LocalVehicleStore().primaryIdentity(),
+            builder: (context, snapshot) => _link(
+              context,
+              icon: Icons.directions_car_outlined,
+              title: 'Vehicles',
+              detail: snapshot.data?.vehicle ?? 'Vehicle data unavailable',
+              page: DriverVehicles(),
+            ),
           ),
           const SizedBox(height: 12),
           _group(context, [
@@ -303,11 +307,25 @@ class DriverProfile extends StatelessWidget {
       },
     );
     if (leave == true && context.mounted) {
-      await clearLocalUserData();
+      final runtime = DriverRuntimeScope.maybeOf(context);
+      try {
+        if (runtime?.logout != null) {
+          await runtime!.logout!();
+        } else {
+          await clearLocalUserData();
+          runtime?.session.reset();
+        }
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not clear local data. You are still signed in. Please retry.'),
+          ));
+        }
+        return;
+      }
       if (!context.mounted) {
         return;
       }
-      DriverRuntimeScope.maybeOf(context)?.session.reset();
       Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const DriverStarter()),
         (route) => false,
