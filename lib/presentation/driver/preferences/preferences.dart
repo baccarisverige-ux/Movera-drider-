@@ -214,21 +214,35 @@ class _PreferencesState extends State<Preferences> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              '$_selectedCount of ${_categories.length} active',
-              textAlign: TextAlign.end,
-              style: const TextStyle(
-                color: _text,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            children: [
+              Transform.translate(
+                // Line the arrow up with the heading's left edge.
+                offset: const Offset(-10, 0),
+                child: IconButton(
+                  tooltip: 'Back',
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 24),
+                  color: _heading,
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$_selectedCount of ${_categories.length} active',
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    color: _text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 4),
         const Text(
           'Choose your ride options',
           style: TextStyle(

@@ -45,10 +45,7 @@ void _expectNoException(WidgetTester tester) {
   expect(exception, isNull, reason: exception?.toString());
 }
 
-Future<void> _advanceAnimation(
-  WidgetTester tester,
-  Duration duration,
-) async {
+Future<void> _advanceAnimation(WidgetTester tester, Duration duration) async {
   await tester.pump();
   await tester.pump(duration);
 }
@@ -56,34 +53,46 @@ Future<void> _advanceAnimation(
 Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 220));
   final confirm = find.text('Confirm finish');
-  if (confirm.evaluate().isNotEmpty) { await tester.tap(confirm); }
-  // Each asynchronous journal write must be flushed before asserting navigation.
-  for(var i=0;i<60 && find.byType(DriverRideCompleted).evaluate().isEmpty;i++) {
-    await tester.pump(const Duration(milliseconds:25));
+  if (confirm.evaluate().isNotEmpty) {
+    await tester.tap(confirm);
   }
-  await tester.pump(const Duration(milliseconds:1100));
+  // Each asynchronous journal write must be flushed before asserting navigation.
+  for (
+    var i = 0;
+    i < 60 && find.byType(DriverRideCompleted).evaluate().isEmpty;
+    i++
+  ) {
+    await tester.pump(const Duration(milliseconds: 25));
+  }
+  await tester.pump(const Duration(milliseconds: 1100));
 }
 
 Future<void> _tapArrived(WidgetTester tester) async {
-  final button =
-      find.byKey(const ValueKey<String>('active-ride-arrived-button'));
+  final button = find.byKey(
+    const ValueKey<String>('active-ride-arrived-button'),
+  );
   expect(button, findsOneWidget);
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pump(const Duration(milliseconds: 240));
   // Flush awaited durability and the frame that unlocks the next action.
-  for(var i=0;i<4;i++) { await tester.pump(const Duration(milliseconds:16)); }
+  for (var i = 0; i < 4; i++) {
+    await tester.pump(const Duration(milliseconds: 16));
+  }
 }
 
 Future<void> _slideActiveRideAction(WidgetTester tester) async {
-  final action =
-      find.byKey(const ValueKey<String>('active-ride-primary-action'));
+  final action = find.byKey(
+    const ValueKey<String>('active-ride-primary-action'),
+  );
   expect(action, findsOneWidget);
   await tester.ensureVisible(action);
   await tester.drag(action, const Offset(320, 0));
   await tester.pump(const Duration(milliseconds: 240));
   // Flush awaited durability and the frame that unlocks the next action.
-  for(var i=0;i<4;i++) { await tester.pump(const Duration(milliseconds:16)); }
+  for (var i = 0; i < 4; i++) {
+    await tester.pump(const Duration(milliseconds: 16));
+  }
 }
 
 Future<void> _openPanel(WidgetTester tester) async {
@@ -115,10 +124,7 @@ Future<void> _expandActiveRideSheet(WidgetTester tester) async {
 void _invokeTooltipAction(WidgetTester tester, String tooltip) {
   final tooltips = find.byTooltip(tooltip);
   expect(tooltips, findsWidgets);
-  final taps = find.descendant(
-    of: tooltips,
-    matching: find.byType(InkWell),
-  );
+  final taps = find.descendant(of: tooltips, matching: find.byType(InkWell));
   final action = tester
       .widgetList<InkWell>(taps)
       .firstWhere((widget) => widget.onTap != null);
@@ -200,77 +206,83 @@ void main() {
     );
   }
 
-  testWidgets('Home sheet survives rapid open-close-open without stale map blocking', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(320, 700));
+  testWidgets(
+    'Home sheet survives rapid open-close-open without stale map blocking',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpHome(tester, const Size(320, 700));
 
-    final panel =
-        tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    panel.controller!.open();
-    await tester.pump(const Duration(milliseconds: 140));
-    panel.controller!.close();
-    await tester.pump(const Duration(milliseconds: 140));
-    panel.controller!.open();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+      final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+      panel.controller!.open();
+      await tester.pump(const Duration(milliseconds: 140));
+      panel.controller!.close();
+      await tester.pump(const Duration(milliseconds: 140));
+      panel.controller!.open();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
-    var latestPanel =
-        tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect((latestPanel.body! as AbsorbPointer).absorbing, isTrue);
-    expect(find.text('Driver overview').hitTestable(), findsOneWidget);
-    _expectNoException(tester);
+      var latestPanel = tester.widget<SlidingUpPanel>(
+        find.byType(SlidingUpPanel),
+      );
+      expect((latestPanel.body! as AbsorbPointer).absorbing, isTrue);
+      expect(find.text('Driver overview').hitTestable(), findsOneWidget);
+      _expectNoException(tester);
 
-    latestPanel.controller!.close();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+      latestPanel.controller!.close();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
-    latestPanel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect((latestPanel.body! as AbsorbPointer).absorbing, isFalse);
-    _expectNoException(tester);
-  });
+      latestPanel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+      expect((latestPanel.body! as AbsorbPointer).absorbing, isFalse);
+      _expectNoException(tester);
+    },
+  );
 
-  testWidgets('Driver menu is full-height, closes on scrim, and Back returns to menu', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(320, 700));
+  testWidgets(
+    'Driver menu is full-height, closes on scrim, and Back returns to menu',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpHome(tester, const Size(320, 700));
 
-    final scaffoldState =
-        tester.state<ScaffoldState>(find.byType(Scaffold).first);
-    scaffoldState.openDrawer();
-    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+      final scaffoldState = tester.state<ScaffoldState>(
+        find.byType(Scaffold).first,
+      );
+      scaffoldState.openDrawer();
+      await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
-    expect(scaffoldState.isDrawerOpen, isTrue);
-    final drawer = find.byKey(const ValueKey<String>('driver-side-menu'));
-    expect(drawer, findsOneWidget);
-    expect(tester.getSize(drawer).height, tester.getSize(find.byType(DriverHome)).height);
-    expect(find.byTooltip('Close menu'), findsNothing);
-    _expectNoException(tester);
+      expect(scaffoldState.isDrawerOpen, isTrue);
+      final drawer = find.byKey(const ValueKey<String>('driver-side-menu'));
+      expect(drawer, findsOneWidget);
+      expect(
+        tester.getSize(drawer).height,
+        tester.getSize(find.byType(DriverHome)).height,
+      );
+      expect(find.byTooltip('Close menu'), findsNothing);
+      _expectNoException(tester);
 
-    // The uncovered map/scrim area closes the menu; no X button is required.
-    await tester.tapAt(const Offset(316, 350));
-    await _advanceAnimation(tester, const Duration(milliseconds: 420));
-    expect(scaffoldState.isDrawerOpen, isFalse);
-    _expectNoException(tester);
+      // The uncovered map/scrim area closes the menu; no X button is required.
+      await tester.tapAt(const Offset(316, 350));
+      await _advanceAnimation(tester, const Duration(milliseconds: 420));
+      expect(scaffoldState.isDrawerOpen, isFalse);
+      _expectNoException(tester);
 
-    // Top-level menu destinations keep the drawer open underneath. Back from
-    // the destination therefore returns to the menu, not directly to the map.
-    scaffoldState.openDrawer();
-    await _advanceAnimation(tester, const Duration(milliseconds: 420));
-    await tester.tap(find.text('Ride history'));
-    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+      // Top-level menu destinations keep the drawer open underneath. Back from
+      // the destination therefore returns to the menu, not directly to the map.
+      scaffoldState.openDrawer();
+      await _advanceAnimation(tester, const Duration(milliseconds: 420));
+      await tester.tap(find.text('Ride history'));
+      await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
-    expect(find.byType(DriverRideHistory), findsOneWidget);
-    _expectNoException(tester);
+      expect(find.byType(DriverRideHistory), findsOneWidget);
+      _expectNoException(tester);
 
-    Navigator.of(tester.element(find.byType(DriverRideHistory))).pop();
-    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+      Navigator.of(tester.element(find.byType(DriverRideHistory))).pop();
+      await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
-    expect(find.byType(DriverRideHistory), findsNothing);
-    expect(scaffoldState.isDrawerOpen, isTrue);
-    expect(find.text('Ride history'), findsOneWidget);
-    _expectNoException(tester);
-  });
+      expect(find.byType(DriverRideHistory), findsNothing);
+      expect(scaffoldState.isDrawerOpen, isTrue);
+      expect(find.text('Ride history'), findsOneWidget);
+      _expectNoException(tester);
+    },
+  );
 
   testWidgets('Collapsed dock actions are wired safely in isolation', (
     WidgetTester tester,
@@ -344,6 +356,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(Preferences), findsOneWidget);
     expect(scaffoldKey.currentState?.isDrawerOpen, isFalse);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Preferences), findsNothing);
+    expect(find.byTooltip('Ride preferences'), findsOneWidget);
     _expectNoException(tester);
   });
 
@@ -353,8 +369,9 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    SlidingUpPanel panel =
-        tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    SlidingUpPanel panel = tester.widget<SlidingUpPanel>(
+      find.byType(SlidingUpPanel),
+    );
     expect(panel.body, isA<AbsorbPointer>());
     expect((panel.body! as AbsorbPointer).absorbing, isFalse);
 
@@ -391,49 +408,50 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Exclusive Radar stays separate and Radar offers survive list open-close', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(375, 812));
+  testWidgets(
+    'Exclusive Radar stays separate and Radar offers survive list open-close',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpHome(tester, const Size(375, 812));
 
-    await tester.tap(find.text('OFF'));
-    await tester.pump(const Duration(milliseconds: 1550));
-    expect(find.text('LIVE'), findsOneWidget);
+      await tester.tap(find.text('OFF'));
+      await tester.pump(const Duration(milliseconds: 1550));
+      expect(find.text('LIVE'), findsOneWidget);
 
-    // Exclusive Radar offer uses its own exclusive surface.
-    await tester.pump(const Duration(milliseconds: 2300));
-    expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Exclusive Radar'), findsOneWidget);
-    expect(find.text('Trip Radar offers'), findsNothing);
-    _expectNoException(tester);
+      // Exclusive Radar offer uses its own exclusive surface.
+      await tester.pump(const Duration(milliseconds: 2300));
+      expect(find.text('104,80 kr'), findsOneWidget);
+      expect(find.text('Exclusive Radar'), findsOneWidget);
+      expect(find.text('Trip Radar offers'), findsNothing);
+      _expectNoException(tester);
 
-    // Let the outside offer expire, then allow the first Radar offer to arrive.
-    await tester.pump(const Duration(milliseconds: 8500));
-    await tester.pump(const Duration(milliseconds: 900));
+      // Let the outside offer expire, then allow the first Radar offer to arrive.
+      await tester.pump(const Duration(milliseconds: 8500));
+      await tester.pump(const Duration(milliseconds: 900));
 
-    expect(find.text('Trip Radar offers'), findsOneWidget);
-    expect(find.text('1 live'), findsOneWidget);
-    expect(find.text('Exclusive Radar'), findsNothing);
-    expect(find.text('Trip found'), findsOneWidget);
-    expect(find.text('NEW'), findsOneWidget);
-    _expectNoException(tester);
+      expect(find.text('Trip Radar offers'), findsOneWidget);
+      expect(find.text('1 live'), findsOneWidget);
+      expect(find.text('Exclusive Radar'), findsNothing);
+      expect(find.text('Trip found'), findsOneWidget);
+      expect(find.text('NEW'), findsOneWidget);
+      _expectNoException(tester);
 
-    // Radar orb still opens the legacy/full Radar list.
-    await tester.tap(find.text('Trip found'));
-    await tester.pump(const Duration(milliseconds: 160));
-    expect(find.byType(RideRequests), findsOneWidget);
-    _expectNoException(tester);
+      // Radar orb still opens the legacy/full Radar list.
+      await tester.tap(find.text('Trip found'));
+      await tester.pump(const Duration(milliseconds: 160));
+      expect(find.byType(RideRequests), findsOneWidget);
+      _expectNoException(tester);
 
-    await tester.tap(find.byTooltip('Back'));
-    await tester.pump(const Duration(milliseconds: 160));
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pump(const Duration(milliseconds: 160));
 
-    // Returning to Home keeps the Home Radar opportunity alive.
-    expect(find.byType(RideRequests), findsNothing);
-    expect(find.text('Trip Radar offers'), findsOneWidget);
-    expect(find.text('NEW'), findsOneWidget);
-    _expectNoException(tester);
-  });
+      // Returning to Home keeps the Home Radar opportunity alive.
+      expect(find.byType(RideRequests), findsNothing);
+      expect(find.text('Trip Radar offers'), findsOneWidget);
+      expect(find.text('NEW'), findsOneWidget);
+      _expectNoException(tester);
+    },
+  );
 
   testWidgets('Home Radar keeps a stable snapshot until driver refreshes', (
     WidgetTester tester,
@@ -475,9 +493,7 @@ void main() {
     _expectNoException(tester);
 
     // One explicit refresh updates the snapshot atomically.
-    await tester.tap(
-      find.byKey(const ValueKey<String>('radar-home-refresh')),
-    );
+    await tester.tap(find.byKey(const ValueKey<String>('radar-home-refresh')));
     await tester.pump(const Duration(milliseconds: 160));
 
     expect(find.text('3 live'), findsOneWidget);
@@ -526,9 +542,7 @@ void main() {
       find.byType(RadarEdgeDash),
     );
     expect(
-      radarDashes.any(
-        (dash) => dash.color == const Color(0xFFFFA94D),
-      ),
+      radarDashes.any((dash) => dash.color == const Color(0xFFFFA94D)),
       isTrue,
     );
     _expectNoException(tester);
@@ -613,9 +627,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 120));
 
     final card = find.byKey(const ValueKey<String>('nearby-1'));
-    await tester.tap(
-      find.descendant(of: card, matching: find.text('Match')),
-    );
+    await tester.tap(find.descendant(of: card, matching: find.text('Match')));
     await tester.pump();
 
     expect(find.text('Matching trip'), findsOneWidget);
@@ -741,9 +753,7 @@ void main() {
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(320, 700));
-    await tester.pumpWidget(
-      const MaterialApp(home: DriverDestinationPicker()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: DriverDestinationPicker()));
     await tester.pump(const Duration(milliseconds: 120));
 
     expect(find.text('Destination'), findsOneWidget);
@@ -813,36 +823,37 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Driver overview shows performance rates and scheduled card opens', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(375, 812));
-    await _openPanel(tester);
+  testWidgets(
+    'Driver overview shows performance rates and scheduled card opens',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpHome(tester, const Size(375, 812));
+      await _openPanel(tester);
 
-    expect(find.text('Performance'), findsOneWidget);
-    expect(find.text('Acceptance'), findsOneWidget);
-    expect(find.text('94%'), findsOneWidget);
-    expect(find.text('Cancellation'), findsOneWidget);
-    expect(find.text('2.4%'), findsOneWidget);
-    _expectNoException(tester);
+      expect(find.text('Performance'), findsOneWidget);
+      expect(find.text('Acceptance'), findsOneWidget);
+      expect(find.text('94%'), findsOneWidget);
+      expect(find.text('Cancellation'), findsOneWidget);
+      expect(find.text('2.4%'), findsOneWidget);
+      _expectNoException(tester);
 
-    final overviewList = find.byKey(
-      const PageStorageKey<String>('driver-overview-list'),
-    );
-    expect(overviewList, findsOneWidget);
-    await tester.drag(overviewList, const Offset(0, -360));
-    await tester.pump(const Duration(milliseconds: 180));
-    expect(find.text('What’s happening'), findsOneWidget);
+      final overviewList = find.byKey(
+        const PageStorageKey<String>('driver-overview-list'),
+      );
+      expect(overviewList, findsOneWidget);
+      await tester.drag(overviewList, const Offset(0, -360));
+      await tester.pump(const Duration(milliseconds: 180));
+      expect(find.text('What’s happening'), findsOneWidget);
 
-    final scheduled = find.text('Scheduled rides available');
-    await tester.ensureVisible(scheduled);
-    await tester.tap(scheduled);
-    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+      final scheduled = find.text('Scheduled rides available');
+      await tester.ensureVisible(scheduled);
+      await tester.tap(scheduled);
+      await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
-    expect(find.byType(ScheduledRidesScreen), findsOneWidget);
-    _expectNoException(tester);
-  });
+      expect(find.byType(ScheduledRidesScreen), findsOneWidget);
+      _expectNoException(tester);
+    },
+  );
 
   testWidgets('Home sheet shows Stockholm work areas under What’s happening', (
     WidgetTester tester,
@@ -1127,60 +1138,58 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Today summary uses compact card and closes when Home sheet expands', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(375, 812));
+  testWidgets(
+    'Today summary uses compact card and closes when Home sheet expands',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpHome(tester, const Size(375, 812));
 
-    final launcher = find.byKey(
-      const ValueKey<String>('last-trip-launcher'),
-    );
-    tester.widget<InkWell>(launcher).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+      final launcher = find.byKey(const ValueKey<String>('last-trip-launcher'));
+      tester.widget<InkWell>(launcher).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
-    final card = find.byKey(
-      const ValueKey<String>('today-summary-card'),
-    );
-    expect(card, findsOneWidget);
-    expect(tester.getSize(card).width, 278);
-    expect(find.text('Today'), findsOneWidget);
-    _expectNoException(tester);
+      final card = find.byKey(const ValueKey<String>('today-summary-card'));
+      expect(card, findsOneWidget);
+      expect(tester.getSize(card).width, 278);
+      expect(find.text('Today'), findsOneWidget);
+      _expectNoException(tester);
 
-    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    panel.controller!.open();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+      final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+      panel.controller!.open();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
-    final summaryPointer = tester.widget<IgnorePointer>(
-      find.byKey(const ValueKey<String>('today-summary-pointer')),
-    );
-    expect(summaryPointer.ignoring, isTrue);
-    _expectNoException(tester);
-  });
+      final summaryPointer = tester.widget<IgnorePointer>(
+        find.byKey(const ValueKey<String>('today-summary-pointer')),
+      );
+      expect(summaryPointer.ignoring, isTrue);
+      _expectNoException(tester);
+    },
+  );
 
-  testWidgets('Exclusive Radar becomes map-only and hides Home sheet and Radar orb', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(375, 812));
+  testWidgets(
+    'Exclusive Radar becomes map-only and hides Home sheet and Radar orb',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpHome(tester, const Size(375, 812));
 
-    await tester.tap(find.text('OFF'));
-    await tester.pump(const Duration(milliseconds: 3800));
+      await tester.tap(find.text('OFF'));
+      await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
-    expect(find.text('Exclusive Radar'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('trip-radar-touch-target')),
-      findsNothing,
-    );
+      expect(find.text('Exclusive Radar priority match'), findsOneWidget);
+      expect(find.text('Exclusive Radar'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('trip-radar-touch-target')),
+        findsNothing,
+      );
 
-    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect(panel.minHeight, 0);
-    expect(panel.isDraggable, isFalse);
-    expect(panel.panelSnapping, isFalse);
-    expect(find.byType(RadarEdgeDash), findsNothing);
-    _expectNoException(tester);
-  });
+      final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+      expect(panel.minHeight, 0);
+      expect(panel.isDraggable, isFalse);
+      expect(panel.panelSnapping, isFalse);
+      expect(find.byType(RadarEdgeDash), findsNothing);
+      _expectNoException(tester);
+    },
+  );
 
   testWidgets('Today summary History action opens Movera history', (
     WidgetTester tester,
@@ -1188,9 +1197,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
 
-    final launcher = find.byKey(
-      const ValueKey<String>('last-trip-launcher'),
-    );
+    final launcher = find.byKey(const ValueKey<String>('last-trip-launcher'));
     tester.widget<InkWell>(launcher).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
@@ -1216,9 +1223,7 @@ void main() {
     await seedCompletedRideForHistory();
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(320, 700));
-    await tester.pumpWidget(
-      const MaterialApp(home: DriverRideHistory()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: DriverRideHistory()));
     await tester.pump(const Duration(milliseconds: 120));
 
     expect(find.text('Earnings & history'), findsOneWidget);
@@ -1266,9 +1271,7 @@ void main() {
     await seedCompletedRideForHistory();
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(375, 812));
-    await tester.pumpWidget(
-      const MaterialApp(home: DriverRideHistory()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: DriverRideHistory()));
     await tester.pump(const Duration(milliseconds: 120));
 
     await tester.tap(find.text('Today'));
@@ -1380,85 +1383,87 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Direct Home offer Route and Accept path reaches active ride safely', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(375, 812));
+  testWidgets(
+    'Direct Home offer Route and Accept path reaches active ride safely',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpHome(tester, const Size(375, 812));
 
-    await tester.tap(find.text('OFF'));
-    await tester.pump(const Duration(milliseconds: 3800));
+      await tester.tap(find.text('OFF'));
+      await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
+      expect(find.text('104,80 kr'), findsOneWidget);
+      expect(find.text('Exclusive Radar priority match'), findsOneWidget);
 
-    final routeButton = find.ancestor(
-      of: find.text('Route'),
-      matching: find.byType(TextButton),
-    );
-    final route = tester.widget<TextButton>(routeButton);
-    expect(route.onPressed, isNotNull);
-    route.onPressed!.call();
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(find.text('104,80 kr'), findsOneWidget);
-    _expectNoException(tester);
+      final routeButton = find.ancestor(
+        of: find.text('Route'),
+        matching: find.byType(TextButton),
+      );
+      final route = tester.widget<TextButton>(routeButton);
+      expect(route.onPressed, isNotNull);
+      route.onPressed!.call();
+      await tester.pump(const Duration(milliseconds: 120));
+      expect(find.text('104,80 kr'), findsOneWidget);
+      _expectNoException(tester);
 
-    final acceptButton = find.ancestor(
-      of: find.text('Accept'),
-      matching: find.byType(FilledButton),
-    );
-    final accept = tester.widget<FilledButton>(acceptButton);
-    expect(accept.onPressed, isNotNull);
-    accept.onPressed!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+      final acceptButton = find.ancestor(
+        of: find.text('Accept'),
+        matching: find.byType(FilledButton),
+      );
+      final accept = tester.widget<FilledButton>(acceptButton);
+      expect(accept.onPressed, isNotNull);
+      accept.onPressed!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
-    expect(find.byType(AcceptRide), findsOneWidget);
-    _expectNoException(tester);
-  });
+      expect(find.byType(AcceptRide), findsOneWidget);
+      _expectNoException(tester);
+    },
+  );
 
-  testWidgets('Matched ride flow moves safely through pickup, waiting and trip', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.binding.setSurfaceSize(const Size(320, 700));
-    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
-    await tester.pump(const Duration(milliseconds: 160));
+  testWidgets(
+    'Matched ride flow moves safely through pickup, waiting and trip',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(320, 700));
+      await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+      await tester.pump(const Duration(milliseconds: 160));
 
-    expect(find.text('Heading to pickup'), findsOneWidget);
-    expect(find.text("I've arrived"), findsOneWidget);
-    expect(find.text('Slide to confirm pickup'), findsNothing);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-panel-headingToPickup')),
-      findsOneWidget,
-    );
-    _expectNoException(tester);
+      expect(find.text('Heading to pickup'), findsOneWidget);
+      expect(find.text("I've arrived"), findsOneWidget);
+      expect(find.text('Slide to confirm pickup'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-panel-headingToPickup')),
+        findsOneWidget,
+      );
+      _expectNoException(tester);
 
-    await _tapArrived(tester);
+      await _tapArrived(tester);
 
-    expect(find.text('Waiting for rider'), findsWidgets);
-    expect(find.text('Slide to start trip'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-panel-waitingForRider')),
-      findsOneWidget,
-    );
-    _expectNoException(tester);
+      expect(find.text('Waiting for rider'), findsWidgets);
+      expect(find.text('Slide to start trip'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-panel-waitingForRider')),
+        findsOneWidget,
+      );
+      _expectNoException(tester);
 
-    await _slideActiveRideAction(tester);
+      await _slideActiveRideAction(tester);
 
-    expect(find.textContaining('Dropping off'), findsOneWidget);
-    expect(find.text('Slide to complete trip'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-panel-onTrip')),
-      findsOneWidget,
-    );
-    _expectNoException(tester);
+      expect(find.textContaining('Dropping off'), findsOneWidget);
+      expect(find.text('Slide to complete trip'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-panel-onTrip')),
+        findsOneWidget,
+      );
+      _expectNoException(tester);
 
-    await _slideActiveRideAction(tester);
-    await _confirmShortTripIfAsked(tester);
+      await _slideActiveRideAction(tester);
+      await _confirmShortTripIfAsked(tester);
 
-    expect(find.byType(DriverRideCompleted), findsOneWidget);
-    _expectNoException(tester);
-  });
+      expect(find.byType(DriverRideCompleted), findsOneWidget);
+      _expectNoException(tester);
+    },
+  );
 
   testWidgets(
     'Active ride stages keep the same map, panel and ride State mounted',
@@ -1502,7 +1507,9 @@ void main() {
       expect(
         identical(
           panelElement,
-          tester.element(find.byKey(const ValueKey<String>('active-ride-panel'))),
+          tester.element(
+            find.byKey(const ValueKey<String>('active-ride-panel')),
+          ),
         ),
         isTrue,
       );
@@ -1536,7 +1543,9 @@ void main() {
       expect(
         identical(
           panelElement,
-          tester.element(find.byKey(const ValueKey<String>('active-ride-panel'))),
+          tester.element(
+            find.byKey(const ValueKey<String>('active-ride-panel')),
+          ),
         ),
         isTrue,
       );
@@ -1673,8 +1682,9 @@ void main() {
     );
     expect(map.scrollGesturesEnabled, isTrue);
 
-    final action =
-        find.byKey(const ValueKey<String>('active-ride-primary-action'));
+    final action = find.byKey(
+      const ValueKey<String>('active-ride-primary-action'),
+    );
     final gesture = await tester.startGesture(tester.getCenter(action));
     await tester.pump();
 
@@ -1712,110 +1722,107 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Secured next trip stays inside current ride panel and exposes waybill', (
-    WidgetTester tester,
-  ) async {
-    WaybillStore.reset();
-    addTearDown(() {
+  testWidgets(
+    'Secured next trip stays inside current ride panel and exposes waybill',
+    (WidgetTester tester) async {
       WaybillStore.reset();
-      tester.binding.setSurfaceSize(null);
-    });
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: AcceptRide(
-          fare: '156,80 kr',
-          category: 'Comfort',
+      addTearDown(() {
+        WaybillStore.reset();
+        tester.binding.setSurfaceSize(null);
+      });
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AcceptRide(fare: '156,80 kr', category: 'Comfort'),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 160));
+      );
+      await tester.pump(const Duration(milliseconds: 160));
 
-    await _tapArrived(tester);
+      await _tapArrived(tester);
 
-    await _slideActiveRideAction(tester);
+      await _slideActiveRideAction(tester);
 
-    await tester.pump(const Duration(milliseconds: 2400));
+      await tester.pump(const Duration(milliseconds: 2400));
 
-    final matchNext =
-        find.byKey(const ValueKey<String>('on-trip-radar-match-next'));
-    await tester.ensureVisible(matchNext);
-    await tester.tap(matchNext);
-    await tester.pump(const Duration(milliseconds: 1600));
-    await _expandActiveRideSheet(tester);
+      final matchNext = find.byKey(
+        const ValueKey<String>('on-trip-radar-match-next'),
+      );
+      await tester.ensureVisible(matchNext);
+      await tester.tap(matchNext);
+      await tester.pump(const Duration(milliseconds: 1600));
+      await _expandActiveRideSheet(tester);
 
-    expect(
-      find.byKey(const ValueKey<String>('secured-next-trip-details')),
-      findsOneWidget,
-    );
-    expect(find.text('Next trip secured'), findsWidgets);
-    expect(find.text('Vasagatan 10, Stockholm'), findsOneWidget);
-    expect(find.text('Södermalm, Stockholm'), findsOneWidget);
-    expect(WaybillStore.next, isNotNull);
-    _expectNoException(tester);
+      expect(
+        find.byKey(const ValueKey<String>('secured-next-trip-details')),
+        findsOneWidget,
+      );
+      expect(find.text('Next trip secured'), findsWidgets);
+      expect(find.text('Vasagatan 10, Stockholm'), findsOneWidget);
+      expect(find.text('Södermalm, Stockholm'), findsOneWidget);
+      expect(WaybillStore.next, isNotNull);
+      _expectNoException(tester);
 
-    final waybillButton =
-        find.byKey(const ValueKey<String>('next-trip-waybill'));
-    await tester.ensureVisible(waybillButton);
-    await tester.tap(waybillButton);
-    await tester.pump(const Duration(milliseconds: 320));
+      final waybillButton = find.byKey(
+        const ValueKey<String>('next-trip-waybill'),
+      );
+      await tester.ensureVisible(waybillButton);
+      await tester.tap(waybillButton);
+      await tester.pump(const Duration(milliseconds: 320));
 
-    expect(
-      find.byKey(
-        ValueKey<String>('waybill-${WaybillStore.next!.tripId}'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Next trip waybill'), findsOneWidget);
-    expect(find.text('Demo Radar'), findsOneWidget);
-    _expectNoException(tester);
-  });
+      expect(
+        find.byKey(ValueKey<String>('waybill-${WaybillStore.next!.tripId}')),
+        findsOneWidget,
+      );
+      expect(find.text('Next trip waybill'), findsOneWidget);
+      expect(find.text('Demo Radar'), findsOneWidget);
+      _expectNoException(tester);
+    },
+  );
 
-  testWidgets('Secured next trip starts after the current drop-off is completed', (
-    WidgetTester tester,
-  ) async {
-    WaybillStore.reset();
-    addTearDown(() {
+  testWidgets(
+    'Secured next trip starts after the current drop-off is completed',
+    (WidgetTester tester) async {
       WaybillStore.reset();
-      tester.binding.setSurfaceSize(null);
-    });
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: AcceptRide(
-          fare: '156,80 kr',
-          category: 'Comfort',
+      addTearDown(() {
+        WaybillStore.reset();
+        tester.binding.setSurfaceSize(null);
+      });
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AcceptRide(fare: '156,80 kr', category: 'Comfort'),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 160));
+      );
+      await tester.pump(const Duration(milliseconds: 160));
 
-    await _tapArrived(tester);
-    await _slideActiveRideAction(tester);
-    await tester.pump(const Duration(milliseconds: 2400));
+      await _tapArrived(tester);
+      await _slideActiveRideAction(tester);
+      await tester.pump(const Duration(milliseconds: 2400));
 
-    final matchNext =
-        find.byKey(const ValueKey<String>('on-trip-radar-match-next'));
-    await tester.ensureVisible(matchNext);
-    await tester.tap(matchNext);
-    await tester.pump(const Duration(milliseconds: 1600));
-    await _expandActiveRideSheet(tester);
+      final matchNext = find.byKey(
+        const ValueKey<String>('on-trip-radar-match-next'),
+      );
+      await tester.ensureVisible(matchNext);
+      await tester.tap(matchNext);
+      await tester.pump(const Duration(milliseconds: 1600));
+      await _expandActiveRideSheet(tester);
 
-    expect(find.text('Next trip secured'), findsWidgets);
+      expect(find.text('Next trip secured'), findsWidgets);
 
-    await _slideActiveRideAction(tester);
-    await _confirmShortTripIfAsked(tester);
-    expect(find.byType(DriverRideCompleted), findsOneWidget);
+      await _slideActiveRideAction(tester);
+      await _confirmShortTripIfAsked(tester);
+      expect(find.byType(DriverRideCompleted), findsOneWidget);
 
-    await tester.tap(find.text('Done'));
-    await tester.pump(const Duration(milliseconds: 520));
+      await tester.tap(find.text('Done'));
+      await tester.pump(const Duration(milliseconds: 520));
 
-    expect(find.byType(AcceptRide), findsOneWidget);
-    expect(find.text('Heading to pickup'), findsOneWidget);
-    expect(find.textContaining('Maya'), findsWidgets);
-    expect(find.textContaining('Vasagatan 10'), findsWidgets);
-    _expectNoException(tester);
-  });
+      expect(find.byType(AcceptRide), findsOneWidget);
+      expect(find.text('Heading to pickup'), findsOneWidget);
+      expect(find.textContaining('Maya'), findsWidgets);
+      expect(find.textContaining('Vasagatan 10'), findsWidgets);
+      _expectNoException(tester);
+    },
+  );
 
   testWidgets(
     'Completed screen clears a stale queued waybill without a nextRide widget',
@@ -1860,9 +1867,7 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        const MaterialApp(home: DriverRideCompleted()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: DriverRideCompleted()));
       await tester.pump(const Duration(milliseconds: 160));
 
       await tester.tap(find.text('Done'));
@@ -1876,45 +1881,45 @@ void main() {
     },
   );
 
-  testWidgets('Current trip waybill is directly visible in the active ride sheet', (
-    WidgetTester tester,
-  ) async {
-    WaybillStore.reset();
-    addTearDown(() {
+  testWidgets(
+    'Current trip waybill is directly visible in the active ride sheet',
+    (WidgetTester tester) async {
       WaybillStore.reset();
-      tester.binding.setSurfaceSize(null);
-    });
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: AcceptRide(
-          offerId: 'waybill-current-test',
-          fare: '111,02 kr',
-          category: 'Comfort',
-          matchedVia: 'Movera Radar',
+      addTearDown(() {
+        WaybillStore.reset();
+        tester.binding.setSurfaceSize(null);
+      });
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AcceptRide(
+            offerId: 'waybill-current-test',
+            fare: '111,02 kr',
+            category: 'Comfort',
+            matchedVia: 'Movera Radar',
+          ),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 160));
+      );
+      await tester.pump(const Duration(milliseconds: 160));
 
-    final shortcut =
-        find.byKey(const ValueKey<String>('current-waybill-shortcut'));
-    await tester.ensureVisible(shortcut);
-    expect(shortcut, findsOneWidget);
+      final shortcut = find.byKey(
+        const ValueKey<String>('current-waybill-shortcut'),
+      );
+      await tester.ensureVisible(shortcut);
+      expect(shortcut, findsOneWidget);
 
-    await tester.tap(shortcut);
-    await tester.pump(const Duration(milliseconds: 320));
+      await tester.tap(shortcut);
+      await tester.pump(const Duration(milliseconds: 320));
 
-    expect(
-      find.byKey(
-        const ValueKey<String>('waybill-waybill-current-test'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Current trip waybill'), findsOneWidget);
-    expect(find.text('111,02 kr'), findsWidgets);
-    _expectNoException(tester);
-  });
+      expect(
+        find.byKey(const ValueKey<String>('waybill-waybill-current-test')),
+        findsOneWidget,
+      );
+      expect(find.text('Current trip waybill'), findsOneWidget);
+      expect(find.text('111,02 kr'), findsWidgets);
+      _expectNoException(tester);
+    },
+  );
 
   testWidgets('On-trip options allow safe early cancellation with reasons', (
     WidgetTester tester,
@@ -2032,124 +2037,119 @@ void main() {
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     final snap = panel.snapPoint!;
 
-    await tester.drag(
-      find.byType(SlidingUpPanel),
-      const Offset(0, -220),
-    );
+    await tester.drag(find.byType(SlidingUpPanel), const Offset(0, -220));
     await tester.pump(const Duration(milliseconds: 520));
     await tester.pump(const Duration(milliseconds: 520));
 
     final position = panel.controller!.panelPosition;
     expect(
       position,
-      anyOf(
-        closeTo(0, 0.04),
-        closeTo(snap, 0.04),
-        closeTo(1, 0.04),
-      ),
+      anyOf(closeTo(0, 0.04), closeTo(snap, 0.04), closeTo(1, 0.04)),
     );
     _expectNoException(tester);
   });
 
-  testWidgets('Active ride route summary shows real optional stops expanded and collapsed', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: AcceptRide(
-          pickupAddress: 'Kungsgatan 44, Stockholm',
-          dropoffAddress: 'Fittjavägen, Botkyrka',
-          stopAddresses: <String>[
-            'Vasagatan 10, Stockholm',
-            'Liljeholmen, Stockholm',
-          ],
+  testWidgets(
+    'Active ride route summary shows real optional stops expanded and collapsed',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AcceptRide(
+            pickupAddress: 'Kungsgatan 44, Stockholm',
+            dropoffAddress: 'Fittjavägen, Botkyrka',
+            stopAddresses: <String>[
+              'Vasagatan 10, Stockholm',
+              'Liljeholmen, Stockholm',
+            ],
+          ),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 180));
+      );
+      await tester.pump(const Duration(milliseconds: 180));
 
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-journey-card')),
-      findsOneWidget,
-    );
-    expect(find.text('Stop 1'), findsOneWidget);
-    expect(find.text('Stop 2'), findsOneWidget);
-    expect(find.text('Vasagatan 10, Stockholm'), findsOneWidget);
-    expect(find.text('Liljeholmen, Stockholm'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-journey-card')),
+        findsOneWidget,
+      );
+      expect(find.text('Stop 1'), findsOneWidget);
+      expect(find.text('Stop 2'), findsOneWidget);
+      expect(find.text('Vasagatan 10, Stockholm'), findsOneWidget);
+      expect(find.text('Liljeholmen, Stockholm'), findsOneWidget);
 
-    await _collapseActiveRideSheet(tester);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-compact-dock')),
-      findsOneWidget,
-    );
-    expect(find.text('2 stops'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-      findsOneWidget,
-    );
-    _expectNoException(tester);
-  });
+      await _collapseActiveRideSheet(tester);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-compact-dock')),
+        findsOneWidget,
+      );
+      expect(find.text('2 stops'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-primary-action')),
+        findsOneWidget,
+      );
+      _expectNoException(tester);
+    },
+  );
 
-  testWidgets('Active ride keeps a live navigation banner and a collapsible sheet', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
-    await tester.pump(const Duration(milliseconds: 160));
+  testWidgets(
+    'Active ride keeps a live navigation banner and a collapsible sheet',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+      await tester.pump(const Duration(milliseconds: 160));
 
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
-      findsOneWidget,
-    );
-    expect(find.text('Heading to pickup'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-      findsOneWidget,
-    );
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-navigation-card')),
+        findsOneWidget,
+      );
+      expect(find.text('Heading to pickup'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-primary-action')),
+        findsOneWidget,
+      );
 
-    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect(panel.minHeight, 164);
-    expect(panel.snapPoint, isNotNull);
-    expect(panel.panelSnapping, isFalse);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-journey-card')),
-      findsOneWidget,
-    );
+      final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+      expect(panel.minHeight, 164);
+      expect(panel.snapPoint, isNotNull);
+      expect(panel.panelSnapping, isFalse);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-journey-card')),
+        findsOneWidget,
+      );
 
-    final banner = tester.getRect(
-      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
-    );
-    expect(banner.top, closeTo(0, 0.5));
-    expect(banner.left, closeTo(0, 0.5));
-    expect(banner.width, closeTo(375, 1));
+      final banner = tester.getRect(
+        find.byKey(const ValueKey<String>('active-ride-navigation-card')),
+      );
+      expect(banner.top, closeTo(0, 0.5));
+      expect(banner.left, closeTo(0, 0.5));
+      expect(banner.width, closeTo(375, 1));
 
-    final mapControls = find.byKey(
-      const ValueKey<String>('active-ride-map-controls'),
-    );
-    expect(mapControls, findsOneWidget);
-    final openY = tester.getTopLeft(mapControls).dy;
+      final mapControls = find.byKey(
+        const ValueKey<String>('active-ride-map-controls'),
+      );
+      expect(mapControls, findsOneWidget);
+      final openY = tester.getTopLeft(mapControls).dy;
 
-    await _collapseActiveRideSheet(tester);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-compact-dock')),
-      findsOneWidget,
-    );
-    expect(find.text('Odlarvägen 22'), findsWidgets);
-    expect(find.text('T-Centralen, Stockholm'), findsWidgets);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
-      findsOneWidget,
-    );
-    expect(tester.getTopLeft(mapControls).dy, closeTo(openY, 0.5));
-    _expectNoException(tester);
-  });
+      await _collapseActiveRideSheet(tester);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-primary-action')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-compact-dock')),
+        findsOneWidget,
+      );
+      expect(find.text('Odlarvägen 22'), findsWidgets);
+      expect(find.text('T-Centralen, Stockholm'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-navigation-card')),
+        findsOneWidget,
+      );
+      expect(tester.getTopLeft(mapControls).dy, closeTo(openY, 0.5));
+      _expectNoException(tester);
+    },
+  );
 
   testWidgets('Routing failure keeps the driver on the active trip', (
     WidgetTester tester,
@@ -2157,9 +2157,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(320, 700));
     await tester.pumpWidget(
-      MaterialApp(
-        home: AcceptRide(routeRepository: _FailingRouteRepository()),
-      ),
+      MaterialApp(home: AcceptRide(routeRepository: _FailingRouteRepository())),
     );
     await tester.pump(const Duration(milliseconds: 160));
 
@@ -2194,63 +2192,75 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Live navigation banner shows turn-by-turn copy at the extreme top', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: NavigationInstructionBanner(
-            banner: NavigationBanner(
-              primary: 'Turn left in 300 m',
-              distanceLabel: '300 m',
-              roadName: 'Sveavägen',
-              symbol: NavigationBannerSymbol.left,
+  testWidgets(
+    'Live navigation banner shows turn-by-turn copy at the extreme top',
+    (WidgetTester tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: NavigationInstructionBanner(
+              banner: NavigationBanner(
+                primary: 'Turn left in 300 m',
+                distanceLabel: '300 m',
+                roadName: 'Sveavägen',
+                symbol: NavigationBannerSymbol.left,
+              ),
+              etaLabel: '4 min',
             ),
-            etaLabel: '4 min',
           ),
         ),
-      ),
-    );
-    await tester.pump();
+      );
+      await tester.pump();
 
-    expect(find.text('Turn left in 300 m'), findsOneWidget);
-    expect(find.text('Sveavägen'), findsOneWidget);
-    final banner = tester.getRect(
-      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
-    );
-    expect(banner.top, closeTo(0, 0.5));
-    expect(banner.left, closeTo(0, 0.5));
-    expect(banner.width, closeTo(375, 1));
-    _expectNoException(tester);
-  });
+      expect(find.text('Turn left in 300 m'), findsOneWidget);
+      expect(find.text('Sveavägen'), findsOneWidget);
+      final banner = tester.getRect(
+        find.byKey(const ValueKey<String>('active-ride-navigation-card')),
+      );
+      expect(banner.top, closeTo(0, 0.5));
+      expect(banner.left, closeTo(0, 0.5));
+      expect(banner.width, closeTo(375, 1));
+      _expectNoException(tester);
+    },
+  );
   testWidgets('Pickup slide names an arrival action', (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(375, 812));
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
     expect(find.text('Slide to arrive at pickup'), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('active-ride-arrived-button')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-arrived-button')),
+      findsOneWidget,
+    );
     _expectNoException(tester);
   });
 
-  testWidgets('A stop without coordinates cannot be marked arrived', (tester) async {
+  testWidgets('A stop without coordinates cannot be marked arrived', (
+    tester,
+  ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(375, 812));
-    await tester.pumpWidget(const MaterialApp(home: AcceptRide(
-      initialStage: ActiveRideStage.onTrip,
-      stopAddresses: <String>['Unlocated stop'],
-    )));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AcceptRide(
+          initialStage: ActiveRideStage.onTrip,
+          stopAddresses: <String>['Unlocated stop'],
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 160));
     expect(find.text('Slide to arrive at the stop'), findsOneWidget);
     await _slideActiveRideAction(tester);
-    expect(find.text('This stop needs a verified map location before arrival.'), findsOneWidget);
+    expect(
+      find.text('This stop needs a verified map location before arrival.'),
+      findsOneWidget,
+    );
     expect(find.text('Slide to arrive at the stop'), findsOneWidget);
     _expectNoException(tester);
   });
-
 }
 
 class _FailingRouteRepository implements RouteRepository {
