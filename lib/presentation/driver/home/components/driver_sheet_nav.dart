@@ -125,12 +125,16 @@ class DriverSheetNav {
                           animation: goOnlinePulseController,
                           builder: (context, child) {
                             return _dockAction(
-                              asset: AppAssets.navCalendarDays,
+                              customIcon: _ScheduledRideIcon(
+                                pulse: goOnlinePulseController.value,
+                                animateClock: hasScheduledRideOffers,
+                              ),
                               tooltip: 'Scheduled',
                               onTap: onOpenScheduledRides,
                               hasAlert: hasScheduledRideOffers,
                               pulse: goOnlinePulseController.value,
                               iconColor: iconTint,
+                              animateAlertIndicator: false,
                             );
                           },
                         ),
@@ -210,11 +214,15 @@ class DriverSheetNav {
             animation: goOnlinePulseController,
             builder: (context, child) {
               return _sheetQuickAction(
-                asset: AppAssets.navCalendarDays,
+                customIcon: _ScheduledRideIcon(
+                  pulse: goOnlinePulseController.value,
+                  animateClock: hasScheduledRideOffers,
+                ),
                 tooltip: 'Scheduled',
                 onTap: onOpenScheduledRides,
                 hasAlert: hasScheduledRideOffers,
                 pulse: goOnlinePulseController.value,
+                animateAlertIndicator: false,
               );
             },
           ),
@@ -243,12 +251,14 @@ class DriverSheetNav {
   }
 
   static Widget _dockAction({
-    required String asset,
+    String? asset,
+    Widget? customIcon,
     required String tooltip,
     required VoidCallback onTap,
     bool hasAlert = false,
     double pulse = 0,
     Color? iconColor,
+    bool animateAlertIndicator = true,
   }) {
     final resolvedIcon =
         iconColor ?? (hasAlert ? const Color(0xFF19865C) : const Color(0xFF303A3F));
@@ -277,15 +287,16 @@ class DriverSheetNav {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    SvgPicture.asset(
-                      asset,
-                      width: 22,
-                      height: 22,
-                      colorFilter: ColorFilter.mode(
-                        resolvedIcon,
-                        BlendMode.srcIn,
-                      ),
-                    ),
+                    customIcon ??
+                        SvgPicture.asset(
+                          asset!,
+                          width: 22,
+                          height: 22,
+                          colorFilter: ColorFilter.mode(
+                            resolvedIcon,
+                            BlendMode.srcIn,
+                          ),
+                        ),
                     if (hasAlert)
                       Positioned(
                         top: 7,
@@ -298,9 +309,12 @@ class DriverSheetNav {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF2FBE7B)
-                                    .withValues(alpha: 0.28 + pulse * 0.35),
-                                blurRadius: 6,
+                                color: const Color(0xFF2FBE7B).withValues(
+                                  alpha: animateAlertIndicator
+                                      ? 0.28 + pulse * 0.35
+                                      : 0.28,
+                                ),
+                                blurRadius: animateAlertIndicator ? 6 : 4,
                               ),
                             ],
                           ),
@@ -317,13 +331,17 @@ class DriverSheetNav {
   }
 
   static Widget _sheetQuickAction({
-    required String asset,
+    String? asset,
+    Widget? customIcon,
     required String tooltip,
     required VoidCallback onTap,
     bool hasAlert = false,
     double pulse = 0,
+    bool animateAlertIndicator = true,
   }) {
-    final alertStrength = hasAlert ? (0.55 + (pulse * 0.45)) : 0.0;
+    final alertStrength = hasAlert
+        ? (animateAlertIndicator ? (0.55 + (pulse * 0.45)) : 1.0)
+        : 0.0;
     final iconColor =
         hasAlert ? const Color(0xFF16895B) : const Color(0xFF354047);
 
@@ -347,15 +365,16 @@ class DriverSheetNav {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    SvgPicture.asset(
-                      asset,
-                      width: 22,
-                      height: 22,
-                      colorFilter: ColorFilter.mode(
-                        iconColor,
-                        BlendMode.srcIn,
-                      ),
-                    ),
+                    customIcon ??
+                        SvgPicture.asset(
+                          asset!,
+                          width: 22,
+                          height: 22,
+                          colorFilter: ColorFilter.mode(
+                            iconColor,
+                            BlendMode.srcIn,
+                          ),
+                        ),
                     if (hasAlert)
                       Positioned(
                         top: 5,
@@ -378,6 +397,51 @@ class DriverSheetNav {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ScheduledRideIcon extends StatelessWidget {
+  const _ScheduledRideIcon({
+    required this.pulse,
+    required this.animateClock,
+  });
+
+  final double pulse;
+  final bool animateClock;
+
+  @override
+  Widget build(BuildContext context) {
+    final motionAllowed = !MediaQuery.disableAnimationsOf(context);
+    final shouldAnimate = animateClock && motionAllowed;
+    final rawPhase = pulse <= 0.5 ? pulse * 2 : (1 - pulse) * 2;
+    final phase = Curves.easeInOutCubic.transform(
+      rawPhase.clamp(0.0, 1.0).toDouble(),
+    );
+    final clockScale = shouldAnimate ? 1 + (0.035 * phase) : 1.0;
+
+    return SizedBox(
+      width: 31,
+      height: 31,
+      child: Stack(
+        fit: StackFit.expand,
+        clipBehavior: Clip.none,
+        children: [
+          SvgPicture.asset(
+            AppAssets.navScheduledRide,
+            fit: BoxFit.contain,
+          ),
+          if (shouldAnimate)
+            Transform.scale(
+              scale: clockScale,
+              alignment: const Alignment(0.58, 0.50),
+              child: SvgPicture.asset(
+                AppAssets.navScheduledRideClock,
+                fit: BoxFit.contain,
+              ),
+            ),
+        ],
       ),
     );
   }
