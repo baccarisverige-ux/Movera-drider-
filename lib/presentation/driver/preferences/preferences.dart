@@ -175,18 +175,28 @@ class _PreferencesState extends State<Preferences> {
                     child: _buildHeader(),
                   ),
                   Expanded(
-                    child: GridView.builder(
-                      padding: EdgeInsets.fromLTRB(side, 0, side, 10),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 14,
-                            mainAxisExtent: 137,
-                          ),
-                      itemCount: _displayOrder.length,
-                      itemBuilder: (context, i) =>
-                          _buildCategory(_displayOrder[i]),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Shrink the cards so all four rows fit on screen.
+                        final extent =
+                            ((constraints.maxHeight - 8 - 3 * 12) / 4).clamp(
+                              100.0,
+                              137.0,
+                            );
+                        return GridView.builder(
+                          padding: EdgeInsets.fromLTRB(side, 0, side, 8),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 14,
+                                mainAxisExtent: extent,
+                              ),
+                          itemCount: _displayOrder.length,
+                          itemBuilder: (context, i) =>
+                              _buildCategory(_displayOrder[i], extent: extent),
+                        );
+                      },
                     ),
                   ),
                   Padding(
@@ -204,7 +214,7 @@ class _PreferencesState extends State<Preferences> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 12),
+          padding: const EdgeInsets.only(top: 8),
           child: Align(
             alignment: Alignment.centerRight,
             child: Text(
@@ -218,18 +228,18 @@ class _PreferencesState extends State<Preferences> {
             ),
           ),
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 14),
         const Text(
           'Choose your ride options',
           style: TextStyle(
             color: _heading,
-            fontSize: 29,
+            fontSize: 26,
             height: 1.1,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.8,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         const Text(
           "Select the ride types you'd like available for your trips",
           style: TextStyle(
@@ -240,12 +250,15 @@ class _PreferencesState extends State<Preferences> {
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
       ],
     );
   }
 
-  Widget _buildCategory(int index) {
+  Widget _buildCategory(int index, {double extent = 137}) {
+    // Small screens get slightly smaller text so the icon keeps its room.
+    final compact = extent < 120;
+    final iconHeight = (extent - (compact ? 58 : 69)).clamp(36.0, 68.0);
     final category = _categories[index];
     final selected = _selected[index];
     final radius = BorderRadius.circular(11);
@@ -269,13 +282,14 @@ class _PreferencesState extends State<Preferences> {
                 width: 1.1,
               ),
             ),
+            padding: const EdgeInsets.symmetric(vertical: 6),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 14),
                 SvgPicture.asset(
                   category.icon,
-                  width: 124,
-                  height: 68,
+                  width: iconHeight * 124 / 68,
+                  height: iconHeight,
                   colorFilter: ColorFilter.mode(
                     selected ? _ink : _offInk,
                     BlendMode.srcIn,
@@ -291,7 +305,7 @@ class _PreferencesState extends State<Preferences> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: selected ? _heading : _offInk,
-                      fontSize: 17,
+                      fontSize: compact ? 15 : 17,
                       height: 1.25,
                       fontWeight: FontWeight.w500,
                       letterSpacing: -0.4,
@@ -308,14 +322,14 @@ class _PreferencesState extends State<Preferences> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: selected ? _text : _offInk,
-                      fontSize: 12,
+                      fontSize: compact ? 11 : 12,
                       height: 1.25,
                       fontWeight: FontWeight.w400,
                       letterSpacing: -0.2,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 2),
               ],
             ),
           ),
@@ -326,16 +340,20 @@ class _PreferencesState extends State<Preferences> {
 
   Widget _buildSaveArea() {
     return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 16),
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
       child: SizedBox(
         width: double.infinity,
-        height: 50,
-        child: FilledButton(
+        height: 48,
+        child: OutlinedButton(
           onPressed: _selectedCount == 0 ? null : _save,
-          style: FilledButton.styleFrom(
-            backgroundColor: _ink,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: const Color(0xFFD6DBDE),
+          style: OutlinedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: _heading,
+            disabledForegroundColor: _offInk,
+            side: BorderSide(
+              color: _selectedCount == 0 ? _offBorder : _border,
+              width: 1.4,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(11),
             ),
