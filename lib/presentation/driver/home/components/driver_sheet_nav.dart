@@ -36,7 +36,7 @@ class DriverSheetNav {
             notchDepth: notchDepth,
             cornerRadius: 24,
           ),
-          color: inactive ? sheetRed : const Color(0xFFFCFDFD),
+          color: inactive ? sheetRed : Colors.white,
           elevation: 8,
           shadowColor: const Color(0x3311181C),
           clipBehavior: Clip.antiAlias,
@@ -51,11 +51,7 @@ class DriverSheetNav {
                         Color(0xFF8E2E28),
                         Color(0xFF7A2722),
                       ]
-                    : const [
-                        Color(0xFFFFFFFF),
-                        Color(0xFFF8FAFA),
-                        Color(0xFFF1F4F5),
-                      ],
+                    : const [Colors.white, Colors.white],
               ),
             ),
             child: Stack(
@@ -181,7 +177,7 @@ class DriverSheetNav {
         MediaQuery.paddingOf(context).bottom + 5,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFFCFCFD),
+        color: Colors.white,
       ),
       child: Row(
         children: [
@@ -279,7 +275,9 @@ class DriverSheetNav {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: hasAlert
+                  // Image logos (scheduled rides) sit directly on the sheet;
+                  // only line icons get the tinted alert tile.
+                  color: hasAlert && customIcon == null
                       ? const Color(0xFFF0F8F4)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(16),
@@ -350,9 +348,11 @@ class DriverSheetNav {
         message: tooltip,
         child: Center(
           child: Material(
-            color: hasAlert
-                ? const Color(0xFFE9F7F1)
-                : const Color(0xFFF1F3F4),
+            color: customIcon != null
+                ? Colors.transparent
+                : hasAlert
+                    ? const Color(0xFFE9F7F1)
+                    : const Color(0xFFF1F3F4),
             shape: const CircleBorder(),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
@@ -419,29 +419,20 @@ class _ScheduledRideIcon extends StatelessWidget {
     final phase = Curves.easeInOutCubic.transform(
       rawPhase.clamp(0.0, 1.0).toDouble(),
     );
-    final clockScale = shouldAnimate ? 1 + (0.035 * phase) : 1.0;
+    // New reservations: the whole calendar breathes gently. Still when
+    // there is nothing new or the platform asks for reduced motion.
+    final scale = shouldAnimate ? 1 + (0.045 * phase) : 1.0;
 
     return SizedBox(
       width: 31,
       height: 31,
-      child: Stack(
-        fit: StackFit.expand,
-        clipBehavior: Clip.none,
-        children: [
-          SvgPicture.asset(
-            AppAssets.navScheduledRide,
-            fit: BoxFit.contain,
-          ),
-          if (shouldAnimate)
-            Transform.scale(
-              scale: clockScale,
-              alignment: const Alignment(0.58, 0.50),
-              child: SvgPicture.asset(
-                AppAssets.navScheduledRideClock,
-                fit: BoxFit.contain,
-              ),
-            ),
-        ],
+      child: Transform.scale(
+        scale: scale,
+        child: Image.asset(
+          AppAssets.navScheduledRide,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
+        ),
       ),
     );
   }
