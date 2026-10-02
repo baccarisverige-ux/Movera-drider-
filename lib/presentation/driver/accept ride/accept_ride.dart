@@ -15,6 +15,7 @@ import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/geo/geo_point_maps.dart';
 import 'package:movera/core/routing/route_maps.dart';
+import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/navigation/live_vehicle_animator.dart';
@@ -606,17 +607,80 @@ class _AcceptRideState extends State<AcceptRide>
   bool get _countingWait =>
       _stage == ActiveRideStage.waitingForRider || _paidStopWait;
 
+  static const double _arrivalApproachThresholdMeters = 300;
 
+  LatLng? get _approachTarget {
+    if (_stage == ActiveRideStage.headingToPickup ||
+        _stage == ActiveRideStage.waitingForRider) {
+      return widget.pickupPosition;
+    }
+    if (_stage == ActiveRideStage.onTrip &&
+        _stopCursor < widget.stopAddresses.length) {
+      return _AcceptRideTrip(this)._stopPoint(_stopCursor);
+    }
+    if (_stage == ActiveRideStage.onTrip) {
+      return widget.dropoffPosition;
+    }
+    return null;
+  }
 
+  ArrivalPointKind get _approachKind {
+    if (_stage == ActiveRideStage.headingToPickup ||
+        _stage == ActiveRideStage.waitingForRider) {
+      return ArrivalPointKind.pickup;
+    }
+    if (_stopCursor < widget.stopAddresses.length) {
+      return ArrivalPointKind.stop;
+    }
+    return ArrivalPointKind.destination;
+  }
 
+  String get _approachLabel {
+    return switch (_approachKind) {
+      ArrivalPointKind.pickup => 'Pickup',
+      ArrivalPointKind.stop => 'Stop ${_stopCursor + 1}',
+      ArrivalPointKind.destination => 'Destination',
+    };
+  }
 
+  String get _approachAddress {
+    return switch (_approachKind) {
+      ArrivalPointKind.pickup => widget.pickupAddress,
+      ArrivalPointKind.stop => widget.stopAddresses[_stopCursor],
+      ArrivalPointKind.destination => widget.dropoffAddress,
+    };
+  }
 
+  double? get _approachDistanceMeters {
+    if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) {
+      return 0;
+    }
+    final target = _approachTarget;
+    if (target == null ||
+        !_hasLiveLocation ||
+        _lastLocation?.isUsableAt(DateTime.now()) != true) {
+      return null;
+    }
+    return GeoPointMaps.fromLatLng(_driverPosition).distanceMetersTo(
+      GeoPointMaps.fromLatLng(target),
+    );
+  }
 
+  bool get _showArrivalApproach {
+    if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) {
+      return true;
+    }
+    final distance = _approachDistanceMeters;
+    return distance != null && distance <= _arrivalApproachThresholdMeters;
+  }
 
-
-
-
-
+  bool get _arrivalApproachArrived {
+    if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) {
+      return true;
+    }
+    final distance = _approachDistanceMeters;
+    return distance != null && distance <= 25;
+  }
 
   Set<Polyline> get _polylines {
     if (_roadRoutePoints.length < 2) {
@@ -941,6 +1005,15 @@ class _AcceptRideState extends State<AcceptRide>
                           eyebrow: _nextStopEyebrow,
                           detail: _nextStopDetail,
                           address: _nextStopAddress,
+                          arrivalPointKind:
+                              _showArrivalApproach ||
+                                      banner.symbol == NavigationBannerSymbol.arrive
+                                  ? _approachKind
+                                  : null,
+                          arrivalDistanceMeters: _approachDistanceMeters,
+                          arrivalLabel: _approachLabel,
+                          arrivalAddress: _approachAddress,
+                          arrivalArrived: _arrivalApproachArrived,
                           radarSwitch: _stage == ActiveRideStage.onTrip,
                           radarOn: _onTripRadarOn,
                           onRadarToggle: _AcceptRideTrip(this)._toggleOnTripRadar,

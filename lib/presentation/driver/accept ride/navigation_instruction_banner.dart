@@ -4,6 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
 
+enum ArrivalPointKind { pickup, stop, destination }
+
+extension ArrivalPointKindVisuals on ArrivalPointKind {
+  Color get color => switch (this) {
+        ArrivalPointKind.pickup => const Color(0xFF17A673),
+        ArrivalPointKind.stop => const Color(0xFF2F80ED),
+        ArrivalPointKind.destination => const Color(0xFFE13B2D),
+      };
+}
+
 /// Top ride tab. Maneuver on the first line, the next stop scrolling beneath it.
 class NavigationInstructionBanner extends StatelessWidget {
   const NavigationInstructionBanner({
@@ -15,6 +25,11 @@ class NavigationInstructionBanner extends StatelessWidget {
     this.detail = '',
     this.address = '',
     this.icon = Icons.near_me_outlined,
+    this.arrivalPointKind,
+    this.arrivalDistanceMeters,
+    this.arrivalLabel = '',
+    this.arrivalAddress = '',
+    this.arrivalArrived = false,
     this.radarSwitch = false,
     this.radarOn = false,
     this.onRadarToggle,
@@ -32,6 +47,11 @@ class NavigationInstructionBanner extends StatelessWidget {
   final String detail;
   final String address;
   final IconData icon;
+  final ArrivalPointKind? arrivalPointKind;
+  final double? arrivalDistanceMeters;
+  final String arrivalLabel;
+  final String arrivalAddress;
+  final bool arrivalArrived;
   final bool radarSwitch;
   final bool radarOn;
   final VoidCallback? onRadarToggle;
@@ -40,6 +60,19 @@ class NavigationInstructionBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final arrivalKind = arrivalPointKind;
+    if (arrivalKind != null) {
+      return _ArrivalApproachBanner(
+        kind: arrivalKind,
+        distanceMeters: arrivalDistanceMeters,
+        label: arrivalLabel,
+        address: arrivalAddress.trim().isEmpty ? address.trim() : arrivalAddress.trim(),
+        arrived: arrivalArrived,
+        waitSeconds: waitSeconds,
+        onWaitTap: onWaitTap,
+      );
+    }
+
     final live = banner;
     final hero = live == null || live.primary.isEmpty ? title : live.primary;
     final road = (live?.roadName ?? '').trim();
@@ -201,6 +234,333 @@ class NavigationInstructionBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+
+class _ArrivalApproachBanner extends StatefulWidget {
+  const _ArrivalApproachBanner({
+    required this.kind,
+    required this.distanceMeters,
+    required this.label,
+    required this.address,
+    required this.arrived,
+    required this.waitSeconds,
+    required this.onWaitTap,
+  });
+
+  final ArrivalPointKind kind;
+  final double? distanceMeters;
+  final String label;
+  final String address;
+  final bool arrived;
+  final int? waitSeconds;
+  final VoidCallback? onWaitTap;
+
+  @override
+  State<_ArrivalApproachBanner> createState() => _ArrivalApproachBannerState();
+}
+
+class _ArrivalApproachBannerState extends State<_ArrivalApproachBanner>
+    with TickerProviderStateMixin {
+  late final AnimationController _entry;
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _entry = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1350),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    if (reduceMotion) {
+      _entry.value = 1;
+      _pulse.stop();
+      _pulse.value = 0.5;
+    } else {
+      if (!_entry.isCompleted) { _entry.forward(); }
+      if (!_pulse.isAnimating) { _pulse.repeat(); }
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ArrivalApproachBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.kind != widget.kind ||
+        oldWidget.label != widget.label ||
+        oldWidget.address != widget.address) {
+      if (!MediaQuery.disableAnimationsOf(context)) {
+        _entry
+          ..value = 0
+          ..forward();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _entry.dispose();
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  String get _distanceLabel {
+    if (widget.arrived) { return 'ARRIVED'; }
+    final meters = widget.distanceMeters;
+    if (meters == null || !meters.isFinite) { return 'NEAR'; }
+    if (meters < 25) { return 'NOW'; }
+    if (meters < 1000) { return '${meters.round()} m'; }
+    final km = meters / 1000;
+    return '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pad = MediaQuery.paddingOf(context);
+    final color = widget.kind.color;
+    final label = widget.label.trim().isEmpty
+        ? switch (widget.kind) {
+            ArrivalPointKind.pickup => 'Pickup',
+            ArrivalPointKind.stop => 'Stop',
+            ArrivalPointKind.destination => 'Destination',
+          }
+        : widget.label.trim();
+
+    return FadeTransition(
+      opacity: CurvedAnimation(parent: _entry, curve: Curves.easeOutCubic),
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(-0.045, -0.02),
+          end: Offset.zero,
+        ).animate(
+          CurvedAnimation(parent: _entry, curve: Curves.easeOutCubic),
+        ),
+        child: Material(
+          key: const ValueKey<String>('active-ride-navigation-card'),
+          color: Colors.transparent,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              12 + pad.left,
+              8 + pad.top,
+              12 + pad.right,
+              0,
+            ),
+            child: Container(
+              key: const ValueKey<String>('arrival-approach-banner'),
+              constraints: const BoxConstraints(minHeight: 118),
+              decoration: BoxDecoration(
+                color: const Color(0xFF050505),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0x24FFFFFF)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x38000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(14, 12, 15, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 82,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AnimatedBuilder(
+                          animation: _pulse,
+                          builder: (context, _) => _ArrivalPointGraphic(
+                            kind: widget.kind,
+                            color: color,
+                            phase: _pulse.value,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _distanceLabel,
+                          key: const ValueKey<String>('arrival-distance-label'),
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: widget.arrived ? color : Colors.white,
+                            fontSize: widget.arrived ? 11 : 16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: widget.arrived ? 0.7 : -0.2,
+                            height: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label.toUpperCase(),
+                          key: const ValueKey<String>('arrival-point-label'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          widget.address,
+                          key: const ValueKey<String>('arrival-point-address'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 23,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.65,
+                            height: 1.04,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (widget.waitSeconds != null) ...[
+                    const SizedBox(width: 10),
+                    WaitingClock(
+                      seconds: widget.waitSeconds!,
+                      diameter: 48,
+                      onTap: widget.onWaitTap,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArrivalPointGraphic extends StatelessWidget {
+  const _ArrivalPointGraphic({
+    required this.kind,
+    required this.color,
+    required this.phase,
+  });
+
+  final ArrivalPointKind kind;
+  final Color color;
+  final double phase;
+
+  @override
+  Widget build(BuildContext context) {
+    final wave = (math.sin(phase * math.pi * 2) + 1) / 2;
+    return SizedBox(
+      width: 72,
+      height: 63,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          Positioned(
+            left: 14,
+            right: 14,
+            bottom: 1,
+            height: 40,
+            child: CustomPaint(
+              painter: _ArrivalRoadPainter(
+                color: color,
+                glow: wave,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            child: Transform.scale(
+              scale: 0.96 + (wave * 0.06),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 42 + (wave * 10),
+                    height: 42 + (wave * 10),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: color.withValues(alpha: 0.08 + (wave * 0.10)),
+                    ),
+                  ),
+                  Icon(
+                    Icons.location_on_rounded,
+                    key: ValueKey<String>('arrival-pin-${kind.name}'),
+                    color: color,
+                    size: 38,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArrivalRoadPainter extends CustomPainter {
+  const _ArrivalRoadPainter({required this.color, required this.glow});
+
+  final Color color;
+  final double glow;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final road = Path()
+      ..moveTo(size.width * 0.36, size.height)
+      ..lineTo(size.width * 0.46, size.height * 0.22)
+      ..lineTo(size.width * 0.54, size.height * 0.22)
+      ..lineTo(size.width * 0.64, size.height)
+      ..close();
+
+    canvas.drawPath(
+      road,
+      Paint()
+        ..style = PaintingStyle.fill
+        ..color = const Color(0xFF7A8086),
+    );
+
+    canvas.drawLine(
+      Offset(size.width * 0.5, size.height * 0.34),
+      Offset(size.width * 0.5, size.height * 0.93),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.42 + (glow * 0.25))
+        ..strokeWidth = 2.2
+        ..strokeCap = StrokeCap.round,
+    );
+
+    canvas.drawCircle(
+      Offset(size.width * 0.5, size.height * 0.22),
+      3.2 + (glow * 1.4),
+      Paint()
+        ..color = color.withValues(alpha: 0.65 + (glow * 0.35)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArrivalRoadPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.glow != glow;
 }
 
 /// Thin navigation cue. Drawn, not a stock flag or turn glyph.
