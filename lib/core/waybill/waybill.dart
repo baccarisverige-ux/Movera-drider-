@@ -34,6 +34,8 @@ class WaybillRecord {
   WaybillRecord copyWith({
     String? statusLabel,
     DateTime? issuedAt,
+    String? vehicle,
+    String? licensePlate,
   }) {
     return WaybillRecord(
       tripId: tripId,
@@ -46,8 +48,8 @@ class WaybillRecord {
       dropoff: dropoff,
       source: source,
       driverName: driverName,
-      vehicle: vehicle,
-      licensePlate: licensePlate,
+      vehicle: vehicle ?? this.vehicle,
+      licensePlate: licensePlate ?? this.licensePlate,
       passengerCapacity: passengerCapacity,
     );
   }
