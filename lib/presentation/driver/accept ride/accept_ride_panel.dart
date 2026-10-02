@@ -587,6 +587,11 @@ extension _AcceptRidePanel on _AcceptRideState {
             : onTrip
                 ? Icons.flag_outlined
                 : Icons.near_me_outlined,
+        arrivalPointKind: _showArrivalApproach ? _approachKind : null,
+        arrivalDistanceMeters: _approachDistanceMeters,
+        arrivalLabel: _approachLabel,
+        arrivalAddress: _approachAddress,
+        arrivalArrived: _arrivalApproachArrived,
         radarSwitch: onTrip,
         radarOn: _onTripRadarOn,
         onRadarToggle: _AcceptRideTrip(this)._toggleOnTripRadar,
