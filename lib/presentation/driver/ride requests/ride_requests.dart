@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:movera/core/dispatch/trip_occurrence.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/geo/geo_point_maps.dart';
 import 'package:movera/core/dispatch/demo_dispatch_repository.dart';
@@ -246,7 +247,7 @@ class _RideRequestsState extends State<RideRequests> {
         if (!mounted) { return; }
         final navigator = Navigator.of(context);
         final ride = AcceptRide(
-          offerId: trip.id,
+          offerId: tripOccurrenceId(trip.id),
           fare: trip.fare,
           category: trip.category,
           matchedVia: 'Movera Radar',

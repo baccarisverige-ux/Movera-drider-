@@ -27,6 +27,7 @@ class RoadRouteService implements RouteRepository {
     bool? ownsClient,
     OsrmRouteParser parser = const OsrmRouteParser(),
     this.timeout = const Duration(seconds: 8),
+    this.host = defaultHost,
   })  : _client = client ?? http.Client(),
         _ownsClient = ownsClient ?? client == null,
         _parser = parser;
@@ -35,6 +36,22 @@ class RoadRouteService implements RouteRepository {
   final bool _ownsClient;
   final OsrmRouteParser _parser;
   final Duration timeout;
+
+  /// OSRM-compatible routing host. Defaults to the public OSRM demo server,
+  /// which is acceptable for the demo only: its usage policy excludes
+  /// production traffic and it receives driver coordinates. Production builds
+  /// must set `--dart-define=MOVERA_ROUTING_HOST=<contracted host>` (see
+  /// docs/ROUTING_PROVIDER.md).
+  final String host;
+
+  static const defaultHost = String.fromEnvironment(
+    'MOVERA_ROUTING_HOST',
+    defaultValue: publicDemoHost,
+  );
+  static const publicDemoHost = 'router.project-osrm.org';
+
+  /// True when routes go to the public demo server.
+  bool get usesPublicDemoServer => host == publicDemoHost;
   var _closed = false;
 
   /// Closes the HTTP client only when this service created it.
@@ -58,7 +75,7 @@ class RoadRouteService implements RouteRepository {
         '${destination.longitude},${destination.latitude}';
 
     final uri = Uri.https(
-      'router.project-osrm.org',
+      host,
       '/route/v1/driving/$coordinates',
       const <String, String>{
         'overview': 'full',

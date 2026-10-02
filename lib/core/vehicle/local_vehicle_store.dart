@@ -52,6 +52,19 @@ class LocalVehicleStore {
       return Map<String,dynamic>.from(row);
     }).toList();
   }
+  /// The vehicle shown on waybills and Profile: the first stored row, or the
+  /// demo vehicle. Null when local storage cannot be read.
+  Future<({String vehicle, String plate})?> primaryIdentity() async {
+    try {
+      final rows = await list();
+      if (rows.isEmpty) { return null; }
+      final row = rows.first;
+      return (vehicle: '${row['make']} ${row['model']}'.trim(), plate: row['plate'] as String);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> upsert(Map<String,dynamic> vehicle) => _serial(() async {
     final rows=await list();
     final previous = rows.where((row)=>row['id']==vehicle['id']).toList();
