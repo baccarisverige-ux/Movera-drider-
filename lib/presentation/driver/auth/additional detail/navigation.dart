@@ -87,7 +87,7 @@ class AdditionalInfoNavigation extends StatelessWidget {
             46.height,
             Row(
               children: [
-                IconButton(
+                IconButton(tooltip: 'Back', 
                   onPressed: controller.moveToPreviousStep,
                   icon: Icon(
                     Icons.arrow_back_ios_rounded,

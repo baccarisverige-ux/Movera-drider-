@@ -203,7 +203,7 @@ class _AdditionDetailVehicleInsuranceState
           ),
 
           // Remove button
-          IconButton(
+          IconButton(tooltip: 'Close', 
             icon: const Icon(Icons.close, color: Colors.red),
             onPressed: () {
               setState(() {

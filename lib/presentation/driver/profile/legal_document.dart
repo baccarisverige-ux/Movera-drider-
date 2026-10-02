@@ -45,7 +45,7 @@ class LegalDocumentScreen extends StatelessWidget {
         backgroundColor: AppColor.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
+        leading: IconButton(tooltip: 'Back', 
           onPressed: () => Navigator.pop(context),
           icon: Icon(
             Icons.arrow_back_ios_rounded,

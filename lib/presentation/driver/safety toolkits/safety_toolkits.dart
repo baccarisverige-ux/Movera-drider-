@@ -148,7 +148,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
                             ],
                           ),
                         ),
-                        IconButton(
+                        IconButton(tooltip: 'Close', 
                           onPressed: () => Navigator.pop(sheetContext),
                           icon: const Icon(Icons.close_rounded),
                           color: _muted,
