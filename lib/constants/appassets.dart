@@ -11,7 +11,7 @@ class AppAssets {
   static const String model = 'assets/icons/model.png';
   static const String menu = 'assets/icons/menu.png';
   // Lucide (ISC) bottom-sheet nav icons — see assets/icons/NAV_ICONS_LICENSE.txt
-  static const String navLayoutGrid = 'assets/icons/nav_layout_grid.svg';
+  static const String navMenuBranch = 'assets/icons/nav_menu_branch.svg';
   static const String navCreditCard = 'assets/icons/nav_credit_card.svg';
   static const String navMessagesSquare = 'assets/icons/nav_messages_square.svg';
   static const String navScheduledRide = 'assets/icons/nav_scheduled_ride.png';

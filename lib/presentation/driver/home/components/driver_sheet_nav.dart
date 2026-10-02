@@ -79,7 +79,7 @@ class DriverSheetNav {
                     child: Row(
                       children: [
                         _dockAction(
-                          asset: AppAssets.navLayoutGrid,
+                          asset: AppAssets.navMenuBranch,
                           tooltip: 'Menu',
                           onTap: () => scaffoldKey.currentState?.openDrawer(),
                           iconColor: iconTint,
@@ -182,7 +182,7 @@ class DriverSheetNav {
       child: Row(
         children: [
           _sheetQuickAction(
-            asset: AppAssets.navLayoutGrid,
+            asset: AppAssets.navMenuBranch,
             tooltip: 'Menu',
             onTap: () => scaffoldKey.currentState?.openDrawer(),
           ),
