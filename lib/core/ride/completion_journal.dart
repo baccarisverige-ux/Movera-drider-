@@ -7,6 +7,23 @@ import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/core/waybill/waybill.dart';
+import 'package:movera/core/storage/local_quarantine.dart';
+
+/// Result of applying a stored completion journal.
+enum JournalReplayOutcome {
+  /// No journal was stored.
+  none,
+
+  /// The stored transaction was applied completely.
+  applied,
+
+  /// The journal could not be decoded. Its raw text was quarantined.
+  quarantinedCorrupt,
+
+  /// Trip A was closed, but its queued trip conflicted with a newer active
+  /// trip. The newer trip was kept and the journal was quarantined.
+  quarantinedConflict,
+}
 
 /// Replayable local transaction. Navigation to B only occurs after reconciliation.
 class CompletionJournal {
@@ -89,29 +106,45 @@ class CompletionJournal {
     afterWrite?.call('journal');
     await _replay(prefs);
   });
-  Future<void> reconcile() => _serial(() async => _replay(await load()));
-  Future<void> _replay(SharedPreferences prefs) async {
+  /// Applies any interrupted transaction. Never leaves a journal behind that
+  /// would block later trips: undecodable or conflicting entries are moved to
+  /// quarantine and reported through the returned outcome.
+  Future<JournalReplayOutcome> reconcile() async {
+    var outcome = JournalReplayOutcome.none;
+    await _serial(() async => outcome = await _replay(await load()));
+    return outcome;
+  }
+
+  Future<JournalReplayOutcome> _replay(SharedPreferences prefs) async {
     final raw = prefs.getString(key);
     if (raw == null) {
-      return;
+      return JournalReplayOutcome.none;
     }
-    final data = jsonDecode(raw) as Map<String, dynamic>;
-    final schemaVersion = data['schemaVersion'];
-    if (schemaVersion != 1 && schemaVersion != 2) {
-      throw StateError('Unsupported completion journal');
+    final _DecodedJournal entry;
+    try {
+      entry = _DecodedJournal.parse(raw);
+    } catch (error) {
+      await LocalQuarantine.store(
+        prefs,
+        source: 'completion_journal',
+        raw: raw,
+        reason: '$error',
+      );
+      if (!await prefs.remove(key)) {
+        throw StateError('Completion journal cleanup failed');
+      }
+      return JournalReplayOutcome.quarantinedCorrupt;
     }
-    final id = data['tripId'] as String;
-    final status = TripStatus.values.byName(data['status'] as String);
-    if (!status.isTerminal) {
-      throw StateError('Invalid terminal journal');
-    }
-    final row = Map<String, dynamic>.from(data['record'] as Map);
-    final at = DateTime.parse(data['completedAt'] as String);
+    final data = entry.data;
+    final id = entry.tripId;
+    final status = entry.status;
+    final row = entry.record;
+    final at = entry.completedAt;
     {
       await history.archive(
         WaybillRecord(
           tripId: id,
-          statusLabel: 'Completed',
+          statusLabel: _statusLabel(status),
           issuedAt: at,
           fare: row['fare'] as String,
           service: row['service'] as String,
@@ -152,34 +185,48 @@ class CompletionJournal {
       );
     }
     afterWrite?.call('terminal');
-    final nextData = data['next'];
-    if (nextData is Map) {
-      final next = PersistedActiveRide.fromJson(
-        Map<String, dynamic>.from(nextData),
-      );
-      if (next == null || next.tripId == id) {
-        throw StateError('Invalid queued trip');
-      }
-      if (repository is RideHandoffRepository) {
-        await (repository as RideHandoffRepository).handoff(id, next);
-      } else {
-        final current = await active.read();
-        if (current != null &&
-            current.tripId != id &&
-            current.tripId != next.tripId) {
-          throw StateError('Queued handoff conflicts with a newer active trip');
+    final next = entry.next;
+    if (next != null) {
+      try {
+        if (repository is RideHandoffRepository) {
+          await (repository as RideHandoffRepository).handoff(id, next);
+        } else {
+          final current = await active.read();
+          if (current != null &&
+              current.tripId != id &&
+              current.tripId != next.tripId) {
+            throw RideOwnershipConflict(
+              'Queued handoff conflicts with a newer active trip',
+            );
+          }
+          if (current?.tripId != next.tripId) {
+            await active.save(next);
+          }
         }
-        if (current?.tripId != next.tripId) {
-          await active.save(next);
+      } on RideOwnershipConflict catch (error) {
+        // Trip A is already archived and terminal above. Keep the newer trip
+        // and retain the queued trip's data in quarantine for diagnosis.
+        await LocalQuarantine.store(
+          prefs,
+          source: 'completion_journal',
+          raw: raw,
+          reason: error.message,
+        );
+        if (!await prefs.remove(key)) {
+          throw StateError('Completion journal cleanup failed');
         }
+        afterWrite?.call('cleanup');
+        return JournalReplayOutcome.quarantinedConflict;
       }
     } else {
       // Clear only A; do not erase an independently accepted newer trip.
-      final current = await active.read();
       if (repository is TerminalRideRepository) {
         await (repository as TerminalRideRepository).clearForTrip(id);
-      } else if (current == null || current.tripId == id) {
-        await active.clear();
+      } else {
+        final current = await active.read();
+        if (current == null || current.tripId == id) {
+          await active.clear();
+        }
       }
     }
     afterWrite?.call('snapshot');
@@ -187,5 +234,81 @@ class CompletionJournal {
       throw StateError('Completion journal cleanup failed');
     }
     afterWrite?.call('cleanup');
+    return JournalReplayOutcome.applied;
+  }
+
+  static String _statusLabel(TripStatus status) => switch (status) {
+    TripStatus.completed => 'Completed',
+    TripStatus.cancelledByRider => 'Cancelled by rider',
+    TripStatus.cancelledByDriver => 'Cancelled by driver',
+    TripStatus.cancelledByAdmin => 'Cancelled by Movera',
+    TripStatus.noShow => 'Rider no-show',
+    TripStatus.expired => 'Expired',
+    TripStatus.failed => 'Failed',
+    _ => status.name,
+  };
+}
+
+/// Fully validated journal entry. Any type or schema problem throws before a
+/// single side effect is applied.
+class _DecodedJournal {
+  _DecodedJournal._(
+    this.data,
+    this.tripId,
+    this.status,
+    this.record,
+    this.completedAt,
+    this.next,
+  );
+
+  final Map<String, dynamic> data;
+  final String tripId;
+  final TripStatus status;
+  final Map<String, dynamic> record;
+  final DateTime completedAt;
+  final PersistedActiveRide? next;
+
+  static _DecodedJournal parse(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map) {
+      throw const FormatException('Completion journal is not an object');
+    }
+    final data = Map<String, dynamic>.from(decoded);
+    final schemaVersion = data['schemaVersion'];
+    if (schemaVersion != 1 && schemaVersion != 2) {
+      throw FormatException('Unsupported completion journal $schemaVersion');
+    }
+    final id = data['tripId'];
+    if (id is! String || id.trim().isEmpty) {
+      throw const FormatException('Journal trip ID missing');
+    }
+    final status = TripStatus.values.byName(data['status'] as String);
+    if (!status.isTerminal) {
+      throw const FormatException('Invalid terminal journal');
+    }
+    final record = Map<String, dynamic>.from(data['record'] as Map);
+    for (final field in [
+      'fare',
+      'service',
+      'riderName',
+      'pickup',
+      'dropoff',
+    ]) {
+      if (record[field] is! String) {
+        throw FormatException('Journal record field $field missing');
+      }
+    }
+    final completedAt = DateTime.parse(data['completedAt'] as String);
+    final nextData = data['next'];
+    PersistedActiveRide? next;
+    if (nextData != null) {
+      next = nextData is Map
+          ? PersistedActiveRide.fromJson(Map<String, dynamic>.from(nextData))
+          : null;
+      if (next == null || next.tripId == id) {
+        throw const FormatException('Invalid queued trip');
+      }
+    }
+    return _DecodedJournal._(data, id, status, record, completedAt, next);
   }
 }
