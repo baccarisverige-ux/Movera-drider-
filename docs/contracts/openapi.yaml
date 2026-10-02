@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Movera Contracts
-  version: 0.2.0
+  version: 0.3.0
   description: Proposed integration contract only. No backend, authentication provider
     or transport is installed. Backend review and contract integration tests are required
     before enabling operational features. Currency SEK; tripId is canonical.
@@ -686,6 +686,972 @@ paths:
           description: Authentication required
         '403':
           description: Driver ownership required
+  /drivers/me/offers:
+    get:
+      operationId: listDriverOffers
+      summary: Offers visible to this driver (Radar). Excludes offers claimed elsewhere.
+      responses:
+        '200':
+          description: Current offers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferList'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /trips/{tripId}/events:
+    get:
+      operationId: resyncTripEvents
+      summary: Authoritative projection plus ordered events after cursor; used on subscribe, resume and gap.
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Opaque cursor from the previous page or realtime envelope.
+      responses:
+        '200':
+          description: Projection and events since cursor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripEventPage'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /trips/{tripId}/pin/verify:
+    post:
+      operationId: verifyPickupPin
+      summary: Verify the rider PIN at pickup; returns a short-lived token for startDriverTrip.
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinVerifyRequest'
+      responses:
+        '200':
+          description: PIN accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinVerification'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /trips/{tripId}/messages:
+    get:
+      operationId: listTripMessages
+      summary: Driver-rider messages for one trip.
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Opaque cursor from the previous page or realtime envelope.
+      responses:
+        '200':
+          description: Messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePage'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: sendTripMessage
+      summary: Send one message; client message ID makes retries idempotent.
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreate'
+      responses:
+        '201':
+          description: Message stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /trips/{tripId}/rating:
+    post:
+      operationId: rateRider
+      summary: Driver rates the rider after completion.
+      parameters:
+      - $ref: '#/components/parameters/TripId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingCreate'
+      responses:
+        '204':
+          description: Rating stored
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /drivers/me/location:
+    post:
+      operationId: reportDriverLocation
+      summary: Batch of GPS samples while online or on trip. Server drops samples older than 30 s or less accurate than 50 m for arrival checks.
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationBatch'
+      responses:
+        '202':
+          description: Samples accepted
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /drivers/me/history:
+    get:
+      operationId: listDriverHistory
+      summary: Completed and cancelled trips with typed money and outcome.
+      parameters:
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Opaque cursor from the previous page or realtime envelope.
+      responses:
+        '200':
+          description: History page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryPage'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /support/tickets:
+    get:
+      operationId: listSupportTickets
+      summary: Support tickets of the authenticated driver.
+      responses:
+        '200':
+          description: Tickets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicketList'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: createSupportTicket
+      summary: Open a support ticket.
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupportTicketCreate'
+      responses:
+        '201':
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicket'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /drivers/me/vehicles:
+    get:
+      operationId: listVehicles
+      summary: Vehicles of the driver with verification state.
+      responses:
+        '200':
+          description: Vehicles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleList'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: createVehicle
+      summary: Register a vehicle for review.
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleCreate'
+      responses:
+        '201':
+          description: Vehicle created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /drivers/me/vehicles/{vehicleId}:
+    delete:
+      operationId: removeVehicle
+      summary: Remove a vehicle that is not on an active trip.
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - name: vehicleId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Vehicle removed
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /drivers/me/documents:
+    post:
+      operationId: uploadDocument
+      summary: Upload a document image for review. The client keeps no copy after success.
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DocumentUpload'
+      responses:
+        '201':
+          description: Document received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverDocument'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /drivers/me/payouts:
+    get:
+      operationId: listPayouts
+      summary: Payout history and balance in minor units.
+      parameters:
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Opaque cursor from the previous page or realtime envelope.
+      responses:
+        '200':
+          description: Payouts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutPage'
+        '400':
+          description: Malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Actor not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resource unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version or idempotency conflict; includes authoritative state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation or lifecycle rule rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limited; obey Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service unavailable; retry with same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   parameters:
     TripId:
@@ -881,6 +1847,206 @@ components:
           description: Short-lived server proof; raw PIN is never persisted or logged.
         reasonCode:
           $ref: '#/components/schemas/DriverCancelReason'
+    OfferList:
+      type: object
+      required: [offers]
+      properties:
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Offer'
+    Offer:
+      type: object
+      required: [offerId, pickup, dropoff, fare, expiresAt]
+      properties:
+        offerId: {type: string}
+        category: {type: string}
+        pickup: {$ref: '#/components/schemas/GeoPoint'}
+        dropoff: {$ref: '#/components/schemas/GeoPoint'}
+        pickupAddress: {type: string}
+        dropoffAddress: {type: string}
+        fare: {$ref: '#/components/schemas/Money'}
+        expiresAt: {type: string, format: date-time}
+        followsDestination: {type: boolean}
+    TripEventPage:
+      type: object
+      required: [projection, events, cursor]
+      properties:
+        projection: {$ref: '#/components/schemas/TripProjection'}
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/RealtimeEnvelope'
+        cursor: {type: string, description: Pass back to resume after the last event.}
+    PinVerifyRequest:
+      type: object
+      required: [pin, expectedVersion]
+      properties:
+        pin: {type: string, pattern: '^[0-9]{4}$', description: Never logged or persisted by client or server logs.}
+        expectedVersion: {type: integer, minimum: 1}
+    PinVerification:
+      type: object
+      required: [verifiedPinToken, expiresAt]
+      properties:
+        verifiedPinToken: {type: string}
+        expiresAt: {type: string, format: date-time}
+        attemptsRemaining: {type: integer, minimum: 0}
+    Message:
+      type: object
+      required: [messageId, clientMessageId, sender, text, sentAt]
+      properties:
+        messageId: {type: string}
+        clientMessageId: {type: string}
+        sender: {type: string, enum: [driver, rider, system]}
+        text: {type: string, maxLength: 1000}
+        sentAt: {type: string, format: date-time}
+    MessageCreate:
+      type: object
+      required: [clientMessageId, text]
+      properties:
+        clientMessageId: {type: string}
+        text: {type: string, minLength: 1, maxLength: 1000}
+    MessagePage:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        cursor: {type: string}
+    RatingCreate:
+      type: object
+      required: [stars]
+      properties:
+        stars: {type: integer, minimum: 1, maximum: 5}
+        tags:
+          type: array
+          items: {type: string}
+    LocationSample:
+      type: object
+      required: [point, measuredAt, accuracyMeters]
+      properties:
+        point: {$ref: '#/components/schemas/GeoPoint'}
+        measuredAt: {type: string, format: date-time}
+        accuracyMeters: {type: number, minimum: 0}
+        headingDegrees: {type: number}
+        tripId: {type: string}
+    LocationBatch:
+      type: object
+      required: [samples]
+      properties:
+        samples:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/LocationSample'
+    HistoryEntry:
+      type: object
+      required: [tripId, status, occurredAt]
+      properties:
+        tripId: {type: string}
+        status: {$ref: '#/components/schemas/TripStatus'}
+        occurredAt: {type: string, format: date-time}
+        fare: {$ref: '#/components/schemas/Money'}
+        tip: {$ref: '#/components/schemas/Money'}
+        distanceMeters: {type: number}
+        durationSeconds: {type: number}
+        cancellationActor: {type: string, enum: [driver, rider, admin, system]}
+        cancellationReasonCode: {type: string}
+    HistoryPage:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryEntry'
+        cursor: {type: string}
+    SupportTicketCreate:
+      type: object
+      required: [category, subject, message]
+      properties:
+        category: {type: string}
+        subject: {type: string, maxLength: 200}
+        message: {type: string, maxLength: 5000}
+        tripId: {type: string}
+    SupportTicket:
+      type: object
+      required: [ticketId, status, createdAt]
+      properties:
+        ticketId: {type: string}
+        status: {type: string, enum: [open, awaitingDriver, resolved]}
+        subject: {type: string}
+        createdAt: {type: string, format: date-time}
+    SupportTicketList:
+      type: object
+      required: [tickets]
+      properties:
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportTicket'
+    VehicleCreate:
+      type: object
+      required: [make, model, year, plate]
+      properties:
+        make: {type: string}
+        model: {type: string}
+        year: {type: integer}
+        plate: {type: string}
+    Vehicle:
+      type: object
+      required: [vehicleId, make, model, year, plate, verification]
+      properties:
+        vehicleId: {type: string}
+        make: {type: string}
+        model: {type: string}
+        year: {type: integer}
+        plate: {type: string}
+        verification: {type: string, enum: [pending, verified, rejected]}
+        active: {type: boolean}
+    VehicleList:
+      type: object
+      required: [vehicles]
+      properties:
+        vehicles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Vehicle'
+    DocumentUpload:
+      type: object
+      required: [kind, file]
+      properties:
+        kind: {type: string, enum: [driverLicense, taxiLicense, trafficPermit, vehicleRegistration, insurance, profilePhoto]}
+        vehicleId: {type: string}
+        file: {type: string, format: binary, description: JPEG or PNG, max 5 MB.}
+    DriverDocument:
+      type: object
+      required: [documentId, kind, verification]
+      properties:
+        documentId: {type: string}
+        kind: {type: string}
+        verification: {type: string, enum: [pending, verified, rejected, expired]}
+        expiresAt: {type: string, format: date}
+    Payout:
+      type: object
+      required: [payoutId, amount, status, createdAt]
+      properties:
+        payoutId: {type: string}
+        amount: {$ref: '#/components/schemas/Money'}
+        status: {type: string, enum: [scheduled, paid, failed]}
+        createdAt: {type: string, format: date-time}
+    PayoutPage:
+      type: object
+      required: [balance, payouts]
+      properties:
+        balance: {$ref: '#/components/schemas/Money'}
+        payouts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payout'
+        cursor: {type: string}
   securitySchemes:
     bearerAuth:
       type: http
