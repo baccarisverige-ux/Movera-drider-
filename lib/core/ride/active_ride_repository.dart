@@ -395,3 +395,29 @@ bool validCoordinate(Object? value, {required bool latitude}) =>
 abstract interface class RideHandoffRepository {
   Future<void> handoff(String expectedTripId, PersistedActiveRide next);
 }
+
+/// Another trip already owns the active snapshot, so this write would replace
+/// independently newer work. Callers keep the newer trip and resolve the older
+/// one explicitly instead of retrying forever.
+class RideOwnershipConflict extends StateError {
+  RideOwnershipConflict(super.message);
+}
+
+/// Stored active-trip data exists but cannot be decoded by this app version.
+///
+/// Distinct from a transient storage failure: retrying will never succeed, so
+/// the driver must be offered an explicit way to close it.
+class ActiveRideUnreadable implements Exception {
+  const ActiveRideUnreadable(this.cause);
+
+  final Object cause;
+
+  @override
+  String toString() => 'Active ride snapshot is unreadable: $cause';
+}
+
+/// Storage that can move an unreadable active-trip record aside.
+abstract interface class UnreadableRideRecovery {
+  /// Moves the raw snapshot to a quarantine key and releases ownership.
+  Future<void> quarantineUnreadable();
+}

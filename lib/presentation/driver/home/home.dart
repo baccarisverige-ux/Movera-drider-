@@ -333,8 +333,21 @@ class _DriverHomeState extends State<DriverHome>
     if (repo == null) { if (mounted) { setState(() => _recoveryResolved = true); } return; }
     PersistedActiveRide? snapshot;
     try {
-      await CompletionJournal(active: repo).reconcile();
+      final journal = await CompletionJournal(active: repo).reconcile();
+      if (mounted && journal == JournalReplayOutcome.quarantinedConflict) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('A queued trip conflicted with a newer trip. The newer trip was kept.'),
+        ));
+      } else if (mounted && journal == JournalReplayOutcome.quarantinedCorrupt) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('An unreadable trip record was set aside. You can continue driving.'),
+        ));
+      }
       snapshot = await repo.read();
+    } on ActiveRideUnreadable {
+      _didAttemptActiveRideRestore = false;
+      if (mounted) { await _offerUnreadableTripClosure(repo); }
+      return;
     } catch (_) {
       _didAttemptActiveRideRestore = false;
       if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -390,6 +403,52 @@ class _DriverHomeState extends State<DriverHome>
         ),
       ),
     );
+  }
+
+  /// Unreadable data never decodes on retry; offer an explicit closure that
+  /// keeps the raw record in quarantine instead of a dead-end Retry loop.
+  Future<void> _offerUnreadableTripClosure(ActiveRideRepository repo) async {
+    final close = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Saved trip cannot be read'),
+        content: const Text(
+          'The trip saved on this device is damaged or from another app version. '
+          'Close it to continue. A copy is kept on this device for support.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Close unreadable trip'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) { return; }
+    if (close != true || repo is! UnreadableRideRecovery) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Close the unreadable trip before going online.'),
+        action: SnackBarAction(label: 'Review', onPressed: () { _restoreActiveRideIfNeeded(); }),
+      ));
+      return;
+    }
+    try {
+      await (repo as UnreadableRideRecovery).quarantineUnreadable();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Could not close the unreadable trip. Please retry.'),
+          action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); }),
+        ));
+      }
+      return;
+    }
+    await _restoreActiveRideIfNeeded();
   }
 
   WaybillRecord _waybillFromSnapshot(PersistedActiveRide snapshot) {
