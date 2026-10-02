@@ -31,6 +31,12 @@ class PrefsActiveRideRepository
   // order so a previous ride's cleanup cannot remove a newer ride's snapshot.
   static Future<void>? _pending;
 
+  /// Completes after every storage operation queued so far has finished.
+  static Future<void> settle() async {
+    final pending = _pending;
+    if (pending != null) { await pending; }
+  }
+
   Future<T> _enqueue<T>(Future<T> Function() operation) {
     final previous = _pending;
     final result = previous == null

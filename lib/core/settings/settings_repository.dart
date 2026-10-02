@@ -13,6 +13,12 @@ class SettingsRepository {
   static const _sectionPrefix = sectionPrefix;
   static Future<void>? _pending;
 
+  /// Completes after every storage operation queued so far has finished.
+  static Future<void> settle() async {
+    final pending = _pending;
+    if (pending != null) { await pending; }
+  }
+
   String _sectionKey(String section) => '$_sectionPrefix$section';
 
   Future<Map<String, dynamic>> read(String section) async {

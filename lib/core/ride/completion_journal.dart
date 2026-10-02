@@ -23,6 +23,12 @@ class CompletionJournal {
   final Future<SharedPreferences> Function() load;
   final void Function(String step)? afterWrite;
   static Future<void>? _pending;
+
+  /// Completes after every storage operation queued so far has finished.
+  static Future<void> settle() async {
+    final pending = _pending;
+    if (pending != null) { await pending; }
+  }
   @visibleForTesting
   static void resetForTesting() {
     _pending = null;
