@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
+import 'package:movera/core/settings/settings_repository.dart';
 import 'package:movera/presentation/driver/preferences/preferences.dart';
 
 void main() {
@@ -59,13 +60,21 @@ void main() {
   testWidgets('ride preferences restore changed selection after screen recreation', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: Preferences()));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Clear'));
+    await tester.tap(find.text('Movera XL'));
+    await tester.tap(find.text('Electric'));
     await tester.pumpAndSettle();
-    expect(find.text('0 of 7 active'), findsOneWidget);
+    expect(find.text('6 of 8 active'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(const MaterialApp(home: Preferences()));
     await tester.pumpAndSettle();
-    expect(find.text('0 of 7 active'), findsOneWidget);
+    expect(find.text('6 of 8 active'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+  testWidgets('ride preferences keep older saves and enable new categories', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await SettingsRepository().save('categories', {'selected': [false, true, true, true, true, true, true]});
+    await tester.pumpWidget(const MaterialApp(home: Preferences()));
+    await tester.pumpAndSettle();
+    expect(find.text('7 of 8 active'), findsOneWidget);
   });
 }

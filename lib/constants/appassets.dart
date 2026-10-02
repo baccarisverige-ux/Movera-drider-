@@ -15,6 +15,15 @@ class AppAssets {
   static const String navCreditCard = 'assets/icons/nav_credit_card.svg';
   static const String navMessagesSquare = 'assets/icons/nav_messages_square.svg';
   static const String navScheduledRide = 'assets/icons/nav_scheduled_ride.png';
+  // Ride preference line icons
+  static const String rideMovera = 'assets/icons/ride_movera.svg';
+  static const String rideComfort = 'assets/icons/ride_comfort.svg';
+  static const String ridePremium = 'assets/icons/ride_premium.svg';
+  static const String ridePriority = 'assets/icons/ride_priority.svg';
+  static const String rideXl = 'assets/icons/ride_xl.svg';
+  static const String rideElectric = 'assets/icons/ride_electric.svg';
+  static const String ridePet = 'assets/icons/ride_pet.svg';
+  static const String rideBooster = 'assets/icons/ride_booster.svg';
   static const String search = 'assets/icons/search.png';
   static const String arrowUp = 'assets/icons/arrow_up.png';
   static const String triangle = 'assets/icons/triangle.png';

@@ -1,5 +1,7 @@
-import 'package:movera/core/settings/settings_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:movera/constants/appassets.dart';
+import 'package:movera/core/settings/settings_repository.dart';
 
 class Preferences extends StatefulWidget {
   const Preferences({super.key});
@@ -9,50 +11,56 @@ class Preferences extends StatefulWidget {
 }
 
 class _PreferencesState extends State<Preferences> {
-  static const Color _ink = Color(0xFF252E3A);
-  static const Color _muted = Color(0xFF7D898F);
-  static const Color _line = Color(0xFFE5E9EB);
-  static const Color _canvas = Color(0xFFF4F6F7);
+  static const Color _ink = Color(0xFF111111);
+  static const Color _muted = Color(0xFF6E737A);
+  static const Color _line = Color(0xFFE3E6EA);
 
-  static const Color _green = Color(0xFF1C6B45);
-
+  // Stored order: the saved `selected` list is indexed by this list, so new
+  // categories are only ever appended. [_displayOrder] controls the grid.
   final List<_DriverCategory> _categories = const [
     _DriverCategory(
       title: 'Movera',
-      subtitle: 'Affordable everyday rides',
-      image: 'assets/images/prefs/movera.jpg',
+      subtitle: 'Standard • Everyday ride',
+      icon: AppAssets.rideMovera,
     ),
     _DriverCategory(
       title: 'Comfort',
-      subtitle: 'Newer cars with extra legroom',
-      image: 'assets/images/prefs/comfort.jpg',
+      subtitle: 'Extra comfort • Plush',
+      icon: AppAssets.rideComfort,
     ),
     _DriverCategory(
       title: 'Premium',
-      subtitle: 'Premium cars and elevated service',
-      image: 'assets/images/prefs/premium.jpg',
+      subtitle: 'Luxury • Premium service',
+      icon: AppAssets.ridePremium,
     ),
     _DriverCategory(
       title: 'Priority',
-      subtitle: 'Faster pickup requests',
-      image: 'assets/images/prefs/priority.jpg',
+      subtitle: 'Faster pickup • Priority',
+      icon: AppAssets.ridePriority,
     ),
     _DriverCategory(
       title: 'Movera XL',
-      subtitle: 'Larger groups of up to 6 riders',
-      image: 'assets/images/prefs/xl.jpg',
+      subtitle: '6 seat • Spacious',
+      icon: AppAssets.rideXl,
     ),
     _DriverCategory(
       title: 'Electric',
-      subtitle: 'Quiet and fossil-free rides',
-      image: 'assets/images/prefs/electric.jpg',
+      subtitle: 'Low emissions • Eco',
+      icon: AppAssets.rideElectric,
     ),
     _DriverCategory(
       title: 'Movera Pet',
-      subtitle: 'Pet-friendly ride requests',
-      image: 'assets/images/prefs/pet.jpg',
+      subtitle: 'Pet friendly • Carrier OK',
+      icon: AppAssets.ridePet,
+    ),
+    _DriverCategory(
+      title: 'Booster Seat',
+      subtitle: 'Child seat • Kids safe',
+      icon: AppAssets.rideBooster,
     ),
   ];
+
+  static const List<int> _displayOrder = [4, 5, 6, 0, 1, 2, 3, 7];
 
   late List<bool> _selected;
 
@@ -60,18 +68,47 @@ class _PreferencesState extends State<Preferences> {
   bool _settingsTouched = false;
   Future<void> _restoreSettings() async {
     try {
-    final data=await _settings.read('categories'); if(!mounted || _settingsTouched) { return; }
-    setState(() { if(data['selected'] is List && (data['selected'] as List).length==_categories.length && (data['selected'] as List).every((v)=>v is bool)) { _selected=List<bool>.from(data['selected'] as List); } });
-      } catch (_) {
-      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Could not load saved preferences.'),
-        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings))); }
+      final data = await _settings.read('categories');
+      if (!mounted || _settingsTouched) {
+        return;
+      }
+      final saved = data['selected'];
+      setState(() {
+        if (saved is List &&
+            saved.length <= _categories.length &&
+            saved.every((v) => v is bool)) {
+          // Saves from before a category existed keep it enabled by default.
+          _selected = [
+            ...saved.cast<bool>(),
+            ...List<bool>.filled(_categories.length - saved.length, true),
+          ];
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Could not load saved preferences.'),
+            action: SnackBarAction(label: 'Retry', onPressed: _restoreSettings),
+          ),
+        );
+      }
     }
   }
+
   Future<bool> _persistSettings() async {
-    _settingsTouched=true;
-    try { await _settings.save('categories',{'selected':_selected}); return true; }
-    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); } return false; }
+    _settingsTouched = true;
+    try {
+      await _settings.save('categories', {'selected': _selected});
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save preferences. Retry.')),
+        );
+      }
+      return false;
+    }
   }
 
   @override
@@ -83,16 +120,17 @@ class _PreferencesState extends State<Preferences> {
 
   int get _selectedCount => _selected.where((selected) => selected).length;
 
-  void _toggleAll() {
-    final selectAll = _selectedCount != _categories.length;
+  void _toggle(int index) {
     setState(() {
-      _selected = List<bool>.filled(_categories.length, selectAll);
+      _selected[index] = !_selected[index];
     });
     _persistSettings();
   }
 
   Future<void> _save() async {
-    if (!await _persistSettings() || !mounted) { return; }
+    if (!await _persistSettings() || !mounted) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -108,135 +146,112 @@ class _PreferencesState extends State<Preferences> {
 
   @override
   Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
     return Scaffold(
-      backgroundColor: _canvas,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: _ink,
-        ),
-        titleSpacing: 2,
-        title: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ride preferences',
-              style: TextStyle(
-                color: _ink,
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-              ),
-            ),
-            SizedBox(height: 2),
-            Text(
-              'Choose the requests you want to receive',
-              style: TextStyle(
-                color: _muted,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
+      backgroundColor: Colors.white,
       body: SafeArea(
-        top: false,
-        child: MediaQuery.textScalerOf(context).scale(14) > 20
-          ? ListView(padding: const EdgeInsets.symmetric(horizontal: 16), children: [
-              const Padding(padding: EdgeInsets.all(8), child: Text('Local demo preferences', style: TextStyle(fontSize: 12))),
-              _buildSummary(),
-              for (var index = 0; index < _categories.length; index++)
-                Padding(padding: const EdgeInsets.only(bottom: 10), child: SizedBox(height: 330, child: _buildCategory(index))),
-              _buildSaveArea(),
-            ])
-          : Column(
-          children: [
-            const Padding(padding: EdgeInsets.all(8), child: Text('Local demo preferences', style: TextStyle(fontSize: 12))),
-            _buildSummary(),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: MediaQuery.textScalerOf(context).scale(14) > 20 ? 1 : 2,
-                  mainAxisExtent: MediaQuery.textScalerOf(context).scale(14) > 20 ? 330 : null,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 0.78,
-                ),
-                itemCount: _categories.length,
-                itemBuilder: (context, index) => _buildCategory(index),
+        child: largeText
+            ? ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _buildTopBar(),
+                  _buildHeading(),
+                  for (final index in _displayOrder)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _buildCategory(index),
+                    ),
+                  _buildSaveArea(),
+                ],
+              )
+            : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(children: [_buildTopBar(), _buildHeading()]),
+                  ),
+                  Expanded(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            mainAxisExtent: 142,
+                          ),
+                      itemCount: _displayOrder.length,
+                      itemBuilder: (context, i) =>
+                          _buildCategory(_displayOrder[i]),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _buildSaveArea(),
+                  ),
+                ],
               ),
-            ),
-            _buildSaveArea(),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildSummary() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _line),
+  Widget _buildTopBar() {
+    return Row(
+      children: [
+        IconButton(
+          tooltip: 'Back',
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back_rounded),
+          color: _ink,
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
         ),
-        child: Row(
-          children: [
-            Container(
-              height: 36,
-              width: 36,
-              decoration: const BoxDecoration(
-                color: _green,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            '$_selectedCount of ${_categories.length} active',
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$_selectedCount of 7 active',
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const Text(
-                    'You can change this at any time',
-                    style: TextStyle(
-                      color: _muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(width: 1, height: 28, color: _line),
-            TextButton(
-              onPressed: _toggleAll,
-              style: TextButton.styleFrom(foregroundColor: _green),
-              child: Text(
-                _selectedCount == _categories.length ? 'Clear' : 'All',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
+          ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildHeading() {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(0, 6, 0, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              'Choose your ride options',
+              style: TextStyle(
+                color: _ink,
+                fontSize: 28,
+                height: 1.15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.6,
+              ),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            "Select the ride types you'd like available for your trips",
+            style: TextStyle(
+              color: _muted,
+              fontSize: 14,
+              height: 1.35,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -244,81 +259,58 @@ class _PreferencesState extends State<Preferences> {
   Widget _buildCategory(int index) {
     final category = _categories[index];
     final selected = _selected[index];
+    final foreground = selected ? _ink : const Color(0xFFB4B9BF);
 
-    return Material(
-      color: selected ? Colors.white : const Color(0xFFF8F9F9),
-      borderRadius: BorderRadius.circular(19),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selected[index] = !_selected[index];
-          });
-          _persistSettings();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(19),
-            border: Border.all(color: _line),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 10, 12),
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _toggle(index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: selected ? _ink : _line,
+                width: selected ? 1.4 : 1.2,
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    height: 22,
-                    width: 22,
-                    decoration: BoxDecoration(
-                      color: selected ? _green : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: selected ? _green : const Color(0xFFD5DADD),
-                        width: 1.4,
-                      ),
-                    ),
-                    child: selected
-                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
-                        : null,
-                  ),
+                SvgPicture.asset(
+                  category.icon,
+                  height: 58,
+                  colorFilter: ColorFilter.mode(foreground, BlendMode.srcIn),
                 ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 0, 16, 4),
-                    child: ColoredBox(
-                      color: const Color(0xFFF7F8F8),
-                      child: Image.asset(
-                        category.image,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                      ),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 8),
                 Text(
                   category.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _ink,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: selected ? _ink : _muted,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   category.subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: _muted,
-                    fontSize: 11,
-                    height: 1.2,
+                    fontSize: 12,
+                    height: 1.25,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -331,35 +323,24 @@ class _PreferencesState extends State<Preferences> {
   }
 
   Widget _buildSaveArea() {
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        12,
-        16,
-        MediaQuery.paddingOf(context).bottom + 12,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: _line)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
       child: SizedBox(
         width: double.infinity,
-        height: 52,
+        height: 56,
         child: FilledButton(
           onPressed: _selectedCount == 0 ? null : _save,
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF16382C),
+            backgroundColor: _ink,
+            foregroundColor: Colors.white,
             disabledBackgroundColor: const Color(0xFFD6DBDE),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
             ),
           ),
           child: const Text(
             'Save preferences',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -371,10 +352,10 @@ class _DriverCategory {
   const _DriverCategory({
     required this.title,
     required this.subtitle,
-    required this.image,
+    required this.icon,
   });
 
   final String title;
   final String subtitle;
-  final String image;
+  final String icon;
 }
