@@ -103,7 +103,17 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void didPushNext() { _routeVisible = false; _pauseHomeUpdates(); }
   @override
-  void didPopNext() { _routeVisible = true; _resumeHomeUpdates(); }
+  void didPopNext() {
+    _routeVisible = true;
+    _resumeHomeUpdates();
+    // A covering ride may have handed storage to a queued trip before it
+    // closed. Re-check ownership so a persisted trip is never hidden behind
+    // an available Home.
+    if (_recoveryResolved && _driverSession.activeTripId == null) {
+      _didAttemptActiveRideRestore = false;
+      unawaited(_restoreActiveRideIfNeeded());
+    }
+  }
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
