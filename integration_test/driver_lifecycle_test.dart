@@ -10,7 +10,30 @@ import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:movera/core/geo/geo_point.dart';
+import 'package:movera/core/location/driver_location_repository.dart';
+import 'package:movera/core/session/driver_runtime_config.dart';
+
 import 'headless_map_platform.dart';
+
+/// Fresh fixes in central Stockholm. Never touches the host location stack,
+/// so the test does not depend on D-Bus/GeoClue on Linux runners.
+class _ScriptedLocation implements DriverLocationRepository {
+  const _ScriptedLocation();
+
+  DriverLocation get _fix => DriverLocation(
+    point: const GeoPoint(59.3293, 18.0686),
+    measuredAt: DateTime.now(),
+    accuracyMeters: 5,
+  );
+
+  @override
+  Future<DriverLocation> getCurrentPosition() async => _fix;
+
+  @override
+  Stream<DriverLocation> watchPosition({int distanceFilterMeters = 8}) =>
+      Stream<DriverLocation>.value(_fix);
+}
 
 /// Frontend lifecycle on the real [MoveraApp] composition root.
 ///
@@ -70,6 +93,12 @@ Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  DriverRuntimeConfig.current = const DriverRuntimeConfig(
+    simulatedArrival: true,
+    externalRouting: false,
+    skipAccountActivation: true,
+    liveMapTicker: false,
+  );
 
   setUp(() {
     GoogleMapsFlutterPlatform.instance = HeadlessMapPlatform();
@@ -84,7 +113,7 @@ void main() {
       await tester.binding.setSurfaceSize(null);
     });
     await tester.binding.setSurfaceSize(const Size(375, 812));
-    await tester.pumpWidget(const MoveraApp());
+    await tester.pumpWidget(const MoveraApp(locationRepository: _ScriptedLocation()));
     await tester.pump();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await _elapse(tester, const Duration(milliseconds: 200));
@@ -133,7 +162,7 @@ void main() {
       await tester.binding.setSurfaceSize(null);
     });
     await tester.binding.setSurfaceSize(const Size(390, 844));
-    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide(locationRepository: _ScriptedLocation())));
     await tester.pump();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await _elapse(tester, const Duration(milliseconds: 200));

@@ -6,10 +6,15 @@ class DriverRuntimeScope extends InheritedWidget {
     super.key,
     required this.session,
     required this.homeBuilder,
+    this.logout,
     required super.child,
   });
   final DriverSessionController session;
   final Widget Function() homeBuilder;
+
+  /// App-level logout: drains storage, clears local data and resets every
+  /// long-lived demo service owned by the composition root.
+  final Future<void> Function()? logout;
   static DriverRuntimeScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<DriverRuntimeScope>();
   @override

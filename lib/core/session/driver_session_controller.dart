@@ -22,6 +22,11 @@ class DriverSessionController extends ChangeNotifier {
   DriverOnlineStatus _status;
   bool _resumeHomeAfterTrip = false;
   String? _activeTripId;
+  // Availability to return to when the active trip ends. A trip never turns a
+  // suspended or deliberately offline driver back into an available one.
+  DriverOnlineStatus _statusBeforeTrip = DriverOnlineStatus.online;
+  bool _suspendAfterTrip = false;
+  bool _offlineAfterTrip = false;
   int _revision = 0;
   bool _disposed = false;
   Future<void> _writes = Future<void>.value();
@@ -39,6 +44,12 @@ class DriverSessionController extends ChangeNotifier {
   void beginTrip(String tripId) {
     if (_disposed) { return; }
     _revision++;
+    if (_activeTripId == null) {
+      _statusBeforeTrip = _status == DriverOnlineStatus.onTrip
+          ? DriverOnlineStatus.online
+          : _status;
+    }
+    if (_status == DriverOnlineStatus.suspended) { _suspendAfterTrip = true; }
     _activeTripId = tripId;
     _status = DriverOnlineStatus.onTrip;
     notifyListeners();
@@ -55,8 +66,15 @@ class DriverSessionController extends ChangeNotifier {
 
   bool get isSuspended => _status == DriverOnlineStatus.suspended;
 
+  /// Bool availability command. During a trip it records what should happen
+  /// when the trip ends instead of interrupting the trip.
   void setOnline(bool value) {
-    if (_disposed || _activeTripId != null || (isSuspended && value)) { return; }
+    if (_disposed) { return; }
+    if (_activeTripId != null) {
+      _offlineAfterTrip = !value;
+      return;
+    }
+    if (isSuspended && value) { return; }
     _revision++;
     final next = value ? DriverOnlineStatus.online : DriverOnlineStatus.offline;
     if (_status == next) { return; }
@@ -84,7 +102,9 @@ class DriverSessionController extends ChangeNotifier {
   }
 
   void suspend() {
-    if (_disposed || _status == DriverOnlineStatus.suspended) { return; }
+    if (_disposed) { return; }
+    if (_activeTripId != null) { _suspendAfterTrip = true; }
+    if (_status == DriverOnlineStatus.suspended) { return; }
     _revision++;
     _status = DriverOnlineStatus.suspended;
     notifyListeners();
@@ -108,19 +128,34 @@ class DriverSessionController extends ChangeNotifier {
     }
   }
 
-  void stayOnlineAfterTrip() {
+  /// Ends trip occupancy and returns to the availability the driver had
+  /// before the trip, unless the driver was suspended or asked to go offline
+  /// meanwhile. Only an available driver becomes available again.
+  void endTrip() {
     if (_disposed) { return; }
     _revision++;
-    _activeTripId = null;
-    _status = DriverOnlineStatus.online;
-    _save(() => _repository.saveOnline(true));
-    _resumeHomeAfterTrip = true;
-    if (!isOnline) {
-      _status = DriverOnlineStatus.online;
-      _save(() => _repository.saveOnline(true));
+    final DriverOnlineStatus next;
+    if (_suspendAfterTrip || _status == DriverOnlineStatus.suspended) {
+      next = DriverOnlineStatus.suspended;
+    } else if (_offlineAfterTrip ||
+        _statusBeforeTrip == DriverOnlineStatus.offline) {
+      next = DriverOnlineStatus.offline;
+    } else {
+      next = DriverOnlineStatus.online;
     }
+    _activeTripId = null;
+    _suspendAfterTrip = false;
+    _offlineAfterTrip = false;
+    _statusBeforeTrip = DriverOnlineStatus.online;
+    _status = next;
+    _resumeHomeAfterTrip = true;
+    _save(() => _repository.saveOnline(next == DriverOnlineStatus.online));
     notifyListeners();
   }
+
+  /// Kept for existing call sites. Same as [endTrip]: it no longer forces a
+  /// suspended or offline driver back online.
+  void stayOnlineAfterTrip() => endTrip();
 
   bool consumeResumeHomeAfterTrip() {
     if (!_resumeHomeAfterTrip) { return false; }
@@ -132,6 +167,9 @@ class DriverSessionController extends ChangeNotifier {
     if (_disposed) { return; }
     _revision++;
     _activeTripId = null;
+    _suspendAfterTrip = false;
+    _offlineAfterTrip = false;
+    _statusBeforeTrip = DriverOnlineStatus.online;
     if (_status == DriverOnlineStatus.offline && !_resumeHomeAfterTrip) {
       _save(_repository.clear);
       return;

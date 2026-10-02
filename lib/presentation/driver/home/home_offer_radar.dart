@@ -463,7 +463,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         context,
         ActiveRideTransition(
           AcceptRide(
-            offerId: '${offer.id}-${DateTime.now().microsecondsSinceEpoch}',
+            offerId: tripOccurrenceId(offer.id),
             fare: offer.fare,
             category: offer.category,
             matchedVia: offer.reservation ? 'Reservation' : 'Exclusive Radar',
@@ -510,7 +510,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         context,
         ActiveRideTransition(
           AcceptRide(
-            offerId: '${offer.id}-${DateTime.now().microsecondsSinceEpoch}',
+            offerId: tripOccurrenceId(offer.id),
             fare: offer.fare,
             category: offer.category,
             matchedVia: 'Movera Radar',

@@ -29,7 +29,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
         foregroundColor: AppColor.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
+        leading: IconButton(tooltip: 'Back', 
           icon: Icon(
             Icons.arrow_back_ios,
             color: AppColor.title,

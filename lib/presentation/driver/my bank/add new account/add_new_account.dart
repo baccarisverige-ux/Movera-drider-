@@ -19,7 +19,7 @@ class AddNewAccount extends StatelessWidget {
         backgroundColor: AppColor.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
+        leading: IconButton(tooltip: 'Back', 
           onPressed: () => Navigator.of(context).maybePop(),
           icon: Icon(
             Icons.arrow_back_ios_rounded,

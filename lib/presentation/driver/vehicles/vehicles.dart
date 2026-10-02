@@ -31,7 +31,7 @@ class _DriverVehiclesState extends State<DriverVehicles> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
+        leading: IconButton(tooltip: 'Back', 
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
@@ -44,7 +44,7 @@ class _DriverVehiclesState extends State<DriverVehicles> {
           ),
         ),
         actions: [
-          IconButton(
+          IconButton(tooltip: 'Add vehicle', 
             onPressed: () async {
               await Navigator.push(
                 context,

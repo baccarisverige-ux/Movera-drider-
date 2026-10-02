@@ -29,7 +29,7 @@ class ChatAppBar extends StatelessWidget {
       leading: Row(
         children: [
           8.width,
-          IconButton(
+          IconButton(tooltip: 'Back', 
             onPressed: () {
               Navigator.pop(context);
             },

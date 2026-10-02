@@ -162,7 +162,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         backgroundColor: AppColor.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
+        leading: IconButton(tooltip: 'Back', 
           onPressed: () => Navigator.pop(context),
           icon: Icon(
             Icons.arrow_back_ios_rounded,
@@ -178,7 +178,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
           fontWeight: fwMedium,
         ),
         actions: [
-          IconButton(
+          IconButton(tooltip: 'Add trusted contact', 
             key: const ValueKey<String>('add-emergency-contact'),
             onPressed: _addContact,
             icon: const Icon(Icons.add_rounded, color: Color(0xFF19865C)),
@@ -208,7 +208,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                     ),
                   ),
                   subtitle: Text('${contact.relation} · ${contact.phone}'),
-                  trailing: IconButton(
+                  trailing: IconButton(tooltip: 'Call ${contact.name}', 
                     icon: const Icon(Icons.phone_outlined),
                     onPressed: () => _call(contact),
                   ),
