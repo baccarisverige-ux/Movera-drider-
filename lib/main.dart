@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:movera/core/session/driver_route_observer.dart';
 
 import 'package:movera/core/session/driver_runtime_scope.dart';
+import 'package:movera/core/logging/global_error_hooks.dart';
 
 import 'package:flutter/material.dart';
 import 'package:movera/widgets/demo_mode_banner.dart';
@@ -26,6 +27,8 @@ import 'package:movera/presentation/driver/home/home.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  installGlobalErrorHooks();
   runApp(const MoveraApp());
 }
 
