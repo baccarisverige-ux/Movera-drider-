@@ -137,7 +137,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                     elevation: 1,
                     shadowColor: Colors.black.withValues(alpha: 0.08),
                     shape: const CircleBorder(),
-                    child: IconButton(
+                    child: IconButton(tooltip: 'Back', 
                       key: const ValueKey<String>('destination-picker-back'),
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(
@@ -256,7 +256,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                     ),
                     suffixIcon: _searchController.text.isEmpty
                         ? null
-                        : IconButton(
+                        : IconButton(tooltip: 'Close', 
                             key: const ValueKey<String>(
                               'destination-search-clear',
                             ),

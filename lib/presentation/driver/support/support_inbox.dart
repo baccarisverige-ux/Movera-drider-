@@ -243,7 +243,7 @@ class _ConversationState extends State<_Conversation> {
       )).toList())),
       Container(color: Colors.white, padding: EdgeInsets.fromLTRB(14, 10, 14, MediaQuery.paddingOf(context).bottom + 10), child: Row(children: [
         Expanded(child: TextField(controller: input, decoration: InputDecoration(hintText: 'Write a local draft', filled: true, fillColor: const Color(0xFFF2F4F5), border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none)))),
-        const SizedBox(width: 9), IconButton.filled(key:const ValueKey('local-reply-save'),onPressed: _saving ? null : saveMessage, style: IconButton.styleFrom(backgroundColor: const Color(0xFF202A30)), icon: const Icon(Icons.arrow_upward_rounded)),
+        const SizedBox(width: 9), IconButton.filled(tooltip: 'Send', key:const ValueKey('local-reply-save'),onPressed: _saving ? null : saveMessage, style: IconButton.styleFrom(backgroundColor: const Color(0xFF202A30)), icon: const Icon(Icons.arrow_upward_rounded)),
       ])),
     ]),
   );

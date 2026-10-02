@@ -149,7 +149,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 15),
       child: Row(
         children: [
-          IconButton(
+          IconButton(tooltip: 'Back', 
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.arrow_back_rounded),
             color: const Color(0xFF252E3A),
@@ -619,7 +619,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
+        leading: IconButton(tooltip: 'Back', 
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_rounded),
           color: _ink,
@@ -1403,7 +1403,7 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
                       ],
                     ),
                   ),
-                  IconButton(
+                  IconButton(tooltip: 'Close', 
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
                     color: const Color(0xFF39444A),
