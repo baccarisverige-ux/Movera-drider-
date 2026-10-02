@@ -123,10 +123,27 @@ extension _AcceptRideTrip on _AcceptRideState {
         dropoff: widget.dropoffAddress,
         source: widget.matchedVia,
         driverName: 'Movera Driver',
-        vehicle: 'Movera partner vehicle',
-        licensePlate: 'MVR 418',
+        vehicle: _vehicleLabel,
+        licensePlate: _vehiclePlate,
         passengerCapacity: 4,
       );
+    }
+    /// Waybills show the same vehicle as Profile and Vehicles.
+    Future<void> _loadVehicleIdentity() async {
+      final identity = await LocalVehicleStore().primaryIdentity();
+      if (!mounted || identity == null) { return; }
+      _vehicleLabel = identity.vehicle;
+      _vehiclePlate = identity.plate;
+      for (final (record, apply) in [
+        (_waybills.current, _waybills.beginCurrent),
+        (_waybills.next, _waybills.secureNext),
+      ]) {
+        if (record != null &&
+            record.vehicle != _vehicleLabel &&
+            (record.tripId == widget.offerId || record.tripId == _nextTripRadarOffer?.id)) {
+          apply(record.copyWith(vehicle: _vehicleLabel, licensePlate: _vehiclePlate));
+        }
+      }
     }
     WaybillRecord _buildNextWaybill(_NextTripRadarOffer offer) {
       return WaybillRecord(
@@ -140,8 +157,8 @@ extension _AcceptRideTrip on _AcceptRideState {
         dropoff: offer.dropoff,
         source: 'Demo Radar',
         driverName: 'Movera Driver',
-        vehicle: 'Movera partner vehicle',
-        licensePlate: 'MVR 418',
+        vehicle: _vehicleLabel,
+        licensePlate: _vehiclePlate,
         passengerCapacity: 4,
       );
     }
@@ -226,24 +243,61 @@ extension _AcceptRideTrip on _AcceptRideState {
             _waybills.current ?? _buildCurrentWaybill(), status: status, authoritative:true, next:next);
           if (!mounted) { return; }
           if (!await _rideLifecycle.applyProjection(status)) { return; }
-          _pauseLiveUpdates();
-          _waybills.discardCurrent();
-          widget.sessionController?.stayOnlineAfterTrip();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Trip ended: ${status.wireName}')));
-            if (Navigator.of(context).canPop()) { Navigator.of(context).pop(); }
-          }
+          if (identical(event, _pendingProjection)) { _pendingProjection = null; }
+          _projectionRetryDelay = _AcceptRideState._projectionRetryBase;
+          await _leaveAfterAuthoritativeOutcome(status, next);
+          return;
         } else {
           if (!await _rideLifecycle.applyProjection(status)) { return; }
           if (mounted) { _rebuild(() {}); _resumeStageSideEffects(); }
         }
-        if (status == TripStatus.cancelledByRider && !_rideLifecycle.terminal) { return; }
+        if (status == TripStatus.cancelledByRider && !_rideLifecycle.terminal) {
+          _scheduleProjectionRetry();
+          return;
+        }
         if (identical(event, _pendingProjection)) { _pendingProjection = null; }
+        _projectionRetryDelay = _AcceptRideState._projectionRetryBase;
       } catch (_) {
         if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Trip update could not be saved.'),
-          action: SnackBarAction(label: 'Retry', onPressed: () => unawaited(_drainProjection())))); }
+          content: const Text('Trip update could not be saved. Retrying automatically.'),
+          action: SnackBarAction(label: 'Retry now', onPressed: () => unawaited(_drainProjection())))); }
+        _scheduleProjectionRetry();
       } finally { _drainingProjection = false; }
+    }
+    /// An authoritative terminal outcome must not depend on the driver seeing
+    /// a SnackBar. Retry with bounded backoff until it is applied.
+    void _scheduleProjectionRetry() {
+      if (!mounted || _pendingProjection == null || _projectionRetry != null) { return; }
+      final delay = _projectionRetryDelay;
+      _projectionRetryDelay = delay * 2 > _AcceptRideState._projectionRetryMax
+          ? _AcceptRideState._projectionRetryMax
+          : delay * 2;
+      _projectionRetry = Timer(delay, () {
+        _projectionRetry = null;
+        unawaited(_drainProjection());
+      });
+    }
+    /// Shared exit for every authoritative terminal outcome: same timers,
+    /// waybill, session and queued-trip handoff as driver completion.
+    Future<void> _leaveAfterAuthoritativeOutcome(TripStatus status, PersistedActiveRide? next) async {
+      _waitTimer?.cancel();
+      _nextTripRadarDemoTimer?.cancel();
+      _nextTripRadarMatchTimer?.cancel();
+      _pauseLiveUpdates();
+      _waybills.discardCurrent();
+      await showTripOutcomeSheet(context, status: status, hasNext: next != null);
+      if (!mounted) { return; }
+      widget.sessionController?.stayOnlineAfterTrip();
+      if (next != null) {
+        _waybills.promoteNextToCurrent();
+        Navigator.of(context).pushReplacement(BottomToTopTransition(AcceptRide.fromPersisted(next,
+          waybillRepository:_waybills,sessionController:widget.sessionController,
+          locationRepository:widget.locationRepository,routeRepository:widget.routeRepository,
+          activeRideRepository:widget.activeRideRepository)));
+        return;
+      }
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) { navigator.pop(); }
     }
     Future<void> _handleRiderCancelled() async {
       if (!mounted ||

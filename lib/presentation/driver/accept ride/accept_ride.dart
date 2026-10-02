@@ -34,6 +34,8 @@ import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
 import 'package:movera/presentation/driver/accept%20ride/rider_cancelled_sheet.dart';
+import 'package:movera/presentation/driver/accept%20ride/trip_outcome_sheet.dart';
+import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
 import 'package:movera/presentation/driver/sheets/movera_snap_sheet_controller.dart';
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
@@ -146,6 +148,7 @@ class AcceptRide extends StatefulWidget {
     WaybillRepository? waybillRepository,
     DriverSessionController? sessionController,
     ActiveRideRepository? activeRideRepository,
+    DriverRealtime? realtime,
   }) {
     if (!snapshot.hasVerifiedEndpoints) { throw StateError('Saved trip requires verified pickup and drop-off coordinates'); }
     final pickup = snapshot.pickupAddress ?? 'Address unavailable';
@@ -176,6 +179,7 @@ class AcceptRide extends StatefulWidget {
       waybillRepository: waybillRepository,
       sessionController: sessionController,
       activeRideRepository: activeRideRepository,
+      realtime: realtime,
       initialStage: snapshot.stage,
       initialWaitSeconds: snapshot.waitSeconds ?? 0,
       restoredSnapshot: snapshot,
@@ -422,6 +426,11 @@ class _AcceptRideState extends State<AcceptRide>
   DriverRealtimeEvent? _pendingProjection;
   bool _drainingProjection = false;
   Timer? _projectionRetry;
+  String _vehicleLabel = 'Vehicle data unavailable';
+  String _vehiclePlate = 'Plate unavailable';
+  static const Duration _projectionRetryBase = Duration(seconds: 1);
+  static const Duration _projectionRetryMax = Duration(seconds: 30);
+  Duration _projectionRetryDelay = _projectionRetryBase;
   bool _completionInFlight = false;
   bool _cancellationInFlight = false;
   bool _blockMapGestures = false;
@@ -475,6 +484,7 @@ class _AcceptRideState extends State<AcceptRide>
       }
       _AcceptRideTrip(this)._resumeStageSideEffects();
       _rideLifecycle.persistNow();
+      unawaited(_AcceptRideTrip(this)._loadVehicleIdentity());
     });
     _radarPulseController = AnimationController(
       vsync: this,
