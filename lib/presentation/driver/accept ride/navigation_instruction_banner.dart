@@ -23,7 +23,7 @@ class NavigationInstructionBanner extends StatelessWidget {
   });
 
   /// Height under the status bar, used to keep the route out from under the tab.
-  static const double belowSafeExtent = 118;
+  static const double belowSafeExtent = 154;
 
   final NavigationBanner? banner;
   final String? etaLabel;
@@ -53,108 +53,118 @@ class NavigationInstructionBanner extends StatelessWidget {
     final symbol = live?.symbol;
 
     return Material(
-      key: const ValueKey<String>('active-ride-navigation-card'),
-      color: Colors.white,
-      elevation: 8,
-      shadowColor: const Color(0x1A172027),
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
+      color: Colors.transparent,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          16 + pad.left,
+          12 + pad.left,
           8 + pad.top,
-          16 + pad.right,
-          10,
+          12 + pad.right,
+          0,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F8F9),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _line),
+        child: Container(
+          key: const ValueKey<String>('active-ride-navigation-card'),
+          decoration: BoxDecoration(
+            color: const Color(0xFF050505),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: const Color(0x24FFFFFF)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x38000000),
+                blurRadius: 24,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 62,
+                    height: 62,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF171A1D),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0x24FFFFFF)),
+                    ),
+                    alignment: Alignment.center,
+                    child: CustomPaint(
+                      size: const Size(34, 34),
+                      painter: _CuePainter(symbol: symbol, icon: icon),
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  child: CustomPaint(
-                    size: const Size(22, 22),
-                    painter: _CuePainter(symbol: symbol, icon: icon),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (eyebrow.isNotEmpty)
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (eyebrow.isNotEmpty) ...[
+                          Text(
+                            eyebrow.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFB9C0C5),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.35,
+                              height: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
                         Text(
-                          eyebrow,
-                          maxLines: 1,
+                          hero,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: _ink,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.25,
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.55,
+                            height: 1.02,
                           ),
                         ),
-                      Text(
-                        hero,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _ink,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.35,
-                          height: 1.2,
-                        ),
-                      ),
-                      if (meta.isNotEmpty)
-                        Text(
-                          meta,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _muted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            height: 1.25,
+                        if (meta.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            meta,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFC4C9CD),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              height: 1.2,
+                            ),
                           ),
-                        ),
-                    ],
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-                if (radarSwitch) ...[
-                  const SizedBox(width: 8),
-                  _RadarOnOff(
-                    on: radarOn,
-                    onTap: onRadarToggle,
-                  ),
-                ],
-                if (waitSeconds != null) ...[
-                  const SizedBox(width: 8),
-                  WaitingClock(
-                    seconds: waitSeconds!,
-                    diameter: 46,
-                    onTap: onWaitTap,
-                  ),
-                ] else if (eta.isNotEmpty) ...[
-                  const SizedBox(width: 10),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 88),
-                    child: Container(
+                  if (waitSeconds != null) ...[
+                    const SizedBox(width: 10),
+                    WaitingClock(
+                      seconds: waitSeconds!,
+                      diameter: 50,
+                      onTap: onWaitTap,
+                    ),
+                  ] else if (eta.isNotEmpty) ...[
+                    const SizedBox(width: 10),
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 58, maxWidth: 78),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 6,
+                        horizontal: 10,
+                        vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF7F8F9),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _line),
+                        color: const Color(0xFF171A1D),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: const Color(0x24FFFFFF)),
                       ),
                       child: Text(
                         eta,
@@ -162,24 +172,39 @@ class NavigationInstructionBanner extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: _ink,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.2,
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
-            if (address.trim().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              _NextStopLine(
-                key: ValueKey<String>(address),
-                address: address.trim(),
               ),
+              if (address.trim().isNotEmpty || radarSwitch) ...[
+                const SizedBox(height: 11),
+                Row(
+                  children: [
+                    if (address.trim().isNotEmpty)
+                      Expanded(
+                        child: _NextStopLine(
+                          key: ValueKey<String>(address),
+                          address: address.trim(),
+                        ),
+                      ),
+                    if (address.trim().isNotEmpty && radarSwitch)
+                      const SizedBox(width: 8),
+                    if (radarSwitch)
+                      _RadarOnOff(
+                        on: radarOn,
+                        onTap: onRadarToggle,
+                      ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -196,13 +221,13 @@ class _CuePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF1C242C)
+      ..color = const Color(0xFFF7F8FA)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     final fill = Paint()
-      ..color = const Color(0xFF1C242C)
+      ..color = const Color(0xFFF7F8FA)
       ..style = PaintingStyle.fill;
     final s = size.width / 22;
     Offset p(double x, double y) => Offset(x * s, y * s);
@@ -345,9 +370,9 @@ class _NextStopLineState extends State<_NextStopLine>
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F7F8),
+        color: const Color(0xFF171A1D),
         borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: const Color(0xFFE6E8EA)),
+        border: Border.all(color: const Color(0x33FFFFFF)),
       ),
       child: Row(
         children: [
@@ -395,7 +420,7 @@ class _NextStopLineState extends State<_NextStopLine>
                             child: Container(
                               width: 28,
                               height: 1.5,
-                              color: const Color(0xFF1C242C),
+                              color: const Color(0xFFF7F8FA),
                             ),
                           ),
                         ],
@@ -465,9 +490,8 @@ class _RadarOnOffState extends State<_RadarOnOff>
     final on = widget.on;
     return Material(
       key: const ValueKey<String>('on-trip-radar-switch'),
-      color: Colors.white,
-      elevation: 3,
-      shadowColor: const Color(0x1F172027),
+      color: const Color(0xFF171A1D),
+      elevation: 0,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: widget.onTap,
@@ -508,7 +532,7 @@ class _RadarOnOffState extends State<_RadarOnOff>
                 height: 16,
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
-                  color: on ? ink : const Color(0xFFE6E8EA),
+                  color: on ? ink : const Color(0x33FFFFFF),
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Align(
@@ -544,7 +568,7 @@ class _RadarPulsePainter extends CustomPainter {
       final paint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2
-        ..color = const Color(0xFF1C242C).withValues(alpha: (1 - phase) * 0.55);
+        ..color = const Color(0xFFF7F8FA).withValues(alpha: (1 - phase) * 0.55);
       canvas.drawCircle(center, 3 + phase * 7, paint);
     }
   }
