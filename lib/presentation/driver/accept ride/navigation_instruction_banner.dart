@@ -38,10 +38,6 @@ class NavigationInstructionBanner extends StatelessWidget {
   final int? waitSeconds;
   final VoidCallback? onWaitTap;
 
-  static const _ink = Color(0xFF1C242C);
-  static const _muted = Color(0xFF7D898F);
-  static const _line = Color(0xFFE6E8EA);
-
   @override
   Widget build(BuildContext context) {
     final live = banner;
@@ -360,7 +356,7 @@ class _NextStopLineState extends State<_NextStopLine>
   @override
   Widget build(BuildContext context) {
     const style = TextStyle(
-      color: Color(0xFF1C242C),
+      color: Color(0xFFF7F8FA),
       fontSize: 14,
       fontWeight: FontWeight.w700,
       letterSpacing: -0.2,
@@ -379,7 +375,7 @@ class _NextStopLineState extends State<_NextStopLine>
           const Text(
             'TO',
             style: TextStyle(
-              color: Color(0xFF1C242C),
+              color: Color(0xFFB9C0C5),
               fontSize: 10,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.1,
@@ -485,7 +481,7 @@ class _RadarOnOffState extends State<_RadarOnOff>
 
   @override
   Widget build(BuildContext context) {
-    const ink = Color(0xFF1C242C);
+    const ink = Color(0xFFF7F8FA);
     const quiet = Color(0xFFB7BFC4);
     final on = widget.on;
     return Material(
