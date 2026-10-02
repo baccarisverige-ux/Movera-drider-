@@ -35,7 +35,11 @@ void main() {
 /// feature screens. When backend adapters replace the current frontend
 /// implementations, screen code does not need to change.
 class MoveraApp extends StatefulWidget {
-  const MoveraApp({super.key});
+  const MoveraApp({super.key, this.locationRepository});
+
+  /// Defaults to the device GPS. Tests inject a scripted source so the app
+  /// root never depends on host location services.
+  final DriverLocationRepository? locationRepository;
 
   @override
   State<MoveraApp> createState() => _MoveraAppState();
@@ -58,7 +62,7 @@ class _MoveraAppState extends State<MoveraApp> {
     _sessionStore = MemoryDriverSessionRepository();
     _session = DriverSessionController(repository: _sessionStore);
     _waybills = InMemoryWaybillRepository.instance;
-    _location = const DriverLocationService();
+    _location = widget.locationRepository ?? const DriverLocationService();
     _routing = RoadRouteService();
     _dispatch = DemoDispatchRepository();
     _homeConfig = const LocalDriverHomeConfigRepository();

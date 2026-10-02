@@ -14,12 +14,14 @@ import 'package:movera/core/admin/driver_home_admin_content.dart';
 import 'package:movera/core/admin/driver_home_config_repository.dart';
 import 'package:movera/core/dispatch/dispatch_repository.dart';
 import 'package:movera/core/dispatch/demo_dispatch_repository.dart';
+import 'package:movera/core/dispatch/trip_occurrence.dart';
 import 'package:movera/core/geo/geo_point_maps.dart';
 import 'package:movera/core/routing/route_maps.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/logging/driver_log.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
+import 'package:movera/core/session/driver_runtime_config.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
@@ -293,9 +295,8 @@ class _DriverHomeState extends State<DriverHome>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    final widgetTest =
-        WidgetsBinding.instance.runtimeType.toString().contains('Test');
-    isAccountActivated = widgetTest || !widget.accountPending;
+    isAccountActivated = DriverRuntimeConfig.current.skipAccountActivation ||
+        !widget.accountPending;
     _ownsDriverSession = widget.sessionController == null;
     _driverSession = widget.sessionController ??
         DriverSessionController(initialOnline: widget.initialOnline);

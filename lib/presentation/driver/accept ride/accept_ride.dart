@@ -22,6 +22,7 @@ import 'package:movera/core/navigation/navigation_controller.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/realtime/driver_realtime.dart';
+import 'package:movera/core/session/driver_runtime_config.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
@@ -579,10 +580,7 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
 
-  bool get _arrivalDemo {
-    final binding = WidgetsBinding.instance.runtimeType.toString();
-    return binding.contains('Test');
-  }
+  bool get _arrivalDemo => DriverRuntimeConfig.current.simulatedArrival;
 
   LatLng? get _arrivalTarget {
     if (_stage == ActiveRideStage.headingToPickup) { return widget.pickupPosition; }
@@ -647,11 +645,7 @@ class _AcceptRideState extends State<AcceptRide>
 
 
 
-  bool get _allowExternalRouting {
-    return !WidgetsBinding.instance.runtimeType
-        .toString()
-        .contains('TestWidgetsFlutterBinding');
-  }
+  bool get _allowExternalRouting => DriverRuntimeConfig.current.externalRouting;
 
 
 
@@ -1051,10 +1045,7 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
   void initState() {
     super.initState();
     _pose = widget.vehicle.current;
-    final inTests = WidgetsBinding.instance.runtimeType
-        .toString()
-        .contains('TestWidgetsFlutterBinding');
-    if (inTests) { return; }
+    if (!DriverRuntimeConfig.current.liveMapTicker) { return; }
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
       if (!mounted) { return; }
       final next = widget.vehicle.current;
