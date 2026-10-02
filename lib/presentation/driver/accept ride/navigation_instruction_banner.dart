@@ -49,6 +49,7 @@ class NavigationInstructionBanner extends StatelessWidget {
     final symbol = live?.symbol;
 
     return Material(
+      key: const ValueKey<String>('active-ride-navigation-card'),
       color: Colors.transparent,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -58,7 +59,6 @@ class NavigationInstructionBanner extends StatelessWidget {
           0,
         ),
         child: Container(
-          key: const ValueKey<String>('active-ride-navigation-card'),
           decoration: BoxDecoration(
             color: const Color(0xFF050505),
             borderRadius: BorderRadius.circular(26),
