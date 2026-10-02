@@ -15,6 +15,9 @@ import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/ride/prefs_active_ride_repository.dart';
+import 'package:movera/core/ride/completion_journal.dart';
+import 'package:movera/core/privacy/local_data.dart';
+import 'package:movera/core/settings/settings_repository.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/session/driver_session_repository.dart';
@@ -94,6 +97,7 @@ class _MoveraAppState extends State<MoveraApp> {
               return DriverRuntimeScope(
                 session: _session,
                 homeBuilder: _home,
+                logout: _logout,
                 child: LayoutViewport(
                   child: Column(
                     children: [
@@ -109,6 +113,19 @@ class _MoveraAppState extends State<MoveraApp> {
         },
       ),
     );
+  }
+
+  Future<void> _logout() async {
+    await PrefsActiveRideRepository.settle();
+    await CompletionJournal.settle();
+    await SettingsRepository.settle();
+    await clearLocalUserData();
+    _waybills.reset();
+    final dispatch = _dispatch;
+    if (dispatch is DemoDispatchRepository) {
+      dispatch.reset();
+    }
+    _session.reset();
   }
 
   Widget _home() => DriverHome(

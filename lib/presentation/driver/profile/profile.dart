@@ -307,11 +307,25 @@ class DriverProfile extends StatelessWidget {
       },
     );
     if (leave == true && context.mounted) {
-      await clearLocalUserData();
+      final runtime = DriverRuntimeScope.maybeOf(context);
+      try {
+        if (runtime?.logout != null) {
+          await runtime!.logout!();
+        } else {
+          await clearLocalUserData();
+          runtime?.session.reset();
+        }
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not clear local data. You are still signed in. Please retry.'),
+          ));
+        }
+        return;
+      }
       if (!context.mounted) {
         return;
       }
-      DriverRuntimeScope.maybeOf(context)?.session.reset();
       Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const DriverStarter()),
         (route) => false,

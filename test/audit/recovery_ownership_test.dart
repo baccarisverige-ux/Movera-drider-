@@ -27,7 +27,7 @@ void main() {
   test('malformed storage is an error and remains available for recovery', () async {
     final prefs=await SharedPreferences.getInstance();
     await prefs.setString(PrefsActiveRideRepository.key,'broken-json');
-    await expectLater(PrefsActiveRideRepository().read(),throwsFormatException);
+    await expectLater(PrefsActiveRideRepository().read(),throwsA(isA<ActiveRideUnreadable>()));
     expect(prefs.getString(PrefsActiveRideRepository.key),'broken-json');
   });
   test('future timestamps and malformed coordinates cannot bypass recovery', () {
