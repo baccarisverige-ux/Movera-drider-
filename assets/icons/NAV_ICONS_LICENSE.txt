@@ -1,3 +1,7 @@
-Bottom-sheet navigation icons sourced from Lucide Icons (lucide-static v0.469.0).
+Bottom-sheet navigation icons.
+
+Lucide Icons (lucide-static v0.469.0)
 License: ISC — https://lucide.dev/license
-Icons: layout-grid, credit-card, messages-square, calendar-days
+Lucide assets: layout-grid, credit-card, messages-square
+
+The schedule calendar+clock glyph in nav_calendar_days.svg is an original Movera vector asset.
