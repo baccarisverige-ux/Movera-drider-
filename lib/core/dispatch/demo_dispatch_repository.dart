@@ -200,6 +200,16 @@ class DemoDispatchRepository implements DispatchRepository {
     _nearby.add(List<RideOffer>.unmodifiable(_offers));
   }
 
+  /// Returns the demo to its first-launch offer set, for logout/re-entry.
+  void reset() {
+    _newOfferTimer?.cancel();
+    _externalClaimTimer?.cancel();
+    _offers = List<RideOffer>.from(_immediateOffers);
+    _queued = List<RideOffer>.from(_laterOffers);
+    _demoStarted = false;
+    _emitNearby();
+  }
+
   void dispose() {
     _newOfferTimer?.cancel();
     _externalClaimTimer?.cancel();

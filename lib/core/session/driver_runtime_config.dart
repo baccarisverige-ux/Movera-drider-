@@ -1,0 +1,55 @@
+/// Runtime switches chosen by the build, never inferred from the binding.
+///
+/// Earlier code checked whether `WidgetsBinding` was a test binding to skip
+/// account activation, GPS arrival and external routing. That made tests run
+/// different code than users. These switches are now explicit: the build sets
+/// them with `--dart-define`, and tests set them in `flutter_test_config.dart`.
+class DriverRuntimeConfig {
+  const DriverRuntimeConfig({
+    required this.simulatedArrival,
+    required this.externalRouting,
+    required this.skipAccountActivation,
+    this.liveMapTicker = true,
+  });
+
+  /// Demo builds only: arrival does not require a live GPS fix within 100 m of
+  /// the demo pickup, so the demo works outside Stockholm. Production builds
+  /// set `MOVERA_DEMO_ARRIVAL=false` to keep the fresh, accurate GPS gate.
+  final bool simulatedArrival;
+
+  /// Whether the active ride requests road routes from the routing service.
+  final bool externalRouting;
+
+  /// Skip the pending-account activation hold on Home.
+  final bool skipAccountActivation;
+
+  /// 200 ms refresh of the active-ride vehicle pose on the map. Widget tests
+  /// turn it off because a fake clock cannot drain a periodic timer.
+  final bool liveMapTicker;
+
+  /// Values compiled into this build.
+  static const DriverRuntimeConfig build = DriverRuntimeConfig(
+    simulatedArrival: bool.fromEnvironment(
+      'MOVERA_DEMO_ARRIVAL',
+      defaultValue: true,
+    ),
+    externalRouting: bool.fromEnvironment(
+      'MOVERA_EXTERNAL_ROUTING',
+      defaultValue: true,
+    ),
+    skipAccountActivation: bool.fromEnvironment(
+      'MOVERA_SKIP_ACTIVATION',
+      defaultValue: false,
+    ),
+  );
+
+  /// Production policy: every gate enforced.
+  static const DriverRuntimeConfig production = DriverRuntimeConfig(
+    simulatedArrival: false,
+    externalRouting: true,
+    skipAccountActivation: false,
+  );
+
+  /// Config read by screens. Tests replace it; app code never writes it.
+  static DriverRuntimeConfig current = build;
+}

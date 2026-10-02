@@ -1,0 +1,83 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:movera/core/dispatch/demo_dispatch_repository.dart';
+import 'package:movera/core/session/driver_session_controller.dart';
+import 'package:movera/core/session/driver_session_repository.dart';
+
+typedef _Setup = void Function(DriverSessionController session);
+
+void main() {
+  // (description, before trip, during trip, expected after trip)
+  final cases = <(String, _Setup, _Setup, DriverOnlineStatus)>[
+    ('online driver returns online', (s) => s.setOnline(true), (_) {}, DriverOnlineStatus.online),
+    ('offline restored trip returns offline', (_) {}, (_) {}, DriverOnlineStatus.offline),
+    ('suspension during trip survives the trip end', (s) => s.setOnline(true), (s) => s.suspend(), DriverOnlineStatus.suspended),
+    ('suspended before restored trip stays suspended', (s) => s.suspend(), (_) {}, DriverOnlineStatus.suspended),
+    ('go offline during trip applies after the trip', (s) => s.setOnline(true), (s) => s.setOnline(false), DriverOnlineStatus.offline),
+    ('offline intent can be withdrawn during trip', (s) => s.setOnline(true), (s) { s.setOnline(false); s.setOnline(true); }, DriverOnlineStatus.online),
+    ('suspension wins over online intent', (s) => s.setOnline(true), (s) { s.suspend(); s.setOnline(true); }, DriverOnlineStatus.suspended),
+  ];
+
+  for (final (name, before, during, expected) in cases) {
+    test(name, () async {
+      final store = MemoryDriverSessionRepository();
+      final session = DriverSessionController(repository: store);
+      before(session);
+      session.beginTrip('trip-a');
+      expect(session.status, DriverOnlineStatus.onTrip);
+      expect(session.availableForOffers, isFalse);
+      during(session);
+      expect(session.activeTripId, 'trip-a');
+      session.endTrip();
+      expect(session.status, expected);
+      expect(session.activeTripId, isNull);
+      expect(session.availableForOffers, expected == DriverOnlineStatus.online);
+      await Future<void>.delayed(Duration.zero);
+      expect(await store.readOnline(), expected == DriverOnlineStatus.online);
+    });
+  }
+
+  test('queued next trip keeps the pre-trip availability across the chain', () {
+    final session = DriverSessionController();
+    session.suspend();
+    session.beginTrip('a');
+    session.endTrip();
+    session.beginTrip('b');
+    session.endTrip();
+    expect(session.status, DriverOnlineStatus.suspended);
+  });
+
+  test('legacy stayOnlineAfterTrip no longer bypasses suspension', () {
+    final session = DriverSessionController()..setOnline(true);
+    session.beginTrip('a');
+    session.suspend();
+    session.stayOnlineAfterTrip();
+    expect(session.isSuspended, isTrue);
+    expect(session.consumeResumeHomeAfterTrip(), isTrue);
+  });
+
+  test('reset clears pending after-trip intents', () {
+    final session = DriverSessionController()..setOnline(true);
+    session.beginTrip('a');
+    session.suspend();
+    session.reset();
+    session.setOnline(true);
+    expect(session.status, DriverOnlineStatus.online);
+  });
+
+  test('demo dispatch reset restores the first-launch offers', () async {
+    final dispatch = DemoDispatchRepository(
+      claimDelay: Duration.zero,
+      newOfferDelay: const Duration(hours: 1),
+      externalClaimDelay: const Duration(hours: 1),
+    );
+    final seen = <List<String>>[];
+    final sub = dispatch.watchNearbyOffers().listen((offers) => seen.add(offers.map((o) => o.id).toList()));
+    await Future<void>.delayed(Duration.zero);
+    await dispatch.claimOffer('nearby-1');
+    dispatch.reset();
+    await Future<void>.delayed(Duration.zero);
+    expect(seen.last, contains('nearby-1'));
+    await sub.cancel();
+    dispatch.dispose();
+  });
+}
