@@ -11,9 +11,13 @@ class Preferences extends StatefulWidget {
 }
 
 class _PreferencesState extends State<Preferences> {
-  static const Color _ink = Color(0xFF111111);
-  static const Color _muted = Color(0xFF6E737A);
-  static const Color _line = Color(0xFFE3E6EA);
+  // Measured from the approved ride options design.
+  static const Color _ink = Color(0xFF111614);
+  static const Color _heading = Color(0xFF0F221C);
+  static const Color _text = Color(0xFF1F2523);
+  static const Color _border = Color(0xFF2A302E);
+  static const Color _offInk = Color(0xFFB7BCBA);
+  static const Color _offBorder = Color(0xFFDDE1DF);
 
   // Stored order: the saved `selected` list is indexed by this list, so new
   // categories are only ever appended. [_displayOrder] controls the grid.
@@ -147,18 +151,18 @@ class _PreferencesState extends State<Preferences> {
   @override
   Widget build(BuildContext context) {
     final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
+    final side = MediaQuery.sizeOf(context).width >= 360 ? 32.0 : 18.0;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: largeText
             ? ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: side),
                 children: [
-                  _buildTopBar(),
-                  _buildHeading(),
+                  _buildHeader(),
                   for (final index in _displayOrder)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(bottom: 16),
                       child: _buildCategory(index),
                     ),
                   _buildSaveArea(),
@@ -167,18 +171,18 @@ class _PreferencesState extends State<Preferences> {
             : Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(children: [_buildTopBar(), _buildHeading()]),
+                    padding: EdgeInsets.symmetric(horizontal: side),
+                    child: _buildHeader(),
                   ),
                   Expanded(
                     child: GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                      padding: EdgeInsets.fromLTRB(side, 0, side, 10),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            mainAxisExtent: 142,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 14,
+                            mainAxisExtent: 137,
                           ),
                       itemCount: _displayOrder.length,
                       itemBuilder: (context, i) =>
@@ -186,7 +190,7 @@ class _PreferencesState extends State<Preferences> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: EdgeInsets.symmetric(horizontal: side),
                     child: _buildSaveArea(),
                   ),
                 ],
@@ -195,78 +199,63 @@ class _PreferencesState extends State<Preferences> {
     );
   }
 
-  Widget _buildTopBar() {
-    return Row(
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        IconButton(
-          tooltip: 'Back',
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: _ink,
-          padding: EdgeInsets.zero,
-          alignment: Alignment.centerLeft,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            '$_selectedCount of ${_categories.length} active',
-            textAlign: TextAlign.end,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHeading() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(0, 6, 0, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: double.infinity,
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Align(
+            alignment: Alignment.centerRight,
             child: Text(
-              'Choose your ride options',
-              style: TextStyle(
-                color: _ink,
-                fontSize: 28,
-                height: 1.15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.6,
+              '$_selectedCount of ${_categories.length} active',
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                color: _text,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          SizedBox(height: 8),
-          Text(
-            "Select the ride types you'd like available for your trips",
-            style: TextStyle(
-              color: _muted,
-              fontSize: 14,
-              height: 1.35,
-              fontWeight: FontWeight.w500,
-            ),
+        ),
+        const SizedBox(height: 30),
+        const Text(
+          'Choose your ride options',
+          style: TextStyle(
+            color: _heading,
+            fontSize: 29,
+            height: 1.1,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.8,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          "Select the ride types you'd like available for your trips",
+          style: TextStyle(
+            color: _text,
+            fontSize: 14,
+            height: 1.3,
+            fontWeight: FontWeight.w400,
+            letterSpacing: -0.2,
+          ),
+        ),
+        const SizedBox(height: 14),
+      ],
     );
   }
 
   Widget _buildCategory(int index) {
     final category = _categories[index];
     final selected = _selected[index];
-    final foreground = selected ? _ink : const Color(0xFFB4B9BF);
+    final radius = BorderRadius.circular(11);
 
     return Semantics(
       button: true,
       selected: selected,
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: radius,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => _toggle(index),
@@ -274,46 +263,59 @@ class _PreferencesState extends State<Preferences> {
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: radius,
               border: Border.all(
-                color: selected ? _ink : _line,
-                width: selected ? 1.4 : 1.2,
+                color: selected ? _border : _offBorder,
+                width: 1.1,
               ),
             ),
-            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const SizedBox(height: 14),
                 SvgPicture.asset(
                   category.icon,
-                  height: 58,
-                  colorFilter: ColorFilter.mode(foreground, BlendMode.srcIn),
+                  width: 124,
+                  height: 68,
+                  colorFilter: ColorFilter.mode(
+                    selected ? _ink : _offInk,
+                    BlendMode.srcIn,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  category.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: selected ? _ink : _muted,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    category.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: selected ? _heading : _offInk,
+                      fontSize: 17,
+                      height: 1.25,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.4,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  category.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 12,
-                    height: 1.25,
-                    fontWeight: FontWeight.w500,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    category.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: selected ? _text : _offInk,
+                      fontSize: 12,
+                      height: 1.25,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -324,10 +326,10 @@ class _PreferencesState extends State<Preferences> {
 
   Widget _buildSaveArea() {
     return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 12),
+      padding: const EdgeInsets.only(top: 4, bottom: 16),
       child: SizedBox(
         width: double.infinity,
-        height: 56,
+        height: 50,
         child: FilledButton(
           onPressed: _selectedCount == 0 ? null : _save,
           style: FilledButton.styleFrom(
@@ -335,12 +337,16 @@ class _PreferencesState extends State<Preferences> {
             foregroundColor: Colors.white,
             disabledBackgroundColor: const Color(0xFFD6DBDE),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(11),
             ),
           ),
           child: const Text(
             'Save preferences',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.2,
+            ),
           ),
         ),
       ),
