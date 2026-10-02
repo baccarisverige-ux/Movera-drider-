@@ -154,9 +154,9 @@ class NavigationInstructionBanner extends StatelessWidget {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF171A1D),
+                        color: const Color(0xFF3B434D),
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: const Color(0x24FFFFFF)),
+                        border: Border.all(color: const Color(0x2EFFFFFF)),
                       ),
                       child: Text(
                         eta,
