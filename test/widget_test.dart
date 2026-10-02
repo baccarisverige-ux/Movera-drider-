@@ -1,6 +1,7 @@
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:movera/presentation/driver/preferences/preferences.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/main.dart';
 import 'package:movera/core/geo/geo_point.dart';
@@ -337,11 +338,12 @@ void main() {
     expect(scheduledTapped, isTrue);
     _expectNoException(tester);
 
-    final menu = find.byTooltip('Menu');
-    expect(menu, findsOneWidget);
-    await tester.tap(menu);
+    final preferences = find.byTooltip('Ride preferences');
+    expect(preferences, findsOneWidget);
+    await tester.tap(preferences);
     await tester.pumpAndSettle();
-    expect(scaffoldKey.currentState?.isDrawerOpen, isTrue);
+    expect(find.byType(Preferences), findsOneWidget);
+    expect(scaffoldKey.currentState?.isDrawerOpen, isFalse);
     _expectNoException(tester);
   });
 

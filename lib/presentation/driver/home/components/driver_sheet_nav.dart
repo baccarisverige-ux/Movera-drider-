@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/driver/home/components/radar_edge_dash.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
+import 'package:movera/presentation/driver/preferences/preferences.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 
 /// Collapsed / expanded bottom-sheet navigation chrome for driver home.
@@ -79,9 +80,9 @@ class DriverSheetNav {
                     child: Row(
                       children: [
                         _dockAction(
-                          asset: AppAssets.navLayoutGrid,
-                          tooltip: 'Menu',
-                          onTap: () => scaffoldKey.currentState?.openDrawer(),
+                          asset: AppAssets.navMenuBranch,
+                          tooltip: 'Ride preferences',
+                          onTap: () => _openRidePreferences(context),
                           iconColor: iconTint,
                         ),
                         _dockAction(
@@ -182,9 +183,9 @@ class DriverSheetNav {
       child: Row(
         children: [
           _sheetQuickAction(
-            asset: AppAssets.navLayoutGrid,
-            tooltip: 'Menu',
-            onTap: () => scaffoldKey.currentState?.openDrawer(),
+            asset: AppAssets.navMenuBranch,
+            tooltip: 'Ride preferences',
+            onTap: () => _openRidePreferences(context),
           ),
           _sheetQuickAction(
             asset: AppAssets.navCreditCard,
@@ -243,6 +244,13 @@ class DriverSheetNav {
               : const Color(0xFF2FBE7B),
         ),
       ),
+    );
+  }
+
+  static void _openRidePreferences(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const Preferences()),
     );
   }
 
