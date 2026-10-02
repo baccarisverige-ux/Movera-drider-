@@ -279,7 +279,9 @@ class DriverSheetNav {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: hasAlert
+                  // Image logos (scheduled rides) sit directly on the sheet;
+                  // only line icons get the tinted alert tile.
+                  color: hasAlert && customIcon == null
                       ? const Color(0xFFF0F8F4)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(16),
@@ -350,9 +352,11 @@ class DriverSheetNav {
         message: tooltip,
         child: Center(
           child: Material(
-            color: hasAlert
-                ? const Color(0xFFE9F7F1)
-                : const Color(0xFFF1F3F4),
+            color: customIcon != null
+                ? Colors.transparent
+                : hasAlert
+                    ? const Color(0xFFE9F7F1)
+                    : const Color(0xFFF1F3F4),
             shape: const CircleBorder(),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
