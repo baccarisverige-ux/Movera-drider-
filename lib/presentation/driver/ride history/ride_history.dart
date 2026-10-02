@@ -158,7 +158,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
             elevation: 1,
             shadowColor: Colors.black.withValues(alpha: 0.08),
             shape: const CircleBorder(),
-            child: IconButton(
+            child: IconButton(tooltip: 'Back', 
               onPressed: _view == _HistoryView.rides
                   ? _showOverview
                   : () => Navigator.pop(context),

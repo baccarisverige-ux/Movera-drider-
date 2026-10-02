@@ -16,6 +16,9 @@ import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/ride/prefs_active_ride_repository.dart';
+import 'package:movera/core/ride/completion_journal.dart';
+import 'package:movera/core/privacy/local_data.dart';
+import 'package:movera/core/settings/settings_repository.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/session/driver_session_repository.dart';
@@ -35,7 +38,11 @@ void main() {
 /// feature screens. When backend adapters replace the current frontend
 /// implementations, screen code does not need to change.
 class MoveraApp extends StatefulWidget {
-  const MoveraApp({super.key});
+  const MoveraApp({super.key, this.locationRepository});
+
+  /// Defaults to the device GPS. Tests inject a scripted source so the app
+  /// root never depends on host location services.
+  final DriverLocationRepository? locationRepository;
 
   @override
   State<MoveraApp> createState() => _MoveraAppState();
@@ -58,7 +65,7 @@ class _MoveraAppState extends State<MoveraApp> {
     _sessionStore = MemoryDriverSessionRepository();
     _session = DriverSessionController(repository: _sessionStore);
     _waybills = InMemoryWaybillRepository.instance;
-    _location = const DriverLocationService();
+    _location = widget.locationRepository ?? const DriverLocationService();
     _routing = RoadRouteService();
     _dispatch = DemoDispatchRepository();
     _homeConfig = const LocalDriverHomeConfigRepository();
@@ -97,6 +104,7 @@ class _MoveraAppState extends State<MoveraApp> {
               return DriverRuntimeScope(
                 session: _session,
                 homeBuilder: _home,
+                logout: _logout,
                 child: LayoutViewport(
                   child: Column(
                     children: [
@@ -112,6 +120,19 @@ class _MoveraAppState extends State<MoveraApp> {
         },
       ),
     );
+  }
+
+  Future<void> _logout() async {
+    await PrefsActiveRideRepository.settle();
+    await CompletionJournal.settle();
+    await SettingsRepository.settle();
+    await clearLocalUserData();
+    _waybills.reset();
+    final dispatch = _dispatch;
+    if (dispatch is DemoDispatchRepository) {
+      dispatch.reset();
+    }
+    _session.reset();
   }
 
   Widget _home() => DriverHome(

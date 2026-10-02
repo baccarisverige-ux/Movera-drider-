@@ -96,7 +96,7 @@ class _AddVehicleState extends State<AddVehicle> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
+        leading: IconButton(tooltip: 'Back', 
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
@@ -370,6 +370,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
     setState(()=>_busy=true);
     final updated={..._draft!, (registration ? 'registrationPhoto' : 'insurancePhoto'):base64Encode(saved)};
     try { await _store.upsert(updated); if(!mounted) { return; } _draft=updated; }
+    on VehiclePhotoBudgetExceeded catch(error) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(error.message))); } return; }
     catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Photo could not be saved locally. Retry.'))); }return; }
     finally { if(mounted) { setState(()=>_busy=false); } }
     setState(() {
@@ -469,7 +470,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
+        leading: IconButton(tooltip: 'Back', 
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
@@ -609,12 +610,15 @@ class _VehiclePhotoPage extends StatelessWidget {
 
   Future<void> _take(BuildContext context) async {
     try {
-      final file = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality:65, maxWidth:1200);
+      final file = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality:60, maxWidth:1024);
       if (!context.mounted) { return; }
       if(file!=null) {
         final bytes=await file.readAsBytes();
         if(!context.mounted) { return; }
-        if(bytes.length>2*1024*1024) { throw StateError('Photo exceeds local storage limit'); }
+        if(bytes.length>LocalVehicleStore.maxPhotoBytes) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photo is too large to keep on this device. Retake it closer and with less detail.')));
+          return;
+        }
         Navigator.pop(context,bytes);
       }
     } catch (_) {
@@ -636,7 +640,7 @@ class _VehiclePhotoPage extends StatelessWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
+        leading: IconButton(tooltip: 'Back', 
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
