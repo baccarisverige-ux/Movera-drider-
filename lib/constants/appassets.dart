@@ -14,9 +14,7 @@ class AppAssets {
   static const String navLayoutGrid = 'assets/icons/nav_layout_grid.svg';
   static const String navCreditCard = 'assets/icons/nav_credit_card.svg';
   static const String navMessagesSquare = 'assets/icons/nav_messages_square.svg';
-  static const String navScheduledRide = 'assets/icons/nav_scheduled_ride.svg';
-  static const String navScheduledRideClock =
-      'assets/icons/nav_scheduled_ride_clock.svg';
+  static const String navScheduledRide = 'assets/icons/nav_scheduled_ride.png';
   static const String search = 'assets/icons/search.png';
   static const String arrowUp = 'assets/icons/arrow_up.png';
   static const String triangle = 'assets/icons/triangle.png';

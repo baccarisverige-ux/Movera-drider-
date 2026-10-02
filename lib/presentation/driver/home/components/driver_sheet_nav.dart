@@ -419,29 +419,20 @@ class _ScheduledRideIcon extends StatelessWidget {
     final phase = Curves.easeInOutCubic.transform(
       rawPhase.clamp(0.0, 1.0).toDouble(),
     );
-    final clockScale = shouldAnimate ? 1 + (0.035 * phase) : 1.0;
+    // New reservations: the whole calendar breathes gently. Still when
+    // there is nothing new or the platform asks for reduced motion.
+    final scale = shouldAnimate ? 1 + (0.045 * phase) : 1.0;
 
     return SizedBox(
       width: 31,
       height: 31,
-      child: Stack(
-        fit: StackFit.expand,
-        clipBehavior: Clip.none,
-        children: [
-          SvgPicture.asset(
-            AppAssets.navScheduledRide,
-            fit: BoxFit.contain,
-          ),
-          if (shouldAnimate)
-            Transform.scale(
-              scale: clockScale,
-              alignment: const Alignment(0.58, 0.50),
-              child: SvgPicture.asset(
-                AppAssets.navScheduledRideClock,
-                fit: BoxFit.contain,
-              ),
-            ),
-        ],
+      child: Transform.scale(
+        scale: scale,
+        child: Image.asset(
+          AppAssets.navScheduledRide,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
+        ),
       ),
     );
   }
