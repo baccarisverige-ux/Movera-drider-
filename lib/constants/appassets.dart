@@ -29,8 +29,6 @@ class AppAssets {
   static const String tripMessage = 'assets/icons/trip_message.svg';
   static const String tripSafety = 'assets/icons/trip_safety.svg';
   static const String tripWaybill = 'assets/icons/trip_waybill.svg';
-  static const String routePickup = 'assets/icons/route_pickup.svg';
-  static const String routeDropoff = 'assets/icons/route_dropoff.svg';
   static const String mapSafety = 'assets/icons/map_safety.svg';
   static const String mapGoogle = 'assets/icons/map_google.svg';
   static const String mapRecenter = 'assets/icons/map_recenter.svg';

@@ -813,27 +813,6 @@ extension _AcceptRidePanel on _AcceptRideState {
       required bool isLast,
       String? detail,
     }) {
-      final (Color background, Color tint, String asset, double iconSize) =
-          switch (kind) {
-        _JourneyPointKind.pickup => (
-            const Color(0xFFE5F4EC),
-            const Color(0xFF17804E),
-            AppAssets.routePickup,
-            18.0,
-          ),
-        _JourneyPointKind.stop => (
-            const Color(0xFFF1F2F3),
-            const Color(0xFF5E6461),
-            'assets/icons/movera_stop.svg',
-            14.0,
-          ),
-        _JourneyPointKind.dropoff => (
-            const Color(0xFF111614),
-            Colors.white,
-            AppAssets.routeDropoff,
-            16.0,
-          ),
-      };
       return IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -842,26 +821,16 @@ extension _AcceptRidePanel on _AcceptRideState {
               width: 34,
               child: Column(
                 children: [
-                  Container(
+                  SizedBox(
                     width: 34,
                     height: 34,
-                    decoration: BoxDecoration(
-                      color: background,
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    alignment: Alignment.center,
-                    child: SvgPicture.asset(
-                      asset,
-                      width: iconSize,
-                      height: iconSize,
-                      colorFilter: ColorFilter.mode(tint, BlendMode.srcIn),
-                    ),
+                    child: Center(child: _RouteDot(kind: kind)),
                   ),
                   if (!isLast)
                     Expanded(
-                      child: CustomPaint(
-                        painter: const _DottedConnectorPainter(),
-                        child: const SizedBox(width: 2),
+                      child: Container(
+                        width: 2,
+                        color: const Color(0xFFD5D9DC),
                       ),
                     ),
                 ],
@@ -1705,19 +1674,36 @@ extension _AcceptRidePanel on _AcceptRideState {
 
 enum _JourneyPointKind { pickup, stop, dropoff }
 
-/// Dotted line joining the route badges.
-class _DottedConnectorPainter extends CustomPainter {
-  const _DottedConnectorPainter();
+/// Classic route marks: pickup is a black dot, a stop a smaller grey dot,
+/// drop-off a black square, each with a white centre.
+class _RouteDot extends StatelessWidget {
+  const _RouteDot({required this.kind});
+
+  final _JourneyPointKind kind;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFFC9CED2);
-    final x = size.width / 2;
-    for (var y = 5.0; y < size.height - 3; y += 6) {
-      canvas.drawCircle(Offset(x, y), 1.4, paint);
-    }
+  Widget build(BuildContext context) {
+    final stop = kind == _JourneyPointKind.stop;
+    final square = kind == _JourneyPointKind.dropoff;
+    final size = stop ? 11.0 : 14.0;
+    final inner = stop ? 4.0 : 5.0;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: stop ? const Color(0xFF8A9195) : _AcceptRideState._ink,
+        shape: square ? BoxShape.rectangle : BoxShape.circle,
+        borderRadius: square ? BorderRadius.circular(2.5) : null,
+      ),
+      alignment: Alignment.center,
+      child: Container(
+        width: inner,
+        height: inner,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: square ? BoxShape.rectangle : BoxShape.circle,
+        ),
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant _DottedConnectorPainter oldDelegate) => false;
 }

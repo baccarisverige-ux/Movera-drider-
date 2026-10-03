@@ -158,7 +158,7 @@ class DriverSheetNav {
                 cornerRadius: 24,
                 color: hasRideOffers
                     ? const Color(0xFFFFA94D)
-                    : const Color(0xFF2FBE7B),
+                    : const Color(0xFF1FA463),
               ),
             ),
           ),
@@ -249,7 +249,7 @@ class DriverSheetNav {
                   cornerRadius: 24,
                   color: hasRideOffers
                       ? const Color(0xFFFFA94D)
-                      : const Color(0xFF2FBE7B),
+                      : const Color(0xFF1FA463),
                 ),
               ),
           ],

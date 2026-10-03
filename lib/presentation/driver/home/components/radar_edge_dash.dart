@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 
 /// Top lip of the radar sheet (left corner → notch cradle → right corner),
@@ -106,16 +104,14 @@ class _RadarSheetOutlinePainter extends CustomPainter {
   }
 }
 
-/// Laser beam that sweeps ping-pong along the top lip of the radar sheet,
-/// with a bright head and a fading tail. Visible only when the caller
-/// mounts it (Trip radar ON).
+/// Radar live on the sheet edge: the whole top lip (corners and notch) turns
+/// [color], and a soft white light glides along it, left to right, on a loop.
+/// Visible only when the caller mounts it (Trip radar ON).
 class RadarEdgeDash extends StatefulWidget {
   final double notchWidth;
   final double notchDepth;
   final double cornerRadius;
   final Color color;
-  final double dashLength;
-  final double strokeWidth;
   final Duration duration;
 
   const RadarEdgeDash({
@@ -123,10 +119,8 @@ class RadarEdgeDash extends StatefulWidget {
     this.notchWidth = 126,
     this.notchDepth = 58,
     this.cornerRadius = 24,
-    this.color = const Color(0xFF2FBE7B),
-    this.dashLength = 120,
-    this.strokeWidth = 3,
-    this.duration = const Duration(milliseconds: 1700),
+    this.color = const Color(0xFF1FA463),
+    this.duration = const Duration(milliseconds: 2600),
   });
 
   @override
@@ -143,7 +137,7 @@ class _RadarEdgeDashState extends State<RadarEdgeDash>
     _controller = AnimationController(
       vsync: this,
       duration: widget.duration,
-    )..repeat(reverse: true);
+    )..repeat();
   }
 
   @override
@@ -158,15 +152,12 @@ class _RadarEdgeDashState extends State<RadarEdgeDash>
       animation: _controller,
       builder: (context, _) {
         return CustomPaint(
-          painter: _RadarEdgeDashPainter(
-            progress: Curves.easeInOutSine.transform(_controller.value),
-            forward: _controller.status != AnimationStatus.reverse,
+          painter: _RadarEdgeSweepPainter(
+            progress: _controller.value,
             notchWidth: widget.notchWidth,
             notchDepth: widget.notchDepth,
             cornerRadius: widget.cornerRadius,
             color: widget.color,
-            dashLength: widget.dashLength,
-            strokeWidth: widget.strokeWidth,
           ),
           child: const SizedBox.expand(),
         );
@@ -175,38 +166,34 @@ class _RadarEdgeDashState extends State<RadarEdgeDash>
   }
 }
 
-class _RadarEdgeDashPainter extends CustomPainter {
+class _RadarEdgeSweepPainter extends CustomPainter {
   final double progress;
-  final bool forward;
   final double notchWidth;
   final double notchDepth;
   final double cornerRadius;
   final Color color;
-  final double dashLength;
-  final double strokeWidth;
 
-  const _RadarEdgeDashPainter({
+  const _RadarEdgeSweepPainter({
     required this.progress,
-    required this.forward,
     required this.notchWidth,
     required this.notchDepth,
     required this.cornerRadius,
     required this.color,
-    required this.dashLength,
-    required this.strokeWidth,
   });
 
-  static const int _tailSegments = 16;
+  /// Length of the light, in logical pixels along the edge.
+  static const double _lightLength = 160;
+  static const int _segments = 20;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) { return; }
-
     final edge = radarSheetTopEdge(
       size,
       notchWidth: notchWidth,
       notchDepth: notchDepth,
       cornerRadius: cornerRadius,
+      includeCorners: true,
     );
     final metrics = edge.computeMetrics().toList();
     if (metrics.isEmpty) { return; }
@@ -214,98 +201,44 @@ class _RadarEdgeDashPainter extends CustomPainter {
     final total = metric.length;
     if (total <= 0) { return; }
 
-    // Faint track so the beam reads as running along a rail.
+    // Same half-pixel inset as [RadarSheetOutline].
+    canvas.translate(0, 0.5);
     canvas.drawPath(
       edge,
       Paint()
-        ..color = color.withValues(alpha: 0.18)
+        ..color = color.withValues(alpha: 0.6)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
-        ..strokeCap = StrokeCap.round,
+        ..strokeWidth = 1.6,
     );
 
-    final head = progress.clamp(0.0, 1.0) * total;
-    // The tail trails behind the direction of travel.
-    final tailEnd = forward ? head - dashLength : head + dashLength;
-    final from = tailEnd.clamp(0.0, total);
-    final to = head.clamp(0.0, total);
-    final lo = from < to ? from : to;
-    final hi = from < to ? to : from;
-    if (hi - lo < 0.5) { return; }
-
-    // Wide soft glow under the whole beam.
-    canvas.drawPath(
-      metric.extractPath(lo, hi),
-      Paint()
-        ..color = color.withValues(alpha: 0.55)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth + 8
-        ..strokeCap = StrokeCap.round
-        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 7),
-    );
-
-    // Tail fades from transparent to full colour at the head.
-    final step = (to - from) / _tailSegments;
-    for (var i = 0; i < _tailSegments; i++) {
-      final a = from + step * i;
-      final b = from + step * (i + 1);
-      final s = a < b ? a : b;
-      final e = a < b ? b : a;
-      if (e - s < 0.1) { continue; }
-      final t = (i + 1) / _tailSegments;
+    // The light enters before the left corner and leaves after the right.
+    final head = progress.clamp(0.0, 1.0) * (total + _lightLength) -
+        _lightLength / 2;
+    const step = _lightLength / _segments;
+    final light = Color.lerp(color, Colors.white, 0.75)!;
+    for (var i = 0; i < _segments; i++) {
+      final from = head - _lightLength / 2 + i * step;
+      final to = from + step + 0.6;
+      if (to < 0 || from > total) { continue; }
+      // Brightest in the middle of the light, fading to both ends.
+      final k = 1 - ((i + 0.5) - _segments / 2).abs() / (_segments / 2);
       canvas.drawPath(
-        metric.extractPath(s, e + 0.6),
+        metric.extractPath(from.clamp(0.0, total), to.clamp(0.0, total)),
         Paint()
-          ..color = color.withValues(alpha: t)
+          ..color = light.withValues(alpha: k)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeWidth * (0.45 + 0.55 * t)
-          ..strokeCap = StrokeCap.butt,
-      );
-    }
-
-    // Hot white core near the head.
-    final coreLen = dashLength * 0.28;
-    final coreFrom = (forward ? head - coreLen : head + coreLen).clamp(0.0, total);
-    final cs = coreFrom < to ? coreFrom : to;
-    final ce = coreFrom < to ? to : coreFrom;
-    if (ce - cs > 0.5) {
-      canvas.drawPath(
-        metric.extractPath(cs, ce),
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.9)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeWidth * 0.5
+          ..strokeWidth = 1.6 + 0.9 * k
           ..strokeCap = StrokeCap.round,
-      );
-    }
-
-    // Glowing tip.
-    final tangent = metric.getTangentForOffset(to);
-    if (tangent != null) {
-      canvas.drawCircle(
-        tangent.position,
-        strokeWidth * 2.6,
-        Paint()
-          ..color = color.withValues(alpha: 0.8)
-          ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 5),
-      );
-      canvas.drawCircle(
-        tangent.position,
-        strokeWidth * 0.75,
-        Paint()..color = Colors.white,
       );
     }
   }
 
   @override
-  bool shouldRepaint(covariant _RadarEdgeDashPainter oldDelegate) {
+  bool shouldRepaint(covariant _RadarEdgeSweepPainter oldDelegate) {
     return oldDelegate.progress != progress ||
-        oldDelegate.forward != forward ||
         oldDelegate.notchWidth != notchWidth ||
         oldDelegate.notchDepth != notchDepth ||
         oldDelegate.cornerRadius != cornerRadius ||
-        oldDelegate.color != color ||
-        oldDelegate.dashLength != dashLength ||
-        oldDelegate.strokeWidth != strokeWidth;
+        oldDelegate.color != color;
   }
 }

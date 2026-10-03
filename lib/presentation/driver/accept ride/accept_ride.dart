@@ -1203,7 +1203,7 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
         position: _pose.position,
         rotation: _pose.headingDegrees,
         flat: true,
-        anchor: const Offset(0.5, 0.5),
+        anchor: MoveraVehicleMarker.anchor,
         zIndexInt: 12,
         icon: widget.vehicleIcon,
         infoWindow: const InfoWindow(title: 'You'),
