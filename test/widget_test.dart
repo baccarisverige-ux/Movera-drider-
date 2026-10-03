@@ -734,9 +734,11 @@ void main() {
     );
     expect(interceptor, findsOneWidget);
 
-    final interceptorSize = tester.getSize(interceptor);
-    expect(interceptorSize.width, lessThan(180));
-    expect(interceptorSize.height, lessThan(80));
+    // The top island is centred and leaves both map corners free.
+    final interceptorRect = tester.getRect(interceptor);
+    expect(interceptorRect.width, lessThan(330));
+    expect(interceptorRect.height, lessThan(80));
+    expect(interceptorRect.center.dx, closeTo(375 / 2, 2));
     _expectNoException(tester);
   });
 
@@ -967,7 +969,8 @@ void main() {
       find.byKey(const ValueKey<String>('home-safety-button')),
     );
     expect(location.center.dy, closeTo(safety.center.dy, 16));
-    expect(location.left, lessThan(safety.left));
+    // Safety sits on the left, recenter on the right.
+    expect(location.left, greaterThan(safety.left));
     _expectNoException(tester);
   });
 

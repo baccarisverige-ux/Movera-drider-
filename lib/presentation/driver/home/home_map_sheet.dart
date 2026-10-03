@@ -3,6 +3,11 @@ part of 'home.dart';
 // Map, location, and sheet presentation for DriverHome.
 // Timers and fields stay on the state. Geometry and map controls are unchanged.
 
+/// One size for the floating controls on Home: recenter, safety and the
+/// top island.
+const double _homeMapButtonSize = 48;
+const Color _islandInk = Color(0xFF15191C);
+
 extension _HomeMapSheet on _DriverHomeState {
     Future<void> _startDriverLocation({bool moveCamera = false}) async {
       final epoch = ++_locationEpoch;
@@ -119,10 +124,10 @@ extension _HomeMapSheet on _DriverHomeState {
             MapControlButton(
               key: const ValueKey<String>('driver-location-zoom'),
               tooltip: 'Recenter',
-              size: 54,
+              size: _homeMapButtonSize,
               fill: MapControlButton.recenterBlue,
               onTap: _zoomToDriverLocation,
-              child: SvgPicture.asset(AppAssets.mapRecenter, width: 24, height: 24),
+              child: SvgPicture.asset(AppAssets.mapRecenter, width: 22, height: 22),
             ),
             // Live GPS indicator.
             Positioned(
@@ -675,66 +680,8 @@ extension _HomeMapSheet on _DriverHomeState {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Align(
-                      alignment: Alignment.centerRight,
-                      child: PointerInterceptor(
-                        child: Container(
-                          height: ResSize.h * 38.5,
-                          width: ResSize.w * 83,
-                          decoration: BoxDecoration(
-                            color: AppColor.white,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: const Color(0xFFF0F2F3),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    const Color(0xFF172027).withValues(alpha: 0.11),
-                                blurRadius: 18,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 7),
-                              ),
-                            ],
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Builder(
-                                  builder: (context) => InkWell(
-                                    onTap: () {
-                                      Scaffold.of(context).openDrawer();
-                                    },
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.menu_open_rounded,
-                                        size: ResSize.h * 17,
-                                        color: AppColor.black,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              _mapControlDivider(),
-                              Expanded(
-                                child: InkWell(
-                                  key: const ValueKey<String>(
-                                    'destination-mode-open',
-                                  ),
-                                  onTap: _openDestinationModePicker,
-                                  child: Center(
-                                    child: Image.asset(
-                                      AppAssets.search,
-                                      height: ResSize.h * 13,
-                                      color: AppColor.black,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      alignment: Alignment.topCenter,
+                      child: PointerInterceptor(child: _buildTopIsland()),
                     ),
                     if (_destinationModeActive && !isDestinationPanel)
                       Padding(
@@ -917,7 +864,7 @@ extension _HomeMapSheet on _DriverHomeState {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 320),
                 curve: Curves.easeOutCubic,
-                left: 16,
+                right: 16,
                 bottom: 138,
                 child: _buildDriverLocationButton(),
               ),
@@ -925,14 +872,14 @@ extension _HomeMapSheet on _DriverHomeState {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 320),
                 curve: Curves.easeOutCubic,
-                right: 16,
+                left: 16,
                 bottom: 138,
                 child: MapControlButton(
                   key: const ValueKey<String>('home-safety-button'),
                   tooltip: 'Safety toolkit',
-                  size: 50,
+                  size: _homeMapButtonSize,
                   onTap: () => showSafetyToolKitSheet(context),
-                  child: SvgPicture.asset(AppAssets.mapSafety, width: 26, height: 26),
+                  child: SvgPicture.asset(AppAssets.mapSafety, width: 24, height: 24),
                 ),
               ),
             if (!isDestinationPanel &&
@@ -979,92 +926,12 @@ extension _HomeMapSheet on _DriverHomeState {
                   ),
                 ),
               AnimatedPositioned(
-                duration: const Duration(milliseconds: 420),
-                curve: _showTodaySummaryPopup
-                    ? Curves.easeInCubic
-                    : Curves.easeOutBack,
-                left: _showTodaySummaryPopup ? -48 : -10,
-                top: ResSize.h * 55,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 220),
-                  opacity: _showTodaySummaryPopup ? 0 : 1,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      key: const ValueKey<String>('last-trip-launcher'),
-                      onTap: _showTodaySummary,
-                      borderRadius: const BorderRadius.horizontal(
-                        right: Radius.circular(22),
-                      ),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFFFFFFFF),
-                              Color(0xFFF4F7F6),
-                            ],
-                          ),
-                          borderRadius: const BorderRadius.horizontal(
-                            right: Radius.circular(22),
-                          ),
-                          border: Border.all(
-                            color: const Color(0xFFD9E2DE),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF172027).withValues(alpha: 0.09),
-                              blurRadius: 14,
-                              offset: const Offset(3, 5),
-                            ),
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.72),
-                              blurRadius: 4,
-                              offset: const Offset(-1, -1),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          alignment: Alignment.centerRight,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.only(right: 8),
-                              child: Icon(
-                                Icons.history_rounded,
-                                color: Color(0xFF344A41),
-                                size: 18,
-                              ),
-                            ),
-                            Positioned(
-                              right: 7,
-                              top: 8,
-                              child: Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF58E5A6),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              AnimatedPositioned(
                 duration: const Duration(milliseconds: 460),
                 curve: _showTodaySummaryPopup
                     ? Curves.easeOutCubic
                     : Curves.easeInCubic,
-                left: _showTodaySummaryPopup ? 14 : -310,
-                top: ResSize.h * 106,
+                left: (viewportWidth - 278) / 2,
+                top: _showTodaySummaryPopup ? ResSize.h * 112 : ResSize.h * 80,
                 child: IgnorePointer(
                   key: const ValueKey<String>('today-summary-pointer'),
                   ignoring: !_showTodaySummaryPopup,
@@ -1074,7 +941,7 @@ extension _HomeMapSheet on _DriverHomeState {
                     curve: _showTodaySummaryPopup
                         ? Curves.easeOutBack
                         : Curves.easeInCubic,
-                    alignment: Alignment.topLeft,
+                    alignment: Alignment.topCenter,
                     child: AnimatedOpacity(
                       duration: const Duration(milliseconds: 220),
                       opacity: _showTodaySummaryPopup ? 1 : 0,
@@ -1096,11 +963,100 @@ extension _HomeMapSheet on _DriverHomeState {
         ),
       );
     }
-    Widget _mapControlDivider() {
-      return Container(
-        height: ResSize.h * 22,
-        width: 1,
-        color: const Color(0xFFE2E5E7),
+    /// Black island at the top of Home: menu, today's earnings (opens the
+    /// Today summary) and destination search.
+    Widget _buildTopIsland() {
+      Widget divider() => Container(
+            width: 1,
+            height: 20,
+            color: Colors.white.withValues(alpha: 0.18),
+          );
+      return Material(
+        color: _islandInk,
+        elevation: 6,
+        shadowColor: Colors.black.withValues(alpha: 0.35),
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: SizedBox(
+          height: _homeMapButtonSize,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Builder(
+                builder: (context) => Tooltip(
+                  message: 'Menu',
+                  child: InkWell(
+                    onTap: () => Scaffold.of(context).openDrawer(),
+                    child: const SizedBox(
+                      width: 50,
+                      height: _homeMapButtonSize,
+                      child: Icon(
+                        Icons.menu_open_rounded,
+                        size: 22,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              divider(),
+              Flexible(
+                child: InkWell(
+                  key: const ValueKey<String>('last-trip-launcher'),
+                  onTap: _showTodaySummary,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    child: SizedBox(
+                      height: _homeMapButtonSize,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.history_rounded,
+                            size: 19,
+                            color: Color(0xFF58E5A6),
+                          ),
+                          SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '183 kr today',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              divider(),
+              Tooltip(
+                message: 'Search destination',
+                child: InkWell(
+                  key: const ValueKey<String>('destination-mode-open'),
+                  onTap: _openDestinationModePicker,
+                  child: SizedBox(
+                    width: 50,
+                    height: _homeMapButtonSize,
+                    child: Center(
+                      child: Image.asset(
+                        AppAssets.search,
+                        height: 17,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
     void _onRadarSheetDragUpdate(DragUpdateDetails details) {
@@ -2755,3 +2711,4 @@ extension _HomeMapSheet on _DriverHomeState {
       );
     }
 }
+
