@@ -36,7 +36,7 @@ class AppAssets {
   static const String menuProfile = 'assets/icons/menu_profile.svg';
   static const String menuWallet = 'assets/icons/menu_wallet.svg';
   static const String menuHistory = 'assets/icons/menu_history.svg';
-  static const String menuCalendar = 'assets/icons/menu_calendar.svg';
+  static const String menuScheduledRide = 'assets/icons/menu_scheduled_ride.png';
   static const String menuTag = 'assets/icons/menu_tag.svg';
   static const String menuTimer = 'assets/icons/menu_timer.svg';
   static const String menuSupport = 'assets/icons/menu_support.svg';
