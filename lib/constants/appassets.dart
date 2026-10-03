@@ -28,6 +28,7 @@ class AppAssets {
   static const String tripCall = 'assets/icons/trip_call.svg';
   static const String tripMessage = 'assets/icons/trip_message.svg';
   static const String tripSafety = 'assets/icons/trip_safety.svg';
+  static const String tripWaybill = 'assets/icons/trip_waybill.svg';
   static const String routePickup = 'assets/icons/route_pickup.svg';
   static const String routeDropoff = 'assets/icons/route_dropoff.svg';
   static const String mapSafety = 'assets/icons/map_safety.svg';

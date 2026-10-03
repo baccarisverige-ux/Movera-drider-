@@ -735,9 +735,10 @@ extension _AcceptRidePanel on _AcceptRideState {
                   if (compact)
                     TripBottomBar(
                       key: const ValueKey<String>('active-ride-compact-dock'),
-                      etaLabel: _countingWait ? _waitLabel : _routeEtaText,
+                      etaLabel: _countingWait ? _waitBarEta : _routeEtaText,
+                      etaColor: _countingWait ? _waitBarColor : null,
                       distanceLabel: _countingWait ? null : _routeDistanceText,
-                      statusLabel: _tripBarStatus,
+                      statusLabel: _countingWait ? _waitBarStatus : _tripBarStatus,
                       stopCount: widget.stopAddresses.length,
                       onPreferences: _openRidePreferences,
                       onDetails: () => _ridePanelController.open(),
@@ -750,7 +751,8 @@ extension _AcceptRidePanel on _AcceptRideState {
                   else ...[
                     TripBottomBar(
                       key: const ValueKey<String>('active-ride-expanded-header'),
-                      etaLabel: _countingWait ? _waitLabel : _routeEtaText,
+                      etaLabel: _countingWait ? _waitBarEta : _routeEtaText,
+                      etaColor: _countingWait ? _waitBarColor : null,
                       distanceLabel: _countingWait ? null : _routeDistanceText,
                       statusLabel: _title,
                       onPreferences: _openRidePreferences,
@@ -766,13 +768,15 @@ extension _AcceptRidePanel on _AcceptRideState {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Center(child: _liveStatus()),
+                            Center(
+                              child: _countingWait
+                                  ? _waitPhaseChip()
+                                  : _liveStatus(),
+                            ),
                             const SizedBox(height: 12),
                             _buildRiderRow(),
                             const SizedBox(height: 12),
                             _buildJourneyDetailsCard(),
-                            const SizedBox(height: 12),
-                            _buildCurrentWaybillShortcut(),
                             if (_stage == ActiveRideStage.onTrip)
                               _buildSecuredNextTripDetails(),
                           ],
@@ -832,20 +836,7 @@ extension _AcceptRidePanel on _AcceptRideState {
               address: widget.dropoffAddress,
               isLast: true,
             ),
-            if (widget.fare != '—') ...[
-              const Padding(
-                padding: EdgeInsets.only(top: 12, bottom: 10),
-                child: Divider(height: 1, color: Color(0xFFEEF0F1)),
-              ),
-              Text(
-                'Fare ${widget.fare}',
-                style: const TextStyle(
-                  color: _AcceptRideState._ink,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+            _buildCurrentWaybillShortcut(),
           ],
         ),
       );
@@ -952,6 +943,29 @@ extension _AcceptRidePanel on _AcceptRideState {
               ),
             ),
           ],
+        ),
+      );
+    }
+    Widget _waitPhaseChip() {
+      final color = _waitBarColor;
+      return InkWell(
+        key: const ValueKey<String>('active-ride-wait-phase'),
+        onTap: _openWaitingTime,
+        borderRadius: BorderRadius.circular(99),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(
+            _waitBarStatus,
+            style: TextStyle(
+              color: color,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       );
     }
@@ -1147,76 +1161,80 @@ extension _AcceptRidePanel on _AcceptRideState {
         builder: (context, record, _) {
           if (record == null) { return const SizedBox.shrink(); }
 
-          return Material(
-            key: const ValueKey<String>('current-waybill-shortcut'),
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: () {
-                showMoveraWaybillSheet(
-                  context,
-                  record,
-                  title: 'Current trip waybill',
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE6E8EA)),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F5F6),
-                        borderRadius: BorderRadius.circular(11),
-                      ),
-                      child: const Icon(
-                        Icons.receipt_long_outlined,
-                        color: _AcceptRideState._ink,
-                        size: 17,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Current waybill',
-                            style: TextStyle(
-                              color: _AcceptRideState._ink,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w900,
-                            ),
+          return Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 12, bottom: 8),
+                child: Divider(height: 1, color: Color(0xFFEEF0F1)),
+              ),
+              InkWell(
+                key: const ValueKey<String>('current-waybill-shortcut'),
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  showMoveraWaybillSheet(
+                    context,
+                    record,
+                    title: 'Current trip waybill',
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F5),
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        alignment: Alignment.center,
+                        child: SvgPicture.asset(
+                          AppAssets.tripWaybill,
+                          width: 20,
+                          height: 20,
+                          colorFilter: const ColorFilter.mode(
+                            _AcceptRideState._ink,
+                            BlendMode.srcIn,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${record.service} · ${record.fare} · ${record.tripId}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _AcceptRideState._muted,
-                              fontSize: 8.8,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Color(0xFF98A3A8),
-                      size: 19,
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Waybill',
+                              style: TextStyle(
+                                color: _AcceptRideState._ink,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              '${record.service} · ${record.tripId}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _AcceptRideState._muted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFFA0A8AC),
+                        size: 22,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           );
         },
       );

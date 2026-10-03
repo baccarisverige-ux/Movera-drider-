@@ -810,6 +810,41 @@ class _AcceptRideState extends State<AcceptRide>
     return '$minutes:$seconds';
   }
 
+  static const int _includedWaitSeconds = 120;
+  static const int _noShowWaitSeconds = 300;
+
+  static String _clock(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  bool get _inIncludedWait =>
+      !_paidStopWait && _waitSeconds < _includedWaitSeconds;
+
+  /// Trip bar time while waiting: the included minutes count down, then the
+  /// paid wait counts up (a paid stop wait is paid from the first second).
+  String get _waitBarEta {
+    if (_inIncludedWait) { return _clock(_includedWaitSeconds - _waitSeconds); }
+    final paid = _paidStopWait ? _waitSeconds : _waitSeconds - _includedWaitSeconds;
+    return '+${_clock(paid)}';
+  }
+
+  String get _waitBarStatus {
+    if (_paidStopWait) { return 'Paid stop wait'; }
+    if (_inIncludedWait) { return 'Included wait · then paid'; }
+    if (_waitSeconds < _noShowWaitSeconds) { return 'Paid wait running'; }
+    return 'Paid wait · no-show available';
+  }
+
+  Color get _waitBarColor {
+    if (_inIncludedWait) { return _ink; }
+    if (!_paidStopWait && _waitSeconds >= _noShowWaitSeconds) {
+      return const Color(0xFF9E2B33);
+    }
+    return const Color(0xFF146B45);
+  }
+
 
   String get _slideLabel {
     if (_paidStopWait) {

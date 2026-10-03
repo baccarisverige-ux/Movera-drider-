@@ -2194,6 +2194,38 @@ void main() {
     _expectNoException(tester);
   });
 
+  for (final (seconds, eta, status) in [
+    (30, '1:30', 'Included wait · then paid'),
+    (150, '+0:30', 'Paid wait running'),
+    (330, '+3:30', 'Paid wait · no-show available'),
+  ]) {
+    testWidgets('Trip bar shows the pickup wait phase at ${seconds}s', (
+      WidgetTester tester,
+    ) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(375, 812));
+      await tester.pumpWidget(MaterialApp(
+        home: AcceptRide(
+          initialStage: ActiveRideStage.waitingForRider,
+          initialWaitSeconds: seconds,
+        ),
+      ));
+      await tester.pump(const Duration(milliseconds: 160));
+      expect(
+        find.byKey(const ValueKey<String>('active-ride-wait-phase')),
+        findsOneWidget,
+      );
+      await _collapseActiveRideSheet(tester);
+      final dock = find.byKey(const ValueKey<String>('active-ride-compact-dock'));
+      expect(find.descendant(of: dock, matching: find.text(eta)), findsOneWidget);
+      expect(
+        find.descendant(of: dock, matching: find.text(status)),
+        findsOneWidget,
+      );
+      _expectNoException(tester);
+    });
+  }
+
   testWidgets('Routing failure keeps the driver on the active trip', (
     WidgetTester tester,
   ) async {

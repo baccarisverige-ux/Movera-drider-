@@ -17,7 +17,11 @@ class TripBottomBar extends StatelessWidget {
     this.onArrived,
     this.arrivedEnabled = false,
     this.expanded = false,
+    this.etaColor,
   });
+
+  /// Colour of the big time, e.g. green once paid waiting starts.
+  final Color? etaColor;
 
   /// Header of the open sheet: the right button closes it instead.
   final bool expanded;
@@ -76,8 +80,8 @@ class TripBottomBar extends StatelessWidget {
                           children: [
                             Text(
                               etaLabel,
-                              style: const TextStyle(
-                                color: _ink,
+                              style: TextStyle(
+                                color: etaColor ?? _ink,
                                 fontSize: 26,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: -0.6,
