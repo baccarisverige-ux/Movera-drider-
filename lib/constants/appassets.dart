@@ -24,6 +24,15 @@ class AppAssets {
   static const String rideElectric = 'assets/icons/ride_electric.svg';
   static const String ridePet = 'assets/icons/ride_pet.svg';
   static const String rideBooster = 'assets/icons/ride_booster.svg';
+  // Active ride sheet and map controls
+  static const String tripCall = 'assets/icons/trip_call.svg';
+  static const String tripMessage = 'assets/icons/trip_message.svg';
+  static const String tripSafety = 'assets/icons/trip_safety.svg';
+  static const String routePickup = 'assets/icons/route_pickup.svg';
+  static const String routeDropoff = 'assets/icons/route_dropoff.svg';
+  static const String mapSafety = 'assets/icons/map_safety.svg';
+  static const String mapGoogle = 'assets/icons/map_google.svg';
+  static const String mapRecenter = 'assets/icons/map_recenter.svg';
   static const String search = 'assets/icons/search.png';
   static const String arrowUp = 'assets/icons/arrow_up.png';
   static const String triangle = 'assets/icons/triangle.png';

@@ -16,7 +16,11 @@ class TripBottomBar extends StatelessWidget {
     this.onStatusTap,
     this.onArrived,
     this.arrivedEnabled = false,
+    this.expanded = false,
   });
+
+  /// Header of the open sheet: the right button closes it instead.
+  final bool expanded;
 
   final String etaLabel;
   final String? distanceLabel;
@@ -167,11 +171,13 @@ class TripBottomBar extends StatelessWidget {
             )
           else
             _iconButton(
-              tooltip: 'Trip details',
+              tooltip: expanded ? 'Hide trip details' : 'Trip details',
               onTap: onDetails,
-              child: const Icon(
-                Icons.format_list_bulleted_rounded,
-                size: 28,
+              child: Icon(
+                expanded
+                    ? Icons.keyboard_arrow_down_rounded
+                    : Icons.format_list_bulleted_rounded,
+                size: expanded ? 32 : 28,
                 color: _ink,
               ),
             ),

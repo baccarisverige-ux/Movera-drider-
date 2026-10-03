@@ -7,9 +7,9 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/logging/driver_log.dart';
-import 'package:movera/widgets/preview_unavailable.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
@@ -855,18 +855,7 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
-  String get _subtitle {
-    switch (_stage) {
-      case ActiveRideStage.headingToPickup:
-        return '${widget.riderName} is waiting at ${widget.pickupAddress}';
-      case ActiveRideStage.waitingForRider:
-        return _riderOnTheWay
-            ? '${widget.riderName} says: I’m on the way'
-            : '${widget.riderName} has been notified and will be out shortly';
-      case ActiveRideStage.onTrip:
-        return 'On the way to ${widget.dropoffAddress}';
-    }
-  }
+
 
 
   String get _onwardAddress {
