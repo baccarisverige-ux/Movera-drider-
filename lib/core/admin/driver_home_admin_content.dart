@@ -1,3 +1,5 @@
+import 'package:movera/core/geo/geo_point.dart';
+
 class DriverHomeAdminConfig {
   const DriverHomeAdminConfig({
     required this.performance,
@@ -59,11 +61,32 @@ class ReservationRequestPreview {
     required this.category,
     required this.fare,
     required this.pickupLabel,
+    required this.pickupAddress,
+    required this.dropoffAddress,
+    required this.pickupMinutes,
+    required this.pickupKm,
+    required this.tripMinutes,
+    required this.tripKm,
+    required this.pickup,
+    required this.dropoff,
   });
 
   final String category;
   final String fare;
   final String pickupLabel;
+  final String pickupAddress;
+  final String dropoffAddress;
+
+  /// Drive from the driver to the pickup.
+  final int pickupMinutes;
+  final double pickupKm;
+
+  /// The whole ride, pickup to drop-off.
+  final int tripMinutes;
+  final double tripKm;
+
+  final GeoPoint pickup;
+  final GeoPoint dropoff;
 }
 
 class AppUpdateAdminConfig {
@@ -173,6 +196,14 @@ class DriverHomeAdminContentService {
           category: 'Comfort',
           fare: '126.75 kr',
           pickupLabel: 'Pickup today at 07:40',
+          pickupAddress: 'Gamla vägen, Stockholm',
+          dropoffAddress: 'Solna centrum, Solna',
+          pickupMinutes: 16,
+          pickupKm: 2.1,
+          tripMinutes: 19,
+          tripKm: 9.4,
+          pickup: GeoPoint(59.3362, 18.0714),
+          dropoff: GeoPoint(59.3603, 18.0009),
         ),
       ),
       update: AppUpdateAdminConfig(

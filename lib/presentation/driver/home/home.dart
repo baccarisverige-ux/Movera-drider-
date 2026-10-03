@@ -360,8 +360,30 @@ class _DriverHomeState extends State<DriverHome>
         return;
       }
       _reservationPopupShown = true;
-      final viewTrip = await showReservationRequestSheet(context, request);
-      if (viewTrip && mounted) { _openScheduledRides(); }
+      final decision = await showReservationRequestSheet(context, request);
+      if (!mounted || decision == ReservationDecision.dismissed) { return; }
+      final accepted = decision == ReservationDecision.accepted;
+      setState(() => _hasScheduledRideOffers = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            accepted
+                ? 'Reservation accepted · ${request.pickupLabel}'
+                : 'Reservation declined',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFF111614),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          action: accepted
+              ? SnackBarAction(
+                  label: 'View',
+                  textColor: Colors.white,
+                  onPressed: _openScheduledRides,
+                )
+              : null,
+        ),
+      );
     });
   }
 
