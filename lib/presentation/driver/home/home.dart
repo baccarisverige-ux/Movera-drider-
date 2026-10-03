@@ -217,6 +217,9 @@ class _DriverHomeState extends State<DriverHome>
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
   bool _showTodaySummaryPopup = false;
+
+  /// Top island shows the last trip's fare instead of the hidden total.
+  bool _islandShowsLastTrip = false;
   _HomeDirectOffer? _outsideRadarOffer;
   final List<_HomeDirectOffer> _radarHomeOffers = <_HomeDirectOffer>[];
   final List<_HomeDirectOffer> _pendingRadarHomeOffers = <_HomeDirectOffer>[];
@@ -878,6 +881,7 @@ class _DriverHomeState extends State<DriverHome>
       _driverSession.beginGoingOnline();
       _hasRideOffers = false;
       _showTodaySummaryPopup = false;
+      _islandShowsLastTrip = false;
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
       _pendingRadarHomeOffers.clear();

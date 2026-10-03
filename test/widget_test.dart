@@ -1074,6 +1074,12 @@ void main() {
       const ValueKey<String>('last-trip-launcher'),
     );
     expect(launcherInk, findsOneWidget);
+    // Hidden by default; the first tap shows only the last trip.
+    expect(find.text('183.25 kr'), findsNothing);
+    tester.widget<InkWell>(launcherInk).onTap!.call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('183.25 kr'), findsNothing);
+    expect(find.textContaining('Last trip'), findsOneWidget);
     tester.widget<InkWell>(launcherInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
@@ -1094,16 +1100,16 @@ void main() {
     expect(summaryPointer.ignoring, isTrue);
     _expectNoException(tester);
 
+    for (var i = 0; i < 2; i++) {
+      tester.widget<InkWell>(launcherInk).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    }
+    expect(find.text('Today'), findsOneWidget);
+
+    // A third tap on the island folds it back and hides the money.
     tester.widget<InkWell>(launcherInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
-
-    final closeIcon = find.byIcon(Icons.close_rounded);
-    final closeInk = find.ancestor(
-      of: closeIcon,
-      matching: find.byType(InkWell),
-    );
-    tester.widget<InkWell>(closeInk).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('183.25 kr'), findsNothing);
     summaryPointer = tester.widget<IgnorePointer>(
       find.byKey(const ValueKey<String>('today-summary-pointer')),
     );
@@ -1117,8 +1123,10 @@ void main() {
     final launcherAgain = find.byKey(
       const ValueKey<String>('last-trip-launcher'),
     );
-    tester.widget<InkWell>(launcherAgain).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    for (var i = 0; i < 2; i++) {
+      tester.widget<InkWell>(launcherAgain).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    }
     summaryPointer = tester.widget<IgnorePointer>(
       find.byKey(const ValueKey<String>('today-summary-pointer')),
     );
@@ -1136,7 +1144,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Today summary uses compact card and closes when Home sheet expands', (
+  testWidgets('Today details fit the island and close when Home sheet expands', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1145,14 +1153,16 @@ void main() {
     final launcher = find.byKey(
       const ValueKey<String>('last-trip-launcher'),
     );
-    tester.widget<InkWell>(launcher).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    for (var i = 0; i < 2; i++) {
+      tester.widget<InkWell>(launcher).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    }
 
     final card = find.byKey(
       const ValueKey<String>('today-summary-card'),
     );
     expect(card, findsOneWidget);
-    expect(tester.getSize(card).width, 278);
+    expect(tester.getSize(card).width, lessThanOrEqualTo(340));
     expect(find.text('Today'), findsOneWidget);
     _expectNoException(tester);
 
@@ -1200,8 +1210,10 @@ void main() {
     final launcher = find.byKey(
       const ValueKey<String>('last-trip-launcher'),
     );
-    tester.widget<InkWell>(launcher).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    for (var i = 0; i < 2; i++) {
+      tester.widget<InkWell>(launcher).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    }
 
     final historyButton = find.byKey(
       const ValueKey<String>('today-history-button'),

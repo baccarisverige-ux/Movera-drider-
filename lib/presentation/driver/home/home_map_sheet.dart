@@ -8,6 +8,10 @@ part of 'home.dart';
 const double _homeMapButtonSize = 48;
 const Color _islandInk = Color(0xFF15191C);
 
+// Sample figures until earnings come from the backend.
+const String _todayEarnings = '183.25 kr';
+const String _lastTripFare = '126 kr';
+
 extension _HomeMapSheet on _DriverHomeState {
     Future<void> _startDriverLocation({bool moveCamera = false}) async {
       final epoch = ++_locationEpoch;
@@ -679,10 +683,8 @@ extension _HomeMapSheet on _DriverHomeState {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: PointerInterceptor(child: _buildTopIsland()),
-                    ),
+                    // The top island is drawn above the scrim, further down.
+                    const SizedBox(height: _homeMapButtonSize),
                     if (_destinationModeActive && !isDestinationPanel)
                       Padding(
                         padding: EdgeInsets.only(top: ResSize.h * 10),
@@ -925,28 +927,14 @@ extension _HomeMapSheet on _DriverHomeState {
                     ),
                   ),
                 ),
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 460),
-                curve: _showTodaySummaryPopup
-                    ? Curves.easeOutCubic
-                    : Curves.easeInCubic,
-                left: (viewportWidth - 278) / 2,
-                top: _showTodaySummaryPopup ? ResSize.h * 112 : ResSize.h * 80,
-                child: IgnorePointer(
-                  key: const ValueKey<String>('today-summary-pointer'),
-                  ignoring: !_showTodaySummaryPopup,
-                  child: AnimatedScale(
-                    scale: _showTodaySummaryPopup ? 1 : 0.94,
-                    duration: const Duration(milliseconds: 300),
-                    curve: _showTodaySummaryPopup
-                        ? Curves.easeOutBack
-                        : Curves.easeInCubic,
-                    alignment: Alignment.topCenter,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 220),
-                      opacity: _showTodaySummaryPopup ? 1 : 0,
-                      child: _buildTodaySummaryPopup(),
-                    ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: ResSize.h * 55,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: PointerInterceptor(
+                    child: _buildTopIsland(viewportWidth),
                   ),
                 ),
               ),
@@ -963,100 +951,183 @@ extension _HomeMapSheet on _DriverHomeState {
         ),
       );
     }
-    /// Black island at the top of Home: menu, today's earnings (opens the
-    /// Today summary) and destination search.
-    Widget _buildTopIsland() {
+    /// Black island at the top of Home: menu, today's earnings and
+    /// destination search. The earnings are hidden until tapped; a second
+    /// tap grows the island into the full Today details.
+    Widget _buildTopIsland(double viewportWidth) {
+      final expanded = _showTodaySummaryPopup;
       Widget divider() => Container(
             width: 1,
             height: 20,
             color: Colors.white.withValues(alpha: 0.18),
           );
-      return Material(
-        color: _islandInk,
-        elevation: 6,
-        shadowColor: Colors.black.withValues(alpha: 0.35),
-        shape: const StadiumBorder(),
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 340),
+        curve: Curves.easeOutCubic,
+        width: expanded ? math.min(viewportWidth - 32, 340.0) : 252,
+        decoration: BoxDecoration(
+          color: _islandInk,
+          borderRadius: BorderRadius.circular(_homeMapButtonSize / 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.28),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
         clipBehavior: Clip.antiAlias,
-        child: SizedBox(
-          height: _homeMapButtonSize,
-          child: Row(
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Builder(
-                builder: (context) => Tooltip(
-                  message: 'Menu',
-                  child: InkWell(
-                    onTap: () => Scaffold.of(context).openDrawer(),
-                    child: const SizedBox(
-                      width: 50,
-                      height: _homeMapButtonSize,
-                      child: Icon(
-                        Icons.menu_open_rounded,
-                        size: 22,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              divider(),
-              Flexible(
-                child: InkWell(
-                  key: const ValueKey<String>('last-trip-launcher'),
-                  onTap: _showTodaySummary,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14),
-                    child: SizedBox(
-                      height: _homeMapButtonSize,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.history_rounded,
-                            size: 19,
-                            color: Color(0xFF58E5A6),
-                          ),
-                          SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              '183 kr today',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w600,
-                              ),
+              SizedBox(
+                height: _homeMapButtonSize,
+                child: Row(
+                  children: [
+                    Builder(
+                      builder: (context) => Tooltip(
+                        message: 'Menu',
+                        child: InkWell(
+                          onTap: () => Scaffold.of(context).openDrawer(),
+                          child: const SizedBox(
+                            width: 50,
+                            height: _homeMapButtonSize,
+                            child: Icon(
+                              Icons.menu_open_rounded,
+                              size: 22,
+                              color: Colors.white,
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                    divider(),
+                    Expanded(
+                      child: InkWell(
+                        key: const ValueKey<String>('last-trip-launcher'),
+                        onTap: _onIslandEarningsTap,
+                        child: SizedBox(
+                          height: _homeMapButtonSize,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: _islandEarningsLabel(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    divider(),
+                    Tooltip(
+                      message: 'Search destination',
+                      child: InkWell(
+                        key: const ValueKey<String>('destination-mode-open'),
+                        onTap: _openDestinationModePicker,
+                        child: SizedBox(
+                          width: 50,
+                          height: _homeMapButtonSize,
+                          child: Center(
+                            child: Image.asset(
+                              AppAssets.search,
+                              height: 17,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              divider(),
-              Tooltip(
-                message: 'Search destination',
-                child: InkWell(
-                  key: const ValueKey<String>('destination-mode-open'),
-                  onTap: _openDestinationModePicker,
-                  child: SizedBox(
-                    width: 50,
-                    height: _homeMapButtonSize,
-                    child: Center(
-                      child: Image.asset(
-                        AppAssets.search,
-                        height: 17,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+              IgnorePointer(
+                key: const ValueKey<String>('today-summary-pointer'),
+                ignoring: !expanded,
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 340),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.topCenter,
+                  child: expanded
+                      ? _buildTodaySummaryPopup()
+                      : const SizedBox(width: double.infinity),
                 ),
               ),
             ],
           ),
         ),
+      );
+    }
+    Widget _islandEarningsLabel() {
+      const muted = Color(0xFF9AA4A9);
+      const accent = Color(0xFF58E5A6);
+      if (_showTodaySummaryPopup) {
+        return const Row(
+          key: ValueKey<String>('island-today'),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                'Today',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_up_rounded, size: 20, color: muted),
+          ],
+        );
+      }
+      if (_islandShowsLastTrip) {
+        return const Row(
+          key: ValueKey<String>('island-last-trip'),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Last trip  ',
+                      style: TextStyle(color: muted, fontWeight: FontWeight.w500),
+                    ),
+                    TextSpan(
+                      text: _lastTripFare,
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 14.5),
+              ),
+            ),
+          ],
+        );
+      }
+      return const Row(
+        key: ValueKey<String>('island-hidden'),
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history_rounded, size: 19, color: accent),
+          SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              '•••• kr',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ],
       );
     }
     void _onRadarSheetDragUpdate(DragUpdateDetails details) {
@@ -1086,10 +1157,21 @@ extension _HomeMapSheet on _DriverHomeState {
       });
     }
     void _hideTodaySummary() {
-      if (!_showTodaySummaryPopup) { return; }
+      if (!_showTodaySummaryPopup && !_islandShowsLastTrip) { return; }
       _rebuild(() {
         _showTodaySummaryPopup = false;
+        _islandShowsLastTrip = false;
       });
+    }
+    /// Hidden total → last trip fare → full Today details → hidden.
+    void _onIslandEarningsTap() {
+      if (_showTodaySummaryPopup) {
+        _hideTodaySummary();
+      } else if (_islandShowsLastTrip) {
+        _showTodaySummary();
+      } else {
+        _rebuild(() => _islandShowsLastTrip = true);
+      }
     }
     void _closeHomeFloatingPopupsForSheet() {
       if (!_showTodaySummaryPopup &&
@@ -1100,6 +1182,7 @@ extension _HomeMapSheet on _DriverHomeState {
 
       _rebuild(() {
         _showTodaySummaryPopup = false;
+        _islandShowsLastTrip = false;
         showRideRequests = false;
         _isDirectOfferRoutePreview = false;
         _directOfferRouteMarkers = {};
@@ -1107,267 +1190,199 @@ extension _HomeMapSheet on _DriverHomeState {
       });
     }
     Widget _buildTodaySummaryPopup() {
-      return Material(
-        color: Colors.transparent,
-        child: Container(
-          key: const ValueKey<String>('today-summary-card'),
-          width: 278,
-          padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: const Color(0xFFD7EBE1),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF19865C).withValues(alpha: 0.10),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-              BoxShadow(
-                color: const Color(0xFF172027).withValues(alpha: 0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    height: 34,
-                    width: 34,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F5F6),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const MoveraLineIcon(
-                      mark: MoveraMark.insights,
-                      color: Color(0xFF1C242C),
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      "Today",
-                      style: TextStyle(
-                        color: Color(0xFF252E3A),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                  ),
-                  InkWell(
-                    key: const ValueKey<String>('today-history-button'),
-                    onTap: () {
-                      _hideTodaySummary();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const DriverRideHistory(),
+      const muted = Color(0xFF9AA4A9);
+      const line = Color(0xFF2A3035);
+      return Padding(
+        key: const ValueKey<String>('today-summary-card'),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(height: 1, color: line),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _todayEarnings,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 30,
+                            height: 1.1,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                          ),
                         ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(14),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 6,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'History',
-                            style: TextStyle(
-                              color: Color(0xFF1C242C),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          SizedBox(width: 3),
-                          MoveraLineIcon(
-                            mark: MoveraMark.arrow,
-                            color: Color(0xFF1C242C),
-                            size: 10,
-                          ),
-                        ],
+                      SizedBox(height: 2),
+                      Text(
+                        'Earnings today',
+                        style: TextStyle(color: muted, fontSize: 13),
                       ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF23292D),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '3 rides',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  InkWell(
-                    onTap: _hideTodaySummary,
-                    borderRadius: BorderRadius.circular(16),
-                    child: const SizedBox(
-                      height: 28,
-                      width: 28,
-                      child: Icon(
-                        Icons.close_rounded,
-                        color: Color(0xFF7A858B),
-                        size: 17,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: line, width: 1.5),
+              ),
+              child: Column(
+                children: [
+                  const Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Last trip · Comfort',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: muted, fontSize: 12),
+                        ),
                       ),
+                      Text(
+                        _lastTripFare,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _islandRouteRow(
+                    square: false,
+                    label: 'Pickup',
+                    place: 'Central Station',
+                    time: '21:20',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 5),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(width: 2, height: 12, color: line),
                     ),
+                  ),
+                  _islandRouteRow(
+                    square: true,
+                    label: 'Drop-off',
+                    place: 'Södermalm',
+                    time: '21:42',
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 11),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFEAF6F0),
-                      Color(0xFFF7FBF9),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(17),
-                  border: Border.all(
-                    color: const Color(0xFFD7EBE1),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  key: const ValueKey<String>('today-history-button'),
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    _hideTodaySummary();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const DriverRideHistory(),
+                      ),
+                    );
+                  },
+                  child: const Center(
+                    child: Text(
+                      'Ride history',
+                      style: TextStyle(
+                        color: _islandInk,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      height: 34,
-                      width: 34,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFD7EBE1),
-                        ),
-                      ),
-                      child: const MoveraLineIcon(
-                        mark: MoveraMark.wallet,
-                        color: Color(0xFF1C242C),
-                        size: 17,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "183.25 kr",
-                            style: TextStyle(
-                              color: Color(0xFF19865C),
-                              fontSize: 22,
-                              height: 1,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            "Earnings today",
-                            style: TextStyle(
-                              color: Color(0xFF7B878E),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      height: 7,
-                      width: 7,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2FBE7B),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
               ),
-              const SizedBox(height: 4),
-              _premiumActivityRow(
-                mark: MoveraMark.car,
-                title: "3 rides",
-                subtitle: "Completed today",
-              ),
-              const Divider(height: 1, color: Color(0xFFE6E8EA)),
-              _premiumActivityRow(
-                mark: MoveraMark.route,
-                title: "Central Station → Södermalm",
-                subtitle: "Last trip • Comfort • 21:42",
-                trailing: "126 kr",
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
-    Widget _premiumActivityRow({
-      required MoveraMark mark,
-      required String title,
-      required String subtitle,
-      String? trailing,
+    Widget _islandRouteRow({
+      required bool square,
+      required String label,
+      required String place,
+      required String time,
     }) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 9),
-        child: Row(
-          children: [
-            SizedBox(
-              height: 28,
-              width: 28,
-              child: MoveraLineIcon(
-                mark: mark,
-                color: const Color(0xFF1C242C),
-                size: 18,
-              ),
+      return Row(
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: square ? Colors.white : _islandInk,
+              shape: square ? BoxShape.rectangle : BoxShape.circle,
+              borderRadius: square ? BorderRadius.circular(2) : null,
+              border: square ? null : Border.all(color: Colors.white, width: 3),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF252E3A),
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF8A959B),
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (trailing != null) ...[
-              const SizedBox(width: 8),
-              Text(
-                trailing,
-                style: const TextStyle(
-                  color: Color(0xFF252E3A),
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(color: Color(0xFF9AA4A9), fontSize: 11),
                 ),
-              ),
-            ],
-          ],
-        ),
+                Text(
+                  place,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            time,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       );
     }
     bool _isVersionNewer(String candidate, String current) {
