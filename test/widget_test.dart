@@ -963,7 +963,9 @@ void main() {
     final location = tester.getRect(
       find.byKey(const ValueKey<String>('driver-location-zoom')),
     );
-    final safety = tester.getRect(find.byIcon(Icons.shield_outlined));
+    final safety = tester.getRect(
+      find.byKey(const ValueKey<String>('home-safety-button')),
+    );
     expect(location.center.dy, closeTo(safety.center.dy, 16));
     expect(location.left, lessThan(safety.left));
     _expectNoException(tester);
@@ -1292,7 +1294,7 @@ void main() {
     AnimatedPositioned safetyPosition() {
       return tester.widget<AnimatedPositioned>(
         find.ancestor(
-          of: find.byIcon(Icons.shield_outlined),
+          of: find.byKey(const ValueKey<String>('home-safety-button')),
           matching: find.byType(AnimatedPositioned),
         ),
       );
@@ -1314,9 +1316,10 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(320, 700));
 
-    final homeSafetyIcon = find.byIcon(Icons.shield_outlined);
+    final homeSafetyIcon =
+        find.byKey(const ValueKey<String>('home-safety-button'));
     expect(homeSafetyIcon, findsOneWidget);
-    final safetyInk = find.ancestor(
+    final safetyInk = find.descendant(
       of: homeSafetyIcon,
       matching: find.byType(InkWell),
     );

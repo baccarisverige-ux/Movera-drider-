@@ -611,7 +611,7 @@ extension _AcceptRidePanel on _AcceptRideState {
         children: [
           Text(_freshRadarLocation ? 'Demo Radar' : 'Demo Radar — live location unavailable/stale', style: const TextStyle(fontSize: 10)),
           const SizedBox(height: 4),
-          _mapControl(
+          MapControlButton(
             key: const ValueKey<String>('active-ride-safety-button'),
             tooltip: 'Safety toolkit',
             size: 50,
@@ -619,20 +619,20 @@ extension _AcceptRidePanel on _AcceptRideState {
             child: SvgPicture.asset(AppAssets.mapSafety, width: 26, height: 26),
           ),
           const SizedBox(height: 12),
-          _mapControl(
+          MapControlButton(
             key: const ValueKey<String>('active-ride-google-maps-button'),
             tooltip: 'Navigate with Google Maps',
             size: 56,
-            fill: const Color(0xFFE4E7EA),
+            fill: MapControlButton.googleGrey,
             onTap: _openGoogleMaps,
             child: SvgPicture.asset(AppAssets.mapGoogle, width: 26, height: 26),
           ),
           const SizedBox(height: 12),
-          _mapControl(
+          MapControlButton(
             key: const ValueKey<String>('active-ride-recenter-button'),
             tooltip: 'Recenter',
             size: 56,
-            fill: const Color(0xFF3F78BF),
+            fill: MapControlButton.recenterBlue,
             onTap: () {
               _navigation.resumeFollow();
               unawaited(_AcceptRideTrip(this)._followVehicle(force: true));
@@ -654,41 +654,6 @@ extension _AcceptRidePanel on _AcceptRideState {
           const SnackBar(content: Text('Google Maps is unavailable.')),
         );
       }
-    }
-    /// Round map button: white ring around a [fill] disc (white by default).
-    Widget _mapControl({
-      required Key key,
-      required String tooltip,
-      required double size,
-      required VoidCallback onTap,
-      required Widget child,
-      Color fill = Colors.white,
-    }) {
-      return Tooltip(
-        key: key,
-        message: tooltip,
-        child: Material(
-          color: Colors.white,
-          shape: const CircleBorder(),
-          elevation: 5,
-          shadowColor: const Color(0xFF172027).withValues(alpha: 0.22),
-          child: InkWell(
-            onTap: onTap,
-            customBorder: const CircleBorder(),
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Padding(
-                padding: EdgeInsets.all(fill == Colors.white ? 0 : 4),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
-                  child: Center(child: child),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
     }
     Widget _buildRidePanel() {
       return ValueListenableBuilder<double>(

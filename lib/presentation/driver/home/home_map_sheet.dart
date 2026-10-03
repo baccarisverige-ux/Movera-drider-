@@ -113,47 +113,36 @@ extension _HomeMapSheet on _DriverHomeState {
     }
     Widget _buildDriverLocationButton() {
       return PointerInterceptor(
-        child: Material(
-          key: const ValueKey<String>('driver-location-zoom'),
-          color: Colors.white,
-          elevation: 4,
-          shadowColor: const Color(0xFF172027).withValues(alpha: 0.16),
-          shape: const CircleBorder(),
-          child: InkWell(
-            onTap: _zoomToDriverLocation,
-            customBorder: const CircleBorder(),
-            child: SizedBox(
-              width: 46,
-              height: 46,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(
-                    Icons.my_location_rounded,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            MapControlButton(
+              key: const ValueKey<String>('driver-location-zoom'),
+              tooltip: 'Recenter',
+              size: 54,
+              fill: MapControlButton.recenterBlue,
+              onTap: _zoomToDriverLocation,
+              child: SvgPicture.asset(AppAssets.mapRecenter, width: 24, height: 24),
+            ),
+            // Live GPS indicator.
+            Positioned(
+              right: 2,
+              top: 2,
+              child: IgnorePointer(
+                child: Container(
+                  width: 11,
+                  height: 11,
+                  decoration: BoxDecoration(
                     color: _hasLiveDriverLocation
-                        ? const Color(0xFF19865C)
-                        : const Color(0xFF66737A),
-                    size: 22,
+                        ? const Color(0xFF2FBE7B)
+                        : const Color(0xFFAAB2B6),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
                   ),
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: _hasLiveDriverLocation
-                            ? const Color(0xFF55B38A)
-                            : const Color(0xFFAAB2B6),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       );
     }
@@ -938,24 +927,12 @@ extension _HomeMapSheet on _DriverHomeState {
                 curve: Curves.easeOutCubic,
                 right: 16,
                 bottom: 138,
-                child: Material(
-                  color: AppColor.white,
-                  elevation: 4,
-                  shadowColor: const Color(0xFF1D2730).withValues(alpha: 0.16),
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    onTap: () => showSafetyToolKitSheet(context),
-                    customBorder: const CircleBorder(),
-                    child: const SizedBox(
-                      height: 42,
-                      width: 42,
-                      child: Icon(
-                        Icons.shield_outlined,
-                        color: Color(0xFF3F4A50),
-                        size: 17,
-                      ),
-                    ),
-                  ),
+                child: MapControlButton(
+                  key: const ValueKey<String>('home-safety-button'),
+                  tooltip: 'Safety toolkit',
+                  size: 50,
+                  onTap: () => showSafetyToolKitSheet(context),
+                  child: SvgPicture.asset(AppAssets.mapSafety, width: 26, height: 26),
                 ),
               ),
             if (!isDestinationPanel &&
