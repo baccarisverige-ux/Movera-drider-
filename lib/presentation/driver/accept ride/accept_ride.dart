@@ -33,7 +33,8 @@ import 'package:movera/core/safety/rider_contact.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
-import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
+import 'package:movera/presentation/driver/accept%20ride/trip_bottom_bar.dart';
+import 'package:movera/presentation/driver/preferences/preferences.dart';
 import 'package:movera/presentation/driver/accept%20ride/rider_cancelled_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/trip_outcome_sheet.dart';
 import 'package:movera/core/vehicle/local_vehicle_store.dart';
@@ -713,6 +714,31 @@ class _AcceptRideState extends State<AcceptRide>
 
 
 
+
+  String? get _routeDistanceText {
+    final meters = _navigation.route?.distanceMeters;
+    if (meters == null || meters <= 0) { return null; }
+    if (meters < 1000) { return '${(meters / 10).round() * 10} m'; }
+    return '${(meters / 1000).toStringAsFixed(1)} km';
+  }
+
+  /// One line under the time and distance in the collapsed trip bar.
+  String get _tripBarStatus {
+    switch (_stage) {
+      case ActiveRideStage.headingToPickup:
+        return 'Picking up ${widget.riderName}';
+      case ActiveRideStage.waitingForRider:
+        return _riderOnTheWay
+            ? '${widget.riderName} is on the way'
+            : 'Waiting for ${widget.riderName}';
+      case ActiveRideStage.onTrip:
+        if (_paidStopWait) { return 'Waiting at stop ${_stopCursor + 1}'; }
+        if (_stopCursor < widget.stopAddresses.length) {
+          return 'Heading to stop ${_stopCursor + 1}';
+        }
+        return 'Dropping off ${widget.riderName}';
+    }
+  }
 
   String get _routeEtaText {
     final seconds = _routeDurationSeconds;

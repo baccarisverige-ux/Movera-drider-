@@ -651,7 +651,9 @@ extension _AcceptRidePanel on _AcceptRideState {
             key: const ValueKey<String>('active-ride-panel'),
             decoration: BoxDecoration(
               color: _AcceptRideState._panel,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(compact ? 18 : 30),
+              ),
               border: Border(top: BorderSide(color: _AcceptRideState._line)),
               boxShadow: [
                 BoxShadow(
@@ -665,7 +667,7 @@ extension _AcceptRidePanel on _AcceptRideState {
               top: false,
               child: Column(
                 children: [
-                  Padding(
+                  if (!compact) Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                     child: Center(
                       child: Container(
@@ -683,46 +685,26 @@ extension _AcceptRidePanel on _AcceptRideState {
                     child: const SizedBox.shrink(),
                   ),
                   if (compact)
-                    CompactTripDock(
+                    TripBottomBar(
                       key: const ValueKey<String>('active-ride-compact-dock'),
-                      pickupAddress: widget.pickupAddress,
-                      dropoffAddress: widget.dropoffAddress,
-                      stopAddresses: widget.stopAddresses,
                       etaLabel: _countingWait ? _waitLabel : _routeEtaText,
-                      stageLabel: switch (_stage) {
-                        ActiveRideStage.headingToPickup => 'PICKUP',
-                        ActiveRideStage.waitingForRider => 'WAITING',
-                        ActiveRideStage.onTrip =>
-                          _paidStopWait ? 'STOP WAIT' : 'ON TRIP',
-                      },
-                      onArrived: _arrivalTarget != null ? _AcceptRideTrip(this)._onArrivedTap : null,
-                      arrivedEnabled: _nearArrivalTarget,
-                      onArrivedBlocked: _AcceptRideTrip(this)._blockedArrival,
-                      riderReply: _riderOnTheWay ? 'RIDER ON THE WAY' : null,
-                      onWaitTap: _countingWait ? _openWaitingTime : null,
-                      riderName: widget.riderName,
-                      onCall: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              RiderContactPolicy.unavailableMessage,
-                            ),
-                            backgroundColor: _AcceptRideState._ink,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                        );
-                      },
-                      onMessage: () {
+                      distanceLabel: _countingWait ? null : _routeDistanceText,
+                      statusLabel: _tripBarStatus,
+                      stopCount: widget.stopAddresses.length,
+                      onPreferences: () {
                         Navigator.push(
                           context,
-                          BottomToTopTransition(
-                            Chat(riderDisplayName: widget.riderName),
+                          MaterialPageRoute<void>(
+                            builder: (_) => const Preferences(),
                           ),
                         );
                       },
+                      onDetails: () => _ridePanelController.open(),
+                      onStatusTap: _countingWait ? _openWaitingTime : null,
+                      onArrived: _arrivalTarget != null
+                          ? _AcceptRideTrip(this)._onArrivedTap
+                          : null,
+                      arrivedEnabled: _nearArrivalTarget,
                     )
                   else
                     Expanded(
@@ -1084,7 +1066,58 @@ extension _AcceptRidePanel on _AcceptRideState {
                 ),
               ),
             ),
+            _riderContactButton(
+              icon: Icons.call_outlined,
+              tooltip: 'Call rider',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(RiderContactPolicy.unavailableMessage),
+                    backgroundColor: _AcceptRideState._ink,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 6),
+            _riderContactButton(
+              icon: Icons.chat_bubble_outline_rounded,
+              tooltip: 'Message rider',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  BottomToTopTransition(
+                    Chat(riderDisplayName: widget.riderName),
+                  ),
+                );
+              },
+            ),
           ],
+        ),
+      );
+    }
+    Widget _riderContactButton({
+      required IconData icon,
+      required String tooltip,
+      required VoidCallback onTap,
+    }) {
+      return Tooltip(
+        message: tooltip,
+        child: Material(
+          color: const Color(0xFFF4F5F6),
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 38,
+              height: 38,
+              child: Icon(icon, size: 19, color: _AcceptRideState._ink),
+            ),
+          ),
         ),
       );
     }

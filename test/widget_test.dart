@@ -2115,7 +2115,7 @@ void main() {
     );
 
     final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect(panel.minHeight, 164);
+    expect(panel.minHeight, 92);
     expect(panel.snapPoint, isNotNull);
     expect(panel.panelSnapping, isFalse);
     expect(
@@ -2146,12 +2146,51 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Odlarvägen 22'), findsWidgets);
-    expect(find.text('T-Centralen, Stockholm'), findsWidgets);
+    expect(find.text('Picking up Angelica'), findsOneWidget);
+    expect(find.byTooltip('Ride preferences'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('active-ride-navigation-card')),
       findsOneWidget,
     );
     expect(tester.getTopLeft(mapControls).dy, closeTo(openY, 0.5));
+    _expectNoException(tester);
+  });
+
+  testWidgets('Collapsed trip bar opens Ride preferences and trip details', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+
+    await _collapseActiveRideSheet(tester);
+    final dock = find.byKey(const ValueKey<String>('active-ride-compact-dock'));
+    expect(dock, findsOneWidget);
+
+    // Demo arrival is always in range, so the arrived pill takes the
+    // details slot; the middle of the bar opens the details too.
+    expect(
+      find.descendant(
+        of: dock,
+        matching: find.byKey(const ValueKey<String>('active-ride-arrived-button')),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Picking up Angelica'));
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(dock, findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-journey-card')),
+      findsOneWidget,
+    );
+
+    await _collapseActiveRideSheet(tester);
+    await tester.tap(find.byTooltip('Ride preferences'));
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    expect(find.byType(Preferences), findsOneWidget);
     _expectNoException(tester);
   });
 

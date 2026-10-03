@@ -161,7 +161,7 @@ void main() {
   test('collapsed active ride keeps the explicit arrival action wired', () {
     final rideSource = activeRideLibrary();
     final dockSource = File(
-      'lib/presentation/driver/accept ride/compact_trip_dock.dart',
+      'lib/presentation/driver/accept ride/trip_bottom_bar.dart',
     ).readAsStringSync();
 
     expect(rideSource.contains('_confirmPickupArrival'), isTrue);
