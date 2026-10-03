@@ -32,6 +32,15 @@ class AppAssets {
   static const String mapSafety = 'assets/icons/map_safety.svg';
   static const String mapGoogle = 'assets/icons/map_google.svg';
   static const String mapRecenter = 'assets/icons/map_recenter.svg';
+  // Side menu line icons
+  static const String menuProfile = 'assets/icons/menu_profile.svg';
+  static const String menuWallet = 'assets/icons/menu_wallet.svg';
+  static const String menuHistory = 'assets/icons/menu_history.svg';
+  static const String menuCalendar = 'assets/icons/menu_calendar.svg';
+  static const String menuTag = 'assets/icons/menu_tag.svg';
+  static const String menuTimer = 'assets/icons/menu_timer.svg';
+  static const String menuSupport = 'assets/icons/menu_support.svg';
+  static const String menuSettings = 'assets/icons/menu_settings.svg';
   static const String search = 'assets/icons/search.png';
   static const String arrowUp = 'assets/icons/arrow_up.png';
   static const String triangle = 'assets/icons/triangle.png';
