@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 /// Shared top-down Movera car used on Home and the active ride map: white
-/// body, dark glass roof with green trim, red tail lights and two light-blue
+/// body, dark glass roof with green trim, red tail lights and two light-grey
 /// headlight beams ahead that show the heading.
 class MoveraVehicleMarker {
   const MoveraVehicleMarker._();
@@ -51,7 +51,7 @@ class MoveraVehicleMarker {
             ..shader = const LinearGradient(
               begin: Alignment.bottomCenter,
               end: Alignment.topCenter,
-              colors: [Color(0xE6DDEFFF), Color(0x66DDEFFF), Color(0x00DDEFFF)],
+              colors: [Color(0xE6C9CED2), Color(0x66C9CED2), Color(0x00C9CED2)],
               stops: [0, 0.6, 1],
             ).createShader(const Rect.fromLTWH(0, 0, 128, 50))
             ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 1.6),
@@ -140,7 +140,7 @@ class MoveraVehicleMarker {
         ..strokeCap = StrokeCap.round,
     );
     // headlights
-    final head = Paint()..color = const Color(0xFFEAF6FF);
+    final head = Paint()..color = const Color(0xFFF1F3F4);
     c.drawRRect(
       RRect.fromRectAndRadius(
         const Rect.fromLTWH(50, 46.5, 8, 3),
