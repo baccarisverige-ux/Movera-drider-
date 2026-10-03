@@ -42,12 +42,28 @@ class ScheduledRidesAdminConfig {
     required this.hasOpenRequests,
     required this.title,
     required this.subtitle,
+    this.newRequest,
   });
 
   final bool enabled;
   final bool hasOpenRequests;
   final String title;
   final String subtitle;
+
+  /// Newest reservation request, shown as a Home popup when present.
+  final ReservationRequestPreview? newRequest;
+}
+
+class ReservationRequestPreview {
+  const ReservationRequestPreview({
+    required this.category,
+    required this.fare,
+    required this.pickupLabel,
+  });
+
+  final String category;
+  final String fare;
+  final String pickupLabel;
 }
 
 class AppUpdateAdminConfig {
@@ -153,6 +169,11 @@ class DriverHomeAdminContentService {
         hasOpenRequests: true,
         title: 'Scheduled rides available',
         subtitle: 'View open requests in your area',
+        newRequest: ReservationRequestPreview(
+          category: 'Comfort',
+          fare: '126.75 kr',
+          pickupLabel: 'Pickup today at 07:40',
+        ),
       ),
       update: AppUpdateAdminConfig(
         enabled: false,

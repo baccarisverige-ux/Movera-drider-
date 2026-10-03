@@ -36,6 +36,7 @@ import 'package:movera/presentation/driver/documents/documents.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
+import 'package:movera/presentation/driver/home/components/reservation_request_sheet.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
 import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
@@ -151,6 +152,9 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _outsideOfferTimeoutTimer;
   Timer? _expandedDirectOfferTimer;
   Timer? _reservationOfferTimer;
+  Timer? _reservationPopupTimer;
+  bool _reservationPopupShown = false;
+  int _reservationPopupTries = 0;
   Timer? _radarOfferTwoTimer;
   Timer? _radarOfferThreeTimer;
   Timer? _homeRadarMatchResolutionTimer;
@@ -331,6 +335,33 @@ class _DriverHomeState extends State<DriverHome>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_restoreActiveRideIfNeeded());
       _HomeMapSheet(this)._maybeShowAppUpdatePrompt();
+      _scheduleReservationPopup();
+    });
+  }
+
+  /// Reservation requests arrive outside Radar, so Home announces the newest
+  /// one once, a few seconds after opening, when nothing else is in front.
+  void _scheduleReservationPopup() {
+    final request = _adminHomeConfig.scheduledRides.newRequest;
+    if (!DriverRuntimeConfig.current.reservationPopup ||
+        !_hasScheduledRideOffers ||
+        request == null ||
+        _reservationPopupShown ||
+        _reservationPopupTries >= 6) {
+      return;
+    }
+    _reservationPopupTimer?.cancel();
+    _reservationPopupTimer = Timer(const Duration(seconds: 3), () async {
+      if (!mounted || _reservationPopupShown) { return; }
+      _reservationPopupTries++;
+      final onTop = ModalRoute.of(context)?.isCurrent ?? false;
+      if (!onTop || _hasRideOffers || isPanelOpen) {
+        _scheduleReservationPopup();
+        return;
+      }
+      _reservationPopupShown = true;
+      final viewTrip = await showReservationRequestSheet(context, request);
+      if (viewTrip && mounted) { _openScheduledRides(); }
     });
   }
 
@@ -1009,6 +1040,7 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void dispose() {
     _locationEpoch++;
+    _reservationPopupTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     driverRouteObserver.unsubscribe(this);
     _sheetTrace.dispose();

@@ -58,4 +58,6 @@ class AppAssets {
   static const String destinationSelected =
       'assets/images/destination_selected.png';
   static const String direction = 'assets/images/direction.png';
+  static const String reservationRequest =
+      'assets/images/reservation_request.png';
 }
