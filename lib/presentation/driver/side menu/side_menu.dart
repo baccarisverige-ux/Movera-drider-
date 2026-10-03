@@ -102,7 +102,7 @@ class DriverSideMenu extends StatelessWidget {
                   _menuCard(
                     children: [
                       _MenuAction(
-                        asset: AppAssets.menuScheduledRide,
+                        asset: AppAssets.menuCalendar,
                         highlight: true,
                         title: 'Scheduled rides',
                         subtitle: 'Reservations and accepted trips',
@@ -376,12 +376,22 @@ class DriverSideMenu extends StatelessWidget {
                 width: 30,
                 height: 30,
                 child: action.highlight
-                    // The one coloured icon: the owner's watercolour
-                    // calendar, drawn a little larger than the line icons.
-                    ? OverflowBox(
-                        maxWidth: 40,
-                        maxHeight: 40,
-                        child: Image.asset(action.asset, width: 40, height: 40),
+                    ? DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: _green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: SvgPicture.asset(
+                            action.asset,
+                            width: 19,
+                            height: 19,
+                            colorFilter: const ColorFilter.mode(
+                              Colors.white,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
                       )
                     : Center(
                         child: SvgPicture.asset(
@@ -510,7 +520,7 @@ class _MenuAction {
 
   final String asset;
 
-  /// The one coloured icon in the menu: [asset] is a PNG drawn as is.
+  /// The one coloured icon in the menu (green tile).
   final bool highlight;
 
   /// Small red pill after the text, e.g. "NEW".
