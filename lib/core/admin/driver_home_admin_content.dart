@@ -69,6 +69,7 @@ class ReservationRequestPreview {
     required this.tripKm,
     required this.pickup,
     required this.dropoff,
+    this.stops = const <ReservationStop>[],
   });
 
   final String category;
@@ -87,6 +88,28 @@ class ReservationRequestPreview {
 
   final GeoPoint pickup;
   final GeoPoint dropoff;
+
+  /// Stops between pickup and drop-off, in driving order.
+  final List<ReservationStop> stops;
+
+  /// Expected drop-off time: [pickupTime] plus [tripMinutes], e.g. "07:59".
+  /// Falls back to [pickupTime] if it is not "HH:mm".
+  String get arrivalTime {
+    final parts = pickupTime.split(':');
+    final h = parts.length == 2 ? int.tryParse(parts[0]) : null;
+    final m = parts.length == 2 ? int.tryParse(parts[1]) : null;
+    if (h == null || m == null) { return pickupTime; }
+    final total = (h * 60 + m + tripMinutes) % (24 * 60);
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(total ~/ 60)}:${two(total % 60)}';
+  }
+}
+
+class ReservationStop {
+  const ReservationStop({required this.address, required this.point});
+
+  final String address;
+  final GeoPoint point;
 }
 
 class AppUpdateAdminConfig {
@@ -204,6 +227,12 @@ class DriverHomeAdminContentService {
           tripKm: 9.4,
           pickup: GeoPoint(59.3362, 18.0714),
           dropoff: GeoPoint(59.3603, 18.0009),
+          stops: [
+            ReservationStop(
+              address: 'Odenplan, Stockholm',
+              point: GeoPoint(59.3430, 18.0496),
+            ),
+          ],
         ),
       ),
       update: AppUpdateAdminConfig(

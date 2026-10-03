@@ -1,11 +1,11 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
-import 'package:movera/core/geo/geo_point_maps.dart';
-import 'package:movera/widgets/custom_google_map.dart';
+import 'package:movera/core/geo/geo_point.dart';
+import 'package:movera/core/routing/road_route_service.dart';
+import 'package:movera/core/routing/route_repository.dart';
+import 'package:movera/core/session/driver_runtime_config.dart';
+import 'package:movera/presentation/driver/home/components/reservation_route_map.dart';
 
 enum ReservationDecision { accepted, denied, dismissed }
 
@@ -14,6 +14,7 @@ Future<ReservationDecision> showReservationRequestSheet(
   BuildContext context,
   ReservationRequestPreview request, {
   WidgetBuilder? mapBuilder,
+  RouteRepository? routes,
 }) async {
   final decision = await showModalBottomSheet<ReservationDecision>(
     context: context,
@@ -26,26 +27,71 @@ Future<ReservationDecision> showReservationRequestSheet(
     builder: (_) => ReservationRequestSheet(
       request: request,
       mapBuilder: mapBuilder,
+      routes: routes,
     ),
   );
   return decision ?? ReservationDecision.dismissed;
 }
 
-class ReservationRequestSheet extends StatelessWidget {
+class ReservationRequestSheet extends StatefulWidget {
   const ReservationRequestSheet({
     super.key,
     required this.request,
     this.mapBuilder,
+    this.routes,
   });
 
   final ReservationRequestPreview request;
 
-  /// Replaces the live map, for tests and previews.
+  /// Replaces the live maps (popup and full route), for tests and previews.
   final WidgetBuilder? mapBuilder;
 
+  /// Road routing; defaults to [RoadRouteService].
+  final RouteRepository? routes;
+
+  @override
+  State<ReservationRequestSheet> createState() =>
+      _ReservationRequestSheetState();
+}
+
+class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
   static const Color _ink = Color(0xFF111614);
   static const Color _muted = Color(0xFF5E6461);
   static const Color _line = Color(0xFFE4E6E5);
+
+  ReservationRequestPreview get request => widget.request;
+  RoadRouteService? _ownRoutes;
+  late final Future<List<GeoPoint>> _route;
+
+  @override
+  void initState() {
+    super.initState();
+    final routes = widget.routes ??
+        (DriverRuntimeConfig.current.externalRouting
+            ? _ownRoutes = RoadRouteService()
+            : null);
+    _route = loadReservationRoute(request, routes);
+  }
+
+  @override
+  void dispose() {
+    _ownRoutes?.dispose();
+    super.dispose();
+  }
+
+  void _openRouteMap() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReservationRouteMapPage(
+          request: request,
+          route: _route,
+          mapBuilder: widget.mapBuilder == null
+              ? null
+              : (context, _) => widget.mapBuilder!(context),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,8 +144,29 @@ class ReservationRequestSheet extends StatelessWidget {
                       child: SizedBox(
                         height: 128,
                         width: double.infinity,
-                        child: IgnorePointer(
-                          child: (mapBuilder ?? _liveMap)(context),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            IgnorePointer(
+                              child: (widget.mapBuilder ?? _liveMap)(context),
+                            ),
+                            Positioned.fill(
+                              child: Material(
+                                type: MaterialType.transparency,
+                                child: InkWell(
+                                  key: const ValueKey<String>(
+                                    'reservation-map-open',
+                                  ),
+                                  onTap: _openRouteMap,
+                                ),
+                              ),
+                            ),
+                            const Positioned(
+                              right: 8,
+                              bottom: 8,
+                              child: IgnorePointer(child: _ViewRouteChip()),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -115,13 +182,15 @@ class ReservationRequestSheet extends StatelessWidget {
                           trailing: request.pickupTime,
                           trailingSub: request.pickupDay,
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 5),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Container(width: 2, height: 14, color: _line),
+                        _connector(),
+                        for (var i = 0; i < request.stops.length; i++) ...[
+                          _routeRow(
+                            dot: const _RouteDot(square: false, stop: true),
+                            label: 'Stop ${i + 1}',
+                            address: request.stops[i].address,
                           ),
-                        ),
+                          _connector(),
+                        ],
                         _routeRow(
                           dot: const _RouteDot(square: true),
                           label: 'Drop-off',
@@ -243,12 +312,20 @@ class ReservationRequestSheet extends StatelessWidget {
     );
   }
 
+  Widget _connector() => Padding(
+        padding: const EdgeInsets.only(left: 5),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(width: 2, height: 14, color: _line),
+        ),
+      );
+
   Widget _routeRow({
     required Widget dot,
     required String label,
     required String address,
-    required String trailing,
-    required String trailingSub,
+    String? trailing,
+    String? trailingSub,
   }) {
     return Row(
       children: [
@@ -275,6 +352,7 @@ class ReservationRequestSheet extends StatelessWidget {
             ],
           ),
         ),
+        if (trailing != null) ...[
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -288,11 +366,12 @@ class ReservationRequestSheet extends StatelessWidget {
               ),
             ),
             Text(
-              trailingSub,
+              trailingSub ?? '',
               style: const TextStyle(color: _muted, fontSize: 11.5),
             ),
           ],
         ),
+        ],
       ],
     );
   }
@@ -301,52 +380,83 @@ class ReservationRequestSheet extends StatelessWidget {
       '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
 
   Widget _liveMap(BuildContext context) {
-    final pickup = request.pickup.toLatLng();
-    final dropoff = request.dropoff.toLatLng();
-    final center = LatLng(
-      (pickup.latitude + dropoff.latitude) / 2,
-      (pickup.longitude + dropoff.longitude) / 2,
+    return FutureBuilder<List<GeoPoint>>(
+      future: _route,
+      initialData: reservationWaypoints(request),
+      builder: (context, snapshot) => ReservationRouteMap(
+        request: request,
+        route: snapshot.data ?? reservationWaypoints(request),
+        // Keeps the route clear of the "View route" chip.
+        padding: const EdgeInsets.only(bottom: 30),
+        fitPadding: 22,
+      ),
     );
-    // Fit both points in a ~340 x 128 px frame.
-    final spanKm = math.max(0.5, request.pickup.distanceMetersTo(request.dropoff) / 1000);
-    final zoom = (14.2 - math.log(spanKm / 1.2) / math.ln2).clamp(9.0, 15.0);
-    return CustomGoogleMap(
-      initialPosition: CameraPosition(target: center, zoom: zoom),
-      markers: {
-        Marker(
-          markerId: const MarkerId('reservation-pickup'),
-          position: pickup,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-        ),
-        Marker(
-          markerId: const MarkerId('reservation-dropoff'),
-          position: dropoff,
-        ),
-      },
-      polylines: {
-        Polyline(
-          polylineId: const PolylineId('reservation-route'),
-          points: [pickup, dropoff],
-          color: _ink,
-          width: 4,
-        ),
-      },
-      myLocationEnabled: false,
-      scrollGesturesEnabled: false,
-      zoomGesturesEnabled: false,
-      rotateGesturesEnabled: false,
-      tiltGesturesEnabled: false,
+  }
+}
+
+class _ViewRouteChip extends StatelessWidget {
+  const _ViewRouteChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF172027).withValues(alpha: 0.18),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.open_in_full_rounded, size: 13, color: Color(0xFF111614)),
+          SizedBox(width: 5),
+          Text(
+            'View route',
+            style: TextStyle(
+              color: Color(0xFF111614),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _RouteDot extends StatelessWidget {
-  const _RouteDot({required this.square});
+  const _RouteDot({required this.square, this.stop = false});
 
   final bool square;
 
+  /// A stop: smaller grey dot.
+  final bool stop;
+
   @override
   Widget build(BuildContext context) {
+    if (stop) {
+      return Container(
+        width: 12,
+        height: 12,
+        alignment: Alignment.center,
+        child: Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF8A9195), width: 2.5),
+          ),
+        ),
+      );
+    }
     return Container(
       width: 12,
       height: 12,
