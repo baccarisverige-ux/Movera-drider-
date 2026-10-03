@@ -63,8 +63,8 @@ class ReservationRequestPreview {
     required this.pickupLabel,
     required this.pickupAddress,
     required this.dropoffAddress,
-    required this.pickupMinutes,
-    required this.pickupKm,
+    required this.pickupTime,
+    required this.pickupDay,
     required this.tripMinutes,
     required this.tripKm,
     required this.pickup,
@@ -77,9 +77,9 @@ class ReservationRequestPreview {
   final String pickupAddress;
   final String dropoffAddress;
 
-  /// Drive from the driver to the pickup.
-  final int pickupMinutes;
-  final double pickupKm;
+  /// When the rider is picked up, e.g. "07:40" on "Today".
+  final String pickupTime;
+  final String pickupDay;
 
   /// The whole ride, pickup to drop-off.
   final int tripMinutes;
@@ -198,8 +198,8 @@ class DriverHomeAdminContentService {
           pickupLabel: 'Pickup today at 07:40',
           pickupAddress: 'Gamla vägen, Stockholm',
           dropoffAddress: 'Solna centrum, Solna',
-          pickupMinutes: 16,
-          pickupKm: 2.1,
+          pickupTime: '07:40',
+          pickupDay: 'Today',
           tripMinutes: 19,
           tripKm: 9.4,
           pickup: GeoPoint(59.3362, 18.0714),

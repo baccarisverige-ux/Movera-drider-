@@ -16,8 +16,8 @@ const _request = ReservationRequestPreview(
   pickupLabel: 'Pickup today at 07:40',
   pickupAddress: 'Gamla vägen, Stockholm',
   dropoffAddress: 'Solna centrum, Solna',
-  pickupMinutes: 16,
-  pickupKm: 2.1,
+  pickupTime: '07:40',
+  pickupDay: 'Today',
   tripMinutes: 19,
   tripKm: 9.4,
   pickup: GeoPoint(59.3362, 18.0714),
@@ -61,8 +61,9 @@ void main() {
       expect(find.byKey(const ValueKey<String>('fake-map')), findsOneWidget);
       expect(find.text('Gamla vägen, Stockholm'), findsOneWidget);
       expect(find.text('Solna centrum, Solna'), findsOneWidget);
-      expect(find.text('16 min'), findsOneWidget);
-      expect(find.text('2.1 km away'), findsOneWidget);
+      expect(find.text('07:40'), findsOneWidget);
+      expect(find.text('Today'), findsOneWidget);
+      expect(find.textContaining('away'), findsNothing);
       expect(find.text('19 min'), findsOneWidget);
       expect(find.text('9.4 km ride'), findsOneWidget);
       await tester.tap(find.text(label));

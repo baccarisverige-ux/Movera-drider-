@@ -112,8 +112,8 @@ class ReservationRequestSheet extends StatelessWidget {
                           dot: const _RouteDot(square: false),
                           label: 'Pickup',
                           address: request.pickupAddress,
-                          trailing: '${request.pickupMinutes} min',
-                          trailingSub: '${_km(request.pickupKm)} away',
+                          trailing: request.pickupTime,
+                          trailingSub: request.pickupDay,
                         ),
                         Padding(
                           padding: const EdgeInsets.only(left: 5),
