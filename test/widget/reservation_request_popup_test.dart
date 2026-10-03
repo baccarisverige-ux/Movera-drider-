@@ -125,4 +125,52 @@ void main() {
     tester.takeException();
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('Home shows the reservation popup while Radar is online', (
+    tester,
+  ) async {
+    final previous = DriverRuntimeConfig.current;
+    DriverRuntimeConfig.current = DriverRuntimeConfig(
+      simulatedArrival: previous.simulatedArrival,
+      externalRouting: previous.externalRouting,
+      skipAccountActivation: previous.skipAccountActivation,
+      liveMapTicker: previous.liveMapTicker,
+    );
+    addTearDown(() => DriverRuntimeConfig.current = previous);
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final session = DriverSessionController(initialOnline: true);
+    await tester.pumpWidget(
+      LayoutViewport(
+        child: ScreenUtilInit(
+          designSize: const Size(375, 812),
+          minTextAdapt: true,
+          splitScreenMode: true,
+          useInheritedMediaQuery: true,
+          builder: (_, __) => MaterialApp(
+            home: DriverHome(sessionController: session, initialOnline: true),
+          ),
+        ),
+      ),
+    );
+    var shown = false;
+    for (var i = 0; i < 240 && !shown; i++) {
+      await tester.pump(const Duration(milliseconds: 250));
+      shown = find.text('You have a new reservation request').evaluate().isNotEmpty;
+    }
+    expect(shown, isTrue);
+    expect(session.isOnline, isTrue);
+    final deny = find.byKey(const ValueKey<String>('reservation-deny'));
+    await tester.ensureVisible(deny);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(deny);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('Reservation declined'), findsOneWidget);
+    expect(session.isOnline, isTrue);
+    tester.takeException();
+    await tester.pumpWidget(const SizedBox());
+  });
 }
