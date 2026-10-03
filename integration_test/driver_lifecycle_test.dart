@@ -98,6 +98,7 @@ void main() {
     externalRouting: false,
     skipAccountActivation: true,
     liveMapTicker: false,
+    reservationPopup: false,
   );
 
   setUp(() {

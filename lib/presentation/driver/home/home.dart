@@ -341,6 +341,7 @@ class _DriverHomeState extends State<DriverHome>
 
   /// Reservation requests arrive outside Radar, so Home announces the newest
   /// one once, a few seconds after opening, when nothing else is in front.
+  /// While Radar is live its offers come first; the popup waits for offline.
   void _scheduleReservationPopup() {
     final request = _adminHomeConfig.scheduledRides.newRequest;
     if (!DriverRuntimeConfig.current.reservationPopup ||
@@ -353,6 +354,10 @@ class _DriverHomeState extends State<DriverHome>
     _reservationPopupTimer?.cancel();
     _reservationPopupTimer = Timer(const Duration(seconds: 3), () async {
       if (!mounted || _reservationPopupShown) { return; }
+      if (_isOnline) {
+        _scheduleReservationPopup();
+        return;
+      }
       _reservationPopupTries++;
       final onTop = ModalRoute.of(context)?.isCurrent ?? false;
       if (!onTop || _hasRideOffers || isPanelOpen) {
