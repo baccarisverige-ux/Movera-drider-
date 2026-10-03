@@ -405,11 +405,16 @@ class WaitingClock extends StatefulWidget {
     required this.seconds,
     this.onTap,
     this.diameter = 48,
+    this.onDark = false,
   });
 
   final int seconds;
   final VoidCallback? onTap;
   final double diameter;
+
+  /// On a dark banner the included-minutes countdown is drawn white, since
+  /// the default ink is hard to read there; later phases keep their colour.
+  final bool onDark;
 
   @override
   State<WaitingClock> createState() => _WaitingClockState();
@@ -475,7 +480,9 @@ class _WaitingClockState extends State<WaitingClock>
                   label,
                   key: ValueKey<String>(label),
                   style: TextStyle(
-                    color: tone,
+                    color: widget.onDark && widget.seconds < _graceSeconds
+                        ? Colors.white
+                        : tone,
                     fontSize: widget.diameter * 0.24,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.4,
