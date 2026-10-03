@@ -28,6 +28,8 @@ import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/widgets/movera_line_icon.dart';
+import 'package:movera/widgets/map_control_button.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
@@ -36,6 +38,7 @@ import 'package:movera/presentation/driver/documents/documents.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
+import 'package:movera/presentation/driver/home/components/reservation_request_sheet.dart';
 import 'package:movera/presentation/driver/my%20queue%20position/components/in_airport_queue.dart';
 import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
 import 'package:movera/presentation/driver/ride%20requests/ride_requests.dart';
@@ -151,6 +154,9 @@ class _DriverHomeState extends State<DriverHome>
   Timer? _outsideOfferTimeoutTimer;
   Timer? _expandedDirectOfferTimer;
   Timer? _reservationOfferTimer;
+  Timer? _reservationPopupTimer;
+  bool _reservationPopupShown = false;
+  int _reservationPopupTries = 0;
   Timer? _radarOfferTwoTimer;
   Timer? _radarOfferThreeTimer;
   Timer? _homeRadarMatchResolutionTimer;
@@ -331,6 +337,60 @@ class _DriverHomeState extends State<DriverHome>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_restoreActiveRideIfNeeded());
       _HomeMapSheet(this)._maybeShowAppUpdatePrompt();
+      _scheduleReservationPopup();
+    });
+  }
+
+  /// Reservation requests arrive outside Radar, so Home announces the newest
+  /// one once, a few seconds after opening, when nothing else is in front.
+  /// While Radar is live its offers come first; the popup waits for offline.
+  void _scheduleReservationPopup() {
+    final request = _adminHomeConfig.scheduledRides.newRequest;
+    if (!DriverRuntimeConfig.current.reservationPopup ||
+        !_hasScheduledRideOffers ||
+        request == null ||
+        _reservationPopupShown ||
+        _reservationPopupTries >= 6) {
+      return;
+    }
+    _reservationPopupTimer?.cancel();
+    _reservationPopupTimer = Timer(const Duration(seconds: 3), () async {
+      if (!mounted || _reservationPopupShown) { return; }
+      if (_isOnline) {
+        _scheduleReservationPopup();
+        return;
+      }
+      _reservationPopupTries++;
+      final onTop = ModalRoute.of(context)?.isCurrent ?? false;
+      if (!onTop || _hasRideOffers || isPanelOpen) {
+        _scheduleReservationPopup();
+        return;
+      }
+      _reservationPopupShown = true;
+      final decision = await showReservationRequestSheet(context, request);
+      if (!mounted || decision == ReservationDecision.dismissed) { return; }
+      final accepted = decision == ReservationDecision.accepted;
+      setState(() => _hasScheduledRideOffers = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            accepted
+                ? 'Reservation accepted · ${request.pickupLabel}'
+                : 'Reservation declined',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFF111614),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          action: accepted
+              ? SnackBarAction(
+                  label: 'View',
+                  textColor: Colors.white,
+                  onPressed: _openScheduledRides,
+                )
+              : null,
+        ),
+      );
     });
   }
 
@@ -1009,6 +1069,7 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void dispose() {
     _locationEpoch++;
+    _reservationPopupTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     driverRouteObserver.unsubscribe(this);
     _sheetTrace.dispose();

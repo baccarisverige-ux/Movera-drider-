@@ -1,3 +1,5 @@
+import 'package:movera/core/geo/geo_point.dart';
+
 class DriverHomeAdminConfig {
   const DriverHomeAdminConfig({
     required this.performance,
@@ -42,12 +44,49 @@ class ScheduledRidesAdminConfig {
     required this.hasOpenRequests,
     required this.title,
     required this.subtitle,
+    this.newRequest,
   });
 
   final bool enabled;
   final bool hasOpenRequests;
   final String title;
   final String subtitle;
+
+  /// Newest reservation request, shown as a Home popup when present.
+  final ReservationRequestPreview? newRequest;
+}
+
+class ReservationRequestPreview {
+  const ReservationRequestPreview({
+    required this.category,
+    required this.fare,
+    required this.pickupLabel,
+    required this.pickupAddress,
+    required this.dropoffAddress,
+    required this.pickupTime,
+    required this.pickupDay,
+    required this.tripMinutes,
+    required this.tripKm,
+    required this.pickup,
+    required this.dropoff,
+  });
+
+  final String category;
+  final String fare;
+  final String pickupLabel;
+  final String pickupAddress;
+  final String dropoffAddress;
+
+  /// When the rider is picked up, e.g. "07:40" on "Today".
+  final String pickupTime;
+  final String pickupDay;
+
+  /// The whole ride, pickup to drop-off.
+  final int tripMinutes;
+  final double tripKm;
+
+  final GeoPoint pickup;
+  final GeoPoint dropoff;
 }
 
 class AppUpdateAdminConfig {
@@ -153,6 +192,19 @@ class DriverHomeAdminContentService {
         hasOpenRequests: true,
         title: 'Scheduled rides available',
         subtitle: 'View open requests in your area',
+        newRequest: ReservationRequestPreview(
+          category: 'Comfort',
+          fare: '126.75 kr',
+          pickupLabel: 'Pickup today at 07:40',
+          pickupAddress: 'Gamla vägen, Stockholm',
+          dropoffAddress: 'Solna centrum, Solna',
+          pickupTime: '07:40',
+          pickupDay: 'Today',
+          tripMinutes: 19,
+          tripKm: 9.4,
+          pickup: GeoPoint(59.3362, 18.0714),
+          dropoff: GeoPoint(59.3603, 18.0009),
+        ),
       ),
       update: AppUpdateAdminConfig(
         enabled: false,

@@ -174,6 +174,7 @@ class NavigationInstructionBanner extends StatelessWidget {
                   if (waitSeconds != null) ...[
                     const SizedBox(width: 10),
                     WaitingClock(
+                      onDark: true,
                       seconds: waitSeconds!,
                       diameter: 50,
                       onTap: onWaitTap,
@@ -441,6 +442,7 @@ class _ArrivalApproachBannerState extends State<_ArrivalApproachBanner>
                   if (widget.waitSeconds != null) ...[
                     const SizedBox(width: 10),
                     WaitingClock(
+                      onDark: true,
                       seconds: widget.waitSeconds!,
                       diameter: 48,
                       onTap: widget.onWaitTap,

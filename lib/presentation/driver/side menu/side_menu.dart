@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/presentation/driver/driving%20logs/driving_logs.dart';
 import 'package:movera/presentation/driver/my%20wallet/wallet.dart';
@@ -23,7 +24,8 @@ class DriverSideMenu extends StatelessWidget {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _muted = Color(0xFF7D898F);
   static const Color _green = Color(0xFF19865C);
-  static const Color _canvas = Color(0xFFF3F5F6);
+  static const Color _canvas = Colors.white;
+  static const Color _gap = Color(0xFFF1F2F2);
   static const Color _line = Color(0xFFE3E8E6);
 
   // Deliberately keep the Drawer open under the destination route.
@@ -59,85 +61,88 @@ class DriverSideMenu extends StatelessWidget {
               child: Column(
                 children: [
                   _buildHeader(context),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   _buildPerformanceStrip(),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 4),
                 ],
               ),
             ),
             Expanded(
               child: ListView(
                 key: const PageStorageKey<String>('driver-menu-list'),
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                padding: const EdgeInsets.only(bottom: 14),
                 physics: const BouncingScrollPhysics(),
                 children: [
+                  _groupGap(),
                   _sectionLabel('DRIVER'),
                   _menuCard(
                     children: [
                       _MenuAction(
-                        icon: Icons.account_circle_outlined,
+                        asset: AppAssets.menuProfile,
                         title: 'Profile',
                         subtitle: 'Account, vehicle and documents',
                         onTap: () => _open(context, const DriverProfile()),
                       ),
                       _MenuAction(
-                        icon: Icons.account_balance_wallet_outlined,
+                        asset: AppAssets.menuWallet,
                         title: 'Wallet',
                         subtitle: 'Earnings and weekly payouts',
                         onTap: () => _open(context, const WalletScreen()),
                       ),
                       _MenuAction(
-                        icon: Icons.history_rounded,
+                        asset: AppAssets.menuHistory,
                         title: 'Ride history',
                         subtitle: 'Completed and previous rides',
                         onTap: () => _open(context, const DriverRideHistory()),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  _groupGap(),
                   _sectionLabel('WORK'),
                   _menuCard(
                     children: [
                       _MenuAction(
-                        icon: Icons.calendar_month_outlined,
+                        asset: AppAssets.menuCalendar,
+                        highlight: true,
                         title: 'Scheduled rides',
                         subtitle: 'Reservations and accepted trips',
                         onTap: () =>
                             _open(context, const ScheduledRidesScreen()),
                       ),
                       _MenuAction(
-                        icon: Icons.tune_rounded,
+                        asset: AppAssets.navMenuBranch,
                         title: 'Ride preferences',
                         subtitle: 'Choose categories you want to receive',
                         onTap: () => _open(context, const Preferences()),
                       ),
                       _MenuAction(
-                        icon: Icons.local_offer_outlined,
+                        asset: AppAssets.menuTag,
+                        badge: 'NEW',
                         title: 'Promotions',
                         subtitle: 'Bonuses and campaign offers',
                         onTap: () => _open(context, const Promotions()),
                       ),
                       _MenuAction(
-                        icon: Icons.timer_outlined,
+                        asset: AppAssets.menuTimer,
                         title: 'Driving logs',
                         subtitle: 'Hours online and rest rules',
                         onTap: () => _open(context, const DrivingLogs()),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  _groupGap(),
                   _sectionLabel('SUPPORT & APP'),
                   _menuCard(
                     children: [
                       _MenuAction(
-                        icon: Icons.support_agent_rounded,
+                        asset: AppAssets.menuSupport,
                         title: 'Support',
                         subtitle: 'Messages and support tickets',
                         onTap: () =>
                             _open(context, const SupportInboxScreen()),
                       ),
                       _MenuAction(
-                        icon: Icons.settings_outlined,
+                        asset: AppAssets.menuSettings,
                         title: 'Settings',
                         subtitle: 'App and driver settings',
                         onTap: () => _open(context, const Settings()),
@@ -294,15 +299,8 @@ class DriverSideMenu extends StatelessWidget {
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: _line),
-          boxShadow: [
-            BoxShadow(
-              color: _ink.withValues(alpha: 0.035),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Row(
           children: [
@@ -338,7 +336,7 @@ class DriverSideMenu extends StatelessWidget {
 
   Widget _sectionLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 2, 8, 7),
+      padding: const EdgeInsets.fromLTRB(24, 8, 8, 4),
       child: Text(
         text,
         style: const TextStyle(
@@ -351,26 +349,17 @@ class DriverSideMenu extends StatelessWidget {
     );
   }
 
-  Widget _menuCard({required List<_MenuAction> children}) {
+  Widget _groupGap() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _line),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var index = 0; index < children.length; index++) ...[
-            _buildMenuAction(children[index]),
-            if (index != children.length - 1)
-              const Padding(
-                padding: EdgeInsets.only(left: 64),
-                child: Divider(height: 1, color: _line),
-              ),
-          ],
-        ],
-      ),
+      height: 8,
+      margin: const EdgeInsets.only(top: 8, bottom: 6),
+      color: _gap,
+    );
+  }
+
+  Widget _menuCard({required List<_MenuAction> children}) {
+    return Column(
+      children: [for (final action in children) _buildMenuAction(action)],
     );
   }
 
@@ -380,23 +369,43 @@ class DriverSideMenu extends StatelessWidget {
       child: InkWell(
         onTap: action.onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(13, 11, 11, 11),
+          padding: const EdgeInsets.fromLTRB(22, 11, 18, 11),
           child: Row(
             children: [
-              Container(
-                height: 38,
-                width: 38,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F5F2),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(
-                  action.icon,
-                  color: const Color(0xFF315E4D),
-                  size: 20,
-                ),
+              SizedBox(
+                width: 30,
+                height: 30,
+                child: action.highlight
+                    ? DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: _green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: SvgPicture.asset(
+                            action.asset,
+                            width: 19,
+                            height: 19,
+                            colorFilter: const ColorFilter.mode(
+                              Colors.white,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: SvgPicture.asset(
+                          action.asset,
+                          width: 25,
+                          height: 25,
+                          colorFilter: const ColorFilter.mode(
+                            Color(0xFF3B4246),
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 18),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,30 +414,44 @@ class DriverSideMenu extends StatelessWidget {
                       action.title,
                       style: const TextStyle(
                         color: _ink,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.15,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.2,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       action.subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: _muted,
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFFA7B0B4),
-                size: 20,
-              ),
+              if (action.badge != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0474C),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    action.badge!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.9,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -441,8 +464,8 @@ class DriverSideMenu extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
       decoration: BoxDecoration(
-        color: const Color(0xFF26343A),
-        borderRadius: BorderRadius.circular(19),
+        color: _gap,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -450,12 +473,12 @@ class DriverSideMenu extends StatelessWidget {
             height: 32,
             width: 32,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.07),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
               Icons.local_taxi_rounded,
-              color: Color(0xFF75D7B0),
+              color: _green,
               size: 18,
             ),
           ),
@@ -464,7 +487,7 @@ class DriverSideMenu extends StatelessWidget {
             child: Text(
               'Movera Driver',
               style: TextStyle(
-                color: Colors.white,
+                color: _ink,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w800,
               ),
@@ -473,9 +496,7 @@ class DriverSideMenu extends StatelessWidget {
           Text(
             ready ? 'READY' : 'PENDING',
             style: TextStyle(
-              color: ready
-                  ? const Color(0xFF75D7B0)
-                  : const Color(0xFFFFD28A),
+              color: ready ? _green : const Color(0xFFB9801F),
               fontSize: 8.5,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.8,
@@ -489,13 +510,21 @@ class DriverSideMenu extends StatelessWidget {
 
 class _MenuAction {
   const _MenuAction({
-    required this.icon,
+    required this.asset,
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.highlight = false,
+    this.badge,
   });
 
-  final IconData icon;
+  final String asset;
+
+  /// The one coloured icon in the menu (green tile).
+  final bool highlight;
+
+  /// Small red pill after the text, e.g. "NEW".
+  final String? badge;
   final String title;
   final String subtitle;
   final VoidCallback onTap;

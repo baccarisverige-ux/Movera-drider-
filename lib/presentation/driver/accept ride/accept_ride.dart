@@ -7,9 +7,10 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/logging/driver_log.dart';
-import 'package:movera/widgets/preview_unavailable.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:movera/widgets/map_control_button.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
@@ -33,7 +34,8 @@ import 'package:movera/core/safety/rider_contact.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
-import 'package:movera/presentation/driver/accept%20ride/compact_trip_dock.dart';
+import 'package:movera/presentation/driver/accept%20ride/trip_bottom_bar.dart';
+import 'package:movera/presentation/driver/preferences/preferences.dart';
 import 'package:movera/presentation/driver/accept%20ride/rider_cancelled_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/trip_outcome_sheet.dart';
 import 'package:movera/core/vehicle/local_vehicle_store.dart';
@@ -714,6 +716,31 @@ class _AcceptRideState extends State<AcceptRide>
 
 
 
+  String? get _routeDistanceText {
+    final meters = _navigation.route?.distanceMeters;
+    if (meters == null || meters <= 0) { return null; }
+    if (meters < 1000) { return '${(meters / 10).round() * 10} m'; }
+    return '${(meters / 1000).toStringAsFixed(1)} km';
+  }
+
+  /// One line under the time and distance in the collapsed trip bar.
+  String get _tripBarStatus {
+    switch (_stage) {
+      case ActiveRideStage.headingToPickup:
+        return 'Picking up ${widget.riderName}';
+      case ActiveRideStage.waitingForRider:
+        return _riderOnTheWay
+            ? '${widget.riderName} is on the way'
+            : 'Waiting for ${widget.riderName}';
+      case ActiveRideStage.onTrip:
+        if (_paidStopWait) { return 'Waiting at stop ${_stopCursor + 1}'; }
+        if (_stopCursor < widget.stopAddresses.length) {
+          return 'Heading to stop ${_stopCursor + 1}';
+        }
+        return 'Dropping off ${widget.riderName}';
+    }
+  }
+
   String get _routeEtaText {
     final seconds = _routeDurationSeconds;
     if (seconds == null) { return _routeLoading ? 'Routing…' : '—'; }
@@ -784,6 +811,41 @@ class _AcceptRideState extends State<AcceptRide>
     return '$minutes:$seconds';
   }
 
+  static const int _includedWaitSeconds = 120;
+  static const int _noShowWaitSeconds = 300;
+
+  static String _clock(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  bool get _inIncludedWait =>
+      !_paidStopWait && _waitSeconds < _includedWaitSeconds;
+
+  /// Trip bar time while waiting: the included minutes count down, then the
+  /// paid wait counts up (a paid stop wait is paid from the first second).
+  String get _waitBarEta {
+    if (_inIncludedWait) { return _clock(_includedWaitSeconds - _waitSeconds); }
+    final paid = _paidStopWait ? _waitSeconds : _waitSeconds - _includedWaitSeconds;
+    return '+${_clock(paid)}';
+  }
+
+  String get _waitBarStatus {
+    if (_paidStopWait) { return 'Paid stop wait'; }
+    if (_inIncludedWait) { return 'Included wait · then paid'; }
+    if (_waitSeconds < _noShowWaitSeconds) { return 'Paid wait running'; }
+    return 'Paid wait · no-show available';
+  }
+
+  Color get _waitBarColor {
+    if (_inIncludedWait) { return _ink; }
+    if (!_paidStopWait && _waitSeconds >= _noShowWaitSeconds) {
+      return const Color(0xFF9E2B33);
+    }
+    return const Color(0xFF146B45);
+  }
+
 
   String get _slideLabel {
     if (_paidStopWait) {
@@ -829,18 +891,7 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
-  String get _subtitle {
-    switch (_stage) {
-      case ActiveRideStage.headingToPickup:
-        return '${widget.riderName} is waiting at ${widget.pickupAddress}';
-      case ActiveRideStage.waitingForRider:
-        return _riderOnTheWay
-            ? '${widget.riderName} says: I’m on the way'
-            : '${widget.riderName} has been notified and will be out shortly';
-      case ActiveRideStage.onTrip:
-        return 'On the way to ${widget.dropoffAddress}';
-    }
-  }
+
 
 
   String get _onwardAddress {
@@ -1152,7 +1203,7 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
         position: _pose.position,
         rotation: _pose.headingDegrees,
         flat: true,
-        anchor: const Offset(0.5, 0.5),
+        anchor: MoveraVehicleMarker.anchor,
         zIndexInt: 12,
         icon: widget.vehicleIcon,
         infoWindow: const InfoWindow(title: 'You'),

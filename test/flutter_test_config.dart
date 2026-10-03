@@ -9,6 +9,7 @@ const testRuntimeConfig = DriverRuntimeConfig(
   externalRouting: false,
   skipAccountActivation: true,
   liveMapTicker: false,
+  reservationPopup: false,
 );
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {

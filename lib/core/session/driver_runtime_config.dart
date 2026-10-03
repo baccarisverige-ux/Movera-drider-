@@ -10,6 +10,7 @@ class DriverRuntimeConfig {
     required this.externalRouting,
     required this.skipAccountActivation,
     this.liveMapTicker = true,
+    this.reservationPopup = true,
   });
 
   /// Demo builds only: arrival does not require a live GPS fix within 100 m of
@@ -26,6 +27,10 @@ class DriverRuntimeConfig {
   /// 200 ms refresh of the active-ride vehicle pose on the map. Widget tests
   /// turn it off because a fake clock cannot drain a periodic timer.
   final bool liveMapTicker;
+
+  /// Home pops up new reservation requests a few seconds after it opens.
+  /// Widget tests turn it off so the sheet does not cover other Home tests.
+  final bool reservationPopup;
 
   /// Values compiled into this build.
   static const DriverRuntimeConfig build = DriverRuntimeConfig(

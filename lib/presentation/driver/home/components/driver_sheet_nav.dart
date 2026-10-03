@@ -145,6 +145,10 @@ class DriverSheetNav {
             ),
           ),
         ),
+        if (!inactive)
+          const Positioned.fill(
+            child: IgnorePointer(child: RadarSheetOutline()),
+          ),
         if (isOnline)
           Positioned.fill(
             child: IgnorePointer(
@@ -154,7 +158,7 @@ class DriverSheetNav {
                 cornerRadius: 24,
                 color: hasRideOffers
                     ? const Color(0xFFFFA94D)
-                    : const Color(0xFF2FBE7B),
+                    : const Color(0xFF1FA463),
               ),
             ),
           ),
@@ -232,16 +236,23 @@ class DriverSheetNav {
     required bool isOnline,
     required bool hasRideOffers,
   }) {
-    if (!isOnline) { return const SizedBox.shrink(); }
     return Positioned.fill(
       child: IgnorePointer(
-        child: RadarEdgeDash(
-          notchWidth: 126,
-          notchDepth: 58,
-          cornerRadius: 24,
-          color: hasRideOffers
-              ? const Color(0xFFFFA94D)
-              : const Color(0xFF2FBE7B),
+        child: Stack(
+          children: [
+            const Positioned.fill(child: RadarSheetOutline()),
+            if (isOnline)
+              Positioned.fill(
+                child: RadarEdgeDash(
+                  notchWidth: 126,
+                  notchDepth: 58,
+                  cornerRadius: 24,
+                  color: hasRideOffers
+                      ? const Color(0xFFFFA94D)
+                      : const Color(0xFF1FA463),
+                ),
+              ),
+          ],
         ),
       ),
     );
