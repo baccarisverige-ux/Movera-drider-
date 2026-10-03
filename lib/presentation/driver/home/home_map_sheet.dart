@@ -6,7 +6,17 @@ part of 'home.dart';
 /// One size for the floating controls on Home: recenter, safety and the
 /// top island.
 const double _homeMapButtonSize = 48;
-const Color _islandInk = Color(0xFF15191C);
+// White island, same family as the reservation popup and the Home sheet.
+const Color _islandBg = Color(0xFFFFFFFF);
+const Color _islandFg = Color(0xFF111614);
+const Color _islandMuted = Color(0xFF5E6461);
+const Color _islandLine = Color(0xFFE4E6E5);
+const Color _islandChip = Color(0xFFEDEEED);
+const Color _islandDivider = Color(0xFFE2E5E7);
+const Color _islandShadow = Color(0x38172027);
+const Color _islandButtonBg = Color(0xFF111614);
+const Color _islandButtonFg = Color(0xFFFFFFFF);
+const Color _islandAccent = Color(0xFF1FA463);
 
 // Sample figures until earnings come from the backend.
 const String _todayEarnings = '183.25 kr';
@@ -951,7 +961,7 @@ extension _HomeMapSheet on _DriverHomeState {
         ),
       );
     }
-    /// Black island at the top of Home: menu, today's earnings and
+    /// White island at the top of Home: menu, today's earnings and
     /// destination search. The earnings are hidden until tapped; a second
     /// tap grows the island into the full Today details.
     Widget _buildTopIsland(double viewportWidth) {
@@ -959,18 +969,18 @@ extension _HomeMapSheet on _DriverHomeState {
       Widget divider() => Container(
             width: 1,
             height: 20,
-            color: Colors.white.withValues(alpha: 0.18),
+            color: _islandDivider,
           );
       return AnimatedContainer(
         duration: const Duration(milliseconds: 340),
         curve: Curves.easeOutCubic,
         width: expanded ? math.min(viewportWidth - 32, 340.0) : 252,
         decoration: BoxDecoration(
-          color: _islandInk,
+          color: _islandBg,
           borderRadius: BorderRadius.circular(_homeMapButtonSize / 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.28),
+              color: _islandShadow,
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -997,7 +1007,7 @@ extension _HomeMapSheet on _DriverHomeState {
                             child: Icon(
                               Icons.menu_open_rounded,
                               size: 22,
-                              color: Colors.white,
+                              color: _islandFg,
                             ),
                           ),
                         ),
@@ -1030,7 +1040,7 @@ extension _HomeMapSheet on _DriverHomeState {
                             child: Image.asset(
                               AppAssets.search,
                               height: 17,
-                              color: Colors.white,
+                              color: _islandFg,
                             ),
                           ),
                         ),
@@ -1057,8 +1067,8 @@ extension _HomeMapSheet on _DriverHomeState {
       );
     }
     Widget _islandEarningsLabel() {
-      const muted = Color(0xFF9AA4A9);
-      const accent = Color(0xFF58E5A6);
+      const muted = _islandMuted;
+      const accent = _islandAccent;
       if (_showTodaySummaryPopup) {
         return const Row(
           key: ValueKey<String>('island-today'),
@@ -1070,7 +1080,7 @@ extension _HomeMapSheet on _DriverHomeState {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: _islandFg,
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1096,7 +1106,7 @@ extension _HomeMapSheet on _DriverHomeState {
                     ),
                     TextSpan(
                       text: _lastTripFare,
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      style: TextStyle(color: _islandFg, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -1120,7 +1130,7 @@ extension _HomeMapSheet on _DriverHomeState {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Colors.white,
+                color: _islandFg,
                 fontSize: 14.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
@@ -1190,8 +1200,8 @@ extension _HomeMapSheet on _DriverHomeState {
       });
     }
     Widget _buildTodaySummaryPopup() {
-      const muted = Color(0xFF9AA4A9);
-      const line = Color(0xFF2A3035);
+      const muted = _islandMuted;
+      const line = _islandLine;
       return Padding(
         key: const ValueKey<String>('today-summary-card'),
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -1214,7 +1224,7 @@ extension _HomeMapSheet on _DriverHomeState {
                         child: Text(
                           _todayEarnings,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: _islandFg,
                             fontSize: 30,
                             height: 1.1,
                             fontWeight: FontWeight.w800,
@@ -1233,13 +1243,13 @@ extension _HomeMapSheet on _DriverHomeState {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF23292D),
+                    color: _islandChip,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
                     '3 rides',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: _islandFg,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1269,7 +1279,7 @@ extension _HomeMapSheet on _DriverHomeState {
                       Text(
                         _lastTripFare,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: _islandFg,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
@@ -1304,7 +1314,7 @@ extension _HomeMapSheet on _DriverHomeState {
               width: double.infinity,
               height: 46,
               child: Material(
-                color: Colors.white,
+                color: _islandButtonBg,
                 borderRadius: BorderRadius.circular(12),
                 child: InkWell(
                   key: const ValueKey<String>('today-history-button'),
@@ -1321,7 +1331,7 @@ extension _HomeMapSheet on _DriverHomeState {
                     child: Text(
                       'Ride history',
                       style: TextStyle(
-                        color: _islandInk,
+                        color: _islandButtonFg,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1346,10 +1356,10 @@ extension _HomeMapSheet on _DriverHomeState {
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: square ? Colors.white : _islandInk,
+              color: square ? _islandFg : _islandBg,
               shape: square ? BoxShape.rectangle : BoxShape.circle,
               borderRadius: square ? BorderRadius.circular(2) : null,
-              border: square ? null : Border.all(color: Colors.white, width: 3),
+              border: square ? null : Border.all(color: _islandFg, width: 3),
             ),
           ),
           const SizedBox(width: 12),
@@ -1359,14 +1369,14 @@ extension _HomeMapSheet on _DriverHomeState {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(color: Color(0xFF9AA4A9), fontSize: 11),
+                  style: const TextStyle(color: _islandMuted, fontSize: 11),
                 ),
                 Text(
                   place,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: _islandFg,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1377,7 +1387,7 @@ extension _HomeMapSheet on _DriverHomeState {
           Text(
             time,
             style: const TextStyle(
-              color: Colors.white,
+              color: _islandFg,
               fontSize: 13.5,
               fontWeight: FontWeight.w600,
             ),
@@ -1525,7 +1535,7 @@ extension _HomeMapSheet on _DriverHomeState {
                     style: FilledButton.styleFrom(
                       elevation: 0,
                       backgroundColor: const Color(0xFF252E3A),
-                      foregroundColor: Colors.white,
+                      foregroundColor: _islandFg,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -1564,7 +1574,7 @@ extension _HomeMapSheet on _DriverHomeState {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        barrierColor: Colors.black.withValues(alpha: 0.28),
+        barrierColor: _islandShadow,
         builder: (sheetContext) {
           return DraggableScrollableSheet(
             initialChildSize: 0.76,
@@ -1661,14 +1671,14 @@ extension _HomeMapSheet on _DriverHomeState {
                                   children: [
                                     MoveraLineIcon(
                                       mark: MoveraMark.bolt,
-                                      color: Colors.white,
+                                      color: _islandFg,
                                       size: 19,
                                     ),
                                     SizedBox(width: 8),
                                     Text(
                                       'Best time to be online',
                                       style: TextStyle(
-                                        color: Colors.white,
+                                        color: _islandFg,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w900,
                                       ),
@@ -1679,7 +1689,7 @@ extension _HomeMapSheet on _DriverHomeState {
                                 Text(
                                   event.recommendedWindow,
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: _islandFg,
                                     fontSize: 22,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: -0.4,
@@ -1711,7 +1721,7 @@ extension _HomeMapSheet on _DriverHomeState {
                           Text(
                             'Photo · ${event.imageCredit}',
                             style: const TextStyle(
-                              color: Color(0xFF9AA4A9),
+                              color: _islandMuted,
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
                             ),
