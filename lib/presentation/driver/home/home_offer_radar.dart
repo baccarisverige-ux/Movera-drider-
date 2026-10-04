@@ -6,7 +6,7 @@ part of 'home.dart';
 
 enum _HomeRadarMatchState { available, resolving, claimedElsewhere }
 
-enum _HomeRadarMatchNoticeType { matching, success, taken }
+enum _HomeRadarMatchNoticeType { matching, success }
 
 class _HomeRadarMatchNotice {
   const _HomeRadarMatchNotice({
@@ -252,6 +252,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         _radarHomeOffers.removeWhere((item) => item.id == offer.id);
         _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
         _homeRadarMatchStates.remove(offer.id);
+        _homeRadarLostOwnMatch.remove(offer.id);
         _hasRideOffers =
             _radarHomeOffers.isNotEmpty || _pendingRadarHomeOffers.isNotEmpty;
       });
@@ -351,25 +352,17 @@ extension _HomeOfferRadar on _DriverHomeState {
       );
     }
     void _resolveHomeRadarMatchLost(_HomeDirectOffer offer) {
+      // The row itself says what happened; no banner over the map.
+      _homeRadarNoticeTimer?.cancel();
       _rebuild(() {
+        if (_homeRadarMatchingOfferId == offer.id) {
+          _homeRadarLostOwnMatch.add(offer.id);
+        }
         _homeRadarMatchingOfferId = null;
         _homeRadarMatchStates[offer.id] =
             _HomeRadarMatchState.claimedElsewhere;
-        _homeRadarMatchNotice = const _HomeRadarMatchNotice(
-          type: _HomeRadarMatchNoticeType.taken,
-          title: 'Request taken',
-          message: 'Another driver was matched first. Choose another trip.',
-        );
+        _homeRadarMatchNotice = null;
       });
-
-      _homeRadarNoticeTimer?.cancel();
-      _homeRadarNoticeTimer = Timer(
-        const Duration(milliseconds: 2600),
-        () {
-          if (!mounted) { return; }
-          _rebuild(() => _homeRadarMatchNotice = null);
-        },
-      );
 
       _homeRadarLostMatchTimer?.cancel();
       _homeRadarLostMatchTimer = Timer(
@@ -771,11 +764,19 @@ extension _HomeOfferRadar on _DriverHomeState {
       );
     }
     bool _radarOfferExpanded(_HomeDirectOffer offer) {
-      final open = _radarExpandedOfferId;
-      if (open != null && _radarHomeOffers.any((item) => item.id == open)) {
-        return open == offer.id;
+      bool open(String id) =>
+          _homeRadarStateFor(id) != _HomeRadarMatchState.claimedElsewhere;
+      final chosen = _radarExpandedOfferId;
+      if (chosen != null &&
+          open(chosen) &&
+          _radarHomeOffers.any((item) => item.id == chosen)) {
+        return chosen == offer.id;
       }
-      return _radarHomeOffers.isNotEmpty && _radarHomeOffers.first.id == offer.id;
+      // Otherwise the first trip still available opens.
+      for (final item in _radarHomeOffers) {
+        if (open(item.id)) { return item.id == offer.id; }
+      }
+      return false;
     }
     Widget _buildRadarOpportunityCard(_HomeDirectOffer offer) {
       final matchState = _homeRadarStateFor(offer.id);
@@ -834,10 +835,84 @@ extension _HomeOfferRadar on _DriverHomeState {
         ),
       );
 
-      return AnimatedOpacity(
-        duration: const Duration(milliseconds: 180),
-        opacity: claimed ? 0.68 : 1,
-        child: Material(
+      return AnimatedSize(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topCenter,
+        child: claimed
+            ? _buildTakenRadarRow(offer)
+            : _buildOpenableRadarCard(
+                offer,
+                expanded: expanded,
+                resolving: resolving,
+                summary: summary,
+                matchButton: matchButton,
+              ),
+      );
+    }
+    /// A trip another driver got: one slim grey line, price crossed out,
+    /// until it slides out of the list a moment later.
+    Widget _buildTakenRadarRow(_HomeDirectOffer offer) {
+      return Container(
+        key: ValueKey<String>('radar-taken-${offer.id}'),
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F5F5),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.person_off_outlined, size: 18, color: _offerMuted),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _homeRadarLostOwnMatch.contains(offer.id)
+                    ? 'Another driver got it first'
+                    : 'Taken by another driver',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _offerMuted,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Text(
+              offer.fare,
+              style: const TextStyle(
+                color: Color(0xFF9AA2A6),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.lineThrough,
+                decorationColor: Color(0xFF9AA2A6),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    /// Tapping a trip (not its Match button) brings it to the top of the
+    /// list with its details open.
+    void _openRadarOffer(_HomeDirectOffer offer) {
+      _rebuild(() {
+        final index = _radarHomeOffers.indexWhere((item) => item.id == offer.id);
+        if (index > 0) {
+          _radarHomeOffers.insert(0, _radarHomeOffers.removeAt(index));
+        }
+        _radarExpandedOfferId = offer.id;
+      });
+      _previewDirectOfferRoute(offer.pickupPosition, offer.dropoffPosition);
+    }
+    Widget _buildOpenableRadarCard(
+      _HomeDirectOffer offer, {
+      required bool expanded,
+      required bool resolving,
+      required String summary,
+      required Widget matchButton,
+    }) {
+      return Material(
           color: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -848,15 +923,7 @@ extension _HomeOfferRadar on _DriverHomeState {
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: claimed || resolving
-                ? null
-                : () {
-                    _rebuild(() => _radarExpandedOfferId = offer.id);
-                    _previewDirectOfferRoute(
-                      offer.pickupPosition,
-                      offer.dropoffPosition,
-                    );
-                  },
+            onTap: resolving ? null : () => _openRadarOffer(offer),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
               child: Column(
@@ -882,11 +949,9 @@ extension _HomeOfferRadar on _DriverHomeState {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              claimed
-                                  ? 'Matched by another driver'
-                                  : resolving
-                                      ? 'Confirming availability'
-                                      : '${offer.category} · $summary',
+                              resolving
+                                  ? 'Confirming availability'
+                                  : '${offer.category} · $summary',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -947,7 +1012,7 @@ extension _HomeOfferRadar on _DriverHomeState {
                           child: SizedBox(
                             height: 46,
                             child: TextButton.icon(
-                              onPressed: claimed || resolving
+                              onPressed: resolving
                                   ? null
                                   : () => _previewDirectOfferRoute(
                                         offer.pickupPosition,
@@ -980,7 +1045,6 @@ extension _HomeOfferRadar on _DriverHomeState {
               ),
             ),
           ),
-        ),
       );
     }
     Widget _offerRouteConnector() => Padding(

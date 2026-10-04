@@ -513,10 +513,66 @@ void main() {
     _expectNoException(tester);
 
     await tester.pump(const Duration(milliseconds: 4300));
-    expect(find.text('Matched by another driver'), findsOneWidget);
-    expect(find.text('Matched'), findsOneWidget);
+    // Another driver took it: one slim grey line, no dead button.
+    expect(find.text('Taken by another driver'), findsOneWidget);
+    expect(find.text('Matched'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('radar-taken-nearby-4')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    // A moment later it leaves the list.
+    await tester.pump(const Duration(milliseconds: 3000));
     expect(
       find.byKey(const ValueKey<String>('radar-offer-nearby-4')),
+      findsNothing,
+    );
+    expect(find.text('Radar offers · 2'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Tapping a Radar offer brings it to the top with its details', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFF'));
+    await tester.pump(const Duration(milliseconds: 1550));
+    await tester.pump(const Duration(milliseconds: 2300));
+    await tester.pump(const Duration(milliseconds: 8500));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump(const Duration(milliseconds: 6200));
+    await tester.tap(find.byKey(const ValueKey<String>('radar-home-refresh')));
+    await tester.pump(const Duration(milliseconds: 160));
+    expect(find.text('Radar offers · 3'), findsOneWidget);
+
+    Finder card(String id) =>
+        find.byKey(ValueKey<String>('radar-offer-$id'));
+    final ids = ['nearby-1', 'nearby-2', 'nearby-4']
+        .where((id) => card(id).evaluate().isNotEmpty)
+        .toList();
+    expect(ids.length, 3);
+    final first = ids.first;
+    final last = ids.last;
+    // Only the first trip shows its addresses.
+    expect(find.text('Pickup'), findsOneWidget);
+    expect(tester.getTopLeft(card(first)).dy,
+        lessThan(tester.getTopLeft(card(last)).dy));
+
+    final lastInk = find.descendant(
+      of: card(last),
+      matching: find.byType(InkWell),
+    ).first;
+    tester.widget<InkWell>(lastInk).onTap!.call();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(tester.getTopLeft(card(last)).dy,
+        lessThan(tester.getTopLeft(card(first)).dy));
+    expect(find.text('Pickup'), findsOneWidget);
+    expect(
+      find.descendant(of: card(last), matching: find.text('Pickup')),
       findsOneWidget,
     );
     _expectNoException(tester);
