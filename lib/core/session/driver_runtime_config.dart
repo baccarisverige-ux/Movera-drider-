@@ -11,6 +11,7 @@ class DriverRuntimeConfig {
     required this.skipAccountActivation,
     this.liveMapTicker = true,
     this.reservationPopup = true,
+    this.islandHint = true,
   });
 
   /// Demo builds only: arrival does not require a live GPS fix within 100 m of
@@ -31,6 +32,10 @@ class DriverRuntimeConfig {
   /// Home pops up new reservation requests a few seconds after it opens.
   /// Widget tests turn it off so the sheet does not cover other Home tests.
   final bool reservationPopup;
+
+  /// First launch: the Home island says once that its middle shows the
+  /// earnings. Widget tests turn it off so the island starts on the total.
+  final bool islandHint;
 
   /// Values compiled into this build.
   static const DriverRuntimeConfig build = DriverRuntimeConfig(

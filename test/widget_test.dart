@@ -1,3 +1,4 @@
+import 'package:movera/core/session/driver_runtime_config.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1313,6 +1314,9 @@ void main() {
     );
     final normal = tester.getSize(island);
     expect(normal.width, closeTo(244, 1));
+    // Drawn at 80 %, content included.
+    expect(tester.getRect(island).width, closeTo(244 * 0.8, 1));
+    expect(tester.getRect(island).height, closeTo(50.4 * 0.8, 1));
 
     IslandMessages.show(const IslandMessage(title: 'Matched'));
     await _advanceAnimation(tester, const Duration(milliseconds: 900));
@@ -1329,7 +1333,7 @@ void main() {
     final long = tester.getSize(island);
 
     expect(long.width, greaterThan(short.width + 40));
-    expect(long.width, lessThanOrEqualTo(390 - 32 + 1));
+    expect(tester.getRect(island).width, lessThanOrEqualTo(390 - 32 + 1));
     // Only the length changes; the height is always the same.
     expect(short.height, normal.height);
     expect(long.height, normal.height);
@@ -1379,14 +1383,71 @@ void main() {
     final arrow = find.byKey(const ValueKey<String>('destination-mode-open'));
     final launcher = find.byKey(const ValueKey<String>('last-trip-launcher'));
     final menu = find.byTooltip('Menu');
-    // Arrow on the left, money in the middle, menu on the right.
-    expect(tester.getCenter(arrow).dx, lessThan(tester.getCenter(launcher).dx));
-    expect(tester.getCenter(menu).dx, greaterThan(tester.getCenter(launcher).dx));
+    // Menu on the left, money in the middle, search arrow on the right.
+    expect(tester.getCenter(menu).dx, lessThan(tester.getCenter(launcher).dx));
+    expect(tester.getCenter(arrow).dx, greaterThan(tester.getCenter(launcher).dx));
 
     await tester.tap(menu);
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
     final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).first);
     expect(scaffold.isDrawerOpen, isTrue);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Holding the island opens Ride history straight away', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+    await _wakeIsland(tester);
+
+    await tester.longPress(
+      find.byKey(const ValueKey<String>('last-trip-launcher')),
+    );
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.byType(DriverRideHistory), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('First launch hint shows once and leads to the earnings', (
+    WidgetTester tester,
+  ) async {
+    final previous = DriverRuntimeConfig.current;
+    DriverRuntimeConfig.current = DriverRuntimeConfig(
+      simulatedArrival: previous.simulatedArrival,
+      externalRouting: previous.externalRouting,
+      skipAccountActivation: previous.skipAccountActivation,
+      liveMapTicker: previous.liveMapTicker,
+      reservationPopup: previous.reservationPopup,
+    );
+    addTearDown(() => DriverRuntimeConfig.current = previous);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({});
+
+    await _pumpHome(tester, const Size(375, 812));
+    await _wakeIsland(tester);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Tap to see earnings'), findsOneWidget);
+
+    tester
+        .widget<InkWell>(
+          find.byKey(const ValueKey<String>('last-trip-launcher')),
+        )
+        .onTap!
+        .call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('LAST TRIP'), findsOneWidget);
+
+    // Seen: the next launch starts on the hidden total.
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('home_island_hint_seen'), isTrue);
+    await tester.pumpWidget(const SizedBox());
+    await _pumpHome(tester, const Size(375, 812));
+    await _wakeIsland(tester);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Tap to see earnings'), findsNothing);
+    expect(find.text('•••• kr'), findsOneWidget);
     _expectNoException(tester);
   });
 

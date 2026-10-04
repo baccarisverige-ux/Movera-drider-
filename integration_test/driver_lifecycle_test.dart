@@ -100,6 +100,7 @@ void main() {
     skipAccountActivation: true,
     liveMapTicker: false,
     reservationPopup: false,
+    islandHint: false,
   );
 
   setUp(() {

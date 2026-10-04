@@ -13,6 +13,7 @@ class DigitalIslandShell extends StatefulWidget {
     required this.child,
     this.duration = const Duration(milliseconds: 620),
     this.curve = Curves.easeOutBack,
+    this.calm = false,
   });
 
   /// Only the width ever changes; the height stays the same.
@@ -23,6 +24,9 @@ class DigitalIslandShell extends StatefulWidget {
   /// How the width eases to a new size.
   final Duration duration;
   final Curve curve;
+
+  /// No light sweep, e.g. while the driver is on the road.
+  final bool calm;
 
   static const Color screen = Color(0xFF060708);
 
@@ -45,8 +49,20 @@ class _DigitalIslandShellState extends State<DigitalIslandShell>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _sweep.stop();
+    _syncSweep();
+  }
+
+  @override
+  void didUpdateWidget(DigitalIslandShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.calm != widget.calm) { _syncSweep(); }
+  }
+
+  void _syncSweep() {
+    if (widget.calm || MediaQuery.disableAnimationsOf(context)) {
+      _sweep
+        ..stop()
+        ..value = 1;
     } else if (!_sweep.isAnimating) {
       _sweep.repeat();
     }

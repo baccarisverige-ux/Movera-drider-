@@ -134,6 +134,13 @@ class HomeIslandNotices {
         onTap: retry,
       );
 
+  /// First launch only.
+  static IslandMessage earningsHint(VoidCallback show) => IslandMessage(
+        title: 'Tap to see earnings',
+        priority: IslandPriority.high,
+        onTap: show,
+      );
+
   static const IslandMessage updateUnavailable = IslandMessage(
     title: 'Update unavailable',
     tone: IslandTone.warning,

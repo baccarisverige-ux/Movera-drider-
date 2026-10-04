@@ -17,6 +17,13 @@ enum _IslandFace { hidden, lastTrip, today, history }
 
 const Duration _islandIdleTimeout = Duration(seconds: 5);
 
+/// The whole island, its content included, is drawn at 80 % of its design
+/// size.
+const double _islandScale = 0.8;
+
+/// Set once the first-launch hint has been shown.
+const String _islandHintSeenKey = 'home_island_hint_seen';
+
 /// How long a just-finished trip's money counts as still updating. The
 /// demo has no earnings service; a real one would confirm the amount.
 const Duration _lastTripSettleTime = Duration(seconds: 4);
@@ -926,7 +933,11 @@ extension _HomeMapSheet on _DriverHomeState {
                 top: math.max(MediaQuery.paddingOf(context).top - 4, 10.0),
                 child: Align(
                   alignment: Alignment.topCenter,
-                  child: _buildTopIsland(viewportWidth),
+                  child: Transform.scale(
+                    scale: _islandScale,
+                    alignment: Alignment.topCenter,
+                    child: _buildTopIsland(viewportWidth / _islandScale),
+                  ),
                 ),
               ),
             ],
@@ -942,9 +953,10 @@ extension _HomeMapSheet on _DriverHomeState {
     /// Destination, the middle cycles through the money faces, the menu
     /// sits on the right.
     Widget _buildTopIsland(double viewportWidth) {
-      const height = 56.0;
-      // At launch the island is small (arrow and menu), then grows; a
-      // message widens it and moves the arrow and menu aside.
+      // 10 % shorter than the first island, before the 80 % scale.
+      const height = 50.4;
+      // At launch the island is small (menu and arrow), then grows; a
+      // message widens it and moves the menu and arrow aside.
       final message = _islandMessage;
       final maxWidth = viewportWidth - 32;
       // A message sizes the island to its words (never taller): the normal
@@ -982,26 +994,31 @@ extension _HomeMapSheet on _DriverHomeState {
         child: DigitalIslandShell(
           width: width,
           height: height,
+          // Online, the driver is on the road: no light passing over it.
+          calm: _isOnline,
           // Every size change, out and back, glides with a soft spring.
           duration: const Duration(milliseconds: 680),
           curve: Curves.easeOutBack,
           child: Row(
             children: [
-              side(Tooltip(
-                message: 'Search destination',
-                child: InkWell(
-                  key: const ValueKey<String>('destination-mode-open'),
-                  onTap: _openDestinationModePicker,
-                  child: const SizedBox(
-                    width: 54,
-                    height: height,
-                    child: Icon(
-                      Icons.navigation_rounded,
-                      size: 24,
-                      color: Color(0xFF3B8BFF),
-                      shadows: [
-                        Shadow(color: Color(0x803B8BFF), blurRadius: 10),
-                      ],
+              side(Builder(
+                builder: (context) => Tooltip(
+                  message: 'Menu',
+                  child: InkWell(
+                    onTap: () => Scaffold.of(context).openDrawer(),
+                    child: SizedBox(
+                      width: 54,
+                      height: height,
+                      // Its arrow points right, the way the menu slides in.
+                      child: Transform.flip(
+                        flipX: true,
+                        child: const Icon(
+                          Icons.menu_open_rounded,
+                          size: 24,
+                          color: Colors.white,
+                          shadows: DigitalIslandShell.glow,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1020,6 +1037,13 @@ extension _HomeMapSheet on _DriverHomeState {
                     onTap: message != null
                         ? () => _onIslandMessageTap(message)
                         : _onIslandEarningsTap,
+                    // Holding the middle goes straight to Ride history.
+                    onLongPress: message != null
+                        ? null
+                        : () {
+                            HapticFeedback.mediumImpact();
+                            _openRideHistoryFromIsland();
+                          },
                     child: SizedBox(
                       height: height,
                       child: DigitalFaceSwitcher(
@@ -1035,20 +1059,46 @@ extension _HomeMapSheet on _DriverHomeState {
                   ),
                 ),
               ),
-              side(Builder(
-                builder: (context) => Tooltip(
-                  message: 'Menu',
-                  child: InkWell(
-                    onTap: () => Scaffold.of(context).openDrawer(),
-                    child: const SizedBox(
-                      width: 54,
-                      height: height,
-                      child: Icon(
-                        Icons.menu_open_rounded,
-                        size: 24,
-                        color: Colors.white,
-                        shadows: DigitalIslandShell.glow,
-                      ),
+              side(Tooltip(
+                message: 'Search destination',
+                child: InkWell(
+                  key: const ValueKey<String>('destination-mode-open'),
+                  onTap: _openDestinationModePicker,
+                  child: const SizedBox(
+                    width: 54,
+                    height: height,
+                    // The blue arrow, with a small magnifier saying "search".
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          Icons.navigation_rounded,
+                          size: 24,
+                          color: Color(0xFF3B8BFF),
+                          shadows: [
+                            Shadow(color: Color(0x803B8BFF), blurRadius: 10),
+                          ],
+                        ),
+                        Positioned(
+                          right: 9,
+                          bottom: 12,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: SizedBox(
+                              width: 15,
+                              height: 15,
+                              child: Icon(
+                                Icons.search_rounded,
+                                size: 11,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1219,6 +1269,7 @@ extension _HomeMapSheet on _DriverHomeState {
         _rebuild(() => _islandWake = 2);
         return;
       }
+      HapticFeedback.selectionClick();
       _rebuild(() {
         _islandFace = _IslandFace
             .values[(_islandFace.index + 1) % _IslandFace.values.length];
@@ -1241,9 +1292,18 @@ extension _HomeMapSheet on _DriverHomeState {
         _islandWakeTimer = Timer(const Duration(milliseconds: 560), () {
           if (!mounted) { return; }
           _rebuild(() => _islandWake = 2);
+          unawaited(_showIslandHintOnce());
         });
       });
       _scheduleLastTripSettle();
+    }
+    /// First launch only: tell the driver the middle shows the earnings.
+    Future<void> _showIslandHintOnce() async {
+      if (!DriverRuntimeConfig.current.islandHint) { return; }
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted || (prefs.getBool(_islandHintSeenKey) ?? false)) { return; }
+      await prefs.setBool(_islandHintSeenKey, true);
+      IslandMessages.show(HomeIslandNotices.earningsHint(_onIslandEarningsTap));
     }
     /// A trip that just ended still has its money updating.
     bool get _lastTripSettling {
