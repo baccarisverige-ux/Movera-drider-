@@ -227,8 +227,10 @@ class _DriverHomeState extends State<DriverHome>
   /// Radar offer opened in the compact list; null opens the first one.
   String? _radarExpandedOfferId;
 
-  /// Radar offers this driver tapped Match on but another driver won.
-  final Set<String> _homeRadarLostOwnMatch = <String>{};
+  /// Why a Radar offer left the list, when it was not simply taken by
+  /// another driver while this driver looked at it.
+  final Map<String, _RadarOfferGone> _homeRadarGoneReasons =
+      <String, _RadarOfferGone>{};
   bool _destinationModeActive = false;
   bool _soonReservationReady = false;
   String? _destinationAddress;

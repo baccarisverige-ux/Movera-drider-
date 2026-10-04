@@ -8,6 +8,18 @@ enum _HomeRadarMatchState { available, resolving, claimedElsewhere }
 
 enum _HomeRadarMatchNoticeType { matching, success }
 
+/// Why a Radar offer is leaving the list.
+enum _RadarOfferGone {
+  /// Another driver took it while this driver looked at it.
+  takenByOther,
+
+  /// This driver tapped Match and another driver won.
+  lostOwnMatch,
+
+  /// Expired, cancelled by the rider or gone from Radar for another reason.
+  unavailable,
+}
+
 class _HomeRadarMatchNotice {
   const _HomeRadarMatchNotice({
     required this.type,
@@ -252,7 +264,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         _radarHomeOffers.removeWhere((item) => item.id == offer.id);
         _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
         _homeRadarMatchStates.remove(offer.id);
-        _homeRadarLostOwnMatch.remove(offer.id);
+        _homeRadarGoneReasons.remove(offer.id);
         _hasRideOffers =
             _radarHomeOffers.isNotEmpty || _pendingRadarHomeOffers.isNotEmpty;
       });
@@ -288,10 +300,21 @@ extension _HomeOfferRadar on _DriverHomeState {
     Future<void> _claimHomeRadarOffer(_HomeDirectOffer offer) async {
       final result = await _dispatch.claimOffer(offer.id);
       if (!mounted || _homeRadarMatchingOfferId != offer.id) { return; }
-      if (result.isSuccess) {
-        _resolveHomeRadarMatchWon(offer);
-      } else {
-        _resolveHomeRadarMatchLost(offer);
+      switch (result.outcome) {
+        case ClaimOutcome.success:
+          _resolveHomeRadarMatchWon(offer);
+        case ClaimOutcome.alreadyClaimed:
+          _resolveHomeRadarMatchLost(offer, _RadarOfferGone.lostOwnMatch);
+        case ClaimOutcome.expired:
+        case ClaimOutcome.unavailable:
+          _resolveHomeRadarMatchLost(offer, _RadarOfferGone.unavailable);
+        case ClaimOutcome.networkError:
+          // Nothing was decided; let the driver try again.
+          _rebuild(() {
+            _homeRadarMatchingOfferId = null;
+            _homeRadarMatchStates.remove(offer.id);
+            _homeRadarMatchNotice = null;
+          });
       }
     }
     void _watchDispatchRadar() {
@@ -303,7 +326,9 @@ extension _HomeOfferRadar on _DriverHomeState {
         for (final offer in [..._radarHomeOffers, ..._pendingRadarHomeOffers]) {
           if (!ids.contains(offer.id) &&
               _homeRadarStateFor(offer.id) == _HomeRadarMatchState.available) {
-            _resolveHomeRadarMatchLost(offer);
+            // Gone from Radar without a claim of ours: the reason is not
+            // known here (rider cancelled, expired, taken elsewhere…).
+            _resolveHomeRadarMatchLost(offer, _RadarOfferGone.unavailable);
           }
         }
       });
@@ -351,13 +376,14 @@ extension _HomeOfferRadar on _DriverHomeState {
         },
       );
     }
-    void _resolveHomeRadarMatchLost(_HomeDirectOffer offer) {
+    void _resolveHomeRadarMatchLost(
+      _HomeDirectOffer offer,
+      _RadarOfferGone reason,
+    ) {
       // The row itself says what happened; no banner over the map.
       _homeRadarNoticeTimer?.cancel();
       _rebuild(() {
-        if (_homeRadarMatchingOfferId == offer.id) {
-          _homeRadarLostOwnMatch.add(offer.id);
-        }
+        _homeRadarGoneReasons[offer.id] = reason;
         _homeRadarMatchingOfferId = null;
         _homeRadarMatchStates[offer.id] =
             _HomeRadarMatchState.claimedElsewhere;
@@ -669,7 +695,7 @@ extension _HomeOfferRadar on _DriverHomeState {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Radar offers · ${offers.length}',
+                    'Radar offers · ${offers.where((offer) => _homeRadarStateFor(offer.id) != _HomeRadarMatchState.claimedElsewhere).length}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -850,9 +876,11 @@ extension _HomeOfferRadar on _DriverHomeState {
               ),
       );
     }
-    /// A trip another driver got: one slim grey line, price crossed out,
-    /// until it slides out of the list a moment later.
+    /// A trip that is no longer open: one slim grey line saying why, price
+    /// crossed out, until it slides out of the list a moment later.
     Widget _buildTakenRadarRow(_HomeDirectOffer offer) {
+      final reason =
+          _homeRadarGoneReasons[offer.id] ?? _RadarOfferGone.takenByOther;
       return Container(
         key: ValueKey<String>('radar-taken-${offer.id}'),
         height: 46,
@@ -863,13 +891,21 @@ extension _HomeOfferRadar on _DriverHomeState {
         ),
         child: Row(
           children: [
-            const Icon(Icons.person_off_outlined, size: 18, color: _offerMuted),
+            Icon(
+              reason == _RadarOfferGone.unavailable
+                  ? Icons.event_busy_outlined
+                  : Icons.person_off_outlined,
+              size: 18,
+              color: _offerMuted,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                _homeRadarLostOwnMatch.contains(offer.id)
-                    ? 'Another driver got it first'
-                    : 'Taken by another driver',
+                switch (reason) {
+                  _RadarOfferGone.lostOwnMatch => 'Another driver got it first',
+                  _RadarOfferGone.unavailable => 'No longer available',
+                  _RadarOfferGone.takenByOther => 'Taken by another driver',
+                },
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
