@@ -195,6 +195,9 @@ class _DriverHomeState extends State<DriverHome>
 
   static const double _homeExpandedFraction = 0.86;
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
+
+  /// How long a Radar trip can be picked once it shows in the Home list.
+  static const Duration _radarOfferPickWindow = Duration(seconds: 30);
   static const int _maxHomeRadarOffers = 4;
   double _sheetPointerVelocity = 0;
   double _sheetPointerLastY = 0;
@@ -217,9 +220,23 @@ class _DriverHomeState extends State<DriverHome>
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
   bool _showTodaySummaryPopup = false;
+
+  /// Top island shows the last trip's fare instead of the hidden total.
+  bool _islandShowsLastTrip = false;
   _HomeDirectOffer? _outsideRadarOffer;
   final List<_HomeDirectOffer> _radarHomeOffers = <_HomeDirectOffer>[];
   final List<_HomeDirectOffer> _pendingRadarHomeOffers = <_HomeDirectOffer>[];
+
+  /// Radar offer opened in the compact list; null opens the first one.
+  String? _radarExpandedOfferId;
+
+  /// Why a Radar offer left the list, when it was not simply taken by
+  /// another driver while this driver looked at it.
+  final Map<String, _RadarOfferGone> _homeRadarGoneReasons =
+      <String, _RadarOfferGone>{};
+
+  /// Radar trips whose pick window ran out: still listed, Match faded.
+  final Set<String> _radarOfferExpired = <String>{};
   bool _destinationModeActive = false;
   bool _soonReservationReady = false;
   String? _destinationAddress;
@@ -343,7 +360,8 @@ class _DriverHomeState extends State<DriverHome>
 
   /// Reservation requests arrive outside Radar, so Home announces the newest
   /// one once, a few seconds after opening, when nothing else is in front.
-  /// While Radar is live its offers come first; the popup waits for offline.
+  /// It shows whether Radar is on or off, and waits while a Radar offer is
+  /// on screen.
   void _scheduleReservationPopup() {
     final request = _adminHomeConfig.scheduledRides.newRequest;
     if (!DriverRuntimeConfig.current.reservationPopup ||
@@ -356,13 +374,18 @@ class _DriverHomeState extends State<DriverHome>
     _reservationPopupTimer?.cancel();
     _reservationPopupTimer = Timer(const Duration(seconds: 3), () async {
       if (!mounted || _reservationPopupShown) { return; }
-      if (_isOnline) {
+      // Reservations are independent of Radar: they show online or offline,
+      // but never on top of a Radar offer the driver is deciding on.
+      final radarOfferOnScreen = _hasRideOffers ||
+          _radarHomeOffers.isNotEmpty ||
+          _outsideRadarOffer != null;
+      if (radarOfferOnScreen) {
         _scheduleReservationPopup();
         return;
       }
       _reservationPopupTries++;
       final onTop = ModalRoute.of(context)?.isCurrent ?? false;
-      if (!onTop || _hasRideOffers || isPanelOpen) {
+      if (!onTop || isPanelOpen) {
         _scheduleReservationPopup();
         return;
       }
@@ -872,6 +895,7 @@ class _DriverHomeState extends State<DriverHome>
       _driverSession.beginGoingOnline();
       _hasRideOffers = false;
       _showTodaySummaryPopup = false;
+      _islandShowsLastTrip = false;
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
       _pendingRadarHomeOffers.clear();
@@ -1000,21 +1024,33 @@ class _DriverHomeState extends State<DriverHome>
         _radarSweepController,
       ]),
       builder: (context, child) {
-        final radarOfferCount = _radarHomeOffers.length;
-        final pendingRadarCount = _pendingRadarHomeOffers.length;
-        final hasRadarOffer =
-            _hasRideOffers || radarOfferCount > 0 || pendingRadarCount > 0;
+        // Every Radar trip open right now, the same trips the full Radar
+        // screen lists when the driver taps this button.
+        final radarTrips = _latestDispatchOffers
+            .where((offer) =>
+                offer.isNearby &&
+                (!_destinationModeActive || offer.followsDestination))
+            .length;
+        final openListed = _radarHomeOffers
+            .where((offer) =>
+                _homeRadarMatchStates[offer.id] !=
+                _HomeRadarMatchState.claimedElsewhere)
+            .length;
+        final homeTrips = openListed + _pendingRadarHomeOffers.length;
+        // Until a Radar trip reaches Home the button keeps scanning.
+        final hasRadarOffer = _hasRideOffers || homeTrips > 0;
+        final totalTrips = hasRadarOffer
+            ? math.max(radarTrips, homeTrips)
+            : 0;
 
         return _buildRadarOrb(
-          title: pendingRadarCount > 0
-              ? "$pendingRadarCount new"
-              : radarOfferCount > 1
-              ? "$radarOfferCount offers"
+          title: totalTrips > 0
+              ? "$totalTrips trip${totalTrips == 1 ? '' : 's'}"
               : hasRadarOffer
               ? "Trip found"
               : "Radar",
           status: hasRadarOffer ? "NEW" : "LIVE",
-          subtitle: hasRadarOffer ? "Tap for Radar" : "Scanning",
+          subtitle: hasRadarOffer ? "Tap for all" : "Scanning",
           active: true,
           offer: hasRadarOffer,
           pulse: _goOnlinePulseController.value,

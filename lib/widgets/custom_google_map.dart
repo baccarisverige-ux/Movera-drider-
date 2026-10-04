@@ -29,6 +29,9 @@ class CustomGoogleMap extends StatefulWidget {
   final EdgeInsets padding;
   final String? customMapStyle;
 
+  /// Web only: Google's camera (zoom / pan) control in the corner.
+  final bool webCameraControlEnabled;
+
   const CustomGoogleMap({
     super.key,
     this.initialPosition,
@@ -56,6 +59,7 @@ class CustomGoogleMap extends StatefulWidget {
     this.onCameraIdle,
     this.padding = EdgeInsets.zero,
     this.customMapStyle,
+    this.webCameraControlEnabled = true,
   });
 
   @override
@@ -186,6 +190,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
       tiltGesturesEnabled: widget.tiltGesturesEnabled,
       mapType: widget.mapType,
       padding: widget.padding,
+      webCameraControlEnabled: widget.webCameraControlEnabled,
       style: widget.customMapStyle ?? _defaultMapStyle,
       onMapCreated: (GoogleMapController controller) {
         _mapController = controller;

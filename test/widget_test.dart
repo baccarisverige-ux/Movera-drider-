@@ -408,23 +408,24 @@ void main() {
     // Exclusive Radar offer uses its own exclusive surface.
     await tester.pump(const Duration(milliseconds: 2300));
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Exclusive Radar'), findsOneWidget);
-    expect(find.text('Trip Radar offers'), findsNothing);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
+    expect(find.textContaining('Radar offers · '), findsNothing);
     _expectNoException(tester);
 
     // Let the outside offer expire, then allow the first Radar offer to arrive.
     await tester.pump(const Duration(milliseconds: 8500));
     await tester.pump(const Duration(milliseconds: 900));
 
-    expect(find.text('Trip Radar offers'), findsOneWidget);
-    expect(find.text('1 live'), findsOneWidget);
-    expect(find.text('Exclusive Radar'), findsNothing);
-    expect(find.text('Trip found'), findsOneWidget);
+    expect(find.text('Radar offers · 1'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsNothing);
+    // The Radar button shows how many Radar trips are open.
+    final radarCount = find.textContaining(RegExp(r'^\d trips?$'));
+    expect(radarCount, findsOneWidget);
     expect(find.text('NEW'), findsOneWidget);
     _expectNoException(tester);
 
     // Radar orb still opens the legacy/full Radar list.
-    await tester.tap(find.text('Trip found'));
+    await tester.tap(radarCount);
     await tester.pump(const Duration(milliseconds: 160));
     expect(find.byType(RideRequests), findsOneWidget);
     _expectNoException(tester);
@@ -434,7 +435,7 @@ void main() {
 
     // Returning to Home keeps the Home Radar opportunity alive.
     expect(find.byType(RideRequests), findsNothing);
-    expect(find.text('Trip Radar offers'), findsOneWidget);
+    expect(find.text('Radar offers · 1'), findsOneWidget);
     expect(find.text('NEW'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -451,18 +452,24 @@ void main() {
     // Outside offer first, still isolated from Radar.
     await tester.pump(const Duration(milliseconds: 2300));
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Trip Radar offers'), findsNothing);
+    expect(find.textContaining('Radar offers · '), findsNothing);
     _expectNoException(tester);
 
     // Expire outside offer and receive the first Radar offer.
     await tester.pump(const Duration(milliseconds: 8500));
     await tester.pump(const Duration(milliseconds: 900));
-    expect(find.text('1 live'), findsOneWidget);
+    expect(find.text('Radar offers · 1'), findsOneWidget);
     _expectNoException(tester);
 
     // A second Radar match must NOT mutate the visible list.
     await tester.pump(const Duration(milliseconds: 3100));
-    expect(find.text('Refresh · 1 new'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('radar-home-refresh')),
+        matching: find.text('1 new'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey<String>('radar-offer-nearby-2')),
       findsNothing,
@@ -471,7 +478,13 @@ void main() {
 
     // A third match also waits behind the refresh action.
     await tester.pump(const Duration(milliseconds: 3100));
-    expect(find.text('Refresh · 2 new'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('radar-home-refresh')),
+        matching: find.text('2 new'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey<String>('radar-offer-nearby-4')),
       findsNothing,
@@ -484,8 +497,8 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 160));
 
-    expect(find.text('3 live'), findsOneWidget);
-    expect(find.textContaining('Refresh · '), findsNothing);
+    expect(find.text('Radar offers · 3'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('radar-home-refresh')), findsNothing);
     expect(find.text('Match'), findsWidgets);
     _expectNoException(tester);
 
@@ -502,10 +515,66 @@ void main() {
     _expectNoException(tester);
 
     await tester.pump(const Duration(milliseconds: 4300));
-    expect(find.text('Matched by another driver'), findsOneWidget);
-    expect(find.text('Matched'), findsOneWidget);
+    // Another driver took it: one slim grey line, no dead button.
+    expect(find.text('Taken by another driver'), findsOneWidget);
+    expect(find.text('Matched'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('radar-taken-nearby-4')),
+      findsOneWidget,
+    );
+    _expectNoException(tester);
+
+    // A moment later it leaves the list.
+    await tester.pump(const Duration(milliseconds: 3000));
     expect(
       find.byKey(const ValueKey<String>('radar-offer-nearby-4')),
+      findsNothing,
+    );
+    expect(find.text('Radar offers · 2'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Tapping a Radar offer brings it to the top with its details', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    await tester.tap(find.text('OFF'));
+    await tester.pump(const Duration(milliseconds: 1550));
+    await tester.pump(const Duration(milliseconds: 2300));
+    await tester.pump(const Duration(milliseconds: 8500));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump(const Duration(milliseconds: 6200));
+    await tester.tap(find.byKey(const ValueKey<String>('radar-home-refresh')));
+    await tester.pump(const Duration(milliseconds: 160));
+    expect(find.text('Radar offers · 3'), findsOneWidget);
+
+    Finder card(String id) =>
+        find.byKey(ValueKey<String>('radar-offer-$id'));
+    final ids = ['nearby-1', 'nearby-2', 'nearby-4']
+        .where((id) => card(id).evaluate().isNotEmpty)
+        .toList();
+    expect(ids.length, 3);
+    final first = ids.first;
+    final last = ids.last;
+    // Only the first trip shows its addresses.
+    expect(find.text('Pickup'), findsOneWidget);
+    expect(tester.getTopLeft(card(first)).dy,
+        lessThan(tester.getTopLeft(card(last)).dy));
+
+    final lastInk = find.descendant(
+      of: card(last),
+      matching: find.byType(InkWell),
+    ).first;
+    tester.widget<InkWell>(lastInk).onTap!.call();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(tester.getTopLeft(card(last)).dy,
+        lessThan(tester.getTopLeft(card(first)).dy));
+    expect(find.text('Pickup'), findsOneWidget);
+    expect(
+      find.descendant(of: card(last), matching: find.text('Pickup')),
       findsOneWidget,
     );
     _expectNoException(tester);
@@ -548,23 +617,16 @@ void main() {
 
     // Demo: nearby-3 is claimed remotely after 13 seconds.
     await tester.pump(const Duration(seconds: 13));
+    // It folds into one grey line: no dead Match button.
     final card = find.byKey(const ValueKey<String>('nearby-3'));
     expect(card, findsOneWidget);
     expect(
-      find.descendant(
-        of: card,
-        matching: find.text('Matched by another driver'),
-      ),
+      find.descendant(of: card, matching: find.text('No longer available')),
       findsOneWidget,
     );
-
-    final button = tester.widget<FilledButton>(
-      find.descendant(of: card, matching: find.byType(FilledButton)),
-    );
-    expect(button.onPressed, isNull);
     expect(
-      find.descendant(of: card, matching: find.text('Matched')),
-      findsOneWidget,
+      find.descendant(of: card, matching: find.byType(FilledButton)),
+      findsNothing,
     );
     _expectNoException(tester);
 
@@ -596,15 +658,43 @@ void main() {
     _expectNoException(tester);
 
     await tester.pump(const Duration(milliseconds: 1500));
-    expect(find.text('Request taken'), findsOneWidget);
+    // No banner: the trip's own row says what happened.
+    expect(find.text('Request taken'), findsNothing);
     expect(
       find.descendant(
         of: card,
-        matching: find.text('Matched by another driver'),
+        matching: find.text('Another driver got it first'),
       ),
       findsOneWidget,
     );
     expect(find.byType(AcceptRide), findsNothing);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Full Radar lists every trip with its details', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 2000));
+    await tester.pumpWidget(const MaterialApp(home: RideRequests()));
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(find.text('Trip radar'), findsOneWidget);
+    final cards = ['nearby-1', 'nearby-2', 'nearby-3']
+        .map((id) => find.byKey(ValueKey<String>(id)))
+        .where((card) => card.evaluate().isNotEmpty)
+        .toList();
+    expect(cards, isNotEmpty);
+    // No compact rows: every trip shows pickup, drop-off and Match.
+    for (final card in cards) {
+      expect(find.descendant(of: card, matching: find.text('Pickup')),
+          findsOneWidget);
+      expect(find.descendant(of: card, matching: find.text('Drop-off')),
+          findsOneWidget);
+      expect(find.descendant(of: card, matching: find.text('Match')),
+          findsOneWidget);
+    }
+    expect(find.text('Pickup'), findsNWidgets(cards.length));
     _expectNoException(tester);
   });
 
@@ -734,9 +824,11 @@ void main() {
     );
     expect(interceptor, findsOneWidget);
 
-    final interceptorSize = tester.getSize(interceptor);
-    expect(interceptorSize.width, lessThan(180));
-    expect(interceptorSize.height, lessThan(80));
+    // The top island is centred and leaves both map corners free.
+    final interceptorRect = tester.getRect(interceptor);
+    expect(interceptorRect.width, lessThan(330));
+    expect(interceptorRect.height, lessThan(80));
+    expect(interceptorRect.center.dx, closeTo(375 / 2, 2));
     _expectNoException(tester);
   });
 
@@ -967,7 +1059,8 @@ void main() {
       find.byKey(const ValueKey<String>('home-safety-button')),
     );
     expect(location.center.dy, closeTo(safety.center.dy, 16));
-    expect(location.left, lessThan(safety.left));
+    // Safety sits on the left, recenter on the right.
+    expect(location.left, greaterThan(safety.left));
     _expectNoException(tester);
   });
 
@@ -1031,7 +1124,7 @@ void main() {
     // Advance beyond the first direct-offer timer. Nothing may appear offline.
     await tester.pump(const Duration(milliseconds: 4200));
     expect(find.text('104,80 kr'), findsNothing);
-    expect(find.text('Exclusive Radar priority match'), findsNothing);
+    expect(find.text('Exclusive offer for you · nearby'), findsNothing);
     expect(find.text('OFF'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -1056,7 +1149,7 @@ void main() {
     }
 
     expect(find.text('104,80 kr'), findsNothing);
-    expect(find.text('Exclusive Radar priority match'), findsNothing);
+    expect(find.text('Exclusive offer for you · nearby'), findsNothing);
     expect(find.text('LIVE'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -1071,6 +1164,12 @@ void main() {
       const ValueKey<String>('last-trip-launcher'),
     );
     expect(launcherInk, findsOneWidget);
+    // Hidden by default; the first tap shows only the last trip.
+    expect(find.text('183.25 kr'), findsNothing);
+    tester.widget<InkWell>(launcherInk).onTap!.call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('183.25 kr'), findsNothing);
+    expect(find.textContaining('Last trip'), findsOneWidget);
     tester.widget<InkWell>(launcherInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
 
@@ -1091,16 +1190,16 @@ void main() {
     expect(summaryPointer.ignoring, isTrue);
     _expectNoException(tester);
 
+    for (var i = 0; i < 2; i++) {
+      tester.widget<InkWell>(launcherInk).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    }
+    expect(find.text('Today'), findsOneWidget);
+
+    // A third tap on the island folds it back and hides the money.
     tester.widget<InkWell>(launcherInk).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
-
-    final closeIcon = find.byIcon(Icons.close_rounded);
-    final closeInk = find.ancestor(
-      of: closeIcon,
-      matching: find.byType(InkWell),
-    );
-    tester.widget<InkWell>(closeInk).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('183.25 kr'), findsNothing);
     summaryPointer = tester.widget<IgnorePointer>(
       find.byKey(const ValueKey<String>('today-summary-pointer')),
     );
@@ -1114,8 +1213,10 @@ void main() {
     final launcherAgain = find.byKey(
       const ValueKey<String>('last-trip-launcher'),
     );
-    tester.widget<InkWell>(launcherAgain).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    for (var i = 0; i < 2; i++) {
+      tester.widget<InkWell>(launcherAgain).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    }
     summaryPointer = tester.widget<IgnorePointer>(
       find.byKey(const ValueKey<String>('today-summary-pointer')),
     );
@@ -1133,7 +1234,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Today summary uses compact card and closes when Home sheet expands', (
+  testWidgets('Today details fit the island and close when Home sheet expands', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1142,14 +1243,16 @@ void main() {
     final launcher = find.byKey(
       const ValueKey<String>('last-trip-launcher'),
     );
-    tester.widget<InkWell>(launcher).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    for (var i = 0; i < 2; i++) {
+      tester.widget<InkWell>(launcher).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    }
 
     final card = find.byKey(
       const ValueKey<String>('today-summary-card'),
     );
     expect(card, findsOneWidget);
-    expect(tester.getSize(card).width, 278);
+    expect(tester.getSize(card).width, lessThanOrEqualTo(340));
     expect(find.text('Today'), findsOneWidget);
     _expectNoException(tester);
 
@@ -1173,8 +1276,7 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
-    expect(find.text('Exclusive Radar'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('trip-radar-touch-target')),
       findsNothing,
@@ -1197,8 +1299,10 @@ void main() {
     final launcher = find.byKey(
       const ValueKey<String>('last-trip-launcher'),
     );
-    tester.widget<InkWell>(launcher).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    for (var i = 0; i < 2; i++) {
+      tester.widget<InkWell>(launcher).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    }
 
     final historyButton = find.byKey(
       const ValueKey<String>('today-history-button'),
@@ -1305,7 +1409,7 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
     expect(safetyPosition().bottom, 138);
     _expectNoException(tester);
   });
@@ -1397,13 +1501,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
 
-    final routeButton = find.ancestor(
-      of: find.text('Route'),
-      matching: find.byType(TextButton),
+    final route = tester.widget<TextButton>(
+      find.byKey(const ValueKey<String>('direct-offer-route')),
     );
-    final route = tester.widget<TextButton>(routeButton);
     expect(route.onPressed, isNotNull);
     route.onPressed!.call();
     await tester.pump(const Duration(milliseconds: 120));
@@ -1994,10 +2096,12 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
-    expect(find.textContaining('Exclusive offer · '), findsOneWidget);
-    expect(find.text('Exclusive Radar'), findsOneWidget);
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^\d+s$')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('direct-offer-countdown-fill')),
+      findsOneWidget,
+    );
     _expectNoException(tester);
   });
 
@@ -2011,7 +2115,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Exclusive Radar priority match'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
     _expectNoException(tester);
   });
 

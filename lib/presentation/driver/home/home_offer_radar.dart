@@ -6,7 +6,19 @@ part of 'home.dart';
 
 enum _HomeRadarMatchState { available, resolving, claimedElsewhere }
 
-enum _HomeRadarMatchNoticeType { matching, success, taken }
+enum _HomeRadarMatchNoticeType { matching, success }
+
+/// Why a Radar offer is leaving the list.
+enum _RadarOfferGone {
+  /// Another driver took it while this driver looked at it.
+  takenByOther,
+
+  /// This driver tapped Match and another driver won.
+  lostOwnMatch,
+
+  /// Expired, cancelled by the rider or gone from Radar for another reason.
+  unavailable,
+}
 
 class _HomeRadarMatchNotice {
   const _HomeRadarMatchNotice({
@@ -197,6 +209,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         _radarHomeOffers.add(offer);
         _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
       });
+      _startRadarPickWindow(offer);
     }
     void _refreshRadarHomeOffers() {
       if (!mounted ||
@@ -220,7 +233,14 @@ extension _HomeOfferRadar on _DriverHomeState {
         if (next.length >= _DriverHomeState._maxHomeRadarOffers) { break; }
       }
 
+      // Trips whose pick window ran out leave on refresh.
+      next.removeWhere((offer) => _radarOfferExpired.contains(offer.id));
+      for (final offer in next) {
+        _startRadarPickWindow(offer);
+      }
+
       _rebuild(() {
+        _radarOfferExpired.clear();
         _radarHomeOffers
           ..clear()
           ..addAll(next);
@@ -231,6 +251,21 @@ extension _HomeOfferRadar on _DriverHomeState {
       _dispatch.refreshOffers();
       _scheduleHomeRadarExternalClaimDemo();
     }
+    /// Starts [offer]'s pick window once; when it ends, Match fades.
+    void _startRadarPickWindow(_HomeDirectOffer offer) {
+      if (_radarOfferTimeoutTimers.containsKey(offer.id)) { return; }
+      _radarOfferTimeoutTimers[offer.id] = Timer(
+        _DriverHomeState._radarOfferPickWindow,
+        () {
+          if (!mounted ||
+              !_radarHomeOffers.any((item) => item.id == offer.id) ||
+              _homeRadarStateFor(offer.id) != _HomeRadarMatchState.available) {
+            return;
+          }
+          _rebuild(() => _radarOfferExpired.add(offer.id));
+        },
+      );
+    }
     void _releasePendingRadarOffers() {
       if (!mounted ||
           !_isOnline ||
@@ -239,7 +274,13 @@ extension _HomeOfferRadar on _DriverHomeState {
         return;
       }
 
-      // Keep detected trips pending until the driver explicitly refreshes.
+      // Nothing on screen: load the new trips and open the offers popup.
+      // With trips already listed, new ones wait behind the "new" button
+      // so the list never jumps while the driver reads it.
+      if (_radarHomeOffers.isEmpty) {
+        _refreshRadarHomeOffers();
+        return;
+      }
       _rebuild(() {
         _hasRideOffers = true;
       });
@@ -252,6 +293,8 @@ extension _HomeOfferRadar on _DriverHomeState {
         _radarHomeOffers.removeWhere((item) => item.id == offer.id);
         _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
         _homeRadarMatchStates.remove(offer.id);
+        _homeRadarGoneReasons.remove(offer.id);
+        _radarOfferExpired.remove(offer.id);
         _hasRideOffers =
             _radarHomeOffers.isNotEmpty || _pendingRadarHomeOffers.isNotEmpty;
       });
@@ -287,10 +330,21 @@ extension _HomeOfferRadar on _DriverHomeState {
     Future<void> _claimHomeRadarOffer(_HomeDirectOffer offer) async {
       final result = await _dispatch.claimOffer(offer.id);
       if (!mounted || _homeRadarMatchingOfferId != offer.id) { return; }
-      if (result.isSuccess) {
-        _resolveHomeRadarMatchWon(offer);
-      } else {
-        _resolveHomeRadarMatchLost(offer);
+      switch (result.outcome) {
+        case ClaimOutcome.success:
+          _resolveHomeRadarMatchWon(offer);
+        case ClaimOutcome.alreadyClaimed:
+          _resolveHomeRadarMatchLost(offer, _RadarOfferGone.lostOwnMatch);
+        case ClaimOutcome.expired:
+        case ClaimOutcome.unavailable:
+          _resolveHomeRadarMatchLost(offer, _RadarOfferGone.unavailable);
+        case ClaimOutcome.networkError:
+          // Nothing was decided; let the driver try again.
+          _rebuild(() {
+            _homeRadarMatchingOfferId = null;
+            _homeRadarMatchStates.remove(offer.id);
+            _homeRadarMatchNotice = null;
+          });
       }
     }
     void _watchDispatchRadar() {
@@ -302,7 +356,9 @@ extension _HomeOfferRadar on _DriverHomeState {
         for (final offer in [..._radarHomeOffers, ..._pendingRadarHomeOffers]) {
           if (!ids.contains(offer.id) &&
               _homeRadarStateFor(offer.id) == _HomeRadarMatchState.available) {
-            _resolveHomeRadarMatchLost(offer);
+            // Gone from Radar without a claim of ours: the reason is not
+            // known here (rider cancelled, expired, taken elsewhere…).
+            _resolveHomeRadarMatchLost(offer, _RadarOfferGone.unavailable);
           }
         }
       });
@@ -350,26 +406,19 @@ extension _HomeOfferRadar on _DriverHomeState {
         },
       );
     }
-    void _resolveHomeRadarMatchLost(_HomeDirectOffer offer) {
+    void _resolveHomeRadarMatchLost(
+      _HomeDirectOffer offer,
+      _RadarOfferGone reason,
+    ) {
+      // The row itself says what happened; no banner over the map.
+      _homeRadarNoticeTimer?.cancel();
       _rebuild(() {
+        _homeRadarGoneReasons[offer.id] = reason;
         _homeRadarMatchingOfferId = null;
         _homeRadarMatchStates[offer.id] =
             _HomeRadarMatchState.claimedElsewhere;
-        _homeRadarMatchNotice = const _HomeRadarMatchNotice(
-          type: _HomeRadarMatchNoticeType.taken,
-          title: 'Request taken',
-          message: 'Another driver was matched first. Choose another trip.',
-        );
+        _homeRadarMatchNotice = null;
       });
-
-      _homeRadarNoticeTimer?.cancel();
-      _homeRadarNoticeTimer = Timer(
-        const Duration(milliseconds: 2600),
-        () {
-          if (!mounted) { return; }
-          _rebuild(() => _homeRadarMatchNotice = null);
-        },
-      );
 
       _homeRadarLostMatchTimer?.cancel();
       _homeRadarLostMatchTimer = Timer(
@@ -448,6 +497,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         timer.cancel();
       }
       _radarOfferTimeoutTimers.clear();
+      _radarOfferExpired.clear();
     }
     void _acceptOutsideRadarOffer() {
       final offer = _outsideRadarOffer;
@@ -572,256 +622,103 @@ extension _HomeOfferRadar on _DriverHomeState {
               ),
       );
     }
-    Widget _buildRadarRefreshPrompt() {
-      final count = _pendingRadarHomeOffers.length;
+    // Radar offers use the reservation popup's look: white cards, black
+    // ink, a pickup dot and a drop-off square, grey and black buttons.
+    static const Color _offerInk = Color(0xFF111614);
+    static const Color _offerMuted = Color(0xFF5E6461);
+    static const Color _offerLine = Color(0xFFE4E6E5);
+    static const Color _offerSoft = Color(0xFFEDEEED);
 
-      return RepaintBoundary(
-        child: Material(
-          color: const Color(0xFFF7F9F9).withValues(alpha: 0.98),
-          elevation: 8,
-          shadowColor: const Color(0x3311181C),
-          borderRadius: BorderRadius.circular(22),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-            child: Row(
-              children: [
-                Container(
-                  height: 38,
-                  width: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3DE),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: const Icon(
-                    Icons.radar_rounded,
-                    color: Color(0xFFD28A19),
-                    size: 19,
-                  ),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'New Radar trips',
-                        style: TextStyle(
-                          color: Color(0xFF252E3A),
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        count.toString() +
-                            (count == 1
-                                ? ' new offer ready'
-                                : ' new offers ready'),
-                        style: const TextStyle(
-                          color: Color(0xFF7C888E),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                TextButton.icon(
-                  key: const ValueKey<String>('radar-home-refresh-empty'),
-                  onPressed: _refreshRadarHomeOffers,
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF9A650F),
-                    backgroundColor: const Color(0xFFFFF3DE),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                  ),
-                  icon: const Icon(Icons.refresh_rounded, size: 15),
-                  label: const Text(
-                    'Refresh',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
     Widget _buildRadarTrayHeader(List<_HomeDirectOffer> offers) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 360;
-
-          final title = Row(
-            children: [
-              Container(
-                height: 34,
-                width: 34,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3DE),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.radar_rounded,
-                  color: Color(0xFFD28A19),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Trip Radar offers',
-                      style: TextStyle(
-                        color: Color(0xFF252E3A),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
-                      ),
+      final pending = _pendingRadarHomeOffers.length;
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Radar offers · ${offers.where((offer) => _homeRadarStateFor(offer.id) != _HomeRadarMatchState.claimedElsewhere).length}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _offerInk,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      _destinationModeActive
-                          ? 'On your way · same direction only'
-                          : 'Stable list · refresh when new trips arrive',
+                  ),
+                  if (_destinationModeActive)
+                    const Text(
+                      'On your way · same direction only',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF7C888E),
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: TextStyle(color: _offerMuted, fontSize: 12.5),
                     ),
-                  ],
-                ),
-              ),
-              if (_pendingRadarHomeOffers.isEmpty) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF26343A),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${offers.length} live',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          );
-
-          final refresh = TextButton.icon(
-            key: const ValueKey<String>('radar-home-refresh'),
-            onPressed: _refreshRadarHomeOffers,
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF9A650F),
-              backgroundColor: const Color(0xFFFFF3DE),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 9,
-                vertical: 7,
-              ),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(11),
+                ],
               ),
             ),
-            icon: const Icon(Icons.refresh_rounded, size: 15),
-            label: Text(
-              'Refresh · ${_pendingRadarHomeOffers.length} new',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          );
-
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(15, 13, 12, 10),
-            child: _pendingRadarHomeOffers.isEmpty
-                ? title
-                : compact
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          title,
-                          const SizedBox(height: 9),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: refresh,
+            if (pending > 0)
+              Material(
+                color: _offerSoft,
+                shape: const StadiumBorder(),
+                child: InkWell(
+                  key: const ValueKey<String>('radar-home-refresh'),
+                  onTap: _refreshRadarHomeOffers,
+                  customBorder: const StadiumBorder(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.refresh_rounded, size: 17, color: _offerInk),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$pending new',
+                          style: const TextStyle(
+                            color: _offerInk,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          Expanded(child: title),
-                          const SizedBox(width: 8),
-                          refresh,
-                        ],
-                      ),
-          );
-        },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       );
     }
     Widget _buildRadarOffersTray() {
       final offers = List<_HomeDirectOffer>.unmodifiable(_radarHomeOffers);
-      final trayHeight = math.min(
-        390.0,
-        MediaQuery.of(context).size.height * 0.45,
+      final maxHeight = math.min(
+        430.0,
+        MediaQuery.of(context).size.height * 0.5,
       );
 
       return RepaintBoundary(
-        child: SizedBox(
-          height: trayHeight,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7F9F9).withValues(alpha: 0.98),
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: const Color(0xFFDDE5E2)),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF11181C).withValues(alpha: 0.12),
-                  blurRadius: 26,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Material(
+            color: Colors.white,
+            elevation: 8,
+            shadowColor: const Color(0xFF172027).withValues(alpha: 0.30),
+            borderRadius: BorderRadius.circular(20),
             clipBehavior: Clip.antiAlias,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _buildRadarTrayHeader(offers),
-                const Divider(height: 1, color: Color(0xFFE3E8E6)),
-                Expanded(
+                Flexible(
                   child: ListView.separated(
                     key: const PageStorageKey<String>('radar-home-offers-list'),
+                    shrinkWrap: true,
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                     itemCount: offers.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final offer = offers[index];
                       return RepaintBoundary(
@@ -837,6 +734,21 @@ extension _HomeOfferRadar on _DriverHomeState {
         ),
       );
     }
+    bool _radarOfferExpanded(_HomeDirectOffer offer) {
+      bool open(String id) =>
+          _homeRadarStateFor(id) != _HomeRadarMatchState.claimedElsewhere;
+      final chosen = _radarExpandedOfferId;
+      if (chosen != null &&
+          open(chosen) &&
+          _radarHomeOffers.any((item) => item.id == chosen)) {
+        return chosen == offer.id;
+      }
+      // Otherwise the first trip still available opens.
+      for (final item in _radarHomeOffers) {
+        if (open(item.id)) { return item.id == offer.id; }
+      }
+      return false;
+    }
     Widget _buildRadarOpportunityCard(_HomeDirectOffer offer) {
       final matchState = _homeRadarStateFor(offer.id);
       final claimed = matchState == _HomeRadarMatchState.claimedElsewhere;
@@ -844,542 +756,614 @@ extension _HomeOfferRadar on _DriverHomeState {
       final blockOtherOffers =
           _homeRadarMatchingOfferId != null &&
           _homeRadarMatchingOfferId != offer.id;
+      final expanded = _radarOfferExpanded(offer);
+      final summary =
+          '${offer.pickupMinutes} min away · ${offer.tripKm.toStringAsFixed(1)} km ride';
 
-      return AnimatedOpacity(
-        duration: const Duration(milliseconds: 180),
-        opacity: claimed ? 0.68 : 1,
-        child: Material(
+      // Pick window over: only Match fades to a light black.
+      final expired = _radarOfferExpired.contains(offer.id);
+      final matchButton = SizedBox(
+        height: expanded ? 46 : 40,
+        child: FilledButton(
+          key: ValueKey<String>('radar-match-${offer.id}'),
+          onPressed: claimed || resolving || blockOtherOffers || expired
+              ? null
+              : () => _startHomeRadarMatch(offer),
+          style: FilledButton.styleFrom(
+            elevation: 0,
+            backgroundColor: _offerInk,
+            disabledBackgroundColor: expired
+                ? _offerInk.withValues(alpha: 0.28)
+                : const Color(0xFFD9DEDF),
+            foregroundColor: Colors.white,
+            disabledForegroundColor:
+                expired ? Colors.white : const Color(0xFF727E83),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: resolving
+              ? const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 13,
+                      height: 13,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF727E83),
+                      ),
+                    ),
+                    SizedBox(width: 7),
+                    Text(
+                      'Matching…',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                )
+              : Text(
+                  claimed ? 'Matched' : 'Match',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+        ),
+      );
+
+      return AnimatedSize(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topCenter,
+        child: claimed
+            ? _buildTakenRadarRow(offer)
+            : _buildOpenableRadarCard(
+                offer,
+                expanded: expanded,
+                resolving: resolving,
+                summary: summary,
+                matchButton: matchButton,
+              ),
+      );
+    }
+    /// A trip that is no longer open: one slim grey line saying why, price
+    /// crossed out, until it slides out of the list a moment later.
+    Widget _buildTakenRadarRow(_HomeDirectOffer offer) {
+      final reason =
+          _homeRadarGoneReasons[offer.id] ?? _RadarOfferGone.takenByOther;
+      return Container(
+        key: ValueKey<String>('radar-taken-${offer.id}'),
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F5F5),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              reason == _RadarOfferGone.unavailable
+                  ? Icons.event_busy_outlined
+                  : Icons.person_off_outlined,
+              size: 18,
+              color: _offerMuted,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                switch (reason) {
+                  _RadarOfferGone.lostOwnMatch => 'Another driver got it first',
+                  _RadarOfferGone.unavailable => 'No longer available',
+                  _RadarOfferGone.takenByOther => 'Taken by another driver',
+                },
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _offerMuted,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Text(
+              offer.fare,
+              style: const TextStyle(
+                color: Color(0xFF9AA2A6),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.lineThrough,
+                decorationColor: Color(0xFF9AA2A6),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    /// Tapping a trip (not its Match button) brings it to the top of the
+    /// list with its details open.
+    void _openRadarOffer(_HomeDirectOffer offer) {
+      _rebuild(() {
+        final index = _radarHomeOffers.indexWhere((item) => item.id == offer.id);
+        if (index > 0) {
+          _radarHomeOffers.insert(0, _radarHomeOffers.removeAt(index));
+        }
+        _radarExpandedOfferId = offer.id;
+      });
+      _previewDirectOfferRoute(offer.pickupPosition, offer.dropoffPosition);
+    }
+    Widget _buildOpenableRadarCard(
+      _HomeDirectOffer offer, {
+      required bool expanded,
+      required bool resolving,
+      required String summary,
+      required Widget matchButton,
+    }) {
+      return Material(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: expanded ? _offerInk : _offerLine,
+              width: 1.5,
+            ),
+          ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: claimed || resolving
-                ? null
-                : () => _previewDirectOfferRoute(
-                      offer.pickupPosition,
-                      offer.dropoffPosition,
-                    ),
+            onTap: resolving ? null : () => _openRadarOffer(offer),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF4F5F6),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFE6E8EA)),
-                        ),
-                        child: const Text(
-                          'RADAR',
-                          style: TextStyle(
-                            color: Color(0xFF1C242C),
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.7,
-                          ),
-                        ),
-                      ),
-                      if (_destinationModeActive) ...[
-                        const SizedBox(width: 7),
-                        _homeBadge('On your way'),
-                      ],
-                      const SizedBox(width: 7),
-                      Flexible(
-                        child: Text(
-                          offer.category,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF657178),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      if (!resolving)
-                        InkWell(
-                          onTap: () => _dismissRadarHomeOffer(offer),
-                          borderRadius: BorderRadius.circular(16),
-                          child: const SizedBox(
-                            width: 30,
-                            height: 30,
-                            child: MoveraLineIcon(
-                              mark: MoveraMark.close,
-                              color: Color(0xFF89949A),
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          offer.fare,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF252E3A),
-                            fontSize: 25,
-                            height: 1,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.7,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      const MoveraLineIcon(
-                        mark: MoveraMark.star,
-                        color: Color(0xFFD7A02C),
-                        size: 15,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        offer.rating,
-                        style: const TextStyle(
-                          color: Color(0xFF69757B),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  _homeDirectLocationRow(
-                    color: const Color(0xFF2FBE7B),
-                    title:
-                        '${offer.pickupMinutes} min · ${offer.pickupKm.toStringAsFixed(1)} km away',
-                    subtitle: offer.pickup,
-                  ),
-                  const SizedBox(height: 8),
-                  _homeDirectLocationRow(
-                    color: const Color(0xFF252E3A),
-                    title:
-                        '${offer.tripMinutes} min · ${offer.tripKm.toStringAsFixed(1)} km trip',
-                    subtitle: offer.dropoff,
-                  ),
-                  const SizedBox(height: 12),
-                  if (claimed || resolving) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: claimed
-                            ? const Color(0xFFF0F2F3)
-                            : const Color(0xFFFFF3DE),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          MoveraLineIcon(
-                            mark: claimed ? MoveraMark.lock : MoveraMark.sync,
-                            size: 15,
-                            color: claimed
-                                ? const Color(0xFF7D898F)
-                                : const Color(0xFFB87512),
-                          ),
-                          const SizedBox(width: 7),
-                          Expanded(
-                            child: Text(
-                              claimed
-                                  ? 'Matched by another driver'
-                                  : 'Confirming availability',
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              offer.fare,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: claimed
-                                    ? const Color(0xFF68747A)
-                                    : const Color(0xFF9A650F),
-                                fontSize: 10.5,
+                              style: const TextStyle(
+                                color: _offerInk,
+                                fontSize: 20,
+                                height: 1.1,
                                 fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              resolving
+                                  ? 'Confirming availability'
+                                  : '${offer.category} · $summary',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _offerMuted,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (!expanded)
+                        matchButton
+                      else if (!resolving)
+                        Tooltip(
+                          message: 'Hide offer',
+                          child: InkWell(
+                            onTap: () => _dismissRadarHomeOffer(offer),
+                            customBorder: const CircleBorder(),
+                            child: const SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 20,
+                                color: Color(0xFF9AA2A6),
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  Row(
-                    children: [
-                      TextButton.icon(
-                        onPressed: claimed || resolving
-                            ? null
-                            : () => _previewDirectOfferRoute(
-                                  offer.pickupPosition,
-                                  offer.dropoffPosition,
-                                ),
-                        icon: const MoveraLineIcon(
-                          mark: MoveraMark.route,
-                          size: 16,
-                          color: Color(0xFF1C242C),
                         ),
-                        label: const Text('Route'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF1C242C),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 8,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        height: 40,
-                        child: FilledButton(
-                          onPressed: claimed || resolving || blockOtherOffers
-                              ? null
-                              : () => _startHomeRadarMatch(offer),
-                          style: FilledButton.styleFrom(
-                            elevation: 0,
-                            backgroundColor: const Color(0xFF252E3A),
-                            disabledBackgroundColor: const Color(0xFFD9DEDF),
-                            foregroundColor: Colors.white,
-                            disabledForegroundColor: const Color(0xFF727E83),
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(13),
-                            ),
-                          ),
-                          child: resolving
-                              ? const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: 13,
-                                      height: 13,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Color(0xFF727E83),
-                                      ),
-                                    ),
-                                    SizedBox(width: 7),
-                                    Text(
-                                      'Matching…',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Text(
-                                  claimed ? 'Matched' : 'Match',
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                        ),
-                      ),
                     ],
                   ),
+                  if (expanded) ...[
+                    if (_destinationModeActive) ...[
+                      const SizedBox(height: 8),
+                      _homeBadge('On your way'),
+                    ],
+                    const SizedBox(height: 12),
+                    _offerRouteRow(
+                      square: false,
+                      label: 'Pickup',
+                      place: offer.pickup,
+                      value: '${offer.pickupMinutes} min',
+                      detail: '${offer.pickupKm.toStringAsFixed(1)} km away',
+                    ),
+                    _offerRouteConnector(),
+                    _offerRouteRow(
+                      square: true,
+                      label: 'Drop-off',
+                      place: offer.dropoff,
+                      value: '${offer.tripMinutes} min',
+                      detail: '${offer.tripKm.toStringAsFixed(1)} km ride',
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 46,
+                            child: TextButton.icon(
+                              onPressed: resolving
+                                  ? null
+                                  : () => _previewDirectOfferRoute(
+                                        offer.pickupPosition,
+                                        offer.dropoffPosition,
+                                      ),
+                              icon: const Icon(Icons.alt_route_rounded, size: 18),
+                              label: const Text(
+                                'Route',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: _offerInk,
+                                backgroundColor: _offerSoft,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(flex: 2, child: matchButton),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
+      );
+    }
+    Widget _offerRouteConnector() => Padding(
+          padding: const EdgeInsets.only(left: 5),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Container(width: 2, height: 12, color: _offerLine),
+          ),
+        );
+    Widget _offerRouteRow({
+      required bool square,
+      required String label,
+      required String place,
+      required String value,
+      required String detail,
+    }) {
+      return Row(
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: square ? _offerInk : Colors.white,
+              shape: square ? BoxShape.rectangle : BoxShape.circle,
+              borderRadius: square ? BorderRadius.circular(2) : null,
+              border: square ? null : Border.all(color: _offerInk, width: 3),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: _offerMuted, fontSize: 11.5)),
+                Text(
+                  place,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _offerInk,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: _offerInk,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(detail, style: const TextStyle(color: _offerMuted, fontSize: 11.5)),
+            ],
+          ),
+        ],
+      );
+    }
+    Widget _offerChip(String label, IconData icon, {Color? bg, Color? fg}) {
+      final foreground = fg ?? Colors.white;
+      return Container(
+        padding: const EdgeInsets.fromLTRB(7, 4, 9, 4),
+        decoration: BoxDecoration(
+          color: bg ?? _offerInk,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: foreground),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
+
     Widget _buildOutsideRadarOfferCard(_HomeDirectOffer offer) {
-      const alertCoral = Color(0xFFFF765C);
+      final reservation = offer.reservation && !offer.driverSigned;
+      final lifetime = _DriverHomeState._outsideOfferLifetime;
 
-      return AnimatedBuilder(
-        animation: _goOnlinePulseController,
-        builder: (context, child) {
-          final pulse = _goOnlinePulseController.value;
-
-          return Material(
-            color: Colors.transparent,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: alertCoral.withValues(alpha: 0.38 + (pulse * 0.28)),
-                  width: 1.2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: alertCoral.withValues(alpha: 0.08 + (pulse * 0.07)),
-                    blurRadius: 20 + (pulse * 8),
-                    spreadRadius: pulse * 1.8,
-                    offset: const Offset(0, 5),
+      return Material(
+        color: Colors.white,
+        elevation: 8,
+        shadowColor: const Color(0xFF172027).withValues(alpha: 0.30),
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Flexible(
+                    child: _offerChip(offer.category, Icons.person_rounded),
                   ),
-                  BoxShadow(
-                    color: const Color(0xFF11181C).withValues(alpha: 0.14),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: _offerChip(
+                      reservation ? 'Reservation' : 'Exclusive',
+                      reservation ? Icons.event_rounded : Icons.bolt_rounded,
+                      bg: const Color(0xFFFFEDE8),
+                      fg: const Color(0xFFC2462F),
+                    ),
+                  ),
+                  if (_destinationModeActive) ...[
+                    const SizedBox(width: 6),
+                    _homeBadge('On your way'),
+                  ],
+                  const SizedBox(width: 8),
+                  const Spacer(),
+                  Tooltip(
+                    message: 'Hide offer',
+                    child: InkWell(
+                      onTap: _dismissOutsideRadarOffer,
+                      customBorder: const CircleBorder(),
+                      child: const SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 22,
+                          color: _offerMuted,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE9EEF1),
-                          borderRadius: BorderRadius.circular(11),
-                        ),
-                        child: Text(
-                          offer.category,
-                          style: const TextStyle(
-                            color: Color(0xFF252E3A),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                  Expanded(
+                    child: Text(
+                      offer.fare,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _offerInk,
+                        fontSize: 30,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -1,
                       ),
-                      const SizedBox(width: 7),
-                      if (_destinationModeActive) ...[
-                        _homeBadge('On your way'),
-                        const SizedBox(width: 7),
-                      ],
-                      if (offer.reservation && !offer.driverSigned) ...[
-                        _homeBadge('Reservation'),
-                        const SizedBox(width: 7),
-                      ],
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: alertCoral.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(11),
-                          ),
-                          child: Text(
-                            offer.reason,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFFB84F3D),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      InkWell(
-                        onTap: _dismissOutsideRadarOffer,
-                        borderRadius: BorderRadius.circular(20),
-                        child: const SizedBox(
-                          width: 34,
-                          height: 34,
-                          child: MoveraLineIcon(
-                            mark: MoveraMark.close,
-                            color: Color(0xFF7D898F),
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 11),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          offer.fare,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF252E3A),
-                            fontSize: 30,
-                            height: 1,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.9,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const MoveraLineIcon(
-                        mark: MoveraMark.star,
-                        color: Color(0xFFD7A02C),
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        offer.rating,
-                        style: const TextStyle(
-                          color: Color(0xFF6F7B82),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 17,
+                    color: Color(0xFFD7A02C),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(width: 3),
                   Text(
-                    offer.detail,
+                    offer.rating,
                     style: const TextStyle(
-                      color: Color(0xFF7D898F),
-                      fontSize: 10.5,
+                      color: _offerMuted,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  TweenAnimationBuilder<double>(
-                    key: ValueKey<String>('direct-offer-countdown-${offer.id}'),
-                    tween: Tween<double>(begin: 1, end: 0),
-                    duration: _DriverHomeState._outsideOfferLifetime,
-                    builder: (context, remaining, child) {
-                      final seconds = (remaining *
-                              (_DriverHomeState._outsideOfferLifetime.inMilliseconds / 1000))
-                          .ceil();
-                      final reservation =
-                          offer.reservation && !offer.driverSigned;
-
-                      return Column(
-                        children: [
-                          Row(
-                            children: [
-                              const MoveraLineIcon(
-                                mark: MoveraMark.timer,
-                                color: Color(0xFF1C242C),
-                                size: 14,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  reservation
-                                      ? 'Reservation · ${seconds}s'
-                                      : 'Exclusive offer · ${seconds}s',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xFF1C242C),
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  reservation ? 'Outside radar' : 'Exclusive Radar',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xFF8A9499),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(99),
-                            child: LinearProgressIndicator(
-                              minHeight: 3,
-                              value: remaining,
-                              backgroundColor: const Color(0xFFF0E8E5),
-                              valueColor:
-                                  const AlwaysStoppedAnimation<Color>(alertCoral),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(height: 1, color: Color(0xFFE4E8EA)),
-                  const SizedBox(height: 11),
-                  _homeDirectLocationRow(
-                    color: AppColor.primary,
-                    title:
-                        '${offer.pickupMinutes} min · ${offer.pickupKm.toStringAsFixed(1)} km away',
-                    subtitle: offer.pickup,
-                  ),
-                  const SizedBox(height: 9),
-                  _homeDirectLocationRow(
-                    color: const Color(0xFF252E3A),
-                    title:
-                        '${offer.tripMinutes} min · ${offer.tripKm.toStringAsFixed(1)} km trip',
-                    subtitle: offer.dropoff,
-                  ),
-                  const SizedBox(height: 13),
-                  Row(
-                    children: [
-                      TextButton.icon(
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                reservation
+                    ? 'Reservation outside your Radar'
+                    : 'Exclusive offer for you · nearby',
+                style: const TextStyle(color: _offerMuted, fontSize: 13),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _offerLine, width: 1.5),
+                ),
+                child: Column(
+                  children: [
+                    _offerRouteRow(
+                      square: false,
+                      label: 'Pickup',
+                      place: offer.pickup,
+                      value: '${offer.pickupMinutes} min',
+                      detail: '${offer.pickupKm.toStringAsFixed(1)} km away',
+                    ),
+                    _offerRouteConnector(),
+                    _offerRouteRow(
+                      square: true,
+                      label: 'Drop-off',
+                      place: offer.dropoff,
+                      value: '${offer.tripMinutes} min',
+                      detail: '${offer.tripKm.toStringAsFixed(1)} km ride',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: TextButton.icon(
+                        key: const ValueKey<String>('direct-offer-route'),
                         onPressed: () => _previewDirectOfferRoute(
                           offer.pickupPosition,
                           offer.dropoffPosition,
                         ),
-                        icon: const MoveraLineIcon(
-                          mark: MoveraMark.route,
-                          size: 17,
-                          color: Color(0xFF1C242C),
+                        icon: const Icon(Icons.alt_route_rounded, size: 19),
+                        label: const Text(
+                          'Route',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                        label: const Text('Route'),
                         style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF1C242C),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
+                          foregroundColor: _offerInk,
+                          backgroundColor: _offerSoft,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                       ),
-                      const Spacer(),
-                      SizedBox(
-                        height: 42,
-                        child: FilledButton(
-                          onPressed: _acceptOutsideRadarOffer,
-                          style: FilledButton.styleFrom(
-                            elevation: 0,
-                            backgroundColor: const Color(0xFF252E3A),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 22),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text(
-                            'Accept',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: SizedBox(
+                      height: 50,
+                      child: FilledButton(
+                        onPressed: _acceptOutsideRadarOffer,
+                        style: FilledButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: _offerInk,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
+                        // The time left drains as a lighter band inside
+                        // the button, with the seconds next to "Accept".
+                        child: TweenAnimationBuilder<double>(
+                          key: ValueKey<String>(
+                            'direct-offer-countdown-${offer.id}',
+                          ),
+                          tween: Tween<double>(begin: 1, end: 0),
+                          duration: lifetime,
+                          builder: (context, remaining, child) {
+                            final seconds =
+                                (remaining * lifetime.inMilliseconds / 1000)
+                                    .ceil();
+                            return Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                FractionallySizedBox(
+                                  key: const ValueKey<String>(
+                                    'direct-offer-countdown-fill',
+                                  ),
+                                  alignment: Alignment.centerLeft,
+                                  widthFactor: remaining,
+                                  child: const ColoredBox(
+                                    color: Color(0xFF2C3438),
+                                  ),
+                                ),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Accept',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const Text(
+                                        ' · ',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                      Text(
+                                        '${seconds}s',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          fontFeatures: [
+                                            FontFeature.tabularFigures(),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          );
-        },
+            ],
+          ),
+        ),
       );
     }
+
     Widget _homeBadge(String label) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -1397,56 +1381,6 @@ extension _HomeOfferRadar on _DriverHomeState {
             fontWeight: FontWeight.w800,
           ),
         ),
-      );
-    }
-    Widget _homeDirectLocationRow({
-      required Color color,
-      required String title,
-      required String subtitle,
-    }) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            margin: const EdgeInsets.only(top: 3),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: color, width: 2.5),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF252E3A),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF7D898F),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       );
     }
     void _scheduleVisibleOffers() {
