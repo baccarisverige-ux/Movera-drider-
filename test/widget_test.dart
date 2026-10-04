@@ -617,23 +617,16 @@ void main() {
 
     // Demo: nearby-3 is claimed remotely after 13 seconds.
     await tester.pump(const Duration(seconds: 13));
+    // It folds into one grey line: no dead Match button.
     final card = find.byKey(const ValueKey<String>('nearby-3'));
     expect(card, findsOneWidget);
     expect(
-      find.descendant(
-        of: card,
-        matching: find.text('Matched by another driver'),
-      ),
+      find.descendant(of: card, matching: find.text('No longer available')),
       findsOneWidget,
     );
-
-    final button = tester.widget<FilledButton>(
-      find.descendant(of: card, matching: find.byType(FilledButton)),
-    );
-    expect(button.onPressed, isNull);
     expect(
-      find.descendant(of: card, matching: find.text('Matched')),
-      findsOneWidget,
+      find.descendant(of: card, matching: find.byType(FilledButton)),
+      findsNothing,
     );
     _expectNoException(tester);
 
@@ -665,15 +658,50 @@ void main() {
     _expectNoException(tester);
 
     await tester.pump(const Duration(milliseconds: 1500));
-    expect(find.text('Request taken'), findsOneWidget);
+    // No banner: the trip's own row says what happened.
+    expect(find.text('Request taken'), findsNothing);
     expect(
       find.descendant(
         of: card,
-        matching: find.text('Matched by another driver'),
+        matching: find.text('Another driver got it first'),
       ),
       findsOneWidget,
     );
     expect(find.byType(AcceptRide), findsNothing);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Full Radar: tapping a trip brings it to the top, open', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: RideRequests()));
+    await tester.pump(const Duration(milliseconds: 120));
+
+    Finder card(String id) => find.byKey(ValueKey<String>(id));
+    expect(find.text('Trip radar'), findsOneWidget);
+    // The closest trip opens first; the others are compact rows.
+    expect(find.text('Pickup'), findsOneWidget);
+    final last = ['nearby-1', 'nearby-2', 'nearby-3']
+        .where((id) => card(id).evaluate().isNotEmpty)
+        .last;
+    expect(
+      find.descendant(of: card(last), matching: find.text('Pickup')),
+      findsNothing,
+    );
+
+    await tester.tap(card(last));
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(
+      find.descendant(of: card(last), matching: find.text('Pickup')),
+      findsOneWidget,
+    );
+    for (final id in ['nearby-1', 'nearby-2', 'nearby-3']) {
+      if (id == last || card(id).evaluate().isEmpty) { continue; }
+      expect(tester.getTopLeft(card(last)).dy,
+          lessThan(tester.getTopLeft(card(id)).dy));
+    }
     _expectNoException(tester);
   });
 

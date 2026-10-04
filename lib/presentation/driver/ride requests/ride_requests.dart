@@ -11,7 +11,6 @@ import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
 import 'package:movera/core/waybill/waybill.dart';
-import 'package:movera/constants/appcolors.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/overlays/trip_status_banner.dart';
 import 'package:movera/widgets/layout_viewport.dart';
@@ -48,10 +47,12 @@ class RideRequests extends StatefulWidget {
 }
 
 class _RideRequestsState extends State<RideRequests> {
-  static const Color _surface = Color(0xFFF7F8F9);
-  static const Color _ink = Color(0xFF252E3A);
-  static const Color _muted = Color(0xFF7D898F);
-  static const Color _line = Color(0xFFE4E8EA);
+  // Same look as the Radar offers sheet on Home and the reservation popup.
+  static const Color _page = Color(0xFFF4F5F5);
+  static const Color _ink = Color(0xFF111614);
+  static const Color _muted = Color(0xFF5E6461);
+  static const Color _line = Color(0xFFE4E6E5);
+  static const Color _soft = Color(0xFFEDEEED);
   static const Color _green = Color(0xFF19865C);
   static const Color _mint = Color(0xFF58E5A6);
   static const int _maxVisibleRadarOffers = 4;
@@ -70,6 +71,13 @@ class _RideRequestsState extends State<RideRequests> {
   List<RideOffer> _latestDispatchOffers = const <RideOffer>[];
 
   final List<_RadarTrip> _offers = <_RadarTrip>[];
+
+  /// Trip the driver tapped: shown first, with its details open.
+  String? _openTripId;
+
+  /// Why a trip is leaving the list.
+  final Map<String, _RadarGone> _goneReasons = <String, _RadarGone>{};
+
   List<_RadarTrip> get _visibleOffers {
     final nearby = _offers.where((offer) {
       if (!offer.isNearby) { return false; }
@@ -77,7 +85,23 @@ class _RideRequestsState extends State<RideRequests> {
       return offer.followsDestination;
     }).toList()
       ..sort((a, b) => a.pickupKm.compareTo(b.pickupKm));
+    final chosen = nearby.indexWhere((offer) => offer.id == _openTripId);
+    if (chosen > 0) { nearby.insert(0, nearby.removeAt(chosen)); }
     return nearby.take(_maxVisibleRadarOffers).toList(growable: false);
+  }
+
+  /// The open trip: the one the driver tapped, else the first still open.
+  String? _expandedTripId(List<_RadarTrip> offers) {
+    bool open(String id) =>
+        _stateFor(id) != _RadarOfferState.claimedElsewhere;
+    final chosen = _openTripId;
+    if (chosen != null && open(chosen) && offers.any((o) => o.id == chosen)) {
+      return chosen;
+    }
+    for (final offer in offers) {
+      if (open(offer.id)) { return offer.id; }
+    }
+    return null;
   }
 
   _RadarTrip _tripFromOffer(RideOffer offer) {
@@ -153,7 +177,7 @@ class _RideRequestsState extends State<RideRequests> {
       setState(() => _hasNewTripSignal = true);
     }
     for (final trip in disappeared) {
-      _markClaimedElsewhere(trip, showNotice: false);
+      _markClaimedElsewhere(trip);
     }
   }
 
@@ -219,10 +243,21 @@ class _RideRequestsState extends State<RideRequests> {
     final result = await _dispatch.claimOffer(trip.id);
     if (!mounted || _matchingOfferId != trip.id) { return; }
 
-    if (result.isSuccess) {
-      _resolveMatchWon(trip);
-    } else {
-      _resolveMatchLost(trip);
+    switch (result.outcome) {
+      case ClaimOutcome.success:
+        _resolveMatchWon(trip);
+      case ClaimOutcome.alreadyClaimed:
+        _resolveMatchLost(trip, _RadarGone.lostOwnMatch);
+      case ClaimOutcome.expired:
+      case ClaimOutcome.unavailable:
+        _resolveMatchLost(trip, _RadarGone.unavailable);
+      case ClaimOutcome.networkError:
+        // Nothing was decided; let the driver try again.
+        setState(() {
+          _matchingOfferId = null;
+          _offerStates.remove(trip.id);
+          _matchNotice = null;
+        });
     }
   }
 
@@ -281,33 +316,22 @@ class _RideRequestsState extends State<RideRequests> {
     );
   }
 
-  void _resolveMatchLost(_RadarTrip trip) {
+  void _resolveMatchLost(_RadarTrip trip, _RadarGone reason) {
+    // The trip's own row says what happened; no banner over the list.
+    _matchNoticeTimer?.cancel();
     setState(() {
       _matchingOfferId = null;
       _offerStates[trip.id] = _RadarOfferState.claimedElsewhere;
-      _matchNotice = const _RadarMatchNotice(
-        type: _RadarMatchNoticeType.taken,
-        title: 'Request taken',
-        message: 'Another driver was matched first. Choose another trip.',
-      );
+      _goneReasons[trip.id] = reason;
+      _matchNotice = null;
     });
 
     _scheduleClaimedRemoval(trip.id);
-
-    _matchNoticeTimer?.cancel();
-    _matchNoticeTimer = Timer(
-      const Duration(milliseconds: 2600),
-      () {
-        if (!mounted) { return; }
-        setState(() => _matchNotice = null);
-      },
-    );
   }
 
-  void _markClaimedElsewhere(
-    _RadarTrip trip, {
-    bool showNotice = true,
-  }) {
+  /// A trip gone from Radar without a claim of ours. The reason is not
+  /// known here (rider cancelled, expired, taken elsewhere…).
+  void _markClaimedElsewhere(_RadarTrip trip) {
     if (!_isOfferStillVisible(trip) ||
         _stateFor(trip.id) != _RadarOfferState.available) {
       return;
@@ -315,13 +339,7 @@ class _RideRequestsState extends State<RideRequests> {
 
     setState(() {
       _offerStates[trip.id] = _RadarOfferState.claimedElsewhere;
-      if (showNotice) {
-        _matchNotice = const _RadarMatchNotice(
-          type: _RadarMatchNoticeType.taken,
-          title: 'Request taken',
-          message: 'This trip was matched with another driver.',
-        );
-      }
+      _goneReasons[trip.id] = _RadarGone.unavailable;
     });
 
     _scheduleClaimedRemoval(trip.id);
@@ -336,6 +354,7 @@ class _RideRequestsState extends State<RideRequests> {
         setState(() {
           _offers.removeWhere((offer) => offer.id == id);
           _offerStates.remove(id);
+          _goneReasons.remove(id);
         });
         _claimedRemovalTimers.remove(id);
       },
@@ -345,10 +364,14 @@ class _RideRequestsState extends State<RideRequests> {
   @override
   Widget build(BuildContext context) {
     final offers = _visibleOffers;
+    final openCount = offers
+        .where((offer) => _stateFor(offer.id) != _RadarOfferState.claimedElsewhere)
+        .length;
+    final expandedId = _expandedTripId(offers);
 
     return LayoutViewport(
       child: Material(
-      color: Colors.transparent,
+      color: _page,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -356,20 +379,20 @@ class _RideRequestsState extends State<RideRequests> {
             child: Column(
               children: [
                 _topBar(),
-                _radarStatus(offers.length),
+                _radarStatus(openCount),
                 if (widget.destinationModeActive) _destinationModeBanner(),
-                if (_hasNewTripSignal) _newTripsBanner(),
                 Expanded(
                   child: offers.isEmpty
                       ? _emptyState()
                       : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                           physics: const BouncingScrollPhysics(),
                           itemCount: offers.length,
                           separatorBuilder: (_, __) =>
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
                           itemBuilder: (context, index) {
-                            return _tripCard(offers[index]);
+                            final trip = offers[index];
+                            return _tripCard(trip, expanded: trip.id == expandedId);
                           },
                         ),
                 ),
@@ -391,119 +414,110 @@ class _RideRequestsState extends State<RideRequests> {
 
   Widget _topBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 7, 12, 2),
-      child: SizedBox(
-        height: 52,
-        child: Row(
-          children: [
-            IconButton(
-              tooltip: 'Back',
-              onPressed: _closeRides,
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const Expanded(
-              child: Text(
-                'Trip radar',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.35,
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.07),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _LiveDot(size: 7),
-                  SizedBox(width: 6),
-                  Text(
-                    'ON',
-                    style: TextStyle(
-                      color: Color(0xFFDDE7E3),
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.7,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _radarStatus(int count) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 7, 18, 10),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Row(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Material(
+            color: Colors.white,
+            elevation: 5,
+            shadowColor: const Color(0xFF172027).withValues(alpha: 0.22),
+            shape: const CircleBorder(),
+            child: IconButton(
+              tooltip: 'Back',
+              onPressed: _closeRides,
+              constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+              icon: const Icon(Icons.arrow_back_rounded, color: _ink, size: 22),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            height: 34,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE7F6EE),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                _LiveDot(size: 8, dark: true),
+                SizedBox(width: 7),
                 Text(
-                  widget.destinationModeActive
-                      ? 'Along your destination'
-                      : 'Nearby trips',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  widget.destinationModeActive
-                      ? 'Only trips that keep you moving the same way'
-                      : 'Only requests around your current area',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFAEB8BD),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                  'Radar on',
+                  style: TextStyle(
+                    color: Color(0xFF137A4B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          Container(
-            constraints: const BoxConstraints(minWidth: 34),
-            height: 34,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(17),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$count',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _radarStatus(int count) {
+    final trips = '$count trip${count == 1 ? '' : 's'}';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 14, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Trip radar',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  widget.destinationModeActive
+                      ? '$trips on your way · closest first'
+                      : '$trips near you · closest first',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: _muted, fontSize: 14),
+                ),
+              ],
             ),
           ),
+          if (_hasNewTripSignal)
+            Material(
+              color: _soft,
+              shape: const StadiumBorder(),
+              child: InkWell(
+                key: const ValueKey<String>('radar-refresh-new'),
+                onTap: _refreshFromRadarSignal,
+                customBorder: const StadiumBorder(),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh_rounded, size: 17, color: _ink),
+                      SizedBox(width: 6),
+                      Text(
+                        'New trips',
+                        style: TextStyle(
+                          color: _ink,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -516,21 +530,21 @@ class _RideRequestsState extends State<RideRequests> {
         : destination.split(',').first.trim();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: Container(
         key: const ValueKey<String>('radar-destination-filter'),
         padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE6E8EA)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _line, width: 1.5),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF1C242C),
+                color: _ink,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
@@ -550,8 +564,8 @@ class _RideRequestsState extends State<RideRequests> {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _ink,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -561,326 +575,248 @@ class _RideRequestsState extends State<RideRequests> {
     );
   }
 
-  Widget _newTripsBanner() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
-      child: Material(
-        color: const Color(0xFFE7F5EE),
-        borderRadius: BorderRadius.circular(17),
-        child: InkWell(
-          onTap: _refreshFromRadarSignal,
-          borderRadius: BorderRadius.circular(17),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(13, 10, 11, 10),
-            child: Row(
-              children: [
-                const _LiveDot(size: 8, dark: true),
-                const SizedBox(width: 9),
-                const Expanded(
-                  child: Text(
-                    'New nearby trips detected',
-                    style: TextStyle(
-                      color: _ink,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _ink,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.refresh_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      SizedBox(width: 5),
-                      Text(
-                        'Refresh',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _tripCard(_RadarTrip trip) {
+  Widget _tripCard(_RadarTrip trip, {required bool expanded}) {
     final state = _stateFor(trip.id);
     final claimed = state == _RadarOfferState.claimedElsewhere;
     final resolving = state == _RadarOfferState.resolving;
     final blockOtherOffers =
         _matchingOfferId != null && _matchingOfferId != trip.id;
 
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 180),
-      opacity: claimed ? 0.68 : 1,
-      child: Container(
-      key: ValueKey(trip.id),
-      padding: const EdgeInsets.fromLTRB(15, 14, 15, 13),
-      decoration: BoxDecoration(
-        color: _surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.65)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.11),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE9EEF1),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Text(
-                    trip.category,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  trip.fare,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 25,
-                    height: 1,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.7,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 13),
-          Row(
-            children: [
-              const Icon(
-                Icons.star_rounded,
-                color: Color(0xFFD7A02C),
-                size: 16,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                trip.rating,
+    if (claimed) {
+      final reason = _goneReasons[trip.id] ?? _RadarGone.unavailable;
+      return Container(
+        key: ValueKey(trip.id),
+        height: 46,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE9EBEB),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              reason == _RadarGone.unavailable
+                  ? Icons.event_busy_outlined
+                  : Icons.person_off_outlined,
+              size: 18,
+              color: _muted,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                switch (reason) {
+                  _RadarGone.lostOwnMatch => 'Another driver got it first',
+                  _RadarGone.unavailable => 'No longer available',
+                },
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _muted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
                 ),
-              ),
-              const SizedBox(width: 12),
-              const SizedBox(
-                height: 13,
-                child: VerticalDivider(width: 1, color: _line),
-              ),
-              const SizedBox(width: 12),
-              Icon(
-                Icons.near_me_outlined,
-                size: 15,
-                color: AppColor.primary,
-              ),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  '${trip.pickupMinutes} min · ${trip.pickupKm.toStringAsFixed(1)} km away',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Divider(height: 1, color: _line),
-          const SizedBox(height: 13),
-          _locationRow(
-            markerColor: AppColor.primary,
-            title: trip.pickup,
-          ),
-          const SizedBox(height: 10),
-          _locationRow(
-            markerColor: _ink,
-            title: trip.dropoff,
-          ),
-          const SizedBox(height: 13),
-          if (claimed || resolving) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: claimed
-                    ? const Color(0xFFF0F2F3)
-                    : const Color(0xFFFFF3DE),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    claimed
-                        ? Icons.lock_outline_rounded
-                        : Icons.sync_rounded,
-                    size: 15,
-                    color: claimed
-                        ? const Color(0xFF7D898F)
-                        : const Color(0xFFB87512),
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    claimed
-                        ? 'Matched by another driver'
-                        : 'Confirming availability',
-                    style: TextStyle(
-                      color: claimed
-                          ? const Color(0xFF68747A)
-                          : const Color(0xFF9A650F),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
               ),
             ),
-            const SizedBox(height: 10),
-          ],
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${trip.tripMinutes} min · ${trip.tripKm.toStringAsFixed(1)} km trip',
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+            Text(
+              trip.fare,
+              style: const TextStyle(
+                color: Color(0xFF9AA2A6),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.lineThrough,
+                decorationColor: Color(0xFF9AA2A6),
               ),
-              SizedBox(
-                height: 38,
-                child: FilledButton(
-                  onPressed: claimed || resolving || blockOtherOffers
-                      ? null
-                      : () => _matchTrip(trip),
-                  style: FilledButton.styleFrom(
-                    elevation: 0,
-                    backgroundColor: _ink,
-                    disabledBackgroundColor: const Color(0xFFD9DEDF),
-                    foregroundColor: Colors.white,
-                    disabledForegroundColor: const Color(0xFF727E83),
-                    padding: const EdgeInsets.symmetric(horizontal: 17),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final matchButton = SizedBox(
+      height: expanded ? 46 : 40,
+      child: FilledButton(
+        onPressed: resolving || blockOtherOffers ? null : () => _matchTrip(trip),
+        style: FilledButton.styleFrom(
+          elevation: 0,
+          backgroundColor: _ink,
+          disabledBackgroundColor: const Color(0xFFD9DEDF),
+          foregroundColor: Colors.white,
+          disabledForegroundColor: const Color(0xFF727E83),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: resolving
+            ? const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 13,
+                    height: 13,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF727E83),
                     ),
                   ),
-                  child: resolving
-                      ? const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 13,
-                              height: 13,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF727E83),
-                              ),
-                            ),
-                            SizedBox(width: 7),
-                            Text(
-                              'Matching…',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Text(
-                          claimed ? 'Matched' : 'Match',
+                  SizedBox(width: 7),
+                  Text(
+                    'Matching…',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              )
+            : const Text(
+                'Match',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+      ),
+    );
+
+    return Material(
+      key: ValueKey(trip.id),
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: expanded ? _ink : _line, width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: resolving ? null : () => setState(() => _openTripId = trip.id),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          trip.fare,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 12.5,
+                            color: _ink,
+                            fontSize: 20,
+                            height: 1.1,
                             fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                ),
+                        const SizedBox(height: 3),
+                        Text(
+                          resolving
+                              ? 'Confirming availability'
+                              : '${trip.category} · ${trip.pickupMinutes} min away · ${trip.tripKm.toStringAsFixed(1)} km ride',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: _muted, fontSize: 12.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (!expanded) matchButton,
+                  if (expanded) ...[
+                    const Icon(Icons.star_rounded, size: 16, color: Color(0xFFD7A02C)),
+                    const SizedBox(width: 2),
+                    Text(
+                      trip.rating,
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
               ),
+              if (expanded) ...[
+                const SizedBox(height: 12),
+                _routeRow(
+                  square: false,
+                  label: 'Pickup',
+                  place: trip.pickup,
+                  value: '${trip.pickupMinutes} min',
+                  detail: '${trip.pickupKm.toStringAsFixed(1)} km away',
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 5),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(width: 2, height: 12, color: _line),
+                  ),
+                ),
+                _routeRow(
+                  square: true,
+                  label: 'Drop-off',
+                  place: trip.dropoff,
+                  value: '${trip.tripMinutes} min',
+                  detail: '${trip.tripKm.toStringAsFixed(1)} km ride',
+                ),
+                const SizedBox(height: 12),
+                SizedBox(width: double.infinity, child: matchButton),
+              ],
             ],
           ),
-        ],
-      ),
+        ),
       ),
     );
   }
 
-  Widget _locationRow({
-    required Color markerColor,
-    required String title,
+  Widget _routeRow({
+    required bool square,
+    required String label,
+    required String place,
+    required String value,
+    required String detail,
   }) {
     return Row(
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: 12,
+          height: 12,
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _surface,
-            border: Border.all(color: markerColor, width: 2.5),
+            color: square ? _ink : Colors.white,
+            shape: square ? BoxShape.rectangle : BoxShape.circle,
+            borderRadius: square ? BorderRadius.circular(2) : null,
+            border: square ? null : Border.all(color: _ink, width: 3),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.1,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: _muted, fontSize: 11.5)),
+              Text(
+                place,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(detail, style: const TextStyle(color: _muted, fontSize: 11.5)),
+          ],
         ),
       ],
     );
@@ -914,45 +850,27 @@ class _RideRequestsState extends State<RideRequests> {
   }
 
   Widget _emptyState() {
-    return Center(
+    return const Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 36),
+        padding: EdgeInsets.symmetric(horizontal: 36),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              child: const Icon(
-                Icons.radar_rounded,
-                color: Color(0xFFB8C2C7),
-                size: 27,
-              ),
-            ),
-            const SizedBox(height: 15),
-            const Text(
+            Icon(Icons.radar_rounded, color: _muted, size: 30),
+            SizedBox(height: 12),
+            Text(
               'Scanning nearby',
               style: TextStyle(
-                color: Colors.white,
+                color: _ink,
                 fontSize: 17,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: 6),
+            Text(
               'New trips will appear here when the radar finds requests around you.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFFAEB8BD),
-                fontSize: 11.5,
-                height: 1.4,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(color: _muted, fontSize: 13, height: 1.4),
             ),
           ],
         ),
@@ -961,9 +879,18 @@ class _RideRequestsState extends State<RideRequests> {
   }
 }
 
+/// Why a Radar trip is leaving the list.
+enum _RadarGone {
+  /// This driver tapped Match and another driver won.
+  lostOwnMatch,
+
+  /// Expired, cancelled by the rider or gone from Radar for another reason.
+  unavailable,
+}
+
 enum _RadarOfferState { available, resolving, claimedElsewhere }
 
-enum _RadarMatchNoticeType { matching, success, taken }
+enum _RadarMatchNoticeType { matching, success }
 
 class _RadarMatchNotice {
   const _RadarMatchNotice({
