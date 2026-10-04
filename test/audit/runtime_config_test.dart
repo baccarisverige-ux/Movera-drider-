@@ -75,7 +75,7 @@ void main() {
     );
     await _mount(tester);
     await _tapArrived(tester);
-    expect(find.text('Waiting for rider'), findsWidgets);
+    expect(find.text('Included wait · then paid'), findsWidgets);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

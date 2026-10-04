@@ -34,6 +34,7 @@ class NavigationInstructionBanner extends StatelessWidget {
     this.radarOn = false,
     this.onRadarToggle,
     this.waitSeconds,
+    this.waitPaid = false,
     this.onWaitTap,
   });
 
@@ -56,6 +57,9 @@ class NavigationInstructionBanner extends StatelessWidget {
   final bool radarOn;
   final VoidCallback? onRadarToggle;
   final int? waitSeconds;
+
+  /// Stop wait: paid from the first second, see [WaitingClock.paid].
+  final bool waitPaid;
   final VoidCallback? onWaitTap;
 
   @override
@@ -69,6 +73,7 @@ class NavigationInstructionBanner extends StatelessWidget {
         address: arrivalAddress.trim().isEmpty ? address.trim() : arrivalAddress.trim(),
         arrived: arrivalArrived,
         waitSeconds: waitSeconds,
+        waitPaid: waitPaid,
         onWaitTap: onWaitTap,
       );
     }
@@ -176,6 +181,7 @@ class NavigationInstructionBanner extends StatelessWidget {
                     WaitingClock(
                       onDark: true,
                       seconds: waitSeconds!,
+                      paid: waitPaid,
                       diameter: 50,
                       onTap: onWaitTap,
                     ),
@@ -246,6 +252,7 @@ class _ArrivalApproachBanner extends StatefulWidget {
     required this.address,
     required this.arrived,
     required this.waitSeconds,
+    required this.waitPaid,
     required this.onWaitTap,
   });
 
@@ -255,6 +262,7 @@ class _ArrivalApproachBanner extends StatefulWidget {
   final String address;
   final bool arrived;
   final int? waitSeconds;
+  final bool waitPaid;
   final VoidCallback? onWaitTap;
 
   @override
@@ -444,6 +452,7 @@ class _ArrivalApproachBannerState extends State<_ArrivalApproachBanner>
                     WaitingClock(
                       onDark: true,
                       seconds: widget.waitSeconds!,
+                      paid: widget.waitPaid,
                       diameter: 48,
                       onTap: widget.onWaitTap,
                     ),

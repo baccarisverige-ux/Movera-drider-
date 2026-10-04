@@ -5,6 +5,35 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 enum RouteMarkKind { pickup, stop, dropoff }
 
+/// One route mark as a widget, e.g. in the trip bar or the top card.
+class RouteMarkIcon extends StatelessWidget {
+  const RouteMarkIcon(this.kind, {super.key, this.size = RouteMarkPins.markSize});
+
+  final RouteMarkKind kind;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: size,
+    height: size,
+    child: CustomPaint(painter: _RouteMarkPainter(kind)),
+  );
+}
+
+class _RouteMarkPainter extends CustomPainter {
+  const _RouteMarkPainter(this.kind);
+
+  final RouteMarkKind kind;
+
+  @override
+  void paint(Canvas canvas, Size size) =>
+      RouteMarkPins.paintMark(canvas, size.center(Offset.zero), kind);
+
+  @override
+  bool shouldRepaint(covariant _RouteMarkPainter oldDelegate) =>
+      oldDelegate.kind != kind;
+}
+
 /// Classic route marks for Google Maps markers: a black dot for pickup, a
 /// grey dot for a stop and a black square for drop-off, each with a white
 /// centre. [RouteMarkPins.labelled] adds a bubble above the mark with a
