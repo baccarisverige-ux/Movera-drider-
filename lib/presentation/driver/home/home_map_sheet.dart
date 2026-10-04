@@ -907,17 +907,6 @@ extension _HomeMapSheet on _DriverHomeState {
             if (!isDestinationPanel &&
                 _mainPanelPosition <= 0.04 &&
                 _outsideRadarOffer == null &&
-                _radarHomeOffers.isEmpty &&
-                _pendingRadarHomeOffers.isNotEmpty)
-              Positioned(
-                left: 14,
-                width: math.max(0, viewportWidth - 28),
-                bottom: 178,
-                child: _HomeOfferRadar(this)._buildRadarRefreshPrompt(),
-              ),
-            if (!isDestinationPanel &&
-                _mainPanelPosition <= 0.04 &&
-                _outsideRadarOffer == null &&
                 _radarHomeOffers.isNotEmpty)
               Positioned(
                 left: 14,

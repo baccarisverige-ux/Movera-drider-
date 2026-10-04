@@ -196,6 +196,10 @@ class _DriverHomeState extends State<DriverHome>
   static const double _homeExpandedFraction = 0.86;
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
 
+  /// The full Radar screen lists at most this many trips; the Radar button
+  /// count matches it.
+  static const int _radarScreenMaxTrips = 4;
+
   /// How long a Radar trip can be picked once it shows in the Home list.
   static const Duration _radarOfferPickWindow = Duration(seconds: 30);
   static const int _maxHomeRadarOffers = 4;
@@ -1024,21 +1028,33 @@ class _DriverHomeState extends State<DriverHome>
         _radarSweepController,
       ]),
       builder: (context, child) {
-        final radarOfferCount = _radarHomeOffers.length;
-        final pendingRadarCount = _pendingRadarHomeOffers.length;
-        final hasRadarOffer =
-            _hasRideOffers || radarOfferCount > 0 || pendingRadarCount > 0;
+        // Every Radar trip open right now, the same trips the full Radar
+        // screen lists when the driver taps this button.
+        final radarTrips = _latestDispatchOffers
+            .where((offer) =>
+                offer.isNearby &&
+                (!_destinationModeActive || offer.followsDestination))
+            .length;
+        final openListed = _radarHomeOffers
+            .where((offer) =>
+                _homeRadarMatchStates[offer.id] !=
+                _HomeRadarMatchState.claimedElsewhere)
+            .length;
+        final homeTrips = openListed + _pendingRadarHomeOffers.length;
+        // Until a Radar trip reaches Home the button keeps scanning.
+        final hasRadarOffer = _hasRideOffers || homeTrips > 0;
+        final totalTrips = hasRadarOffer
+            ? math.min(math.max(radarTrips, homeTrips), _radarScreenMaxTrips)
+            : 0;
 
         return _buildRadarOrb(
-          title: pendingRadarCount > 0
-              ? "$pendingRadarCount new"
-              : radarOfferCount > 1
-              ? "$radarOfferCount offers"
+          title: totalTrips > 0
+              ? "$totalTrips trip${totalTrips == 1 ? '' : 's'}"
               : hasRadarOffer
               ? "Trip found"
               : "Radar",
           status: hasRadarOffer ? "NEW" : "LIVE",
-          subtitle: hasRadarOffer ? "Tap for Radar" : "Scanning",
+          subtitle: hasRadarOffer ? "Tap for all" : "Scanning",
           active: true,
           offer: hasRadarOffer,
           pulse: _goOnlinePulseController.value,

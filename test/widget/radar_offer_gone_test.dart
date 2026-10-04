@@ -110,4 +110,64 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     dispatch.dispose();
   });
+
+  testWidgets('new Radar trips open the offers popup by themselves', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final dispatch = DemoDispatchRepository(
+      externalClaimDelay: const Duration(minutes: 5),
+    );
+    await tester.pumpWidget(
+      LayoutViewport(
+        child: ScreenUtilInit(
+          designSize: const Size(375, 812),
+          minTextAdapt: true,
+          splitScreenMode: true,
+          useInheritedMediaQuery: true,
+          builder: (_, __) => MaterialApp(
+            home: DriverHome(
+              sessionController: DriverSessionController(),
+              dispatchRepository: dispatch,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    tester
+        .widget<GestureDetector>(
+          find.byKey(const ValueKey<String>('trip-radar-touch-target')),
+        )
+        .onTap!
+        .call();
+    await tester.pump(const Duration(milliseconds: 1550));
+    await tester.pump(const Duration(milliseconds: 2300));
+    await tester.pump(const Duration(milliseconds: 8500));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump(const Duration(milliseconds: 6200));
+    // One trip listed, more waiting: the Radar button counts every open
+    // Radar trip, the same ones the full Radar screen lists.
+    expect(find.text('Radar offers · 1'), findsOneWidget);
+    expect(find.text('4 trips'), findsOneWidget);
+    expect(find.text('New Radar trips'), findsNothing);
+
+    // The driver hides the listed trip: the waiting ones open by themselves.
+    final hide = find.byTooltip('Hide offer');
+    tester
+        .widget<InkWell>(
+          find.descendant(of: hide, matching: find.byType(InkWell)).first,
+        )
+        .onTap!
+        .call();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Radar offers · 2'), findsOneWidget);
+    // Hiding a trip on Home does not take it off Radar: the count stays.
+    expect(find.text('4 trips'), findsOneWidget);
+    expect(find.text('New Radar trips'), findsNothing);
+    tester.takeException();
+    await tester.pumpWidget(const SizedBox());
+    dispatch.dispose();
+  });
 }

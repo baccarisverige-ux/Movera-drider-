@@ -418,12 +418,14 @@ void main() {
 
     expect(find.text('Radar offers · 1'), findsOneWidget);
     expect(find.text('Exclusive offer for you · nearby'), findsNothing);
-    expect(find.text('Trip found'), findsOneWidget);
+    // The Radar button shows how many Radar trips are open.
+    final radarCount = find.textContaining(RegExp(r'^\d trips?$'));
+    expect(radarCount, findsOneWidget);
     expect(find.text('NEW'), findsOneWidget);
     _expectNoException(tester);
 
     // Radar orb still opens the legacy/full Radar list.
-    await tester.tap(find.text('Trip found'));
+    await tester.tap(radarCount);
     await tester.pump(const Duration(milliseconds: 160));
     expect(find.byType(RideRequests), findsOneWidget);
     _expectNoException(tester);

@@ -274,7 +274,13 @@ extension _HomeOfferRadar on _DriverHomeState {
         return;
       }
 
-      // Keep detected trips pending until the driver explicitly refreshes.
+      // Nothing on screen: load the new trips and open the offers popup.
+      // With trips already listed, new ones wait behind the "new" button
+      // so the list never jumps while the driver reads it.
+      if (_radarHomeOffers.isEmpty) {
+        _refreshRadarHomeOffers();
+        return;
+      }
       _rebuild(() {
         _hasRideOffers = true;
       });
@@ -614,92 +620,6 @@ extension _HomeOfferRadar on _DriverHomeState {
                 color: accent,
                 size: 22,
               ),
-      );
-    }
-    Widget _buildRadarRefreshPrompt() {
-      final count = _pendingRadarHomeOffers.length;
-
-      return RepaintBoundary(
-        child: Material(
-          color: const Color(0xFFF7F9F9).withValues(alpha: 0.98),
-          elevation: 8,
-          shadowColor: const Color(0x3311181C),
-          borderRadius: BorderRadius.circular(22),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-            child: Row(
-              children: [
-                Container(
-                  height: 38,
-                  width: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3DE),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: const Icon(
-                    Icons.radar_rounded,
-                    color: Color(0xFFD28A19),
-                    size: 19,
-                  ),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'New Radar trips',
-                        style: TextStyle(
-                          color: Color(0xFF252E3A),
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        count.toString() +
-                            (count == 1
-                                ? ' new offer ready'
-                                : ' new offers ready'),
-                        style: const TextStyle(
-                          color: Color(0xFF7C888E),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                TextButton.icon(
-                  key: const ValueKey<String>('radar-home-refresh-empty'),
-                  onPressed: _refreshRadarHomeOffers,
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF9A650F),
-                    backgroundColor: const Color(0xFFFFF3DE),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                  ),
-                  icon: const Icon(Icons.refresh_rounded, size: 15),
-                  label: const Text(
-                    'Refresh',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       );
     }
     // Radar offers use the reservation popup's look: white cards, black
