@@ -62,4 +62,52 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     dispatch.dispose();
   });
+
+  testWidgets('a Radar trip not picked in time keeps its card but Match fades', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final dispatch = DemoDispatchRepository(
+      externalClaimDelay: const Duration(minutes: 5),
+    );
+    await tester.pumpWidget(
+      LayoutViewport(
+        child: ScreenUtilInit(
+          designSize: const Size(375, 812),
+          minTextAdapt: true,
+          splitScreenMode: true,
+          useInheritedMediaQuery: true,
+          builder: (_, __) => MaterialApp(
+            home: DriverHome(
+              sessionController: DriverSessionController(),
+              dispatchRepository: dispatch,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    tester
+        .widget<GestureDetector>(
+          find.byKey(const ValueKey<String>('trip-radar-touch-target')),
+        )
+        .onTap!
+        .call();
+    await tester.pump(const Duration(milliseconds: 1550));
+    await tester.pump(const Duration(milliseconds: 2300));
+    await tester.pump(const Duration(milliseconds: 8500));
+    await tester.pump(const Duration(milliseconds: 900));
+    final match = find.byKey(const ValueKey<String>('radar-match-nearby-1'));
+    expect(tester.widget<FilledButton>(match).onPressed, isNotNull);
+
+    await tester.pump(const Duration(seconds: 31));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(match, findsOneWidget);
+    expect(tester.widget<FilledButton>(match).onPressed, isNull);
+    expect(find.text('Radar offers · 1'), findsOneWidget);
+    tester.takeException();
+    await tester.pumpWidget(const SizedBox());
+    dispatch.dispose();
+  });
 }

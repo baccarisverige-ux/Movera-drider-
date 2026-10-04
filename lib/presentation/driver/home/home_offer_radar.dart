@@ -209,6 +209,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         _radarHomeOffers.add(offer);
         _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
       });
+      _startRadarPickWindow(offer);
     }
     void _refreshRadarHomeOffers() {
       if (!mounted ||
@@ -232,7 +233,14 @@ extension _HomeOfferRadar on _DriverHomeState {
         if (next.length >= _DriverHomeState._maxHomeRadarOffers) { break; }
       }
 
+      // Trips whose pick window ran out leave on refresh.
+      next.removeWhere((offer) => _radarOfferExpired.contains(offer.id));
+      for (final offer in next) {
+        _startRadarPickWindow(offer);
+      }
+
       _rebuild(() {
+        _radarOfferExpired.clear();
         _radarHomeOffers
           ..clear()
           ..addAll(next);
@@ -242,6 +250,21 @@ extension _HomeOfferRadar on _DriverHomeState {
 
       _dispatch.refreshOffers();
       _scheduleHomeRadarExternalClaimDemo();
+    }
+    /// Starts [offer]'s pick window once; when it ends, Match fades.
+    void _startRadarPickWindow(_HomeDirectOffer offer) {
+      if (_radarOfferTimeoutTimers.containsKey(offer.id)) { return; }
+      _radarOfferTimeoutTimers[offer.id] = Timer(
+        _DriverHomeState._radarOfferPickWindow,
+        () {
+          if (!mounted ||
+              !_radarHomeOffers.any((item) => item.id == offer.id) ||
+              _homeRadarStateFor(offer.id) != _HomeRadarMatchState.available) {
+            return;
+          }
+          _rebuild(() => _radarOfferExpired.add(offer.id));
+        },
+      );
     }
     void _releasePendingRadarOffers() {
       if (!mounted ||
@@ -265,6 +288,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         _pendingRadarHomeOffers.removeWhere((item) => item.id == offer.id);
         _homeRadarMatchStates.remove(offer.id);
         _homeRadarGoneReasons.remove(offer.id);
+        _radarOfferExpired.remove(offer.id);
         _hasRideOffers =
             _radarHomeOffers.isNotEmpty || _pendingRadarHomeOffers.isNotEmpty;
       });
@@ -467,6 +491,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         timer.cancel();
       }
       _radarOfferTimeoutTimers.clear();
+      _radarOfferExpired.clear();
     }
     void _acceptOutsideRadarOffer() {
       final offer = _outsideRadarOffer;
@@ -815,18 +840,24 @@ extension _HomeOfferRadar on _DriverHomeState {
       final summary =
           '${offer.pickupMinutes} min away · ${offer.tripKm.toStringAsFixed(1)} km ride';
 
+      // Pick window over: only Match fades to a light black.
+      final expired = _radarOfferExpired.contains(offer.id);
       final matchButton = SizedBox(
         height: expanded ? 46 : 40,
         child: FilledButton(
-          onPressed: claimed || resolving || blockOtherOffers
+          key: ValueKey<String>('radar-match-${offer.id}'),
+          onPressed: claimed || resolving || blockOtherOffers || expired
               ? null
               : () => _startHomeRadarMatch(offer),
           style: FilledButton.styleFrom(
             elevation: 0,
             backgroundColor: _offerInk,
-            disabledBackgroundColor: const Color(0xFFD9DEDF),
+            disabledBackgroundColor: expired
+                ? _offerInk.withValues(alpha: 0.28)
+                : const Color(0xFFD9DEDF),
             foregroundColor: Colors.white,
-            disabledForegroundColor: const Color(0xFF727E83),
+            disabledForegroundColor:
+                expired ? Colors.white : const Color(0xFF727E83),
             padding: const EdgeInsets.symmetric(horizontal: 18),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),

@@ -195,6 +195,9 @@ class _DriverHomeState extends State<DriverHome>
 
   static const double _homeExpandedFraction = 0.86;
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
+
+  /// How long a Radar trip can be picked once it shows in the Home list.
+  static const Duration _radarOfferPickWindow = Duration(seconds: 30);
   static const int _maxHomeRadarOffers = 4;
   double _sheetPointerVelocity = 0;
   double _sheetPointerLastY = 0;
@@ -231,6 +234,9 @@ class _DriverHomeState extends State<DriverHome>
   /// another driver while this driver looked at it.
   final Map<String, _RadarOfferGone> _homeRadarGoneReasons =
       <String, _RadarOfferGone>{};
+
+  /// Radar trips whose pick window ran out: still listed, Match faded.
+  final Set<String> _radarOfferExpired = <String>{};
   bool _destinationModeActive = false;
   bool _soonReservationReady = false;
   String? _destinationAddress;
