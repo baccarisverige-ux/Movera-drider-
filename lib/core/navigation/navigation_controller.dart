@@ -72,6 +72,13 @@ class NavigationController extends ChangeNotifier {
 
   NavigationSnapshot get snapshot => _snapshot;
   RoadRoute? get route => _route;
+
+  /// Share of the current route already driven, 0..1; null without one.
+  double? get routeFraction {
+    final route = _route;
+    if (route == null || route.distanceMeters <= 0) { return null; }
+    return ((_progressAlong ?? 0) / route.distanceMeters).clamp(0.0, 1.0);
+  }
   bool get followCamera => !_userPausedFollow;
   String? get status => _status;
 

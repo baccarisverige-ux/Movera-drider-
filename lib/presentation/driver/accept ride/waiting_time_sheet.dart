@@ -406,7 +406,12 @@ class WaitingClock extends StatefulWidget {
     this.onTap,
     this.diameter = 48,
     this.onDark = false,
+    this.paid = false,
   });
+
+  /// Paid from the first second (a stop wait): green "+m:ss" and the ring
+  /// goes round once a minute.
+  final bool paid;
 
   final int seconds;
   final VoidCallback? onTap;
@@ -447,8 +452,11 @@ class _WaitingClockState extends State<WaitingClock>
 
   @override
   Widget build(BuildContext context) {
-    final label = _clockLabel(widget.seconds);
-    final tone = _waitTone(widget.seconds);
+    final paid = widget.paid;
+    final label = paid
+        ? '+${_clockLabel(widget.seconds)}'
+        : _clockLabel(widget.seconds);
+    final tone = paid ? const Color(0xFF146B45) : _waitTone(widget.seconds);
     final clock = AnimatedBuilder(
       animation: _hand,
       builder: (context, _) {
@@ -458,6 +466,7 @@ class _WaitingClockState extends State<WaitingClock>
             seconds: widget.seconds,
             hand: _hand.value,
             tone: tone,
+            minuteRing: paid,
           ),
           child: SizedBox(
             width: widget.diameter,
@@ -480,9 +489,11 @@ class _WaitingClockState extends State<WaitingClock>
                   label,
                   key: ValueKey<String>(label),
                   style: TextStyle(
-                    color: widget.onDark && widget.seconds < _graceSeconds
+                    color: widget.onDark && !paid && widget.seconds < _graceSeconds
                         ? Colors.white
-                        : tone,
+                        : paid && widget.onDark
+                            ? const Color(0xFF3DDC97)
+                            : tone,
                     fontSize: widget.diameter * 0.24,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.4,
@@ -519,11 +530,13 @@ class _ClockPainter extends CustomPainter {
     required this.seconds,
     required this.hand,
     required this.tone,
+    this.minuteRing = false,
   });
 
   final int seconds;
   final double hand;
   final Color tone;
+  final bool minuteRing;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -535,7 +548,9 @@ class _ClockPainter extends CustomPainter {
       ..color = const Color(0xFFE6E8EA);
     canvas.drawCircle(center, radius, track);
 
-    final window = seconds < _graceSeconds
+    final window = minuteRing
+        ? (seconds % 60) / 60
+        : seconds < _graceSeconds
         ? seconds / _graceSeconds
         : seconds < _noShowSeconds
             ? (seconds - _graceSeconds) / (_noShowSeconds - _graceSeconds)
@@ -571,7 +586,8 @@ class _ClockPainter extends CustomPainter {
   bool shouldRepaint(covariant _ClockPainter oldDelegate) =>
       oldDelegate.seconds != seconds ||
       oldDelegate.hand != hand ||
-      oldDelegate.tone != tone;
+      oldDelegate.tone != tone ||
+      oldDelegate.minuteRing != minuteRing;
 }
 
 Color _waitTone(int seconds) {

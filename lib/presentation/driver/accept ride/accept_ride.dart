@@ -35,6 +35,8 @@ import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/trip_bottom_bar.dart';
+import 'package:movera/presentation/driver/accept%20ride/trip_top_reveal.dart';
+import 'package:movera/widgets/route_mark_pins.dart';
 import 'package:movera/presentation/driver/preferences/preferences.dart';
 import 'package:movera/presentation/driver/accept%20ride/rider_cancelled_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/trip_outcome_sheet.dart';
@@ -370,7 +372,7 @@ class _AcceptRideState extends State<AcceptRide>
   BitmapDescriptor _driverVehicleIcon =
       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
   final PanelController _ridePanelController = PanelController();
-  final ValueNotifier<double> _ridePanelPosition = ValueNotifier<double>(1);
+  final ValueNotifier<double> _ridePanelPosition = ValueNotifier<double>(0);
   late final MoveraSnapSheetController _snapSheet;
   double _ridePointerVelocity = 0;
   double _ridePointerLastY = 0;
@@ -486,6 +488,11 @@ class _AcceptRideState extends State<AcceptRide>
         _waybills.secureNext(_AcceptRideTrip(this)._buildNextWaybill(_nextTripRadarOffer!));
       }
       _AcceptRideTrip(this)._resumeStageSideEffects();
+      // The trip opens on the middle sheet: rider and the next action.
+      if (_ridePanelController.isAttached && !_incomingOfferOpen) {
+        _ridePanelController.panelPosition =
+            _AcceptRidePanel(this)._rideSnapPoint(context);
+      }
       _rideLifecycle.persistNow();
       unawaited(_AcceptRideTrip(this)._loadVehicleIdentity());
     });
@@ -717,8 +724,8 @@ class _AcceptRideState extends State<AcceptRide>
 
 
   String? get _routeDistanceText {
-    final meters = _navigation.route?.distanceMeters;
-    if (meters == null || meters <= 0) { return null; }
+    final meters = _remainingMeters;
+    if (meters == null) { return null; }
     if (meters < 1000) { return '${(meters / 10).round() * 10} m'; }
     return '${(meters / 1000).toStringAsFixed(1)} km';
   }
@@ -741,11 +748,83 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
+  /// Heads-up shown under the time once the next point is close, e.g.
+  /// "Pickup coming up · 200 m"; null otherwise.
+  String? get _soonStatus {
+    if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) {
+      return null;
+    }
+    final distance = _approachDistanceMeters;
+    if (distance == null ||
+        distance > _arrivalApproachThresholdMeters ||
+        _arrivalApproachArrived) {
+      return null;
+    }
+    String street(String address) => address.split(',').first.trim();
+    final meters = math.max(10, (distance / 10).round() * 10);
+    return switch (_approachKind) {
+      ArrivalPointKind.pickup =>
+        'Pickup in $meters m · look for ${widget.riderName}',
+      ArrivalPointKind.stop =>
+        'Stop ${_stopCursor + 1} in $meters m · ${street(widget.stopAddresses[_stopCursor])}',
+      ArrivalPointKind.destination =>
+        'Drop-off in $meters m · ${street(widget.dropoffAddress)}',
+    };
+  }
+
+  /// Mark of the point the driver is heading to.
+  RouteMarkKind get _nextMarkKind => switch (_approachKind) {
+    ArrivalPointKind.pickup => RouteMarkKind.pickup,
+    ArrivalPointKind.stop => RouteMarkKind.stop,
+    ArrivalPointKind.destination => RouteMarkKind.dropoff,
+  };
+
+  /// Share of the way to the next point already driven; null while
+  /// waiting or before a road route exists.
+  double? get _legFraction {
+    if (_countingWait || _routeDurationSeconds == null) { return null; }
+    final remaining = _remainingMeters;
+    if (remaining == null) { return null; }
+    // Measured against the longest distance seen on this step, so a
+    // reroute from the driver's new position does not reset the line.
+    final key = '${_stage.name}-$_stopCursor';
+    if (_legKey != key || remaining > _legTotalMeters) {
+      _legKey = key;
+      _legTotalMeters = remaining;
+    }
+    if (_legTotalMeters <= 0) { return null; }
+    return (1 - remaining / _legTotalMeters).clamp(0.0, 1.0);
+  }
+  String? _legKey;
+  double _legTotalMeters = 0;
+
+  /// Road distance still to drive to the next point.
+  double? get _remainingMeters {
+    final total = _navigation.route?.distanceMeters;
+    if (total == null || total <= 0) { return null; }
+    return total * (1 - (_navigation.routeFraction ?? 0));
+  }
+
   String get _routeEtaText {
     final seconds = _routeDurationSeconds;
-    if (seconds == null) { return _routeLoading ? 'Routing…' : '—'; }
-    final minutes = math.max(1, (seconds / 60).ceil());
+    // Until a road route arrives, a calm word instead of a placeholder.
+    if (seconds == null) { return 'En route'; }
+    final left = seconds * (1 - (_navigation.routeFraction ?? 0));
+    final minutes = math.max(1, (left / 60).ceil());
     return '$minutes min';
+  }
+
+  /// Big line of the trip sheet: minutes once the route is known, before
+  /// that a short phrase for the step the driver is on.
+  String get _sheetEtaText {
+    if (_routeDurationSeconds != null) { return _routeEtaText; }
+    return switch (_stage) {
+      ActiveRideStage.headingToPickup => 'On your way',
+      ActiveRideStage.waitingForRider => 'At pickup',
+      ActiveRideStage.onTrip => _stopCursor < widget.stopAddresses.length
+          ? 'Onward to stop ${_stopCursor + 1}'
+          : 'Final stretch',
+    };
   }
 
 
@@ -832,10 +911,17 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   String get _waitBarStatus {
-    if (_paidStopWait) { return 'Paid stop wait'; }
+    if (_paidStopWait) { return 'Paid wait at stop ${_stopCursor + 1}'; }
     if (_inIncludedWait) { return 'Included wait · then paid'; }
     if (_waitSeconds < _noShowWaitSeconds) { return 'Paid wait running'; }
     return 'Paid wait · no-show available';
+  }
+
+  /// Share of the pickup wait window used (free minutes, then paid up to
+  /// the no-show point); null at a stop, where waiting is paid throughout.
+  double? get _waitFraction {
+    if (_stage != ActiveRideStage.waitingForRider) { return null; }
+    return (_waitSeconds / _noShowWaitSeconds).clamp(0.0, 1.0);
   }
 
   Color get _waitBarColor {
@@ -851,18 +937,18 @@ class _AcceptRideState extends State<AcceptRide>
     if (_paidStopWait) {
       final next = _stopCursor + 2;
       if (next <= widget.stopAddresses.length) {
-        return 'Slide to ${_AcceptRideTrip(this)._stopWord(next)} stop';
+        return 'Go to ${_AcceptRideTrip(this)._stopWord(next)} stop';
       }
-      return 'Slide to drop-off';
+      return 'Go to drop-off';
     }
     return switch (_stage) {
-      ActiveRideStage.headingToPickup => 'Slide to arrive at pickup',
+      ActiveRideStage.headingToPickup => "I've arrived",
       ActiveRideStage.waitingForRider => widget.stopAddresses.isEmpty
-          ? 'Slide to start trip'
-          : 'Slide to start first stop',
+          ? 'Start trip'
+          : 'Start first stop',
       ActiveRideStage.onTrip => _stopCursor < widget.stopAddresses.length
-          ? 'Slide to arrive at the stop'
-          : 'Slide to complete trip',
+          ? 'Arrive at the stop'
+          : 'Complete trip',
     };
   }
 
@@ -949,17 +1035,21 @@ class _AcceptRideState extends State<AcceptRide>
       body: LayoutBuilder(
         builder: (context, constraints) {
           final viewport = constraints.maxHeight;
-          final collapsed = MoveraSheetMetrics.activeCollapsedHeight +
-              MediaQuery.paddingOf(context).bottom;
+          final collapsed = MoveraSheetMetrics.activeCollapsedTotal(
+            MediaQuery.paddingOf(context).bottom,
+          );
           final safeTop = MediaQuery.paddingOf(context).top;
           final bannerReserve = safeTop + 130;
           final expanded = math.min(
             MoveraSheetMetrics.expandedHeight(viewport),
             math.max(collapsed + 160, viewport - bannerReserve),
           );
-          final snap = MoveraSheetMetrics.snapPoint(
-            viewportHeight: viewport,
+          final snap = MoveraSheetMetrics.activeSnapPoint(
             collapsed: collapsed,
+            middle: MoveraSheetMetrics.activeMiddleTotal(
+              MediaQuery.paddingOf(context).bottom,
+            ),
+            expanded: expanded,
           );
 
           final offerOpen = _incomingOfferOpen;
@@ -971,7 +1061,7 @@ class _AcceptRideState extends State<AcceptRide>
             maxHeight: offerOpen ? 1 : expanded,
             snapPoint: snap,
             panelSnapping: false,
-            defaultPanelState: PanelState.OPEN,
+            defaultPanelState: PanelState.CLOSED,
             isDraggable: !offerOpen,
             color: Colors.transparent,
             boxShadow: const [],
@@ -1041,7 +1131,28 @@ class _AcceptRideState extends State<AcceptRide>
                   right: 0,
                   top: 0,
                   child: _AcceptRidePanel(this)._mapOverlay(
-                    child: ListenableBuilder(
+                    child: TripTopReveal(
+                    child: ValueListenableBuilder<double>(
+                      valueListenable: _ridePanelPosition,
+                      builder: (context, pos, card) {
+                        // While waiting, the card with the clock stays.
+                        if (pos < snap * 0.5 || _countingWait) { return card!; }
+                        // Sheet lifted: only the next address stays on top.
+                        return TripDestinationCard(
+                          address: _nextStopAddress,
+                          kind: switch (_stage) {
+                            ActiveRideStage.headingToPickup => RouteMarkKind.pickup,
+                            _ => _stopCursor < widget.stopAddresses.length
+                                ? RouteMarkKind.stop
+                                : RouteMarkKind.dropoff,
+                          },
+                          fallbackArea:
+                              _stage == ActiveRideStage.headingToPickup
+                                  ? widget.pickupArea
+                                  : null,
+                        );
+                      },
+                      child: ListenableBuilder(
                       listenable: _navigation,
                       builder: (context, _) {
                         final banner = _navigation.snapshot.banner;
@@ -1068,19 +1179,37 @@ class _AcceptRideState extends State<AcceptRide>
                           radarSwitch: _stage == ActiveRideStage.onTrip,
                           radarOn: _onTripRadarOn,
                           onRadarToggle: _AcceptRideTrip(this)._toggleOnTripRadar,
-                          waitSeconds: _stage == ActiveRideStage.waitingForRider
-                              ? _waitSeconds
-                              : null,
+                          waitSeconds: _countingWait ? _waitSeconds : null,
+                          waitPaid: _paidStopWait,
                           onWaitTap: _AcceptRidePanel(this)._openWaitingTime,
                         );
                       },
                     ),
+                    ),
+                    ),
                   ),
                 ),
-                Positioned(
-                  key: const ValueKey<String>('active-ride-map-controls'),
-                  right: 14,
-                  bottom: collapsed + 16,
+                // The map buttons ride on top of the sheet and leave once
+                // it opens past the middle.
+                ValueListenableBuilder<double>(
+                  valueListenable: _ridePanelPosition,
+                  builder: (context, pos, controls) {
+                    final lift = math.min(pos, snap) * (expanded - collapsed);
+                    final hidden = pos > snap + 0.04;
+                    return Positioned(
+                      key: const ValueKey<String>('active-ride-map-controls'),
+                      right: 14,
+                      bottom: collapsed + lift + 16,
+                      child: IgnorePointer(
+                        ignoring: hidden,
+                        child: AnimatedOpacity(
+                          opacity: hidden ? 0 : 1,
+                          duration: const Duration(milliseconds: 160),
+                          child: controls,
+                        ),
+                      ),
+                    );
+                  },
                   child: _AcceptRidePanel(this)._mapOverlay(child: _AcceptRidePanel(this)._buildMapControls()),
                 ),
               ],
@@ -1271,7 +1400,6 @@ class _SlideRideAction extends StatefulWidget {
     required this.semanticsKey,
     required this.label,
     required this.confirmedLabel,
-    required this.iconAsset,
     required this.accent,
     required this.onConfirmed,
   });
@@ -1279,7 +1407,8 @@ class _SlideRideAction extends StatefulWidget {
   final Key semanticsKey;
   final String label;
   final String confirmedLabel;
-  final String iconAsset;
+
+  /// Colour of the track once the action is confirmed.
   final Color accent;
   final Future<void> Function() onConfirmed;
 
@@ -1288,8 +1417,8 @@ class _SlideRideAction extends StatefulWidget {
 }
 
 class _SlideRideActionState extends State<_SlideRideAction> {
-  static const double _height = 62;
-  static const double _thumb = 54;
+  static const double _height = 58;
+  static const double _thumb = 58;
   static const double _trigger = 0.78;
 
   double _fraction = 0;
@@ -1301,7 +1430,6 @@ class _SlideRideActionState extends State<_SlideRideAction> {
   void didUpdateWidget(covariant _SlideRideAction oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.label == widget.label &&
-        oldWidget.iconAsset == widget.iconAsset &&
         oldWidget.accent == widget.accent) {
       return;
     }
@@ -1362,7 +1490,7 @@ class _SlideRideActionState extends State<_SlideRideAction> {
       height: _height,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final maxTravel = math.max(0.0, constraints.maxWidth - _thumb - 8);
+          final maxTravel = math.max(0.0, constraints.maxWidth - _thumb);
 
           return Semantics(
             button:true, enabled:!_confirming,
@@ -1377,34 +1505,18 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                 _update(details.delta.dx, maxTravel),
             onHorizontalDragEnd: (_) => _finish(),
             onHorizontalDragCancel: _cancelDrag,
+            // Light track with a black square thumb carrying an arrow.
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    widget.accent,
-                    Color.lerp(widget.accent, Colors.white, 0.16)!,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(21),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.06),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF172027).withValues(alpha: 0.17),
-                    blurRadius: 16,
-                    offset: const Offset(0, 7),
-                  ),
-                ],
+                color: _confirmed ? widget.accent : const Color(0xFFEEEFF1),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Positioned.fill(
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(21),
+                      borderRadius: BorderRadius.circular(10),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: AnimatedContainer(
@@ -1412,25 +1524,15 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                               ? Duration.zero
                               : const Duration(milliseconds: 240),
                           curve: Curves.easeOutCubic,
-                          width: constraints.maxWidth *
-                              math.min(1.0, _fraction + 0.10),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [
-                                widget.accent.withValues(alpha: 0.44),
-                                widget.accent.withValues(alpha: 0.14),
-                              ],
-                            ),
-                          ),
+                          width: _thumb + maxTravel * _fraction,
+                          color: const Color(0xFF111614).withValues(alpha: 0.08),
                         ),
                       ),
                     ),
                   ),
                   Positioned(
-                    left: 64,
-                    right: 58,
+                    left: _thumb + 8,
+                    right: 12,
                     child: AnimatedSwitcher(
                       duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds:180),
                       child: Text(
@@ -1441,11 +1543,11 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.8,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.18,
+                        style: TextStyle(
+                          color: _confirmed ? Colors.white : const Color(0xFF111614),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
                         ),
                       ),
                     ),
@@ -1455,80 +1557,25 @@ class _SlideRideActionState extends State<_SlideRideAction> {
                         ? Duration.zero
                         : const Duration(milliseconds: 240),
                     curve: Curves.easeOutCubic,
-                    left: 4 + (maxTravel * _fraction),
-                    top: 4,
-                    child: AnimatedContainer(
-                      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds:180),
+                    left: maxTravel * _fraction,
+                    top: 0,
+                    child: Container(
                       width: _thumb,
                       height: _thumb,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: _confirmed
-                              ? [
-                                  widget.accent,
-                                  widget.accent.withValues(alpha: 0.82),
-                                ]
-                              : const [
-                                  Color(0xFFFFFFFF),
-                                  Color(0xFFF0F6F3),
-                                ],
-                        ),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: _confirmed
-                              ? Colors.white.withValues(alpha: 0.12)
-                              : const Color(0xFFE0E7E4),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF0C1814).withValues(alpha: 0.18),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                        color: const Color(0xFF111614),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       alignment: Alignment.center,
-                      child: _confirmed
-                          ? const Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: 23,
-                            )
-                          : SvgPicture.asset(
-                              widget.iconAsset,
-                              width: 22,
-                              height: 22,
-                              colorFilter: const ColorFilter.mode(
-                                Color(0xFF26333A),
-                                BlendMode.srcIn,
-                              ),
-                            ),
-                    ),
-                  ),
-                  if (!_confirmed)
-                    Positioned(
-                      right: 12,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: Colors.white.withValues(alpha: 0.72),
-                            size: 16,
-                          ),
-                          Transform.translate(
-                            offset: const Offset(-5, 0),
-                            child: Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.white.withValues(alpha: 0.4),
-                              size: 16,
-                            ),
-                          ),
-                        ],
+                      child: Icon(
+                        _confirmed
+                            ? Icons.check_rounded
+                            : Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 26,
                       ),
                     ),
+                  ),
                 ],
               ),
             ),

@@ -637,8 +637,9 @@ extension _AcceptRideTrip on _AcceptRideState {
       try {
         final insets = MapOverlayInsets.forActiveRide(
           safeTop: MediaQuery.paddingOf(context).top,
-          collapsedSheet: MoveraSheetMetrics.activeCollapsedHeight +
-              MediaQuery.paddingOf(context).bottom,
+          collapsedSheet: MoveraSheetMetrics.activeCollapsedTotal(
+            MediaQuery.paddingOf(context).bottom,
+          ),
         );
         await controller.animateCamera(
           CameraUpdate.newLatLngBounds(
@@ -1028,8 +1029,8 @@ extension _AcceptRideTrip on _AcceptRideState {
     }
     void _restoreRideSheet() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_ridePanelController.isAttached) { return; }
-        _ridePanelController.open();
+        if (!mounted) { return; }
+        _AcceptRidePanel(this)._showRideMiddle();
       });
     }
     void _acceptNextTripRadar() {

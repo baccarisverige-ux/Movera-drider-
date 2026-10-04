@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:movera/core/ride/completion_journal.dart';
@@ -172,6 +173,9 @@ void main() {
     await _slide(tester);
     expect(find.textContaining('Dropping off'), findsOneWidget);
 
+    // Trip options live in the full sheet.
+    tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel)).controller!.open();
+    await _elapse(tester, const Duration(milliseconds: 600));
     await tester.tap(find.byKey(const ValueKey<String>('active-ride-trip-options')));
     await _elapse(tester, const Duration(milliseconds: 250));
     await tester.tap(find.byKey(const ValueKey<String>('active-ride-cancel-option')));
@@ -188,7 +192,8 @@ void main() {
     await _elapse(tester, const Duration(milliseconds: 300));
     await tester.tap(find.text('Keep trip'));
     await _elapse(tester, const Duration(milliseconds: 250));
-    expect(find.textContaining('Dropping off'), findsOneWidget);
+    // Still on the trip (an on-trip Radar offer may lift over the sheet).
+    expect(find.byType(AcceptRide), findsOneWidget);
     expect(find.byType(DriverHome), findsNothing);
     expect(tester.takeException(), isNull);
   });
