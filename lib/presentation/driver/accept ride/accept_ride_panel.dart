@@ -808,6 +808,8 @@ extension _AcceptRidePanel on _AcceptRideState {
               }
               _navigation.resumeFollow();
               unawaited(_AcceptRideTrip(this)._followVehicle(force: true));
+              // Same quiet window as leaving browse: the fly-back is ours.
+              _AcceptRideTrip(this)._exitBrowse();
             },
             child: SvgPicture.asset(AppAssets.mapRecenter, width: 24, height: 24),
           ),

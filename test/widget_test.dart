@@ -2578,6 +2578,52 @@ void main() {
     });
   }
 
+  testWidgets('Only the driver moving the map hides the sheet; recenter brings it back', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
+    await tester.pump(const Duration(milliseconds: 160));
+    await _collapseActiveRideSheet(tester);
+    final dock = find.byKey(const ValueKey<String>('active-ride-compact-dock'));
+    double dockTop() => tester.getTopLeft(dock).dy;
+    final shown = dockTop();
+    final map = tester.widget<CustomGoogleMap>(find.byType(CustomGoogleMap));
+    const camera = CameraPosition(target: LatLng(59.33, 18.06), zoom: 15);
+
+    // A camera move nobody touched (the app's own follow) changes nothing.
+    map.onCameraMove!(camera);
+    await _advanceAnimation(tester, const Duration(milliseconds: 600));
+    expect(dockTop(), closeTo(shown, 1));
+
+    // The driver drags the map: the sheet slides away, recenter pulses.
+    final gesture = await tester.startGesture(const Offset(120, 400));
+    map.onCameraMove!(camera);
+    await gesture.moveBy(const Offset(0, 40));
+    await gesture.up();
+    await _advanceAnimation(tester, const Duration(milliseconds: 600));
+    expect(dockTop(), greaterThan(shown + 20));
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-recenter-pulse')),
+      findsOneWidget,
+    );
+
+    // Recenter: following again and the sheet comes back, even when the
+    // map reports its own camera move afterwards.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const ValueKey<String>('active-ride-recenter-button')));
+    map.onCameraMove!(camera);
+    await _advanceAnimation(tester, const Duration(milliseconds: 700));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(dockTop(), closeTo(shown, 1));
+    expect(
+      find.byKey(const ValueKey<String>('active-ride-recenter-pulse')),
+      findsNothing,
+    );
+    _expectNoException(tester);
+  });
+
   testWidgets('Routing failure keeps the driver on the active trip', (
     WidgetTester tester,
   ) async {

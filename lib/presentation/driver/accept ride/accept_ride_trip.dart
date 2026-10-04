@@ -622,6 +622,19 @@ extension _AcceptRideTrip on _AcceptRideState {
     }
     void _onCameraMove(CameraPosition position) {
       if (_cameraProgrammatic) { return; }
+      // Only the driver's own finger or wheel counts. The web map reports
+      // the rest of an app camera move after the app stopped waiting for
+      // it, which used to hide the sheet again right after recenter.
+      final touch = _lastMapTouch;
+      final byDriver = _mapPointers > 0 ||
+          (touch != null &&
+              DateTime.now().difference(touch) <
+                  const Duration(milliseconds: 700));
+      final quiet = _browseQuietUntil;
+      if (!byDriver ||
+          (quiet != null && DateTime.now().isBefore(quiet) && _mapPointers == 0)) {
+        return;
+      }
       _navigation.pauseFollow();
       _enterBrowse();
     }
@@ -651,6 +664,10 @@ extension _AcceptRideTrip on _AcceptRideState {
     }
     void _exitBrowse() {
       _browseIdle?.cancel();
+      // The recenter tap itself reaches the map, and the camera then flies
+      // back: neither is the driver browsing.
+      _lastMapTouch = null;
+      _browseQuietUntil = DateTime.now().add(const Duration(milliseconds: 1500));
       if (!_browsing) { return; }
       _rebuild(() => _browsing = false);
       _browsePulse

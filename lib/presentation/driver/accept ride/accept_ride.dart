@@ -386,6 +386,10 @@ class _AcceptRideState extends State<AcceptRide>
   final GlobalKey<ScaffoldState> _rideScaffoldKey = GlobalKey<ScaffoldState>();
   // Browsing the map by hand: the sheet steps aside, recenter pulses.
   bool _browsing = false;
+  // Last time a finger or wheel touched the map: only that is browsing.
+  DateTime? _lastMapTouch;
+  DateTime? _browseQuietUntil;
+  int _mapPointers = 0;
   Timer? _browseIdle;
   double _browseReturnPos = 0;
   late final AnimationController _browse = AnimationController(
@@ -1146,6 +1150,12 @@ class _AcceptRideState extends State<AcceptRide>
               children: [
                 AbsorbPointer(
                   absorbing: _blockMapGestures,
+                  child: Listener(
+                  onPointerDown: (_) { _mapPointers++; _lastMapTouch = DateTime.now(); },
+                  onPointerMove: (_) => _lastMapTouch = DateTime.now(),
+                  onPointerUp: (_) { _mapPointers = math.max(0, _mapPointers - 1); _lastMapTouch = DateTime.now(); },
+                  onPointerCancel: (_) => _mapPointers = math.max(0, _mapPointers - 1),
+                  onPointerSignal: (_) => _lastMapTouch = DateTime.now(),
                   child: _ThrottledVehicleMap(
                     key: const ValueKey<String>('active-ride-throttled-map'),
                     vehicle: _vehicle,
@@ -1174,6 +1184,7 @@ class _AcceptRideState extends State<AcceptRide>
                         if (mounted) { unawaited(_AcceptRideTrip(this)._fitRoute()); }
                       });
                     },
+                  ),
                   ),
                 ),
                 Positioned(
