@@ -94,6 +94,7 @@ class PersistedActiveRide {
     this.riderRating,
     this.riderTrips,
     this.fare,
+    this.paidByCash = false,
     this.category,
     this.matchedVia,
     this.pickupAddress,
@@ -124,6 +125,9 @@ class PersistedActiveRide {
   final double? riderRating;
   final int? riderTrips;
   final String? fare;
+
+  /// The rider pays cash in the car; otherwise the card is charged.
+  final bool paidByCash;
   final String? category;
   final String? matchedVia;
   final String? pickupAddress;
@@ -177,6 +181,7 @@ class PersistedActiveRide {
       riderRating: riderRating,
       riderTrips: riderTrips,
       fare: fare,
+      paidByCash: paidByCash,
       category: category,
       matchedVia: matchedVia,
       pickupAddress: pickupAddress,
@@ -211,6 +216,7 @@ class PersistedActiveRide {
     if (riderRating != null) 'riderRating': riderRating,
     if (riderTrips != null) 'riderTrips': riderTrips,
     if (fare != null) 'fare': fare,
+    if (paidByCash) 'paidByCash': true,
     if (category != null) 'category': category,
     if (matchedVia != null) 'matchedVia': matchedVia,
     if (pickupAddress != null) 'pickupAddress': pickupAddress,
@@ -304,6 +310,7 @@ class PersistedActiveRide {
       riderRating: (json['riderRating'] as num?)?.toDouble(),
       riderTrips: (json['riderTrips'] as num?)?.toInt(),
       fare: json['fare'] as String?,
+      paidByCash: json['paidByCash'] == true,
       category: json['category'] as String?,
       matchedVia: json['matchedVia'] as String?,
       pickupAddress: json['pickupAddress'] as String?,

@@ -34,6 +34,7 @@ class _HomeDirectOffer {
   final LatLng pickupPosition;
   final LatLng dropoffPosition;
   final bool reservation;
+  final bool cash;
   final bool driverSigned = false;
 
   const _HomeDirectOffer({
@@ -52,6 +53,7 @@ class _HomeDirectOffer {
     required this.pickupPosition,
     required this.dropoffPosition,
     this.reservation = false,
+    this.cash = false,
   });
 }
 
@@ -500,6 +502,7 @@ extension _HomeOfferRadar on _DriverHomeState {
           AcceptRide(
             offerId: tripOccurrenceId(offer.id),
             fare: offer.fare,
+            paidByCash: offer.cash,
             category: offer.category,
             matchedVia: offer.reservation ? 'Reservation' : 'Exclusive Radar',
             waybillRepository: _waybills,
@@ -547,6 +550,7 @@ extension _HomeOfferRadar on _DriverHomeState {
           AcceptRide(
             offerId: tripOccurrenceId(offer.id),
             fare: offer.fare,
+            paidByCash: offer.cash,
             category: offer.category,
             matchedVia: 'Movera Radar',
             waybillRepository: _waybills,

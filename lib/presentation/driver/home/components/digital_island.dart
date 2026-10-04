@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:movera/presentation/driver/home/components/island_messages.dart';
 
 /// Black glass shell of the Home island, drawn like a small live screen:
 /// faint scan lines, a glass highlight on top and a slow light sweep.
@@ -670,4 +671,143 @@ class _TickerLineState extends State<_TickerLine>
       },
     );
   }
+}
+
+/// Island pieces shared by Home and the trip screen, so both islands look
+/// and read the same.
+class DigitalIslandParts {
+  DigitalIslandParts._();
+
+  /// Island height before the 80 % scale both screens draw it at.
+  static const double height = 50.4;
+
+  /// Normal width, before the scale.
+  static const double width = 244;
+
+  // Sample figures until earnings come from the backend.
+  static const String sampleToday = '183.25 kr';
+  static const String sampleLastTrip = '126 kr';
+
+  /// Menu icon; its arrow points right, the way the menu slides in.
+  static Widget menuIcon() => Transform.flip(
+        flipX: true,
+        child: const Icon(
+          Icons.menu_open_rounded,
+          size: 24,
+          color: Colors.white,
+          shadows: DigitalIslandShell.glow,
+        ),
+      );
+
+  /// The blue arrow, with a small magnifier saying "search".
+  static const Widget searchIcon = Stack(
+    alignment: Alignment.center,
+    children: [
+      Icon(
+        Icons.navigation_rounded,
+        size: 24,
+        color: Color(0xFF3B8BFF),
+        shadows: [Shadow(color: Color(0x803B8BFF), blurRadius: 10)],
+      ),
+      Positioned(
+        right: 9,
+        bottom: 12,
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+          child: SizedBox(
+            width: 15,
+            height: 15,
+            child: Icon(Icons.search_rounded, size: 11, color: Colors.black),
+          ),
+        ),
+      ),
+    ],
+  );
+
+  // Faces shrink to fit rather than overflow on narrow phones.
+  static Widget _fit(Widget child) =>
+      FittedBox(fit: BoxFit.scaleDown, child: child);
+
+  static const TextStyle _label = TextStyle(
+    color: Color(0xFF9AA4AA),
+    fontSize: 9.5,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.6,
+  );
+
+  /// The hidden total, "•••• kr".
+  static Widget hiddenFace() => Center(
+        key: const ValueKey<String>('island-hidden'),
+        child: _fit(const Text(
+          '•••• kr',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
+            shadows: DigitalIslandShell.glow,
+          ),
+        )),
+      );
+
+  /// A small label over an amount, e.g. "TODAY" / "183.25 kr".
+  static Widget amountFace(String key, String label, String value) => Column(
+        key: ValueKey<String>(key),
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(label, style: _label),
+          const SizedBox(height: 2),
+          _fit(Text(
+            value,
+            maxLines: 1,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
+              fontFeatures: [FontFeature.tabularFigures()],
+              shadows: DigitalIslandShell.glow,
+            ),
+          )),
+        ],
+      );
+
+  /// "SLIDE TO OPEN / Ride history".
+  static Widget historyFace() => Column(
+        key: const ValueKey<String>('island-history'),
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('SLIDE TO OPEN', style: _label),
+          const SizedBox(height: 2),
+          _fit(const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Ride history',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  shadows: DigitalIslandShell.glow,
+                ),
+              ),
+              SizedBox(width: 4),
+              Icon(
+                Icons.keyboard_double_arrow_right_rounded,
+                size: 18,
+                color: Color(0xFF3B8BFF),
+              ),
+            ],
+          )),
+        ],
+      );
+
+  /// Colour and icon of a message tone.
+  static (Color, IconData) toneLook(IslandTone tone) => switch (tone) {
+        IslandTone.success => (const Color(0xFF2BD47D), Icons.check_rounded),
+        IslandTone.info => (const Color(0xFF4C97FF), Icons.info_outline_rounded),
+        IslandTone.warning =>
+          (const Color(0xFFFFB020), Icons.priority_high_rounded),
+        IslandTone.alert => (const Color(0xFFFF5A4E), Icons.close_rounded),
+      };
 }

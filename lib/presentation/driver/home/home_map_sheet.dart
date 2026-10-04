@@ -11,7 +11,6 @@ const Color _islandFg = Color(0xFF111614);
 const Color _islandMuted = Color(0xFF5E6461);
 const Color _islandShadow = Color(0x38172027);
 
-// Sample figures until earnings come from the backend.
 /// Faces of the top island's screen, in tap order.
 enum _IslandFace { hidden, lastTrip, today, history }
 
@@ -28,8 +27,6 @@ const String _islandHintSeenKey = 'home_island_hint_seen';
 /// demo has no earnings service; a real one would confirm the amount.
 const Duration _lastTripSettleTime = Duration(seconds: 4);
 
-const String _todayEarnings = '183.25 kr';
-const String _lastTripFare = '126 kr';
 
 extension _HomeMapSheet on _DriverHomeState {
     Future<void> _startDriverLocation({bool moveCamera = false}) async {
@@ -953,8 +950,7 @@ extension _HomeMapSheet on _DriverHomeState {
     /// Destination, the middle cycles through the money faces, the menu
     /// sits on the right.
     Widget _buildTopIsland(double viewportWidth) {
-      // 10 % shorter than the first island, before the 80 % scale.
-      const height = 50.4;
+      const height = DigitalIslandParts.height;
       // At launch the island is small (menu and arrow), then grows; a
       // message widens it and moves the menu and arrow aside.
       final message = _islandMessage;
@@ -963,8 +959,7 @@ extension _HomeMapSheet on _DriverHomeState {
       // size for short words, a little longer for longer ones. 14 + 14 for the
       // tucked sides, 2 for the border and some air on both ends.
       final width = message != null
-          ? (DigitalMessageFace.widthFor(context, message.title,
-                        tappable: message.onTap != null) +
+          ? (DigitalMessageFace.widthFor(context, message.title) +
                     14 + 14 + 2 + 36)
                 .clamp(math.min(244.0, maxWidth), maxWidth)
                 .toDouble()
@@ -1009,16 +1004,7 @@ extension _HomeMapSheet on _DriverHomeState {
                     child: SizedBox(
                       width: 54,
                       height: height,
-                      // Its arrow points right, the way the menu slides in.
-                      child: Transform.flip(
-                        flipX: true,
-                        child: const Icon(
-                          Icons.menu_open_rounded,
-                          size: 24,
-                          color: Colors.white,
-                          shadows: DigitalIslandShell.glow,
-                        ),
-                      ),
+                      child: DigitalIslandParts.menuIcon(),
                     ),
                   ),
                 ),
@@ -1067,39 +1053,7 @@ extension _HomeMapSheet on _DriverHomeState {
                   child: const SizedBox(
                     width: 54,
                     height: height,
-                    // The blue arrow, with a small magnifier saying "search".
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Icon(
-                          Icons.navigation_rounded,
-                          size: 24,
-                          color: Color(0xFF3B8BFF),
-                          shadows: [
-                            Shadow(color: Color(0x803B8BFF), blurRadius: 10),
-                          ],
-                        ),
-                        Positioned(
-                          right: 9,
-                          bottom: 12,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: SizedBox(
-                              width: 15,
-                              height: 15,
-                              child: Icon(
-                                Icons.search_rounded,
-                                size: 11,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: DigitalIslandParts.searchIcon,
                   ),
                 ),
               )),
@@ -1109,116 +1063,32 @@ extension _HomeMapSheet on _DriverHomeState {
       );
     }
     Widget _islandFaceView() {
-      // Faces shrink to fit rather than overflow on narrow phones.
-      Widget fit(Widget child) => FittedBox(fit: BoxFit.scaleDown, child: child);
-      Widget twoLines(String key, String label, String value) => Column(
-            key: ValueKey<String>(key),
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Color(0xFF9AA4AA),
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.6,
-                ),
-              ),
-              const SizedBox(height: 2),
-              fit(
-                Text(
-                  value,
-                  maxLines: 1,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                    shadows: DigitalIslandShell.glow,
-                  ),
-                ),
-              ),
-            ],
-          );
       switch (_islandFace) {
         case _IslandFace.hidden:
-          return Center(
-            key: const ValueKey<String>('island-hidden'),
-            child: fit(const Text(
-              '•••• kr',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-                shadows: DigitalIslandShell.glow,
-              ),
-            )),
-          );
+          return DigitalIslandParts.hiddenFace();
         case _IslandFace.lastTrip:
           if (_lastTripSettling) {
             return const DigitalUpdatingFace(
               key: ValueKey<String>('island-updating'),
             );
           }
-          return twoLines('island-last-trip', 'LAST TRIP', _lastTripFareLabel);
+          return DigitalIslandParts.amountFace(
+              'island-last-trip', 'LAST TRIP', _lastTripFareLabel);
         case _IslandFace.today:
-          return twoLines('island-today', 'TODAY', _todayEarnings);
+          return DigitalIslandParts.amountFace(
+              'island-today', 'TODAY', DigitalIslandParts.sampleToday);
         case _IslandFace.history:
-          return Column(
-            key: const ValueKey<String>('island-history'),
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'SLIDE TO OPEN',
-                style: TextStyle(
-                  color: Color(0xFF9AA4AA),
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.6,
-                ),
-              ),
-              const SizedBox(height: 2),
-              fit(const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Ride history',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      shadows: DigitalIslandShell.glow,
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  Icon(
-                    Icons.keyboard_double_arrow_right_rounded,
-                    size: 18,
-                    color: Color(0xFF3B8BFF),
-                  ),
-                ],
-              )),
-            ],
-          );
+          return DigitalIslandParts.historyFace();
       }
     }
     Widget _islandMessageView(IslandMessage message) {
-      final (color, icon) = switch (message.tone) {
-        IslandTone.success => (const Color(0xFF2BD47D), Icons.check_rounded),
-        IslandTone.info => (const Color(0xFF4C97FF), Icons.info_outline_rounded),
-        IslandTone.warning =>
-          (const Color(0xFFFFB020), Icons.priority_high_rounded),
-        IslandTone.alert => (const Color(0xFFFF5A4E), Icons.close_rounded),
-      };
+      final (color, icon) = DigitalIslandParts.toneLook(message.tone);
       return DigitalMessageFace(
         key: ValueKey<String>('island-message-$_islandMessageSeq'),
         title: message.title,
         color: color,
         icon: icon,
         pulse: message.live,
-        tappable: message.onTap != null,
       );
     }
     /// A posted message: show it now if the screen is free, or replace an
@@ -1255,7 +1125,20 @@ extension _HomeMapSheet on _DriverHomeState {
       _rebuild(() => _islandMessage = null);
       _showNextIslandMessage();
     }
-    /// Tapping a message runs its action, if any, and clears it.
+    /// A saved-trip problem: a heads-up on the island and a sheet that
+    /// stays until the driver acts, since a tap only closes the island.
+    void _tripProblem(IslandMessage notice, String message,
+        {String action = 'Retry'}) {
+      IslandMessages.show(notice);
+      unawaited(showTripProblemSheet(
+        context,
+        title: notice.title,
+        message: message,
+        actionLabel: action,
+        onAction: () => unawaited(_restoreActiveRideIfNeeded()),
+      ));
+    }
+    /// Tapping a message closes it; only the first-launch hint also acts.
     void _onIslandMessageTap(IslandMessage message) {
       _endIslandMessage();
       message.onTap?.call();
@@ -1312,7 +1195,7 @@ extension _HomeMapSheet on _DriverHomeState {
     }
     String get _lastTripFareLabel {
       final fare = _waybills.last?.fare;
-      if (fare == null || !fare.contains(RegExp(r'\d'))) { return _lastTripFare; }
+      if (fare == null || !fare.contains(RegExp(r'\d'))) { return DigitalIslandParts.sampleLastTrip; }
       return fare;
     }
     void _onLastTripChanged() {

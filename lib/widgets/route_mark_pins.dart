@@ -34,15 +34,14 @@ class _RouteMarkPainter extends CustomPainter {
       oldDelegate.kind != kind;
 }
 
-/// Classic route marks for Google Maps markers: a black dot for pickup, a
-/// grey dot for a stop and a black square for drop-off, each with a white
+/// Route marks for maps and trip bars: a green dot for pickup, an orange
+/// diamond for a stop and a black dot for drop-off, each with a white
 /// centre. [RouteMarkPins.labelled] adds a bubble above the mark with a
 /// title and a time, e.g. "Pickup" / "07:40".
 class RouteMarkPins {
   const RouteMarkPins._();
 
   static const Color ink = Color(0xFF111614);
-  static const Color stopGrey = Color(0xFF8A9195);
   static const double _ratio = 3;
 
   /// Size of a bare mark, in logical pixels.
@@ -82,44 +81,91 @@ class RouteMarkPins {
     );
   }
 
-  /// Draws one mark centred on [center].
+  /// Colour of each kind: green pickup, orange stop, black drop-off.
+  static Color colorOf(RouteMarkKind kind) => switch (kind) {
+        RouteMarkKind.pickup => pickupGreen,
+        RouteMarkKind.stop => stopOrange,
+        RouteMarkKind.dropoff => ink,
+      };
+
+  static const Color pickupGreen = Color(0xFF1FA463);
+  static const Color stopOrange = Color(0xFFE08A1E);
+
+  /// Draws one mark centred on [center]: a dot for pickup and drop-off, a
+  /// diamond for a stop (a stop is never the end of the trip).
   static void paintMark(Canvas canvas, Offset center, RouteMarkKind kind) {
     final stop = kind == RouteMarkKind.stop;
-    final square = kind == RouteMarkKind.dropoff;
-    final outer = stop ? 13.0 : 16.0;
-    final inner = stop ? 5.0 : 6.0;
+    final outer = stop ? 13.0 : 15.0;
+    final inner = stop ? 4.5 : 5.5;
     final shadow = Paint()
       ..color = Colors.black.withValues(alpha: 0.25)
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 1.5);
-    final fill = Paint()..color = stop ? stopGrey : ink;
-    final ring = Paint()..color = Colors.white;
-    final dot = Paint()..color = Colors.white;
-    if (square) {
-      final r = Rect.fromCenter(center: center, width: outer, height: outer);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          r.inflate(1.5).shift(const Offset(0, 0.8)),
-          const Radius.circular(4),
-        ),
-        shadow,
-      );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(r.inflate(1.5), const Radius.circular(4)),
-        ring,
-      );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(r, const Radius.circular(3)),
-        fill,
-      );
-      canvas.drawRect(
-        Rect.fromCenter(center: center, width: inner, height: inner),
-        dot,
-      );
+    final fill = Paint()..color = colorOf(kind);
+    final white = Paint()..color = Colors.white;
+    if (stop) {
+      Path diamond(double half) => Path()
+        ..moveTo(center.dx, center.dy - half)
+        ..lineTo(center.dx + half, center.dy)
+        ..lineTo(center.dx, center.dy + half)
+        ..lineTo(center.dx - half, center.dy)
+        ..close();
+      canvas.drawPath(diamond(outer / 2 + 2.5).shift(const Offset(0, 0.8)), shadow);
+      canvas.drawPath(diamond(outer / 2 + 2.5), white);
+      canvas.drawPath(diamond(outer / 2), fill);
+      canvas.drawPath(diamond(inner / 2 + 0.6), white);
     } else {
       canvas.drawCircle(center.translate(0, 0.8), outer / 2 + 1.5, shadow);
-      canvas.drawCircle(center, outer / 2 + 1.5, ring);
+      canvas.drawCircle(center, outer / 2 + 1.5, white);
       canvas.drawCircle(center, outer / 2, fill);
-      canvas.drawCircle(center, inner / 2, dot);
+      canvas.drawCircle(center, inner / 2, white);
+    }
+  }
+
+  /// Map pin: a drop-shaped head in the kind's colour with its white mark
+  /// inside, the tip on the point. Anchor with [pinAnchor].
+  static Future<BitmapDescriptor> pin(RouteMarkKind kind) =>
+      _toBitmap(pinSize, (canvas, size) => paintPin(canvas, size, kind));
+
+  static const Size pinSize = Size(30, 40);
+  static const Offset pinAnchor = Offset(0.5, 0.97);
+
+  static void paintPin(Canvas canvas, Size size, RouteMarkKind kind) {
+    final cx = size.width / 2;
+    const r = 13.0;
+    final cy = r + 1.5;
+    final tip = Offset(cx, size.height - 1.5);
+    Path drop(double grow) => Path()
+      ..moveTo(tip.dx, tip.dy + grow)
+      ..cubicTo(cx - 5 - grow, cy + r * 0.95, cx - r - grow, cy + r * 0.45,
+          cx - r - grow, cy)
+      ..arcToPoint(Offset(cx + r + grow, cy),
+          radius: Radius.circular(r + grow))
+      ..cubicTo(cx + r + grow, cy + r * 0.45, cx + 5 + grow, cy + r * 0.95,
+          tip.dx, tip.dy + grow)
+      ..close();
+    canvas.drawPath(
+      drop(0).shift(const Offset(0, 1)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.3)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 2),
+    );
+    canvas.drawPath(drop(1.5), Paint()..color = Colors.white);
+    canvas.drawPath(drop(0), Paint()..color = colorOf(kind));
+    final c = Offset(cx, cy);
+    final white = Paint()..color = Colors.white;
+    if (kind == RouteMarkKind.stop) {
+      const h = 5.0;
+      canvas.drawPath(
+        Path()
+          ..moveTo(c.dx, c.dy - h)
+          ..lineTo(c.dx + h, c.dy)
+          ..lineTo(c.dx, c.dy + h)
+          ..lineTo(c.dx - h, c.dy)
+          ..close(),
+        white,
+      );
+    } else {
+      canvas.drawCircle(c, 4.5, white);
     }
   }
 

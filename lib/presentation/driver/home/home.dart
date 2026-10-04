@@ -40,6 +40,7 @@ import 'package:movera/presentation/driver/home/components/destination_set_panel
 import 'package:movera/presentation/driver/home/components/digital_island.dart';
 import 'package:movera/presentation/driver/home/components/home_island_notices.dart';
 import 'package:movera/presentation/driver/home/components/island_messages.dart';
+import 'package:movera/presentation/driver/home/components/trip_problem_sheet.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
 import 'package:movera/presentation/driver/home/components/reservation_request_sheet.dart';
@@ -312,6 +313,7 @@ class _DriverHomeState extends State<DriverHome>
     dropoff: 'Solna centrum, Solna',
     pickupPosition: LatLng(59.3449, 18.0472),
     dropoffPosition: LatLng(59.3603, 18.0009),
+    cash: true,
   );
 
   static const _HomeDirectOffer _soonReservationOffer = _HomeDirectOffer(
@@ -423,7 +425,7 @@ class _DriverHomeState extends State<DriverHome>
       final accepted = decision == ReservationDecision.accepted;
       setState(() => _hasScheduledRideOffers = false);
       IslandMessages.show(accepted
-          ? HomeIslandNotices.reservationAccepted(_openScheduledRides)
+          ? HomeIslandNotices.reservationAccepted
           : HomeIslandNotices.reservationDeclined);
     });
   }
@@ -452,8 +454,8 @@ class _DriverHomeState extends State<DriverHome>
     } catch (_) {
       _didAttemptActiveRideRestore = false;
       if(mounted) {
-        IslandMessages.show(
-            HomeIslandNotices.recoveryFailed(_restoreActiveRideIfNeeded));
+        _HomeMapSheet(this)._tripProblem(HomeIslandNotices.recoveryFailed,
+            'The saved trip could not be opened.');
       }
       return;
     }
@@ -475,8 +477,9 @@ class _DriverHomeState extends State<DriverHome>
         } catch (_) {
           _didAttemptActiveRideRestore = false;
           if (mounted) {
-            IslandMessages.show(
-                HomeIslandNotices.savedTripNotClosed(_restoreActiveRideIfNeeded));
+            _HomeMapSheet(this)._tripProblem(
+                HomeIslandNotices.savedTripNotClosed,
+                'The saved trip could not be closed.');
           }
         }
         return;
@@ -534,16 +537,18 @@ class _DriverHomeState extends State<DriverHome>
     );
     if (!mounted) { return; }
     if (close != true || repo is! UnreadableRideRecovery) {
-      IslandMessages.show(
-          HomeIslandNotices.unreadableTripOpen(_restoreActiveRideIfNeeded));
+      _HomeMapSheet(this)._tripProblem(HomeIslandNotices.unreadableTripOpen,
+          'A saved trip could not be read. Close it to go online.',
+          action: 'Review');
       return;
     }
     try {
       await (repo as UnreadableRideRecovery).quarantineUnreadable();
     } catch (_) {
       if (mounted) {
-        IslandMessages.show(HomeIslandNotices.unreadableTripNotClosed(
-            _restoreActiveRideIfNeeded));
+        _HomeMapSheet(this)._tripProblem(
+            HomeIslandNotices.unreadableTripNotClosed,
+            'The unreadable trip could not be closed.');
       }
       return;
     }
@@ -877,8 +882,9 @@ class _DriverHomeState extends State<DriverHome>
       return;
     }
     if(!_recoveryResolved) {
-      IslandMessages.show(
-          HomeIslandNotices.recoveryPending(_restoreActiveRideIfNeeded));
+      _HomeMapSheet(this)._tripProblem(HomeIslandNotices.recoveryPending,
+          'Finish or close the saved trip before going online.',
+          action: 'Open saved trip');
       return;
     }
     if (!isAccountActivated) {

@@ -119,17 +119,23 @@ SlidingUpPanel _activeRidePanel(WidgetTester tester) {
 Future<void> _collapseActiveRideSheet(WidgetTester tester) async {
   _activeRidePanel(tester).controller!.close();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
+  // The top cards then change with a short fade.
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 Future<void> _expandActiveRideSheet(WidgetTester tester) async {
   _activeRidePanel(tester).controller!.open();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
+  // The top cards then change with a short fade.
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 /// Middle sheet: rider and the slide action; the full sheet has neither.
 Future<void> _middleActiveRideSheet(WidgetTester tester) async {
   _activeRidePanel(tester).controller!.animatePanelToSnapPoint();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
+  // The top cards then change with a short fade.
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 void _invokeTooltipAction(WidgetTester tester, String tooltip) {
@@ -2376,7 +2382,15 @@ void main() {
       find.byKey(const ValueKey<String>('active-ride-compact-dock')),
       findsOneWidget,
     );
-    expect(find.text('2 stops'), findsOneWidget);
+    // The flat bar names the next point with its mark; a stop is an orange
+    // diamond, never the final destination.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('active-ride-compact-dock')),
+        matching: find.byKey(const ValueKey<String>('trip-bar-next-address')),
+      ),
+      findsOneWidget,
+    );
     // The flat bar keeps only the arrived pill; the slide action is on
     // the middle sheet.
     expect(
@@ -2427,7 +2441,13 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Odlarvägen 22'), findsWidgets);
-    expect(find.text('Picking up Angelica'), findsOneWidget);
+    // One line: time, distance, the next address and the payment logo.
+    expect(
+      tester.widget<Text>(
+        find.byKey(const ValueKey<String>('trip-bar-next-address')),
+      ).data,
+      'Odlarvägen 22',
+    );
     // Sheet down: the route icon sits left; preferences come with the lift.
     expect(find.byTooltip('Trip route'), findsOneWidget);
     expect(find.byTooltip('Ride preferences'), findsNothing);
@@ -2496,7 +2516,7 @@ void main() {
       findsOneWidget,
     );
     // Tapping the bar lifts it to the middle sheet with the action.
-    await tester.tap(find.text('Picking up Angelica'));
+    await tester.tap(find.byKey(const ValueKey<String>('trip-bar-next-address')));
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
     expect(dock, findsNothing);
     expect(
