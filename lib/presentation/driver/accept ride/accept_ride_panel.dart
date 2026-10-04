@@ -27,6 +27,9 @@ extension _AcceptRidePanel on _AcceptRideState {
       _ridePointerLastY = event.position.dy;
       _ridePointerLastMs = DateTime.now().millisecondsSinceEpoch;
       _ridePointerVelocity = 0;
+      _ridePointerTravel = 0;
+      _ridePointerStartPos =
+          _ridePanelController.isAttached ? _ridePanelController.panelPosition : 0;
       _snapSheet.stopSpring();
       _setMapGesturesBlocked(true);
     }
@@ -37,6 +40,7 @@ extension _AcceptRidePanel on _AcceptRideState {
         _ridePointerVelocity =
             (event.position.dy - _ridePointerLastY) / dt * 1000;
       }
+      _ridePointerTravel += (event.position.dy - _ridePointerLastY).abs();
       _ridePointerLastY = event.position.dy;
       _ridePointerLastMs = now;
     }
@@ -44,9 +48,11 @@ extension _AcceptRidePanel on _AcceptRideState {
       _sheetTrace.up(_ridePointerVelocity);
       _onRideSheetPointerMove(event);
       _ridePointerActive = false;
-      _scheduleRideSheetPositionGuard(
-        delay: const Duration(milliseconds: 460),
-      );
+      // A drag settles at once, toward where the finger went; a tap is
+      // left to the buttons it hit.
+      if (_ridePointerTravel > 6 && _ridePanelController.isAttached) {
+        unawaited(_snapRideSheet(velocity: _ridePointerVelocity));
+      }
     }
     void _scheduleRideSheetPositionGuard({
       Duration delay = const Duration(milliseconds: 180),
@@ -85,27 +91,140 @@ extension _AcceptRidePanel on _AcceptRideState {
       final safeBottom = MediaQuery.paddingOf(context).bottom;
       return MoveraSheetMetrics.activeSnapPoint(
         collapsed: MoveraSheetMetrics.activeCollapsedTotal(safeBottom),
-        middle: MoveraSheetMetrics.activeMiddleTotal(safeBottom),
+        middle: _rideMiddleTotal(context),
         expanded: _rideExpandedHeight(context),
       );
     }
+    /// Middle sheet height: down to the stage's main action (I've arrived,
+    /// a slide), measured once laid out.
+    double _rideMiddleTotal(BuildContext context) =>
+        _middleMeasured ??
+        MoveraSheetMetrics.activeMiddleTotal(MediaQuery.paddingOf(context).bottom);
+    void _measureRideMiddle() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) { return; }
+        final action = _middleActionKey.currentContext?.findRenderObject();
+        final panel = _ridePanelKey.currentContext?.findRenderObject();
+        if (action is! RenderBox || panel is! RenderBox ||
+            !action.attached || !panel.attached) {
+          return;
+        }
+        final bottom = action.localToGlobal(Offset(0, action.size.height)).dy -
+            panel.localToGlobal(Offset.zero).dy;
+        final safeBottom = MediaQuery.paddingOf(context).bottom;
+        final measured = bottom + 14 + math.max(safeBottom, 10);
+        final old = _middleMeasured;
+        if (old != null && (old - measured).abs() < 2) { return; }
+        final wasAtMiddle = _ridePanelController.isAttached &&
+            (_ridePanelController.panelPosition - _rideSnapPoint(context)).abs() < 0.02;
+        _rebuild(() => _middleMeasured = measured);
+        // Resting on the middle: stay on it at its new height.
+        if (wasAtMiddle && _ridePanelController.isAttached) {
+          _ridePanelController.panelPosition = _rideSnapPoint(context);
+        }
+      });
+    }
     void _showRideMiddle() {
       if (!_ridePanelController.isAttached) { return; }
-      unawaited(_ridePanelController.animatePanelToSnapPoint(
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      ));
+      _snapSheet.rangePx = _rideRangePx(context);
+      // Same spring as a drag, so a tap and a slide feel the same.
+      unawaited(_snapSheet.springTo(_rideSnapPoint(context)));
     }
+    double _rideRangePx(BuildContext context) =>
+        _rideExpandedHeight(context) -
+        MoveraSheetMetrics.activeCollapsedTotal(MediaQuery.paddingOf(context).bottom);
     Future<void> _snapRideSheet({double? velocity}) async {
       if (!_ridePanelController.isAttached) { return; }
-      final collapsed = MoveraSheetMetrics.activeCollapsedTotal(
-            MediaQuery.paddingOf(context).bottom,
-          );
-      _snapSheet.rangePx = _rideExpandedHeight(context) - collapsed;
-      await _snapSheet.snapToNearest(
-        snapPoint: _rideSnapPoint(context),
-        velocityPxPerSec: velocity ?? _ridePointerVelocity,
+      _snapSheet.rangePx = _rideRangePx(context);
+      final snap = _rideSnapPoint(context);
+      final pos = _ridePanelController.panelPosition.clamp(0.0, 1.0);
+      final v = velocity ?? _ridePointerVelocity;
+      await _snapSheet.springTo(
+        _rideTarget(_ridePointerStartPos, pos, v, snap),
+        velocityPxPerSec: v,
       );
+    }
+    /// Where a released drag goes: a flick follows its direction; a small
+    /// push already opens (or closes) the next stage; otherwise nearest.
+    double _rideTarget(double start, double pos, double v, double snap) {
+      if (v.abs() > MoveraSheetMetrics.flickVelocity) {
+        return MoveraSheetMetrics.targetPosition(
+          position: pos,
+          velocityPxPerSec: v,
+          snap: snap,
+        );
+      }
+      final stops = <double>[0, snap, 1];
+      if (pos > start + 0.03) {
+        return stops.firstWhere((s) => s >= pos - 0.06, orElse: () => 1);
+      }
+      if (pos < start - 0.03) {
+        return stops.lastWhere((s) => s <= pos + 0.06, orElse: () => 0);
+      }
+      return MoveraSheetMetrics.targetPosition(
+        position: pos,
+        velocityPxPerSec: 0,
+        snap: snap,
+      );
+    }
+    /// Big turn card and small address card change with a fade and a
+    /// smooth change of height, both anchored at the top.
+    Widget _morphTopCard(Widget card, {required bool big}) {
+      return AnimatedSize(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topCenter,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          layoutBuilder: (current, previous) => Stack(
+            alignment: Alignment.topCenter,
+            children: [...previous, ?current],
+          ),
+          // The old card is mostly gone before the new one shows.
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: const Interval(0.45, 1),
+            ),
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1).animate(animation),
+              alignment: Alignment.topCenter,
+              child: child,
+            ),
+          ),
+          child: KeyedSubtree(
+            key: ValueKey<bool>(big),
+            child: card,
+          ),
+        ),
+      );
+    }
+    /// The trip's step on the island, e.g. "Waiting for Angelica".
+    String get _islandStatus {
+      final first = widget.riderName.split(' ').first;
+      return switch (_stage) {
+        ActiveRideStage.headingToPickup => 'To pickup',
+        ActiveRideStage.waitingForRider => 'Waiting for $first',
+        _ => _stopCursor < widget.stopAddresses.length
+            ? 'To next stop'
+            : 'To drop-off',
+      };
+    }
+    void _openDestinationPicker() {
+      Navigator.of(context)
+          .push<DriverDestinationResult>(
+            MaterialPageRoute(builder: (_) => const DriverDestinationPicker()),
+          )
+          .then((result) {
+            if (!mounted || result == null) { return; }
+            _rebuild(() {
+              _destinationActive = true;
+              _destinationAddress = result.address;
+              _destinationPosition = result.position;
+            });
+          });
     }
     Widget _buildIncomingRideCard() {
       final offer = _nextTripRadarOffer;
@@ -156,7 +275,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                       ),
                     ),
                   ),
-                  if (widget.destinationModeActive) ...[
+                  if (_destinationActive) ...[
                     const SizedBox(width: 7),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -627,6 +746,7 @@ extension _AcceptRidePanel on _AcceptRideState {
             onTap: () => showSafetyToolKitSheet(context),
             child: SvgPicture.asset(AppAssets.mapSafety, width: 26, height: 26),
           ),
+          if (!_browsing) ...[
           const SizedBox(height: 12),
           MapControlButton(
             key: const ValueKey<String>('active-ride-google-maps-button'),
@@ -636,17 +756,62 @@ extension _AcceptRidePanel on _AcceptRideState {
             onTap: _openGoogleMaps,
             child: SvgPicture.asset(AppAssets.mapGoogle, width: 26, height: 26),
           ),
+          ],
           const SizedBox(height: 12),
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+          // Browsing: a soft ring grows and fades around recenter.
+          if (_browsing)
+            Positioned(
+              left: -18,
+              right: -18,
+              top: -18,
+              bottom: -18,
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _browsePulse,
+                  builder: (context, _) {
+                    final t = Curves.easeOutCubic.transform(_browsePulse.value);
+                    const blue = Color(0xFF3B7DD8);
+                    final size = 56 + 36 * t;
+                    return Center(
+                      key: const ValueKey<String>('active-ride-recenter-pulse'),
+                      child: Container(
+                        width: size,
+                        height: size,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: blue.withValues(alpha: 0.16 * (1 - t)),
+                          border: Border.all(
+                            color: blue.withValues(alpha: 0.42 * (1 - t)),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
           MapControlButton(
             key: const ValueKey<String>('active-ride-recenter-button'),
             tooltip: 'Recenter',
             size: 56,
             fill: MapControlButton.recenterBlue,
             onTap: () {
+              if (_browsing) {
+                // Follows the car again and brings the sheet back.
+                _AcceptRideTrip(this)._exitBrowse();
+                return;
+              }
               _navigation.resumeFollow();
               unawaited(_AcceptRideTrip(this)._followVehicle(force: true));
             },
             child: SvgPicture.asset(AppAssets.mapRecenter, width: 24, height: 24),
+          ),
+            ],
           ),
         ],
       );
@@ -673,6 +838,7 @@ extension _AcceptRidePanel on _AcceptRideState {
           // the next action, and the clean full sheet with trip details.
           final compact = pos < snap * 0.5;
           final full = pos > snap + (1 - snap) * 0.35;
+          if (!compact && !full) { _measureRideMiddle(); }
           return Container(
             key: const ValueKey<String>('active-ride-panel'),
             decoration: BoxDecoration(
@@ -768,6 +934,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                     if (!full) ...[
                       _buildRiderRow(),
                       Padding(
+                        key: _middleActionKey,
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                         child: _buildPrimaryAction(),
                       ),

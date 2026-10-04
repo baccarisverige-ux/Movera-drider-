@@ -48,6 +48,10 @@ import 'package:movera/presentation/driver/sheets/movera_snap_sheet_controller.d
 import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/waybill/waybill_sheet.dart';
+import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
+import 'package:movera/presentation/driver/home/components/digital_island.dart';
+import 'package:movera/presentation/driver/ride%20history/ride_history.dart';
+import 'package:movera/presentation/driver/side%20menu/side_menu.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 import 'package:movera/widgets/layout_viewport.dart';
 import 'package:movera/widgets/movera_modal_sheet.dart';
@@ -379,11 +383,35 @@ class _AcceptRideState extends State<AcceptRide>
   BitmapDescriptor _driverVehicleIcon =
       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
   Map<RouteMarkKind, BitmapDescriptor> _pinIcons = const {};
+  final GlobalKey<ScaffoldState> _rideScaffoldKey = GlobalKey<ScaffoldState>();
+  // Browsing the map by hand: the sheet steps aside, recenter pulses.
+  bool _browsing = false;
+  Timer? _browseIdle;
+  double _browseReturnPos = 0;
+  late final AnimationController _browse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  )..addListener(() => _rebuild(() {}));
+  late final AnimationController _browsePulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2000),
+  );
+  // Destination mode can be set from the island during the trip too.
+  late bool _destinationActive = widget.destinationModeActive;
+  late String? _destinationAddress = widget.destinationAddress;
+  late LatLng? _destinationPosition = widget.destinationPosition;
   final PanelController _ridePanelController = PanelController();
   final ValueNotifier<double> _ridePanelPosition = ValueNotifier<double>(0);
   late final MoveraSnapSheetController _snapSheet;
   double _ridePointerVelocity = 0;
   double _ridePointerLastY = 0;
+  // Where a drag on the sheet started and how far the finger moved.
+  double _ridePointerStartPos = 0;
+  double _ridePointerTravel = 0;
+  // Measured middle sheet: down to the stage's main action.
+  final GlobalKey _middleActionKey = GlobalKey();
+  final GlobalKey _ridePanelKey = GlobalKey();
+  double? _middleMeasured;
   int _ridePointerLastMs = 0;
   bool _ridePointerActive = false;
   Timer? _rideSheetPositionGuardTimer;
@@ -538,6 +566,9 @@ class _AcceptRideState extends State<AcceptRide>
 
   @override
   void dispose() {
+    _browseIdle?.cancel();
+    _browse.dispose();
+    _browsePulse.dispose();
     _locationEpoch++;
     _projectionRetry?.cancel();
     _sheetTrace.dispose();
@@ -1039,6 +1070,10 @@ class _AcceptRideState extends State<AcceptRide>
       child: PopScope(
         canPop: false,
         child: Scaffold(
+      key: _rideScaffoldKey,
+      // The menu opens from the island, not by swiping over the map.
+      drawer: const DriverSideMenu(isOnline: true),
+      drawerEnableOpenDragGesture: false,
       backgroundColor: _canvas,
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -1054,18 +1089,19 @@ class _AcceptRideState extends State<AcceptRide>
           );
           final snap = MoveraSheetMetrics.activeSnapPoint(
             collapsed: collapsed,
-            middle: MoveraSheetMetrics.activeMiddleTotal(
-              MediaQuery.paddingOf(context).bottom,
-            ),
+            middle: _AcceptRidePanel(this)._rideMiddleTotal(context),
             expanded: expanded,
           );
 
           final offerOpen = _incomingOfferOpen;
+          // While browsing, the sheet slides down out of the way.
+          final sheetFloor = collapsed *
+              (1 - Curves.easeInOutCubic.transform(_browse.value));
           return Stack(
             children: [
               SlidingUpPanel(
             controller: _ridePanelController,
-            minHeight: offerOpen ? 0 : collapsed,
+            minHeight: offerOpen ? 0 : sheetFloor,
             maxHeight: offerOpen ? 1 : expanded,
             snapPoint: snap,
             panelSnapping: false,
@@ -1099,7 +1135,10 @@ class _AcceptRideState extends State<AcceptRide>
                 onPointerMove: _AcceptRidePanel(this)._onRideSheetPointerMove,
                 onPointerUp: _AcceptRidePanel(this)._onRideSheetPointerEnd,
                 onPointerCancel: _AcceptRidePanel(this)._onRideSheetPointerEnd,
-                child: _AcceptRidePanel(this)._buildRidePanel(),
+                child: KeyedSubtree(
+                  key: _ridePanelKey,
+                  child: _AcceptRidePanel(this)._buildRidePanel(),
+                ),
               ),
             ),
             body: Stack(
@@ -1143,13 +1182,22 @@ class _AcceptRideState extends State<AcceptRide>
                   top: 0,
                   child: _AcceptRidePanel(this)._mapOverlay(
                     child: TripTopReveal(
+                    status: _islandStatus,
+                    lastTripLabel: _waybills.last?.fare ?? DigitalIslandParts.sampleLastTrip,
+                    onMenu: () => _rideScaffoldKey.currentState?.openDrawer(),
+                    onSearch: _openDestinationPicker,
+                    onHistory: () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(builder: (_) => const DriverRideHistory()),
+                    ),
                     child: ValueListenableBuilder<double>(
                       valueListenable: _ridePanelPosition,
                       builder: (context, pos, card) {
-                        // While waiting, the card with the clock stays.
-                        if (pos < snap * 0.5 || _countingWait) { return card!; }
-                        // Sheet lifted: only the next address stays on top.
-                        return TripDestinationCard(
+                        // While waiting, the card with the clock stays;
+                        // sheet lifted: only the next address stays on top.
+                        // The two cards melt into each other, no jump.
+                        final big = pos < snap * 0.5 || _countingWait;
+                        return _AcceptRidePanel(this)._morphTopCard(big ? card! : TripDestinationCard(
                           address: _nextStopAddress,
                           kind: switch (_stage) {
                             ActiveRideStage.headingToPickup => RouteMarkKind.pickup,
@@ -1161,7 +1209,7 @@ class _AcceptRideState extends State<AcceptRide>
                               _stage == ActiveRideStage.headingToPickup
                                   ? widget.pickupArea
                                   : null,
-                        );
+                        ), big: big);
                       },
                       child: ListenableBuilder(
                       listenable: _navigation,
@@ -1210,7 +1258,7 @@ class _AcceptRideState extends State<AcceptRide>
                     return Positioned(
                       key: const ValueKey<String>('active-ride-map-controls'),
                       right: 14,
-                      bottom: collapsed + lift + 16,
+                      bottom: math.max(sheetFloor, MediaQuery.paddingOf(context).bottom) + lift + 16,
                       child: IgnorePointer(
                         ignoring: hidden,
                         child: AnimatedOpacity(

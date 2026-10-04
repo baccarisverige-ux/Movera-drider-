@@ -218,40 +218,57 @@ class TripBottomBar extends StatelessWidget {
     final named = waiting || header || nextAddress == null;
     final mark = named ? null : nextMark;
     final address = named ? statusLabel : nextAddress!;
+    final showLead = named || soonTitle != null || lead.contains(RegExp(r'\d'));
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Very narrow (small phone with "I've arrived"): time and words only.
-        final tight = constraints.maxWidth < 150;
+        // Time and distance keep their full width; the address shortens.
+        // Too narrow for that (small phone with "I've arrived"): the
+        // distance and the logo step aside first.
+        final scaler = MediaQuery.textScalerOf(context);
+        double widthOf(String text, TextStyle style) => (TextPainter(
+              text: TextSpan(
+                text: text,
+                style: DefaultTextStyle.of(context).style.merge(style),
+              ),
+              textDirection: TextDirection.ltr,
+              textScaler: scaler,
+              maxLines: 1,
+            )..layout())
+                .width;
+        final leadStyle = strong.copyWith(color: leadColor);
+        final distanceStyle = strong.copyWith(fontWeight: FontWeight.w600);
+        final leadWidth = showLead ? widthOf(lead, leadStyle) + 19 : 0.0;
+        final distanceWidth =
+            distance == null ? 0.0 : widthOf(distance, distanceStyle) + 19;
+        const addressRoom = 64.0 + 19 + 33;
+        final tight =
+            leadWidth + distanceWidth + addressRoom > constraints.maxWidth;
+        final roomy = leadWidth + addressRoom <= constraints.maxWidth;
         return Row(
           children: [
-            // Long words like "Route unavailable" shorten too, never overflow.
-            Flexible(
-              flex: 2,
-              child: Text(
-                lead,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: strong.copyWith(color: leadColor),
-              ),
-            ),
+            // Words in place of a time ("On your way") would only crowd
+            // the address out; times and "Almost there" stay.
+            if (showLead)
+              roomy
+                  ? Text(lead, maxLines: 1, style: leadStyle)
+                  : Flexible(
+                      child: Text(
+                        lead,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: leadStyle,
+                      ),
+                    ),
             if (distance != null && !tight) ...[
               dot(),
-              Flexible(
-                child: Text(
-                  distance,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: strong.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
+              Text(distance, maxLines: 1, style: distanceStyle),
             ],
-            dot(),
+            if (showLead || (distance != null && !tight)) dot(),
             if (mark != null) ...[
               RouteMarkIcon(mark, size: 14),
               const SizedBox(width: 5),
             ],
             Flexible(
-              flex: 3,
               child: Text(
                 address,
                 key: const ValueKey<String>('trip-bar-next-address'),
@@ -265,7 +282,7 @@ class TripBottomBar extends StatelessWidget {
                 ),
               ),
             ),
-            if (!tight) ...[const SizedBox(width: 7), _paymentLogo()],
+            if (roomy) ...[const SizedBox(width: 7), _paymentLogo()],
           ],
         );
       },

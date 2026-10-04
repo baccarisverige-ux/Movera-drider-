@@ -119,17 +119,23 @@ SlidingUpPanel _activeRidePanel(WidgetTester tester) {
 Future<void> _collapseActiveRideSheet(WidgetTester tester) async {
   _activeRidePanel(tester).controller!.close();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
+  // The top cards then change with a short fade.
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 Future<void> _expandActiveRideSheet(WidgetTester tester) async {
   _activeRidePanel(tester).controller!.open();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
+  // The top cards then change with a short fade.
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 /// Middle sheet: rider and the slide action; the full sheet has neither.
 Future<void> _middleActiveRideSheet(WidgetTester tester) async {
   _activeRidePanel(tester).controller!.animatePanelToSnapPoint();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
+  // The top cards then change with a short fade.
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 void _invokeTooltipAction(WidgetTester tester, String tooltip) {

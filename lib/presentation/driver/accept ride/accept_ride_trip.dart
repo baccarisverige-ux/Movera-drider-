@@ -12,9 +12,9 @@ extension _AcceptRideTrip on _AcceptRideState {
       return PersistedActiveRide(
         tripId: widget.offerId,
         stage: stage,
-        destinationModeActive: widget.destinationModeActive,
-        destinationAddress: widget.destinationAddress,
-        destinationPoint: widget.destinationPosition == null ? null : GeoPointMaps.fromLatLng(widget.destinationPosition!),
+        destinationModeActive: _destinationActive,
+        destinationAddress: _destinationAddress,
+        destinationPoint: _destinationPosition == null ? null : GeoPointMaps.fromLatLng(_destinationPosition!),
         nextTripId: securedOffer?.id,
         riderName: widget.riderName,
         riderRating: widget.riderRating,
@@ -623,6 +623,45 @@ extension _AcceptRideTrip on _AcceptRideState {
     void _onCameraMove(CameraPosition position) {
       if (_cameraProgrammatic) { return; }
       _navigation.pauseFollow();
+      _enterBrowse();
+    }
+    /// The driver moves the map by hand: the sheet slides down so only the
+    /// map and route remain, and recenter pulses softly. After 10 s left
+    /// alone the map follows the car again.
+    void _enterBrowse() {
+      _browseIdle?.cancel();
+      _browseIdle = Timer(const Duration(seconds: 10), () {
+        if (mounted) { _exitBrowse(); }
+      });
+      if (_browsing || _incomingOfferOpen) { return; }
+      _browsing = true;
+      _browseReturnPos = _ridePanelController.isAttached
+          ? _ridePanelController.panelPosition
+          : 0;
+      if (!MediaQuery.disableAnimationsOf(context)) {
+        _browsePulse.repeat();
+      }
+      Future<void> down() async {
+        if (_ridePanelController.isAttached && _browseReturnPos > 0.001) {
+          await _snapSheet.springTo(0);
+        }
+        if (mounted && _browsing) { await _browse.forward(); }
+      }
+      unawaited(down());
+    }
+    void _exitBrowse() {
+      _browseIdle?.cancel();
+      if (!_browsing) { return; }
+      _rebuild(() => _browsing = false);
+      _browsePulse
+        ..stop()
+        ..value = 0;
+      _navigation.resumeFollow();
+      unawaited(_followVehicle(force: true));
+      unawaited(_browse.reverse().then((_) {
+        if (!mounted || _browsing || _browseReturnPos <= 0.001) { return; }
+        unawaited(_snapSheet.springTo(_browseReturnPos));
+      }));
     }
     Future<void> _fitRoute() async {
       final controller = _mapController;
@@ -859,9 +898,9 @@ extension _AcceptRideTrip on _AcceptRideState {
               waybillRepository: _waybills,
               sessionController: widget.sessionController,
               activeRideRepository: widget.activeRideRepository,
-              destinationModeActive: widget.destinationModeActive,
-              destinationAddress: widget.destinationAddress,
-              destinationPosition: widget.destinationPosition,
+              destinationModeActive: _destinationActive,
+              destinationAddress: _destinationAddress,
+              destinationPosition: _destinationPosition,
             )
           : null;
       Navigator.of(context).pushReplacement(
@@ -877,9 +916,9 @@ extension _AcceptRideTrip on _AcceptRideState {
     }
     PersistedActiveRide _snapshotForOffer(_NextTripRadarOffer offer) => PersistedActiveRide(
       tripId: offer.id, stage: ActiveRideStage.headingToPickup,
-        destinationModeActive: widget.destinationModeActive,
-        destinationAddress: widget.destinationAddress,
-        destinationPoint: widget.destinationPosition == null ? null : GeoPointMaps.fromLatLng(widget.destinationPosition!), riderName: offer.riderName,
+        destinationModeActive: _destinationActive,
+        destinationAddress: _destinationAddress,
+        destinationPoint: _destinationPosition == null ? null : GeoPointMaps.fromLatLng(_destinationPosition!), riderName: offer.riderName,
       riderRating: offer.rating, fare: offer.fare, category: offer.category, matchedVia: 'Demo Radar',
       pickupAddress: offer.pickup, dropoffAddress: offer.dropoff,
       pickupLat: offer.pickupPosition.latitude, pickupLng: offer.pickupPosition.longitude,
@@ -937,8 +976,8 @@ extension _AcceptRideTrip on _AcceptRideState {
       _startOnTripRadar();
     }
     bool _dropoffFollowsDestination(LatLng dropoff) {
-      if (!widget.destinationModeActive) { return true; }
-      final destination = widget.destinationPosition;
+      if (!_destinationActive) { return true; }
+      final destination = _destinationPosition;
       if (destination == null) { return true; }
 
       final latitudeRadians = _driverPosition.latitude * math.pi / 180;
@@ -958,10 +997,10 @@ extension _AcceptRideTrip on _AcceptRideState {
       return cosine >= 0.45;
     }
     _NextTripRadarOffer _onTripRadarOfferForDestination() {
-      if (!widget.destinationModeActive) { return _uniqueDemoNext; }
-      final destination = widget.destinationPosition;
+      if (!_destinationActive) { return _uniqueDemoNext; }
+      final destination = _destinationPosition;
       if (destination == null) { return _uniqueDemoNext; }
-      final address = widget.destinationAddress?.trim();
+      final address = _destinationAddress?.trim();
       return _NextTripRadarOffer(
         id: '${widget.offerId}-next-destination',
         category: _AcceptRideState._demoNextTripOffer.category,

@@ -43,7 +43,6 @@ class AppAssets {
   static const String menuTimer = 'assets/icons/menu_timer.svg';
   static const String menuSupport = 'assets/icons/menu_support.svg';
   static const String menuSettings = 'assets/icons/menu_settings.svg';
-  static const String search = 'assets/icons/search.png';
   static const String arrowUp = 'assets/icons/arrow_up.png';
   static const String triangle = 'assets/icons/triangle.png';
   static const String calculator = 'assets/icons/calculator.png';

@@ -1,16 +1,24 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:movera/constants/appassets.dart';
+import 'package:movera/presentation/driver/accept%20ride/trip_island.dart';
+import 'package:movera/presentation/driver/home/components/digital_island.dart';
 import 'package:movera/widgets/route_mark_pins.dart';
 
 /// Top of the Active Ride map: the navigation card, which the driver can
-/// pull down to reveal the Home island (menu, earnings, search) above it,
-/// and push back up to hide it.
+/// pull down to reveal the island (menu, money, search) above it, and push
+/// back up to hide it. Once revealed, a touch anywhere but the island's
+/// middle puts the card back; the touched button still does its job.
 class TripTopReveal extends StatefulWidget {
   const TripTopReveal({
     super.key,
     required this.child,
     this.onMenu,
     this.onSearch,
+    this.onHistory,
+    this.status,
+    this.lastTripLabel = DigitalIslandParts.sampleLastTrip,
     this.initiallyOpen = false,
   });
 
@@ -18,6 +26,11 @@ class TripTopReveal extends StatefulWidget {
   final Widget child;
   final VoidCallback? onMenu;
   final VoidCallback? onSearch;
+  final VoidCallback? onHistory;
+
+  /// The trip's step for the island, e.g. "To pickup".
+  final String? status;
+  final String lastTripLabel;
   final bool initiallyOpen;
 
   @override
@@ -27,14 +40,70 @@ class TripTopReveal extends StatefulWidget {
 class _TripTopRevealState extends State<TripTopReveal> {
   late bool _open = widget.initiallyOpen;
   double _drag = 0;
+  final GlobalKey _middleKey = GlobalKey();
+  bool _routed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncRoute();
+  }
+
+  @override
+  void dispose() {
+    _unroute();
+    super.dispose();
+  }
+
+  void _setOpen(bool open) {
+    if (_open == open) { return; }
+    setState(() => _open = open);
+    _syncRoute();
+  }
+
+  void _syncRoute() => _open ? _route() : _unroute();
+
+  void _route() {
+    if (_routed) { return; }
+    _routed = true;
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_onAnyPointer);
+  }
+
+  void _unroute() {
+    if (!_routed) { return; }
+    _routed = false;
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_onAnyPointer);
+  }
+
+  /// Any touch while revealed closes it, except on the island's middle
+  /// (its money and messages); buttons still get their tap.
+  void _onAnyPointer(PointerEvent event) {
+    if (event is! PointerDownEvent || !_open || !mounted) { return; }
+    final box = _middleKey.currentContext?.findRenderObject();
+    if (box is RenderBox && box.attached) {
+      final local = box.globalToLocal(event.position);
+      if (box.paintBounds.contains(local) && !_onIslandSides(box, local)) {
+        return;
+      }
+    }
+    _setOpen(false);
+  }
+
+  // The menu and search ends of the island act, then close it.
+  bool _onIslandSides(RenderBox box, Offset local) {
+    const side = 54 * 0.8;
+    final islandWidth = DigitalIslandParts.width * 0.8;
+    final left = (box.size.width - islandWidth) / 2;
+    return local.dx < left + side || local.dx > left + islandWidth - side;
+  }
 
   void _onDragUpdate(DragUpdateDetails details) {
     _drag += details.delta.dy;
     if (!_open && _drag > 14) {
-      setState(() => _open = true);
+      _setOpen(true);
       _drag = 0;
     } else if (_open && _drag < -14) {
-      setState(() => _open = false);
+      _setOpen(false);
       _drag = 0;
     }
   }
@@ -46,18 +115,31 @@ class _TripTopRevealState extends State<TripTopReveal> {
       mainAxisSize: MainAxisSize.min,
       children: [
         AnimatedSize(
-          duration: const Duration(milliseconds: 260),
+          duration: const Duration(milliseconds: 320),
           curve: Curves.easeOutCubic,
           alignment: Alignment.topCenter,
-          child: _open
-              ? Padding(
-                  padding: EdgeInsets.only(top: pad.top + 8),
-                  child: TripTopIsland(
-                    onMenu: widget.onMenu,
-                    onSearch: widget.onSearch,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            child: _open
+                ? Padding(
+                    key: const ValueKey<String>('trip-island-open'),
+                    padding: EdgeInsets.only(top: math.max(pad.top - 4, 10)),
+                    child: KeyedSubtree(
+                      key: _middleKey,
+                      child: TripIsland(
+                        status: widget.status,
+                        onMenu: widget.onMenu,
+                        onSearch: widget.onSearch,
+                        onHistory: widget.onHistory,
+                        lastTripLabel: widget.lastTripLabel,
+                      ),
+                    ),
+                  )
+                : const SizedBox(
+                    key: ValueKey<String>('trip-island-closed'),
+                    width: double.infinity,
                   ),
-                )
-              : const SizedBox(width: double.infinity),
+          ),
         ),
         GestureDetector(
           key: const ValueKey<String>('trip-top-reveal'),
@@ -89,102 +171,6 @@ class _TripTopRevealState extends State<TripTopReveal> {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// The Home island on the trip screen: menu, today's earnings (hidden
-/// until tapped) and search.
-class TripTopIsland extends StatefulWidget {
-  const TripTopIsland({super.key, this.onMenu, this.onSearch});
-
-  final VoidCallback? onMenu;
-  final VoidCallback? onSearch;
-
-  @override
-  State<TripTopIsland> createState() => _TripTopIslandState();
-}
-
-class _TripTopIslandState extends State<TripTopIsland> {
-  static const Color _ink = Color(0xFF111614);
-  bool _showEarnings = false;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget divider() =>
-        Container(width: 1, height: 20, color: const Color(0xFFE2E5E7));
-    return Material(
-      key: const ValueKey<String>('trip-top-island'),
-      color: Colors.white,
-      elevation: 6,
-      shadowColor: const Color(0x38172027),
-      shape: const StadiumBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        width: 252,
-        height: 48,
-        child: Row(
-          children: [
-            Tooltip(
-              message: 'Menu',
-              child: InkWell(
-                onTap: widget.onMenu,
-                child: const SizedBox(
-                  width: 50,
-                  height: 48,
-                  child: Icon(Icons.menu_open_rounded, size: 22, color: _ink),
-                ),
-              ),
-            ),
-            divider(),
-            Expanded(
-              child: InkWell(
-                onTap: () => setState(() => _showEarnings = !_showEarnings),
-                child: SizedBox(
-                  height: 48,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.history_rounded,
-                        size: 19,
-                        color: Color(0xFF1FA463),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          _showEarnings ? '183.25 kr' : '•••• kr',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _ink,
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            divider(),
-            Tooltip(
-              message: 'Search',
-              child: InkWell(
-                onTap: widget.onSearch,
-                child: SizedBox(
-                  width: 50,
-                  height: 48,
-                  child: Center(
-                    child: Image.asset(AppAssets.search, height: 17, color: _ink),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
