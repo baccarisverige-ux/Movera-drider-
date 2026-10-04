@@ -6,8 +6,6 @@ part of 'home.dart';
 
 enum _HomeRadarMatchState { available, resolving, claimedElsewhere }
 
-enum _HomeRadarMatchNoticeType { matching, success }
-
 /// Why a Radar offer is leaving the list.
 enum _RadarOfferGone {
   /// Another driver took it while this driver looked at it.
@@ -18,18 +16,6 @@ enum _RadarOfferGone {
 
   /// Expired, cancelled by the rider or gone from Radar for another reason.
   unavailable,
-}
-
-class _HomeRadarMatchNotice {
-  const _HomeRadarMatchNotice({
-    required this.type,
-    required this.title,
-    required this.message,
-  });
-
-  final _HomeRadarMatchNoticeType type;
-  final String title;
-  final String message;
 }
 
 class _HomeDirectOffer {
@@ -318,12 +304,8 @@ extension _HomeOfferRadar on _DriverHomeState {
       _rebuild(() {
         _homeRadarMatchingOfferId = offer.id;
         _homeRadarMatchStates[offer.id] = _HomeRadarMatchState.resolving;
-        _homeRadarMatchNotice = const _HomeRadarMatchNotice(
-          type: _HomeRadarMatchNoticeType.matching,
-          title: 'Matching trip',
-          message: 'Confirming this request in real time…',
-        );
       });
+      IslandMessages.show(HomeIslandNotices.matching);
 
       unawaited(_claimHomeRadarOffer(offer));
     }
@@ -343,8 +325,8 @@ extension _HomeOfferRadar on _DriverHomeState {
           _rebuild(() {
             _homeRadarMatchingOfferId = null;
             _homeRadarMatchStates.remove(offer.id);
-            _homeRadarMatchNotice = null;
           });
+          IslandMessages.show(HomeIslandNotices.noConnection);
       }
     }
     void _watchDispatchRadar() {
@@ -391,12 +373,8 @@ extension _HomeOfferRadar on _DriverHomeState {
       _rebuild(() {
         _homeRadarMatchingOfferId = null;
         _homeRadarMatchStates.remove(offer.id);
-        _homeRadarMatchNotice = const _HomeRadarMatchNotice(
-          type: _HomeRadarMatchNoticeType.success,
-          title: 'Trip matched',
-          message: 'You’re assigned to this request. Opening trip…',
-        );
       });
+      IslandMessages.show(HomeIslandNotices.matched);
 
       _homeRadarNoticeTimer = Timer(
         const Duration(milliseconds: 850),
@@ -410,15 +388,23 @@ extension _HomeOfferRadar on _DriverHomeState {
       _HomeDirectOffer offer,
       _RadarOfferGone reason,
     ) {
-      // The row itself says what happened; no banner over the map.
+      // The row itself says what happened; the island adds a line when
+      // this driver was the one matching.
+      final wasMatching = _homeRadarMatchingOfferId == offer.id;
       _homeRadarNoticeTimer?.cancel();
       _rebuild(() {
         _homeRadarGoneReasons[offer.id] = reason;
         _homeRadarMatchingOfferId = null;
         _homeRadarMatchStates[offer.id] =
             _HomeRadarMatchState.claimedElsewhere;
-        _homeRadarMatchNotice = null;
       });
+      // Only when this driver tapped Match does the island say why it
+      // failed; trips that simply leave the list say so in their row.
+      if (reason == _RadarOfferGone.lostOwnMatch) {
+        IslandMessages.show(HomeIslandNotices.takenByOther);
+      } else if (wasMatching) {
+        IslandMessages.show(HomeIslandNotices.tripUnavailable);
+      }
 
       _homeRadarLostMatchTimer?.cancel();
       _homeRadarLostMatchTimer = Timer(
@@ -492,7 +478,6 @@ extension _HomeOfferRadar on _DriverHomeState {
       _homeRadarLostMatchTimer?.cancel();
       _homeRadarMatchingOfferId = null;
       _homeRadarMatchStates.clear();
-      _homeRadarMatchNotice = null;
       for (final timer in _radarOfferTimeoutTimers.values) {
         timer.cancel();
       }
@@ -593,34 +578,6 @@ extension _HomeOfferRadar on _DriverHomeState {
           _directOfferRoutePolylines = {};
         });
       });
-    }
-    Widget _buildHomeRadarMatchNotice(_HomeRadarMatchNotice notice) {
-      final isMatching =
-          notice.type == _HomeRadarMatchNoticeType.matching;
-      final isSuccess =
-          notice.type == _HomeRadarMatchNoticeType.success;
-      final accent = isSuccess
-          ? const Color(0xFF2FBE7B)
-          : isMatching
-              ? const Color(0xFFD99B24)
-              : const Color(0xFFC75B62);
-
-      return TripStatusBanner(
-        key: const ValueKey<String>('home-radar-match-notice'),
-        title: notice.title,
-        subtitle: notice.message,
-        accent: accent,
-        busy: isMatching,
-        leading: isMatching
-            ? null
-            : Icon(
-                isSuccess
-                    ? Icons.check_rounded
-                    : Icons.person_off_outlined,
-                color: accent,
-                size: 22,
-              ),
-      );
     }
     // Radar offers use the reservation popup's look: white cards, black
     // ink, a pickup dot and a drop-off square, grey and black buttons.

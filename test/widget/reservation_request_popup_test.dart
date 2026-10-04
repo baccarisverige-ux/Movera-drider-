@@ -191,10 +191,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(find.text('You have a new reservation request'), findsNothing);
-    expect(
-      find.text('Reservation accepted · Pickup today at 07:40'),
-      findsOneWidget,
-    );
+    // The island confirms it; tapping it opens the scheduled rides.
+    expect(find.text('Reservation accepted'), findsOneWidget);
 
     for (var i = 0; i < 80; i++) {
       await tester.pump(const Duration(milliseconds: 100));

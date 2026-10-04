@@ -338,6 +338,17 @@ extension _AcceptRideTrip on _AcceptRideState {
 
       _waybills.discardCurrent();
 
+      // Back to Home when it is underneath: its island tells the driver.
+      final home = Navigator.of(context);
+      if (next == null && home.canPop()) {
+        IslandMessages.show(wasOnTrip
+            ? HomeIslandNotices.riderEndedTrip
+            : HomeIslandNotices.riderCancelled);
+        widget.sessionController?.stayOnlineAfterTrip();
+        home.pop();
+        return;
+      }
+
       await showRiderCancelledSheet(
         context,
         riderName: widget.riderName,

@@ -10,6 +10,8 @@ import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/waybill/waybill.dart';
+import 'package:movera/presentation/driver/home/components/digital_island.dart';
+import 'package:movera/presentation/driver/home/components/island_messages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
@@ -32,6 +34,7 @@ import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 Future<void> _pumpHome(WidgetTester tester, Size size) async {
+  IslandMessages.reset();
   await tester.binding.setSurfaceSize(size);
   await tester.pumpWidget(const MoveraApp());
 
@@ -41,6 +44,13 @@ Future<void> _pumpHome(WidgetTester tester, Size size) async {
 
   final startupException = tester.takeException();
   expect(startupException, isNull, reason: startupException?.toString());
+}
+
+/// Lets the top island finish its launch animation (small → full → on).
+Future<void> _wakeIsland(WidgetTester tester) async {
+  for (var i = 0; i < 4; i++) {
+    await tester.pump(const Duration(milliseconds: 450));
+  }
 }
 
 void _expectNoException(WidgetTester tester) {
@@ -833,11 +843,11 @@ void main() {
     );
     expect(interceptor, findsOneWidget);
 
-    // The top island is centred and leaves both map corners free.
-    final interceptorRect = tester.getRect(interceptor);
-    expect(interceptorRect.width, lessThan(330));
-    expect(interceptorRect.height, lessThan(80));
-    expect(interceptorRect.center.dx, closeTo(375 / 2, 2));
+    // One black island, centred, leaving both map corners free.
+    final islandRect = tester.getRect(interceptor);
+    expect(islandRect.width, lessThanOrEqualTo(250));
+    expect(islandRect.height, lessThan(70));
+    expect(islandRect.center.dx, closeTo(375 / 2, 2));
     _expectNoException(tester);
   });
 
@@ -1163,116 +1173,246 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Today summary opens, closes, and resets when radar starts', (
+  testWidgets('Top island screen cycles money faces and resets when radar starts', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
+    await _wakeIsland(tester);
 
-    final launcherInk = find.byKey(
-      const ValueKey<String>('last-trip-launcher'),
-    );
-    expect(launcherInk, findsOneWidget);
-    // Hidden by default; the first tap shows only the last trip.
-    expect(find.text('183.25 kr'), findsNothing);
-    tester.widget<InkWell>(launcherInk).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
-    expect(find.text('183.25 kr'), findsNothing);
-    expect(find.textContaining('Last trip'), findsOneWidget);
-    tester.widget<InkWell>(launcherInk).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
-
-    expect(find.text('Today'), findsOneWidget);
-    expect(find.text('183.25 kr'), findsOneWidget);
-    expect(find.text('3 rides'), findsOneWidget);
-    var summaryPointer = tester.widget<IgnorePointer>(
-      find.byKey(const ValueKey<String>('today-summary-pointer')),
-    );
-    expect(summaryPointer.ignoring, isFalse);
-    _expectNoException(tester);
-
-    await tester.tap(find.byKey(const ValueKey<String>('today-summary-scrim')));
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
-    summaryPointer = tester.widget<IgnorePointer>(
-      find.byKey(const ValueKey<String>('today-summary-pointer')),
-    );
-    expect(summaryPointer.ignoring, isTrue);
-    _expectNoException(tester);
-
-    for (var i = 0; i < 2; i++) {
-      tester.widget<InkWell>(launcherInk).onTap!.call();
-      await _advanceAnimation(tester, const Duration(milliseconds: 520));
-    }
-    expect(find.text('Today'), findsOneWidget);
-
-    // A third tap on the island folds it back and hides the money.
-    tester.widget<InkWell>(launcherInk).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
-    expect(find.text('183.25 kr'), findsNothing);
-    summaryPointer = tester.widget<IgnorePointer>(
-      find.byKey(const ValueKey<String>('today-summary-pointer')),
-    );
-    expect(summaryPointer.ignoring, isTrue);
-    expect(
-      find.byKey(const ValueKey<String>('last-trip-launcher')),
-      findsOneWidget,
-    );
-    _expectNoException(tester);
-
-    final launcherAgain = find.byKey(
-      const ValueKey<String>('last-trip-launcher'),
-    );
-    for (var i = 0; i < 2; i++) {
-      tester.widget<InkWell>(launcherAgain).onTap!.call();
-      await _advanceAnimation(tester, const Duration(milliseconds: 520));
-    }
-    summaryPointer = tester.widget<IgnorePointer>(
-      find.byKey(const ValueKey<String>('today-summary-pointer')),
-    );
-    expect(summaryPointer.ignoring, isFalse);
-
-    await tester.tap(find.byKey(const ValueKey<String>('today-summary-scrim')));
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.tap(find.text('OFF'));
-    await tester.pump(const Duration(milliseconds: 1550));
-    expect(find.text('LIVE'), findsOneWidget);
-    summaryPointer = tester.widget<IgnorePointer>(
-      find.byKey(const ValueKey<String>('today-summary-pointer')),
-    );
-    expect(summaryPointer.ignoring, isTrue);
-    _expectNoException(tester);
-  });
-
-  testWidgets('Today details fit the island and close when Home sheet expands', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(375, 812));
-
-    final launcher = find.byKey(
-      const ValueKey<String>('last-trip-launcher'),
-    );
-    for (var i = 0; i < 2; i++) {
+    final launcher = find.byKey(const ValueKey<String>('last-trip-launcher'));
+    expect(launcher, findsOneWidget);
+    Future<void> tap() async {
       tester.widget<InkWell>(launcher).onTap!.call();
       await _advanceAnimation(tester, const Duration(milliseconds: 520));
     }
 
-    final card = find.byKey(
-      const ValueKey<String>('today-summary-card'),
-    );
-    expect(card, findsOneWidget);
-    expect(tester.getSize(card).width, lessThanOrEqualTo(340));
-    expect(find.text('Today'), findsOneWidget);
+    // Hidden → last trip → today → Ride history → hidden.
+    expect(find.text('•••• kr'), findsOneWidget);
+    await tap();
+    expect(find.text('LAST TRIP'), findsOneWidget);
+    expect(find.text('126 kr'), findsOneWidget);
+    await tap();
+    expect(find.text('TODAY'), findsOneWidget);
+    expect(find.text('183.25 kr'), findsOneWidget);
+    await tap();
+    expect(find.text('Ride history'), findsOneWidget);
+    expect(find.text('SLIDE TO OPEN'), findsOneWidget);
+    await tap();
+    expect(find.text('•••• kr'), findsOneWidget);
+    expect(find.text('183.25 kr'), findsNothing);
     _expectNoException(tester);
 
-    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    panel.controller!.open();
-    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    // Going online hides the money again.
+    await tap();
+    await tap();
+    expect(find.text('183.25 kr'), findsOneWidget);
+    await tester.tap(find.text('OFF'));
+    await tester.pump(const Duration(milliseconds: 1550));
+    expect(find.text('LIVE'), findsOneWidget);
+    // Let the screen finish its switch back to the hidden total.
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('183.25 kr'), findsNothing);
+    _expectNoException(tester);
+  });
 
-    final summaryPointer = tester.widget<IgnorePointer>(
-      find.byKey(const ValueKey<String>('today-summary-pointer')),
+  testWidgets('Top island opens small, then grows and turns its screen on', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final island = find.ancestor(
+      of: find.byKey(const ValueKey<String>('last-trip-launcher')),
+      matching: find.byType(DigitalIslandShell),
     );
-    expect(summaryPointer.ignoring, isTrue);
+    // Launch: only the arrow and the menu, no money display yet.
+    expect(tester.getSize(island).width, lessThan(130));
+    expect(find.text('•••• kr'), findsNothing);
+    expect(find.byKey(const ValueKey<String>('destination-mode-open')), findsOneWidget);
+    expect(find.byTooltip('Menu'), findsOneWidget);
+
+    await _wakeIsland(tester);
+    expect(tester.getSize(island).width, closeTo(244, 1));
+    expect(find.text('•••• kr'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Last trip shows updating dots until its money settles', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() {
+      WaybillStore.reset();
+      tester.binding.setSurfaceSize(null);
+    });
+    WaybillStore.reset();
+    // A trip that has just finished.
+    WaybillStore.last = WaybillRecord(
+      tripId: 'just-finished',
+      statusLabel: 'Completed',
+      issuedAt: DateTime.now(),
+      fare: '156,80 kr',
+      service: 'Comfort',
+      riderName: 'Angelica',
+      pickup: 'Odlarvägen 22',
+      dropoff: 'T-Centralen, Stockholm',
+      source: 'Movera Radar',
+      driverName: 'Movera Driver',
+      vehicle: 'Movera partner vehicle',
+      licensePlate: 'MVR 418',
+      passengerCapacity: 4,
+    );
+    await _pumpHome(tester, const Size(375, 812));
+    await _wakeIsland(tester);
+
+    tester.widget<InkWell>(
+      find.byKey(const ValueKey<String>('last-trip-launcher')),
+    ).onTap!.call();
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('UPDATING'), findsOneWidget);
+    expect(find.text('156,80 kr'), findsNothing);
+
+    // Once settled, the real fare of that trip appears.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 520));
+    expect(find.text('UPDATING'), findsNothing);
+    expect(find.text('LAST TRIP'), findsOneWidget);
+    expect(find.text('156,80 kr'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Going online shows on the island, then it returns', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+    await _wakeIsland(tester);
+
+    await tester.tap(find.text('OFF'));
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('Radar online'), findsOneWidget);
+
+    // A quick message: about 2 s, then the money display comes back.
+    await tester.pump(const Duration(milliseconds: 1600));
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.text('Radar online'), findsNothing);
+    expect(find.text('•••• kr'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Island stretches sideways to fit a message, never taller', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(390, 844));
+    await _wakeIsland(tester);
+
+    final island = find.ancestor(
+      of: find.byKey(const ValueKey<String>('last-trip-launcher')),
+      matching: find.byType(DigitalIslandShell),
+    );
+    final normal = tester.getSize(island);
+    expect(normal.width, closeTo(244, 1));
+
+    IslandMessages.show(const IslandMessage(title: 'Matched'));
+    await _advanceAnimation(tester, const Duration(milliseconds: 900));
+    final short = tester.getSize(island);
+    // Short words keep the normal size.
+    expect(short.width, closeTo(244, 1));
+
+    IslandMessages.reset();
+    await tester.pump(const Duration(seconds: 4));
+    IslandMessages.show(const IslandMessage(
+      title: 'Weekly earnings statement ready',
+    ));
+    await _advanceAnimation(tester, const Duration(milliseconds: 900));
+    final long = tester.getSize(island);
+
+    expect(long.width, greaterThan(short.width + 40));
+    expect(long.width, lessThanOrEqualTo(390 - 32 + 1));
+    // Only the length changes; the height is always the same.
+    expect(short.height, normal.height);
+    expect(long.height, normal.height);
+
+    // And it goes back to the normal island afterwards.
+    await tester.pump(const Duration(seconds: 3));
+    await _advanceAnimation(tester, const Duration(milliseconds: 900));
+    expect(tester.getSize(island).width, closeTo(244, 1));
+    expect(find.text('•••• kr'), findsOneWidget);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Top island returns to the hidden total after 5 s untouched', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+    await _wakeIsland(tester);
+
+    final launcher = find.byKey(const ValueKey<String>('last-trip-launcher'));
+    Future<void> tap() async {
+      tester.widget<InkWell>(launcher).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    }
+
+    await tap();
+    expect(find.text('126 kr'), findsOneWidget);
+    // A tap restarts the 5 s: 4 s, tap, 4 s later it still shows today.
+    await tester.pump(const Duration(seconds: 4));
+    await tap();
+    await tester.pump(const Duration(seconds: 4));
+    expect(find.text('183.25 kr'), findsOneWidget);
+    // Then 5 s without a touch brings back the hidden total.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 520));
+    expect(find.text('•••• kr'), findsOneWidget);
+    expect(find.text('183.25 kr'), findsNothing);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Top island arrow opens Destination and menu opens the drawer', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+
+    final arrow = find.byKey(const ValueKey<String>('destination-mode-open'));
+    final launcher = find.byKey(const ValueKey<String>('last-trip-launcher'));
+    final menu = find.byTooltip('Menu');
+    // Arrow on the left, money in the middle, menu on the right.
+    expect(tester.getCenter(arrow).dx, lessThan(tester.getCenter(launcher).dx));
+    expect(tester.getCenter(menu).dx, greaterThan(tester.getCenter(launcher).dx));
+
+    await tester.tap(menu);
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).first);
+    expect(scaffold.isDrawerOpen, isTrue);
+    _expectNoException(tester);
+  });
+
+  testWidgets('Sliding the island on Ride history opens Movera history', (
+    WidgetTester tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHome(tester, const Size(375, 812));
+    await _wakeIsland(tester);
+
+    final launcher = find.byKey(const ValueKey<String>('last-trip-launcher'));
+    for (var i = 0; i < 3; i++) {
+      tester.widget<InkWell>(launcher).onTap!.call();
+      await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    }
+    expect(find.text('Ride history'), findsOneWidget);
+
+    await tester.fling(launcher, const Offset(120, 0), 800);
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+
+    expect(find.byType(DriverRideHistory), findsOneWidget);
+    expect(find.text('Earnings & history'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('history-overview')),
+      findsOneWidget,
+    );
     _expectNoException(tester);
   });
 
@@ -1299,35 +1439,6 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Today summary History action opens Movera history', (
-    WidgetTester tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpHome(tester, const Size(375, 812));
-
-    final launcher = find.byKey(
-      const ValueKey<String>('last-trip-launcher'),
-    );
-    for (var i = 0; i < 2; i++) {
-      tester.widget<InkWell>(launcher).onTap!.call();
-      await _advanceAnimation(tester, const Duration(milliseconds: 420));
-    }
-
-    final historyButton = find.byKey(
-      const ValueKey<String>('today-history-button'),
-    );
-    expect(historyButton, findsOneWidget);
-    tester.widget<InkWell>(historyButton).onTap!.call();
-    await _advanceAnimation(tester, const Duration(milliseconds: 360));
-
-    expect(find.byType(DriverRideHistory), findsOneWidget);
-    expect(find.text('Earnings & history'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('history-overview')),
-      findsOneWidget,
-    );
-    _expectNoException(tester);
-  });
 
   testWidgets('History exposes overview and full rides list on narrow phone', (
     WidgetTester tester,

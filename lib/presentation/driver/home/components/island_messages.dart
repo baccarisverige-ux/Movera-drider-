@@ -1,0 +1,85 @@
+import 'package:flutter/foundation.dart';
+
+/// Colour and icon of a message on the top island.
+enum IslandTone { info, success, warning, alert }
+
+/// How long a message stays on the island.
+enum IslandPriority {
+  /// Quick confirmations: online, offline, matching.
+  low(Duration(seconds: 2)),
+
+  /// Things the driver should notice: a trip gone, a new reservation.
+  normal(Duration(seconds: 3)),
+
+  /// Things that change the driver's situation: a rider cancelled, a
+  /// trip that needs attention.
+  high(Duration(milliseconds: 4500));
+
+  const IslandPriority(this.duration);
+
+  final Duration duration;
+}
+
+/// One message for the driver, shown on the Home island's screen.
+@immutable
+class IslandMessage {
+  const IslandMessage({
+    required this.title,
+    this.tone = IslandTone.info,
+    this.priority = IslandPriority.normal,
+    this.onTap,
+    this.live = false,
+    this.group,
+  });
+
+  /// A few essential words, e.g. "Rider cancelled" or "Radar online".
+  final String title;
+  final IslandTone tone;
+  final IslandPriority priority;
+
+  /// Tapping the island while the message shows, e.g. to retry.
+  final VoidCallback? onTap;
+
+  /// A breathing dot instead of an icon, for live states like "online".
+  final bool live;
+
+  /// Messages of one group replace each other at once: "Matching trip"
+  /// gives way to "Trip matched" without waiting out its time.
+  final String? group;
+}
+
+/// Messages waiting for the Home island. Any screen can post one; the
+/// island shows them one after another, each for its priority's time.
+/// Important messages go ahead of quick ones still waiting.
+class IslandMessages {
+  IslandMessages._();
+
+  static final ValueNotifier<int> _changes = ValueNotifier<int>(0);
+  static final List<IslandMessage> _queue = <IslandMessage>[];
+
+  /// Notifies when a message is posted.
+  static ValueListenable<int> get changes => _changes;
+
+  static bool get hasPending => _queue.isNotEmpty;
+
+  static void show(IslandMessage message) {
+    if (message.priority == IslandPriority.high) {
+      final at = _queue.indexWhere(
+        (queued) => queued.priority != IslandPriority.high,
+      );
+      _queue.insert(at < 0 ? _queue.length : at, message);
+    } else {
+      _queue.add(message);
+    }
+    _changes.value++;
+  }
+
+  /// Next message to show, still in the queue.
+  static IslandMessage? peek() => _queue.isEmpty ? null : _queue.first;
+
+  /// Next message to show, removed from the queue.
+  static IslandMessage? take() => _queue.isEmpty ? null : _queue.removeAt(0);
+
+  @visibleForTesting
+  static void reset() => _queue.clear();
+}
