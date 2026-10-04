@@ -922,7 +922,8 @@ extension _HomeMapSheet on _DriverHomeState {
               Positioned(
                 left: 14,
                 width: math.max(0, viewportWidth - 28),
-                bottom: 178,
+                // Clears the safety and recenter buttons below it.
+                bottom: 138 + _homeMapButtonSize + 12,
                 child: _HomeOfferRadar(this)._buildRadarOffersTray(),
               ),
             if (!isDestinationPanel) ...[

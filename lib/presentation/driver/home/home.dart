@@ -223,6 +223,9 @@ class _DriverHomeState extends State<DriverHome>
   _HomeDirectOffer? _outsideRadarOffer;
   final List<_HomeDirectOffer> _radarHomeOffers = <_HomeDirectOffer>[];
   final List<_HomeDirectOffer> _pendingRadarHomeOffers = <_HomeDirectOffer>[];
+
+  /// Radar offer opened in the compact list; null opens the first one.
+  String? _radarExpandedOfferId;
   bool _destinationModeActive = false;
   bool _soonReservationReady = false;
   String? _destinationAddress;
