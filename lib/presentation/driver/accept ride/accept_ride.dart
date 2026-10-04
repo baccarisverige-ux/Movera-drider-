@@ -69,6 +69,7 @@ class AcceptRide extends StatefulWidget {
     this.riderRating = 4.9,
     this.riderTrips = 312,
     this.fare = '—',
+    this.paidByCash = false,
     this.category = 'Movera',
     this.matchedVia = 'Demo Radar',
     this.pickupAddress = 'Odlarvägen 22',
@@ -97,6 +98,9 @@ class AcceptRide extends StatefulWidget {
   final double riderRating;
   final int riderTrips;
   final String fare;
+
+  /// Cash in the car; otherwise paid by card. Shown as a logo in the bar.
+  final bool paidByCash;
   final String category;
   final String matchedVia;
   final String pickupAddress;
@@ -166,6 +170,7 @@ class AcceptRide extends StatefulWidget {
       riderRating: snapshot.riderRating ?? 4.9,
       riderTrips: snapshot.riderTrips ?? 312,
       fare: snapshot.fare ?? '—',
+      paidByCash: snapshot.paidByCash,
       category: snapshot.category ?? 'Movera',
       matchedVia: snapshot.matchedVia ?? 'Demo Radar',
       pickupAddress: pickup,
@@ -373,6 +378,7 @@ class _AcceptRideState extends State<AcceptRide>
   late final LiveVehicleAnimator _vehicle;
   BitmapDescriptor _driverVehicleIcon =
       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
+  Map<RouteMarkKind, BitmapDescriptor> _pinIcons = const {};
   final PanelController _ridePanelController = PanelController();
   final ValueNotifier<double> _ridePanelPosition = ValueNotifier<double>(0);
   late final MoveraSnapSheetController _snapSheet;
@@ -709,7 +715,7 @@ class _AcceptRideState extends State<AcceptRide>
         polylineId: const PolylineId('active-road-route'),
         points: _roadRoutePoints,
         width: 6,
-        color: _green,
+        color: RouteMarkPins.ink,
         geodesic: false,
         startCap: Cap.roundCap,
         endCap: Cap.roundCap,
@@ -1110,6 +1116,9 @@ class _AcceptRideState extends State<AcceptRide>
                     dropoffPosition: widget.dropoffPosition,
                     pickupAddress: widget.pickupAddress,
                     dropoffAddress: widget.dropoffAddress,
+                    stopPositions: widget.stopPositions,
+                    stopCursor: _stopCursor,
+                    pinIcons: _pinIcons,
                     polylines: _polylines,
                     padding: MapOverlayInsets.forActiveRide(
                       safeTop: safeTop,
@@ -1265,6 +1274,9 @@ class _ThrottledVehicleMap extends StatefulWidget {
     required this.pickupPosition,
     required this.dropoffPosition,
     required this.pickupAddress,
+    required this.stopPositions,
+    required this.stopCursor,
+    required this.pinIcons,
     required this.dropoffAddress,
     required this.polylines,
     required this.padding,
@@ -1281,6 +1293,9 @@ class _ThrottledVehicleMap extends StatefulWidget {
   final LatLng dropoffPosition;
   final String pickupAddress;
   final String dropoffAddress;
+  final List<LatLng> stopPositions;
+  final int stopCursor;
+  final Map<RouteMarkKind, BitmapDescriptor> pinIcons;
   final Set<Polyline> polylines;
   final EdgeInsets padding;
   final bool blockGestures;
@@ -1337,28 +1352,28 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
         anchor: MoveraVehicleMarker.anchor,
         zIndexInt: 12,
         icon: widget.vehicleIcon,
-        infoWindow: const InfoWindow(title: 'You'),
+        // No default map bubble on the car.
+        consumeTapEvents: true,
       ),
     };
+    Marker pin(String id, LatLng at, RouteMarkKind kind) => Marker(
+          markerId: MarkerId(id),
+          position: at,
+          icon: widget.pinIcons[kind] ?? BitmapDescriptor.defaultMarker,
+          anchor: RouteMarkPins.pinAnchor,
+          zIndexInt: 8,
+          consumeTapEvents: true,
+        );
 
+    // Pins in the colour of what they mark: green pickup, orange stops,
+    // black drop-off.
     if (widget.stage != ActiveRideStage.onTrip) {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('pickup'),
-          position: widget.pickupPosition,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-          infoWindow: InfoWindow(title: widget.pickupAddress),
-        ),
-      );
+      markers.add(pin('pickup', widget.pickupPosition, RouteMarkKind.pickup));
     } else {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('dropoff'),
-          position: widget.dropoffPosition,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          infoWindow: InfoWindow(title: widget.dropoffAddress),
-        ),
-      );
+      for (var i = widget.stopCursor; i < widget.stopPositions.length; i++) {
+        markers.add(pin('stop-$i', widget.stopPositions[i], RouteMarkKind.stop));
+      }
+      markers.add(pin('dropoff', widget.dropoffPosition, RouteMarkKind.dropoff));
     }
 
     return markers;

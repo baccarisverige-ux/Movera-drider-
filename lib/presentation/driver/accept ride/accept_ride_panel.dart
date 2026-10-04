@@ -708,16 +708,15 @@ extension _AcceptRidePanel on _AcceptRideState {
                           ? _waitBarStatus
                           : _soonStatus ?? _tripBarStatus,
                       statusColor: _soonStatus != null ? _AcceptRideState._green : null,
-                      progress: _soonStatus == null ? _legFraction : null,
+                      progress: _legFraction ?? (_soonStatus != null ? 1 : null),
                       nextMark: _nextMarkKind,
                       soonTitle: _soonStatus != null ? 'Almost there' : null,
                       waitFraction: _waitFraction,
                       waitPaidFrom: _AcceptRideState._includedWaitSeconds /
                           _AcceptRideState._noShowWaitSeconds,
                       waitAlert: _waitSeconds >= _AcceptRideState._noShowWaitSeconds,
-                      stopCount: _soonStatus != null || _countingWait
-                          ? 0
-                          : widget.stopAddresses.length,
+                      nextAddress: _approachAddress,
+                      paidByCash: widget.paidByCash,
                       onPreferences: _openRidePreferences,
                       onDetails: _showRideMiddle,
                       onStatusTap: _countingWait ? _openWaitingTime : null,
@@ -748,16 +747,15 @@ extension _AcceptRidePanel on _AcceptRideState {
                           ? _waitBarStatus
                           : _soonStatus ?? _title,
                       statusColor: _soonStatus != null ? _AcceptRideState._green : null,
-                      progress: _soonStatus == null ? _legFraction : null,
+                      progress: _legFraction ?? (_soonStatus != null ? 1 : null),
                       nextMark: _nextMarkKind,
                       soonTitle: _soonStatus != null ? 'Almost there' : null,
                       waitFraction: _waitFraction,
                       waitPaidFrom: _AcceptRideState._includedWaitSeconds /
                           _AcceptRideState._noShowWaitSeconds,
                       waitAlert: _waitSeconds >= _AcceptRideState._noShowWaitSeconds,
-                      stopCount: _soonStatus != null || _countingWait
-                          ? 0
-                          : widget.stopAddresses.length,
+                      nextAddress: _approachAddress,
+                      paidByCash: widget.paidByCash,
                       onPreferences: _openRidePreferences,
                       onDetails: full
                           ? _showRideMiddle

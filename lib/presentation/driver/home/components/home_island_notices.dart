@@ -74,10 +74,9 @@ class HomeIslandNotices {
     group: 'reservation',
   );
 
-  static IslandMessage reservationAccepted(VoidCallback view) => IslandMessage(
+  static const IslandMessage reservationAccepted = IslandMessage(
     title: 'Reservation accepted',
     tone: IslandTone.success,
-    onTap: view,
     group: 'reservation',
   );
 
@@ -87,11 +86,10 @@ class HomeIslandNotices {
     group: 'reservation',
   );
 
-  static IslandMessage recoveryPending(VoidCallback retry) => IslandMessage(
+  static const IslandMessage recoveryPending = IslandMessage(
     title: 'Saved trip open',
     tone: IslandTone.warning,
     priority: IslandPriority.high,
-    onTap: retry,
   );
 
   static const IslandMessage newerTripKept = IslandMessage(
@@ -105,36 +103,32 @@ class HomeIslandNotices {
     tone: IslandTone.warning,
   );
 
-  static IslandMessage recoveryFailed(VoidCallback retry) => IslandMessage(
+  static const IslandMessage recoveryFailed = IslandMessage(
     title: 'Recovery failed',
     tone: IslandTone.alert,
     priority: IslandPriority.high,
-    onTap: retry,
   );
 
-  static IslandMessage savedTripNotClosed(VoidCallback retry) => IslandMessage(
+  static const IslandMessage savedTripNotClosed = IslandMessage(
     title: 'Trip not closed',
     tone: IslandTone.alert,
     priority: IslandPriority.high,
-    onTap: retry,
   );
 
-  static IslandMessage unreadableTripOpen(VoidCallback review) => IslandMessage(
+  static const IslandMessage unreadableTripOpen = IslandMessage(
     title: 'Close saved trip',
     tone: IslandTone.warning,
     priority: IslandPriority.high,
-    onTap: review,
   );
 
-  static IslandMessage unreadableTripNotClosed(VoidCallback retry) =>
-      IslandMessage(
-        title: 'Trip not closed',
-        tone: IslandTone.alert,
-        priority: IslandPriority.high,
-        onTap: retry,
-      );
+  static const IslandMessage unreadableTripNotClosed = IslandMessage(
+    title: 'Trip not closed',
+    tone: IslandTone.alert,
+    priority: IslandPriority.high,
+  );
 
-  /// First launch only.
+  /// First launch only. The one message whose tap does more than close
+  /// it: it shows the earnings, as its words say.
   static IslandMessage earningsHint(VoidCallback show) => IslandMessage(
         title: 'Tap to see earnings',
         priority: IslandPriority.high,

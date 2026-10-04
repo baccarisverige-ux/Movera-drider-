@@ -20,6 +20,7 @@ extension _AcceptRideTrip on _AcceptRideState {
         riderRating: widget.riderRating,
         riderTrips: widget.riderTrips,
         fare: widget.fare,
+        paidByCash: widget.paidByCash,
         category: widget.category,
         matchedVia: widget.matchedVia,
         pickupAddress: widget.pickupAddress,
@@ -469,8 +470,14 @@ extension _AcceptRideTrip on _AcceptRideState {
     }
     Future<void> _prepareDriverVehicleMarker() async {
       final icon = await MoveraVehicleMarker.createIcon();
+      final pins = {
+        for (final kind in RouteMarkKind.values) kind: await RouteMarkPins.pin(kind),
+      };
       if (!mounted) { return; }
-      _rebuild(() => _driverVehicleIcon = icon);
+      _rebuild(() {
+        _driverVehicleIcon = icon;
+        _pinIcons = pins;
+      });
     }
     Future<void> _startLiveLocation() async {
       final epoch = ++_locationEpoch;

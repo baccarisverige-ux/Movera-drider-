@@ -128,7 +128,6 @@ class DriverSheetNav {
                               ),
                               tooltip: 'Scheduled',
                               onTap: onOpenScheduledRides,
-                              hasAlert: hasScheduledRideOffers,
                               pulse: goOnlinePulseController.value,
                               iconColor: iconTint,
                               animateAlertIndicator: false,
@@ -221,7 +220,6 @@ class DriverSheetNav {
                 ),
                 tooltip: 'Scheduled',
                 onTap: onOpenScheduledRides,
-                hasAlert: hasScheduledRideOffers,
                 pulse: goOnlinePulseController.value,
                 animateAlertIndicator: false,
               );
@@ -447,8 +445,11 @@ class _ScheduledRideIcon extends StatelessWidget {
       height: 31,
       child: Transform.scale(
         scale: scale,
+        // The icon carries its own green dot for new reservations.
         child: Image.asset(
-          AppAssets.navScheduledRide,
+          animateClock
+              ? AppAssets.navScheduledRideAlert
+              : AppAssets.navScheduledRide,
           fit: BoxFit.contain,
           filterQuality: FilterQuality.medium,
         ),

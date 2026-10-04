@@ -102,7 +102,7 @@ class DriverSideMenu extends StatelessWidget {
                   _menuCard(
                     children: [
                       _MenuAction(
-                        asset: AppAssets.menuCalendar,
+                        asset: AppAssets.menuScheduledRide,
                         highlight: true,
                         title: 'Scheduled rides',
                         subtitle: 'Reservations and accepted trips',
@@ -382,14 +382,21 @@ class DriverSideMenu extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
-                          child: SvgPicture.asset(
-                            action.asset,
-                            width: 19,
-                            height: 19,
-                            colorFilter: const ColorFilter.mode(
-                              Colors.white,
-                              BlendMode.srcIn,
-                            ),
+                          child: action.asset.endsWith('.png')
+                              ? Image.asset(
+                                  action.asset,
+                                  width: 21,
+                                  height: 21,
+                                  color: Colors.white,
+                                )
+                              : SvgPicture.asset(
+                                action.asset,
+                                width: 19,
+                                height: 19,
+                                colorFilter: const ColorFilter.mode(
+                                  Colors.white,
+                                  BlendMode.srcIn,
+                                ),
                           ),
                         ),
                       )

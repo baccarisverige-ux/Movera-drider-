@@ -15,6 +15,9 @@ class AppAssets {
   static const String navCreditCard = 'assets/icons/nav_credit_card.svg';
   static const String navMessagesSquare = 'assets/icons/nav_messages_square.svg';
   static const String navScheduledRide = 'assets/icons/nav_scheduled_ride.png';
+  static const String navScheduledRideAlert =
+      'assets/icons/nav_scheduled_ride_alert.png';
+  static const String menuScheduledRide = 'assets/icons/menu_scheduled_ride.png';
   // Ride preference line icons
   static const String rideMovera = 'assets/icons/ride_movera.svg';
   static const String rideComfort = 'assets/icons/ride_comfort.svg';
@@ -36,7 +39,6 @@ class AppAssets {
   static const String menuProfile = 'assets/icons/menu_profile.svg';
   static const String menuWallet = 'assets/icons/menu_wallet.svg';
   static const String menuHistory = 'assets/icons/menu_history.svg';
-  static const String menuCalendar = 'assets/icons/menu_calendar.svg';
   static const String menuTag = 'assets/icons/menu_tag.svg';
   static const String menuTimer = 'assets/icons/menu_timer.svg';
   static const String menuSupport = 'assets/icons/menu_support.svg';

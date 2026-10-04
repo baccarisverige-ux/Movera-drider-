@@ -963,8 +963,7 @@ extension _HomeMapSheet on _DriverHomeState {
       // size for short words, a little longer for longer ones. 14 + 14 for the
       // tucked sides, 2 for the border and some air on both ends.
       final width = message != null
-          ? (DigitalMessageFace.widthFor(context, message.title,
-                        tappable: message.onTap != null) +
+          ? (DigitalMessageFace.widthFor(context, message.title) +
                     14 + 14 + 2 + 36)
                 .clamp(math.min(244.0, maxWidth), maxWidth)
                 .toDouble()
@@ -1218,7 +1217,6 @@ extension _HomeMapSheet on _DriverHomeState {
         color: color,
         icon: icon,
         pulse: message.live,
-        tappable: message.onTap != null,
       );
     }
     /// A posted message: show it now if the screen is free, or replace an
@@ -1255,7 +1253,20 @@ extension _HomeMapSheet on _DriverHomeState {
       _rebuild(() => _islandMessage = null);
       _showNextIslandMessage();
     }
-    /// Tapping a message runs its action, if any, and clears it.
+    /// A saved-trip problem: a heads-up on the island and a sheet that
+    /// stays until the driver acts, since a tap only closes the island.
+    void _tripProblem(IslandMessage notice, String message,
+        {String action = 'Retry'}) {
+      IslandMessages.show(notice);
+      unawaited(showTripProblemSheet(
+        context,
+        title: notice.title,
+        message: message,
+        actionLabel: action,
+        onAction: () => unawaited(_restoreActiveRideIfNeeded()),
+      ));
+    }
+    /// Tapping a message closes it; only the first-launch hint also acts.
     void _onIslandMessageTap(IslandMessage message) {
       _endIslandMessage();
       message.onTap?.call();
