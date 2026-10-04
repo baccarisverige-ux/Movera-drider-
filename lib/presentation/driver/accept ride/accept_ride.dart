@@ -386,7 +386,12 @@ class _AcceptRideState extends State<AcceptRide>
   final GlobalKey<ScaffoldState> _rideScaffoldKey = GlobalKey<ScaffoldState>();
   // Browsing the map by hand: the sheet steps aside, recenter pulses.
   bool _browsing = false;
-  Timer? _browseIdle;
+  // Last time a finger or wheel touched the map: only that is browsing.
+  DateTime? _lastMapTouch;
+  // Last two-finger touch or wheel on the map: a zoom, which hides the sheet.
+  DateTime? _lastMapZoom;
+  DateTime? _browseQuietUntil;
+  int _mapPointers = 0;
   double _browseReturnPos = 0;
   late final AnimationController _browse = AnimationController(
     vsync: this,
@@ -566,7 +571,6 @@ class _AcceptRideState extends State<AcceptRide>
 
   @override
   void dispose() {
-    _browseIdle?.cancel();
     _browse.dispose();
     _browsePulse.dispose();
     _locationEpoch++;
@@ -1146,6 +1150,19 @@ class _AcceptRideState extends State<AcceptRide>
               children: [
                 AbsorbPointer(
                   absorbing: _blockMapGestures,
+                  child: Listener(
+                  onPointerDown: (_) {
+                    _mapPointers++;
+                    _lastMapTouch = DateTime.now();
+                    if (_mapPointers >= 2) { _lastMapZoom = _lastMapTouch; }
+                  },
+                  onPointerMove: (_) {
+                    _lastMapTouch = DateTime.now();
+                    if (_mapPointers >= 2) { _lastMapZoom = _lastMapTouch; }
+                  },
+                  onPointerUp: (_) { _mapPointers = math.max(0, _mapPointers - 1); _lastMapTouch = DateTime.now(); },
+                  onPointerCancel: (_) => _mapPointers = math.max(0, _mapPointers - 1),
+                  onPointerSignal: (_) => _lastMapTouch = _lastMapZoom = DateTime.now(),
                   child: _ThrottledVehicleMap(
                     key: const ValueKey<String>('active-ride-throttled-map'),
                     vehicle: _vehicle,
@@ -1174,6 +1191,7 @@ class _AcceptRideState extends State<AcceptRide>
                         if (mounted) { unawaited(_AcceptRideTrip(this)._fitRoute()); }
                       });
                     },
+                  ),
                   ),
                 ),
                 Positioned(
