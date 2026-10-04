@@ -408,7 +408,7 @@ void main() {
     // Exclusive Radar offer uses its own exclusive surface.
     await tester.pump(const Duration(milliseconds: 2300));
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Exclusive offer for you'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
     expect(find.textContaining('Radar offers · '), findsNothing);
     _expectNoException(tester);
 
@@ -417,7 +417,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
 
     expect(find.text('Radar offers · 1'), findsOneWidget);
-    expect(find.text('Exclusive offer for you'), findsNothing);
+    expect(find.text('Exclusive offer for you · nearby'), findsNothing);
     expect(find.text('Trip found'), findsOneWidget);
     expect(find.text('NEW'), findsOneWidget);
     _expectNoException(tester);
@@ -1045,7 +1045,7 @@ void main() {
     // Advance beyond the first direct-offer timer. Nothing may appear offline.
     await tester.pump(const Duration(milliseconds: 4200));
     expect(find.text('104,80 kr'), findsNothing);
-    expect(find.text('Exclusive offer for you'), findsNothing);
+    expect(find.text('Exclusive offer for you · nearby'), findsNothing);
     expect(find.text('OFF'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -1070,7 +1070,7 @@ void main() {
     }
 
     expect(find.text('104,80 kr'), findsNothing);
-    expect(find.text('Exclusive offer for you'), findsNothing);
+    expect(find.text('Exclusive offer for you · nearby'), findsNothing);
     expect(find.text('LIVE'), findsOneWidget);
     _expectNoException(tester);
   });
@@ -1197,7 +1197,7 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Exclusive offer for you'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('trip-radar-touch-target')),
       findsNothing,
@@ -1330,7 +1330,7 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Exclusive offer for you'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
     expect(safetyPosition().bottom, 138);
     _expectNoException(tester);
   });
@@ -1422,13 +1422,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Exclusive offer for you'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
 
-    final route = tester.widget<InkWell>(
+    final route = tester.widget<TextButton>(
       find.byKey(const ValueKey<String>('direct-offer-route')),
     );
-    expect(route.onTap, isNotNull);
-    route.onTap!.call();
+    expect(route.onPressed, isNotNull);
+    route.onPressed!.call();
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.text('104,80 kr'), findsOneWidget);
     _expectNoException(tester);
@@ -2017,9 +2017,12 @@ void main() {
     await tester.tap(find.text('OFF'));
     await tester.pump(const Duration(milliseconds: 3800));
 
-    expect(find.text('Exclusive offer for you'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
     expect(find.textContaining(RegExp(r'^\d+s$')), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('direct-offer-countdown-fill')),
+      findsOneWidget,
+    );
     _expectNoException(tester);
   });
 
@@ -2033,7 +2036,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3800));
 
     expect(find.text('104,80 kr'), findsOneWidget);
-    expect(find.text('Exclusive offer for you'), findsOneWidget);
+    expect(find.text('Exclusive offer for you · nearby'), findsOneWidget);
     _expectNoException(tester);
   });
 

@@ -1046,8 +1046,37 @@ extension _HomeOfferRadar on _DriverHomeState {
         ],
       );
     }
+    Widget _offerChip(String label, IconData icon, {Color? bg, Color? fg}) {
+      final foreground = fg ?? Colors.white;
+      return Container(
+        padding: const EdgeInsets.fromLTRB(7, 4, 9, 4),
+        decoration: BoxDecoration(
+          color: bg ?? _offerInk,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: foreground),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     Widget _buildOutsideRadarOfferCard(_HomeDirectOffer offer) {
-      const alertCoral = Color(0xFFFF765C);
       final reservation = offer.reservation && !offer.driverSigned;
       final lifetime = _DriverHomeState._outsideOfferLifetime;
 
@@ -1058,127 +1087,96 @@ extension _HomeOfferRadar on _DriverHomeState {
         borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          reservation
-                              ? 'Reservation outside Radar'
-                              : 'Exclusive offer for you',
-                          style: const TextStyle(
-                            color: Color(0xFFC2462F),
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          offer.fare,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _offerInk,
-                            fontSize: 30,
-                            height: 1.1,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                offer.category,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: _offerMuted,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                            const Text(
-                              '  ·  ',
-                              style: TextStyle(color: _offerMuted, fontSize: 13),
-                            ),
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 15,
-                              color: Color(0xFFD7A02C),
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              offer.rating,
-                              style: const TextStyle(
-                                color: _offerMuted,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (_destinationModeActive) ...[
-                          const SizedBox(height: 8),
-                          _homeBadge('On your way'),
-                        ],
-                      ],
+                  Flexible(
+                    child: _offerChip(offer.category, Icons.person_rounded),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: _offerChip(
+                      reservation ? 'Reservation' : 'Exclusive',
+                      reservation ? Icons.event_rounded : Icons.bolt_rounded,
+                      bg: const Color(0xFFFFEDE8),
+                      fg: const Color(0xFFC2462F),
                     ),
                   ),
-                  TweenAnimationBuilder<double>(
-                    key: ValueKey<String>('direct-offer-countdown-${offer.id}'),
-                    tween: Tween<double>(begin: 1, end: 0),
-                    duration: lifetime,
-                    builder: (context, remaining, child) {
-                      final seconds =
-                          (remaining * lifetime.inMilliseconds / 1000).ceil();
-                      return SizedBox(
-                        width: 52,
-                        height: 52,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CircularProgressIndicator(
-                              value: remaining,
-                              strokeWidth: 3,
-                              strokeCap: StrokeCap.round,
-                              backgroundColor: _offerLine,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                alertCoral,
-                              ),
-                            ),
-                            Center(
-                              child: Text(
-                                '${seconds}s',
-                                style: const TextStyle(
-                                  color: _offerInk,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
+                  if (_destinationModeActive) ...[
+                    const SizedBox(width: 6),
+                    _homeBadge('On your way'),
+                  ],
+                  const SizedBox(width: 8),
+                  const Spacer(),
+                  Tooltip(
+                    message: 'Hide offer',
+                    child: InkWell(
+                      onTap: _dismissOutsideRadarOffer,
+                      customBorder: const CircleBorder(),
+                      child: const SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 22,
+                          color: _offerMuted,
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Text(
+                      offer.fare,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _offerInk,
+                        fontSize: 30,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 17,
+                    color: Color(0xFFD7A02C),
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    offer.rating,
+                    style: const TextStyle(
+                      color: _offerMuted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                reservation
+                    ? 'Reservation outside your Radar'
+                    : 'Exclusive offer for you · nearby',
+                style: const TextStyle(color: _offerMuted, fontSize: 13),
+              ),
               const SizedBox(height: 14),
-              InkWell(
-                key: const ValueKey<String>('direct-offer-route'),
-                borderRadius: BorderRadius.circular(10),
-                onTap: () => _previewDirectOfferRoute(
-                  offer.pickupPosition,
-                  offer.dropoffPosition,
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _offerLine, width: 1.5),
                 ),
                 child: Column(
                   children: [
@@ -1200,26 +1198,32 @@ extension _HomeOfferRadar on _DriverHomeState {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
                     child: SizedBox(
                       height: 50,
-                      child: FilledButton(
-                        key: const ValueKey<String>('direct-offer-decline'),
-                        onPressed: _dismissOutsideRadarOffer,
-                        style: FilledButton.styleFrom(
-                          elevation: 0,
-                          backgroundColor: _offerSoft,
+                      child: TextButton.icon(
+                        key: const ValueKey<String>('direct-offer-route'),
+                        onPressed: () => _previewDirectOfferRoute(
+                          offer.pickupPosition,
+                          offer.dropoffPosition,
+                        ),
+                        icon: const Icon(Icons.alt_route_rounded, size: 19),
+                        label: const Text(
+                          'Route',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
                           foregroundColor: _offerInk,
+                          backgroundColor: _offerSoft,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                        child: const Text(
-                          'Decline',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
@@ -1235,13 +1239,68 @@ extension _HomeOfferRadar on _DriverHomeState {
                           elevation: 0,
                           backgroundColor: _offerInk,
                           foregroundColor: Colors.white,
+                          padding: EdgeInsets.zero,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Accept',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        // The time left drains as a lighter band inside
+                        // the button, with the seconds next to "Accept".
+                        child: TweenAnimationBuilder<double>(
+                          key: ValueKey<String>(
+                            'direct-offer-countdown-${offer.id}',
+                          ),
+                          tween: Tween<double>(begin: 1, end: 0),
+                          duration: lifetime,
+                          builder: (context, remaining, child) {
+                            final seconds =
+                                (remaining * lifetime.inMilliseconds / 1000)
+                                    .ceil();
+                            return Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                FractionallySizedBox(
+                                  key: const ValueKey<String>(
+                                    'direct-offer-countdown-fill',
+                                  ),
+                                  alignment: Alignment.centerLeft,
+                                  widthFactor: remaining,
+                                  child: const ColoredBox(
+                                    color: Color(0xFF2C3438),
+                                  ),
+                                ),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Accept',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const Text(
+                                        ' · ',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                      Text(
+                                        '${seconds}s',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          fontFeatures: [
+                                            FontFeature.tabularFigures(),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -1253,6 +1312,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         ),
       );
     }
+
     Widget _homeBadge(String label) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
