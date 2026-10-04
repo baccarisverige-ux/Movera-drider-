@@ -1,0 +1,141 @@
+import 'package:flutter/foundation.dart';
+import 'package:movera/presentation/driver/home/components/island_messages.dart';
+
+/// What the island says, in one place. Kept to the essential words so the
+/// island stays about its normal size: same or a little longer.
+class HomeIslandNotices {
+  const HomeIslandNotices._();
+
+  static const IslandMessage online = IslandMessage(
+    title: 'Radar online',
+    tone: IslandTone.success,
+    priority: IslandPriority.low,
+    live: true,
+    group: 'online',
+  );
+
+  static const IslandMessage offline = IslandMessage(
+    title: 'Radar offline',
+    priority: IslandPriority.low,
+    group: 'online',
+  );
+
+  static const IslandMessage riderCancelled = IslandMessage(
+    title: 'Rider cancelled',
+    tone: IslandTone.alert,
+    priority: IslandPriority.high,
+  );
+
+  static const IslandMessage riderEndedTrip = IslandMessage(
+    title: 'Rider ended trip',
+    tone: IslandTone.alert,
+    priority: IslandPriority.high,
+  );
+
+  static const IslandMessage matching = IslandMessage(
+    title: 'Matching…',
+    priority: IslandPriority.low,
+    group: 'radar-match',
+  );
+
+  static const IslandMessage matched = IslandMessage(
+    title: 'Trip matched',
+    tone: IslandTone.success,
+    priority: IslandPriority.low,
+    group: 'radar-match',
+  );
+
+  static const IslandMessage takenByOther = IslandMessage(
+    title: 'Taken by another driver',
+    tone: IslandTone.warning,
+    group: 'radar-match',
+  );
+
+  static const IslandMessage tripUnavailable = IslandMessage(
+    title: 'Trip unavailable',
+    tone: IslandTone.warning,
+    group: 'radar-match',
+  );
+
+  static const IslandMessage noConnection = IslandMessage(
+    title: 'No connection',
+    tone: IslandTone.warning,
+    group: 'radar-match',
+  );
+
+  static const IslandMessage accountOnHold = IslandMessage(
+    title: 'Contact support',
+    tone: IslandTone.alert,
+    priority: IslandPriority.high,
+  );
+
+  static const IslandMessage newReservation = IslandMessage(
+    title: 'New reservation',
+    group: 'reservation',
+  );
+
+  static IslandMessage reservationAccepted(VoidCallback view) => IslandMessage(
+    title: 'Reservation accepted',
+    tone: IslandTone.success,
+    onTap: view,
+    group: 'reservation',
+  );
+
+  static const IslandMessage reservationDeclined = IslandMessage(
+    title: 'Reservation declined',
+    priority: IslandPriority.low,
+    group: 'reservation',
+  );
+
+  static IslandMessage recoveryPending(VoidCallback retry) => IslandMessage(
+    title: 'Saved trip open',
+    tone: IslandTone.warning,
+    priority: IslandPriority.high,
+    onTap: retry,
+  );
+
+  static const IslandMessage newerTripKept = IslandMessage(
+    title: 'Newer trip kept',
+    tone: IslandTone.warning,
+    priority: IslandPriority.high,
+  );
+
+  static const IslandMessage recordSetAside = IslandMessage(
+    title: 'Trip record set aside',
+    tone: IslandTone.warning,
+  );
+
+  static IslandMessage recoveryFailed(VoidCallback retry) => IslandMessage(
+    title: 'Recovery failed',
+    tone: IslandTone.alert,
+    priority: IslandPriority.high,
+    onTap: retry,
+  );
+
+  static IslandMessage savedTripNotClosed(VoidCallback retry) => IslandMessage(
+    title: 'Trip not closed',
+    tone: IslandTone.alert,
+    priority: IslandPriority.high,
+    onTap: retry,
+  );
+
+  static IslandMessage unreadableTripOpen(VoidCallback review) => IslandMessage(
+    title: 'Close saved trip',
+    tone: IslandTone.warning,
+    priority: IslandPriority.high,
+    onTap: review,
+  );
+
+  static IslandMessage unreadableTripNotClosed(VoidCallback retry) =>
+      IslandMessage(
+        title: 'Trip not closed',
+        tone: IslandTone.alert,
+        priority: IslandPriority.high,
+        onTap: retry,
+      );
+
+  static const IslandMessage updateUnavailable = IslandMessage(
+    title: 'Update unavailable',
+    tone: IslandTone.warning,
+  );
+}

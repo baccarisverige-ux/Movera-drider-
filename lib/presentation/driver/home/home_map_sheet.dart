@@ -7,18 +7,20 @@ part of 'home.dart';
 /// top island.
 const double _homeMapButtonSize = 48;
 // White island, same family as the reservation popup and the Home sheet.
-const Color _islandBg = Color(0xFFFFFFFF);
 const Color _islandFg = Color(0xFF111614);
 const Color _islandMuted = Color(0xFF5E6461);
-const Color _islandLine = Color(0xFFE4E6E5);
-const Color _islandChip = Color(0xFFEDEEED);
-const Color _islandDivider = Color(0xFFE2E5E7);
 const Color _islandShadow = Color(0x38172027);
-const Color _islandButtonBg = Color(0xFF111614);
-const Color _islandButtonFg = Color(0xFFFFFFFF);
-const Color _islandAccent = Color(0xFF1FA463);
 
 // Sample figures until earnings come from the backend.
+/// Faces of the top island's screen, in tap order.
+enum _IslandFace { hidden, lastTrip, today, history }
+
+const Duration _islandIdleTimeout = Duration(seconds: 5);
+
+/// How long a just-finished trip's money counts as still updating. The
+/// demo has no earnings service; a real one would confirm the amount.
+const Duration _lastTripSettleTime = Duration(seconds: 4);
+
 const String _todayEarnings = '183.25 kr';
 const String _lastTripFare = '126 kr';
 
@@ -246,7 +248,7 @@ extension _HomeMapSheet on _DriverHomeState {
       final insets = MapOverlayInsets.forHome(
         safeTop: media.padding.top,
         obscuredBottom: _homeMapObscuredBottom(context),
-        hasTopBanner: _homeRadarMatchNotice != null,
+        hasTopBanner: false,
       );
 
       if (roadPoints.length >= 2) {
@@ -646,7 +648,7 @@ extension _HomeMapSheet on _DriverHomeState {
               padding: MapOverlayInsets.forHome(
                 safeTop: MediaQuery.paddingOf(context).top,
                 obscuredBottom: _homeMapObscuredBottom(context),
-                hasTopBanner: _homeRadarMatchNotice != null,
+                hasTopBanner: false,
               ).edgeInsets,
               onMapCreated: (GoogleMapController controller) {
                 _mapController = controller;
@@ -916,36 +918,18 @@ extension _HomeMapSheet on _DriverHomeState {
                 child: _HomeOfferRadar(this)._buildRadarOffersTray(),
               ),
             if (!isDestinationPanel) ...[
-              if (_showTodaySummaryPopup)
-                Positioned.fill(
-                  child: GestureDetector(
-                    key: const ValueKey<String>('today-summary-scrim'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _hideTodaySummary,
-                    child: ColoredBox(
-                      color: const Color(0xFF172027).withValues(alpha: 0.22),
-                    ),
-                  ),
-                ),
+              // As high as the phone allows: tucked just under the clock
+              // and notch (the safe area keeps a few spare pixels below).
               Positioned(
                 left: 0,
                 right: 0,
-                top: ResSize.h * 55,
+                top: math.max(MediaQuery.paddingOf(context).top - 4, 10.0),
                 child: Align(
                   alignment: Alignment.topCenter,
-                  child: PointerInterceptor(
-                    child: _buildTopIsland(viewportWidth),
-                  ),
+                  child: _buildTopIsland(viewportWidth),
                 ),
               ),
             ],
-            if (!isDestinationPanel && _homeRadarMatchNotice != null)
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                child: _HomeOfferRadar(this)._buildHomeRadarMatchNotice(_homeRadarMatchNotice!),
-              ),
 
           ],
         ),
@@ -954,180 +938,352 @@ extension _HomeMapSheet on _DriverHomeState {
     /// White island at the top of Home: menu, today's earnings and
     /// destination search. The earnings are hidden until tapped; a second
     /// tap grows the island into the full Today details.
+    /// Black island drawn like a small live screen: the blue arrow opens
+    /// Destination, the middle cycles through the money faces, the menu
+    /// sits on the right.
     Widget _buildTopIsland(double viewportWidth) {
-      final expanded = _showTodaySummaryPopup;
-      Widget divider() => Container(
-            width: 1,
-            height: 20,
-            color: _islandDivider,
-          );
-      return AnimatedContainer(
-        duration: const Duration(milliseconds: 340),
-        curve: Curves.easeOutCubic,
-        width: expanded ? math.min(viewportWidth - 32, 340.0) : 252,
-        decoration: BoxDecoration(
-          color: _islandBg,
-          borderRadius: BorderRadius.circular(_homeMapButtonSize / 2),
-          boxShadow: [
-            BoxShadow(
-              color: _islandShadow,
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+      const height = 56.0;
+      // At launch the island is small (arrow and menu), then grows; a
+      // message widens it and moves the arrow and menu aside.
+      final message = _islandMessage;
+      final maxWidth = viewportWidth - 32;
+      // A message sizes the island to its words (never taller): the normal
+      // size for short words, a little longer for longer ones. 14 + 14 for the
+      // tucked sides, 2 for the border and some air on both ends.
+      final width = message != null
+          ? (DigitalMessageFace.widthFor(context, message.title,
+                        tappable: message.onTap != null) +
+                    14 + 14 + 2 + 36)
+                .clamp(math.min(244.0, maxWidth), maxWidth)
+                .toDouble()
+          : _islandWake >= 1
+              ? math.min(maxWidth, 244.0)
+              : 112.0;
+      Widget side(Widget button) => AnimatedContainer(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutCubic,
+            width: message == null ? 54 : 14,
+            child: ClipRect(
+              child: OverflowBox(
+                minWidth: 54,
+                maxWidth: 54,
+                child: IgnorePointer(
+                  ignoring: message != null,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: message == null ? 1 : 0,
+                    child: button,
+                  ),
+                ),
+              ),
             ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Material(
-          type: MaterialType.transparency,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          );
+      return PointerInterceptor(
+        child: DigitalIslandShell(
+          width: width,
+          height: height,
+          // Every size change, out and back, glides with a soft spring.
+          duration: const Duration(milliseconds: 680),
+          curve: Curves.easeOutBack,
+          child: Row(
             children: [
-              SizedBox(
-                height: _homeMapButtonSize,
-                child: Row(
-                  children: [
-                    Builder(
-                      builder: (context) => Tooltip(
-                        message: 'Menu',
-                        child: InkWell(
-                          onTap: () => Scaffold.of(context).openDrawer(),
-                          child: const SizedBox(
-                            width: 50,
-                            height: _homeMapButtonSize,
-                            child: Icon(
-                              Icons.menu_open_rounded,
-                              size: 22,
-                              color: _islandFg,
-                            ),
-                          ),
-                        ),
+              side(Tooltip(
+                message: 'Search destination',
+                child: InkWell(
+                  key: const ValueKey<String>('destination-mode-open'),
+                  onTap: _openDestinationModePicker,
+                  child: const SizedBox(
+                    width: 54,
+                    height: height,
+                    child: Icon(
+                      Icons.navigation_rounded,
+                      size: 24,
+                      color: Color(0xFF3B8BFF),
+                      shadows: [
+                        Shadow(color: Color(0x803B8BFF), blurRadius: 10),
+                      ],
+                    ),
+                  ),
+                ),
+              )),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragEnd: (details) {
+                    if (_islandFace == _IslandFace.history &&
+                        (details.primaryVelocity ?? 0).abs() > 80) {
+                      _openRideHistoryFromIsland();
+                    }
+                  },
+                  child: InkWell(
+                    key: const ValueKey<String>('last-trip-launcher'),
+                    onTap: message != null
+                        ? () => _onIslandMessageTap(message)
+                        : _onIslandEarningsTap,
+                    child: SizedBox(
+                      height: height,
+                      child: DigitalFaceSwitcher(
+                        child: message != null
+                            ? _islandMessageView(message)
+                            : _islandWake >= 2
+                                ? _islandFaceView()
+                                : const SizedBox(
+                                    key: ValueKey<String>('island-asleep'),
+                                  ),
                       ),
                     ),
-                    divider(),
-                    Expanded(
-                      child: InkWell(
-                        key: const ValueKey<String>('last-trip-launcher'),
-                        onTap: _onIslandEarningsTap,
-                        child: SizedBox(
-                          height: _homeMapButtonSize,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            child: _islandEarningsLabel(),
-                          ),
-                        ),
-                      ),
-                    ),
-                    divider(),
-                    Tooltip(
-                      message: 'Search destination',
-                      child: InkWell(
-                        key: const ValueKey<String>('destination-mode-open'),
-                        onTap: _openDestinationModePicker,
-                        child: SizedBox(
-                          width: 50,
-                          height: _homeMapButtonSize,
-                          child: Center(
-                            child: Image.asset(
-                              AppAssets.search,
-                              height: 17,
-                              color: _islandFg,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-              IgnorePointer(
-                key: const ValueKey<String>('today-summary-pointer'),
-                ignoring: !expanded,
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 340),
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.topCenter,
-                  child: expanded
-                      ? _buildTodaySummaryPopup()
-                      : const SizedBox(width: double.infinity),
+              side(Builder(
+                builder: (context) => Tooltip(
+                  message: 'Menu',
+                  child: InkWell(
+                    onTap: () => Scaffold.of(context).openDrawer(),
+                    child: const SizedBox(
+                      width: 54,
+                      height: height,
+                      child: Icon(
+                        Icons.menu_open_rounded,
+                        size: 24,
+                        color: Colors.white,
+                        shadows: DigitalIslandShell.glow,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              )),
             ],
           ),
         ),
       );
     }
-    Widget _islandEarningsLabel() {
-      const muted = _islandMuted;
-      const accent = _islandAccent;
-      if (_showTodaySummaryPopup) {
-        return const Row(
-          key: ValueKey<String>('island-today'),
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-              child: Text(
-                'Today',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: _islandFg,
-                  fontSize: 14.5,
+    Widget _islandFaceView() {
+      // Faces shrink to fit rather than overflow on narrow phones.
+      Widget fit(Widget child) => FittedBox(fit: BoxFit.scaleDown, child: child);
+      Widget twoLines(String key, String label, String value) => Column(
+            key: ValueKey<String>(key),
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF9AA4AA),
+                  fontSize: 9.5,
                   fontWeight: FontWeight.w700,
+                  letterSpacing: 1.6,
                 ),
               ),
-            ),
-            SizedBox(width: 4),
-            Icon(Icons.keyboard_arrow_up_rounded, size: 20, color: muted),
-          ],
-        );
-      }
-      if (_islandShowsLastTrip) {
-        return const Row(
-          key: ValueKey<String>('island-last-trip'),
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Last trip  ',
-                      style: TextStyle(color: muted, fontWeight: FontWeight.w500),
-                    ),
-                    TextSpan(
-                      text: _lastTripFare,
-                      style: TextStyle(color: _islandFg, fontWeight: FontWeight.w700),
-                    ),
-                  ],
+              const SizedBox(height: 2),
+              fit(
+                Text(
+                  value,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                    shadows: DigitalIslandShell.glow,
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14.5),
               ),
-            ),
-          ],
-        );
-      }
-      return const Row(
-        key: ValueKey<String>('island-hidden'),
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.history_rounded, size: 19, color: accent),
-          SizedBox(width: 8),
-          Flexible(
-            child: Text(
+            ],
+          );
+      switch (_islandFace) {
+        case _IslandFace.hidden:
+          return Center(
+            key: const ValueKey<String>('island-hidden'),
+            child: fit(const Text(
               '•••• kr',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: _islandFg,
-                fontSize: 14.5,
+                color: Colors.white,
+                fontSize: 17,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 1,
+                letterSpacing: 1.5,
+                shadows: DigitalIslandShell.glow,
               ),
-            ),
-          ),
-        ],
+            )),
+          );
+        case _IslandFace.lastTrip:
+          if (_lastTripSettling) {
+            return const DigitalUpdatingFace(
+              key: ValueKey<String>('island-updating'),
+            );
+          }
+          return twoLines('island-last-trip', 'LAST TRIP', _lastTripFareLabel);
+        case _IslandFace.today:
+          return twoLines('island-today', 'TODAY', _todayEarnings);
+        case _IslandFace.history:
+          return Column(
+            key: const ValueKey<String>('island-history'),
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'SLIDE TO OPEN',
+                style: TextStyle(
+                  color: Color(0xFF9AA4AA),
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.6,
+                ),
+              ),
+              const SizedBox(height: 2),
+              fit(const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Ride history',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      shadows: DigitalIslandShell.glow,
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_double_arrow_right_rounded,
+                    size: 18,
+                    color: Color(0xFF3B8BFF),
+                  ),
+                ],
+              )),
+            ],
+          );
+      }
+    }
+    Widget _islandMessageView(IslandMessage message) {
+      final (color, icon) = switch (message.tone) {
+        IslandTone.success => (const Color(0xFF2BD47D), Icons.check_rounded),
+        IslandTone.info => (const Color(0xFF4C97FF), Icons.info_outline_rounded),
+        IslandTone.warning =>
+          (const Color(0xFFFFB020), Icons.priority_high_rounded),
+        IslandTone.alert => (const Color(0xFFFF5A4E), Icons.close_rounded),
+      };
+      return DigitalMessageFace(
+        key: ValueKey<String>('island-message-$_islandMessageSeq'),
+        title: message.title,
+        color: color,
+        icon: icon,
+        pulse: message.live,
+        tappable: message.onTap != null,
+      );
+    }
+    /// A posted message: show it now if the screen is free, or replace an
+    /// outdated one of the same group.
+    void _onIslandMessagesChanged() {
+      if (!mounted) { return; }
+      final current = _islandMessage;
+      final next = IslandMessages.peek();
+      if (current != null &&
+          next != null &&
+          current.group != null &&
+          current.group == next.group) {
+        _islandMessageTimer?.cancel();
+        _islandMessage = null;
+      }
+      _showNextIslandMessage();
+    }
+    void _showNextIslandMessage() {
+      if (!mounted || _islandMessage != null) { return; }
+      final next = IslandMessages.take();
+      if (next == null) { return; }
+      _islandWakeTimer?.cancel();
+      _rebuild(() {
+        _islandWake = 2;
+        _islandMessage = next;
+        _islandMessageSeq++;
+      });
+      _islandMessageTimer?.cancel();
+      _islandMessageTimer = Timer(next.priority.duration, _endIslandMessage);
+    }
+    void _endIslandMessage() {
+      _islandMessageTimer?.cancel();
+      if (!mounted) { return; }
+      _rebuild(() => _islandMessage = null);
+      _showNextIslandMessage();
+    }
+    /// Tapping a message runs its action, if any, and clears it.
+    void _onIslandMessageTap(IslandMessage message) {
+      _endIslandMessage();
+      message.onTap?.call();
+    }
+    /// Hidden total → last trip → today's total → Ride history → hidden.
+    /// Left untouched for 5 s, the island goes back to the hidden total.
+    void _onIslandEarningsTap() {
+      if (_islandWake < 2) {
+        // A tap during the launch animation just finishes it.
+        _islandWakeTimer?.cancel();
+        _rebuild(() => _islandWake = 2);
+        return;
+      }
+      _rebuild(() {
+        _islandFace = _IslandFace
+            .values[(_islandFace.index + 1) % _IslandFace.values.length];
+      });
+      _restartIslandIdle();
+    }
+    void _restartIslandIdle() {
+      _islandIdleTimer?.cancel();
+      if (_islandFace == _IslandFace.hidden) { return; }
+      _islandIdleTimer = Timer(_islandIdleTimeout, () {
+        if (!mounted || _islandFace == _IslandFace.hidden) { return; }
+        _rebuild(() => _islandFace = _IslandFace.hidden);
+      });
+    }
+    /// Launch: small island, it grows after a beat, then its screen turns on.
+    void _startIslandWake() {
+      _islandWakeTimer = Timer(const Duration(milliseconds: 900), () {
+        if (!mounted) { return; }
+        _rebuild(() => _islandWake = 1);
+        _islandWakeTimer = Timer(const Duration(milliseconds: 560), () {
+          if (!mounted) { return; }
+          _rebuild(() => _islandWake = 2);
+        });
+      });
+      _scheduleLastTripSettle();
+    }
+    /// A trip that just ended still has its money updating.
+    bool get _lastTripSettling {
+      final pending = _lastTripPendingId;
+      return pending != null && pending == _waybills.last?.tripId;
+    }
+    String get _lastTripFareLabel {
+      final fare = _waybills.last?.fare;
+      if (fare == null || !fare.contains(RegExp(r'\d'))) { return _lastTripFare; }
+      return fare;
+    }
+    void _onLastTripChanged() {
+      if (!mounted) { return; }
+      _rebuild(() {});
+      _scheduleLastTripSettle();
+    }
+    void _scheduleLastTripSettle() {
+      _lastTripSettleTimer?.cancel();
+      final last = _waybills.last;
+      final left = last == null
+          ? Duration.zero
+          : _lastTripSettleTime - DateTime.now().difference(last.issuedAt);
+      if (left <= Duration.zero) {
+        _lastTripPendingId = null;
+        return;
+      }
+      _lastTripPendingId = last!.tripId;
+      _lastTripSettleTimer = Timer(left, () {
+        if (!mounted) { return; }
+        // The money is in: show it, and give the driver 5 s to read it.
+        _rebuild(() => _lastTripPendingId = null);
+        if (_islandFace == _IslandFace.lastTrip) { _restartIslandIdle(); }
+      });
+    }
+    void _openRideHistoryFromIsland() {
+      _islandIdleTimer?.cancel();
+      _rebuild(() => _islandFace = _IslandFace.hidden);
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (_) => const DriverRideHistory()),
       );
     }
     void _onRadarSheetDragUpdate(DragUpdateDetails details) {
@@ -1150,240 +1306,18 @@ extension _HomeMapSheet on _DriverHomeState {
         child: child,
       );
     }
-    void _showTodaySummary() {
-      if (_showTodaySummaryPopup) { return; }
-      _rebuild(() {
-        _showTodaySummaryPopup = true;
-      });
-    }
-    void _hideTodaySummary() {
-      if (!_showTodaySummaryPopup && !_islandShowsLastTrip) { return; }
-      _rebuild(() {
-        _showTodaySummaryPopup = false;
-        _islandShowsLastTrip = false;
-      });
-    }
-    /// Hidden total → last trip fare → full Today details → hidden.
-    void _onIslandEarningsTap() {
-      if (_showTodaySummaryPopup) {
-        _hideTodaySummary();
-      } else if (_islandShowsLastTrip) {
-        _showTodaySummary();
-      } else {
-        _rebuild(() => _islandShowsLastTrip = true);
-      }
-    }
     void _closeHomeFloatingPopupsForSheet() {
-      if (!_showTodaySummaryPopup &&
-          !showRideRequests &&
+      if (!showRideRequests &&
           !_isDirectOfferRoutePreview) {
         return;
       }
 
       _rebuild(() {
-        _showTodaySummaryPopup = false;
-        _islandShowsLastTrip = false;
         showRideRequests = false;
         _isDirectOfferRoutePreview = false;
         _directOfferRouteMarkers = {};
         _directOfferRoutePolylines = {};
       });
-    }
-    Widget _buildTodaySummaryPopup() {
-      const muted = _islandMuted;
-      const line = _islandLine;
-      return Padding(
-        key: const ValueKey<String>('today-summary-card'),
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(height: 1, color: line),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _todayEarnings,
-                          style: TextStyle(
-                            color: _islandFg,
-                            fontSize: 30,
-                            height: 1.1,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Earnings today',
-                        style: TextStyle(color: muted, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _islandChip,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    '3 rides',
-                    style: TextStyle(
-                      color: _islandFg,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: line, width: 1.5),
-              ),
-              child: Column(
-                children: [
-                  const Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Last trip · Comfort',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: muted, fontSize: 12),
-                        ),
-                      ),
-                      Text(
-                        _lastTripFare,
-                        style: TextStyle(
-                          color: _islandFg,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  _islandRouteRow(
-                    square: false,
-                    label: 'Pickup',
-                    place: 'Central Station',
-                    time: '21:20',
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(width: 2, height: 12, color: line),
-                    ),
-                  ),
-                  _islandRouteRow(
-                    square: true,
-                    label: 'Drop-off',
-                    place: 'Södermalm',
-                    time: '21:42',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: Material(
-                color: _islandButtonBg,
-                borderRadius: BorderRadius.circular(12),
-                child: InkWell(
-                  key: const ValueKey<String>('today-history-button'),
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    _hideTodaySummary();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const DriverRideHistory(),
-                      ),
-                    );
-                  },
-                  child: const Center(
-                    child: Text(
-                      'Ride history',
-                      style: TextStyle(
-                        color: _islandButtonFg,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    Widget _islandRouteRow({
-      required bool square,
-      required String label,
-      required String place,
-      required String time,
-    }) {
-      return Row(
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: square ? _islandFg : _islandBg,
-              shape: square ? BoxShape.rectangle : BoxShape.circle,
-              borderRadius: square ? BorderRadius.circular(2) : null,
-              border: square ? null : Border.all(color: _islandFg, width: 3),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(color: _islandMuted, fontSize: 11),
-                ),
-                Text(
-                  place,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _islandFg,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            time,
-            style: const TextStyle(
-              color: _islandFg,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      );
     }
     bool _isVersionNewer(String candidate, String current) {
       List<int> parse(String value) {
@@ -1503,14 +1437,7 @@ extension _HomeMapSheet on _DriverHomeState {
                           Navigator.pop(sheetContext);
                         }
                         if (!mounted) { return; }
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Update link is unavailable right now. Try again later.',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                        IslandMessages.show(HomeIslandNotices.updateUnavailable);
                         return;
                       }
 

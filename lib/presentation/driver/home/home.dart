@@ -36,6 +36,9 @@ import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
 import 'package:movera/presentation/driver/documents/documents.dart';
 import 'package:movera/presentation/driver/home/components/destination_set_panel.dart';
+import 'package:movera/presentation/driver/home/components/digital_island.dart';
+import 'package:movera/presentation/driver/home/components/home_island_notices.dart';
+import 'package:movera/presentation/driver/home/components/island_messages.dart';
 import 'package:movera/presentation/driver/home/components/driver_sheet_nav.dart';
 import 'package:movera/presentation/driver/home/components/driver_suspended_sheet.dart';
 import 'package:movera/presentation/driver/home/components/reservation_request_sheet.dart';
@@ -56,7 +59,6 @@ import 'package:movera/widgets/movera_sheet_metrics.dart';
 import 'package:movera/widgets/movera_vehicle_marker.dart';
 import 'package:movera/presentation/driver/sheets/movera_snap_sheet_controller.dart';
 import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
-import 'package:movera/presentation/driver/overlays/trip_status_banner.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -148,6 +150,29 @@ class _DriverHomeState extends State<DriverHome>
   late final AnimationController _goOnlinePulseController;
   late final AnimationController _radarSweepController;
   Timer? _onlineTransitionTimer;
+
+  /// Puts the top island back on the hidden total after 5 s untouched.
+  Timer? _islandIdleTimer;
+
+  /// Top island at launch: 0 small (arrow and menu), 1 grown to full
+  /// width, 2 its screen on.
+  int _islandWake = 0;
+  Timer? _islandWakeTimer;
+
+  /// Ends the "updating" dots once the last trip's money has settled.
+  Timer? _lastTripSettleTimer;
+
+  /// Trip whose money is still updating, if any.
+  String? _lastTripPendingId;
+
+  /// Message on the island's screen right now; each gets its own number
+  /// so the screen plays its switch between two messages too.
+  IslandMessage? _islandMessage;
+  int _islandMessageSeq = 0;
+  Timer? _islandMessageTimer;
+  void _islandMessagesListener() =>
+      _HomeMapSheet(this)._onIslandMessagesChanged();
+  void _lastTripListener() => _HomeMapSheet(this)._onLastTripChanged();
   Timer? _homeSheetPositionGuardTimer;
   Timer? _offerSimulationTimer;
   Timer? _directOfferTimer;
@@ -168,7 +193,6 @@ class _DriverHomeState extends State<DriverHome>
   final Map<String, _HomeRadarMatchState> _homeRadarMatchStates =
       <String, _HomeRadarMatchState>{};
   String? _homeRadarMatchingOfferId;
-  _HomeRadarMatchNotice? _homeRadarMatchNotice;
   late final DriverLocationRepository _driverLocationService;
   late final RouteRepository _roadRouteService;
   late final WaybillRepository _waybills;
@@ -219,10 +243,8 @@ class _DriverHomeState extends State<DriverHome>
   void openDestinationPanel() => _HomeMapSheet(this).openDestinationPanel();
   bool _hasRideOffers = false;
   bool _hasScheduledRideOffers = true;
-  bool _showTodaySummaryPopup = false;
-
-  /// Top island shows the last trip's fare instead of the hidden total.
-  bool _islandShowsLastTrip = false;
+  /// What the top island's screen shows; a tap moves to the next face.
+  _IslandFace _islandFace = _IslandFace.hidden;
   _HomeDirectOffer? _outsideRadarOffer;
   final List<_HomeDirectOffer> _radarHomeOffers = <_HomeDirectOffer>[];
   final List<_HomeDirectOffer> _pendingRadarHomeOffers = <_HomeDirectOffer>[];
@@ -351,9 +373,13 @@ class _DriverHomeState extends State<DriverHome>
     _HomeMapSheet(this)._loadMarkers();
     _HomeMapSheet(this)._prepareDriverVehicleMarker();
     _HomeMapSheet(this)._startDriverLocation();
+    _HomeMapSheet(this)._startIslandWake();
+    _waybills.lastListenable.addListener(_lastTripListener);
+    IslandMessages.changes.addListener(_islandMessagesListener);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_restoreActiveRideIfNeeded());
       _HomeMapSheet(this)._maybeShowAppUpdatePrompt();
+      _HomeMapSheet(this)._showNextIslandMessage();
       _scheduleReservationPopup();
     });
   }
@@ -390,30 +416,14 @@ class _DriverHomeState extends State<DriverHome>
         return;
       }
       _reservationPopupShown = true;
+      IslandMessages.show(HomeIslandNotices.newReservation);
       final decision = await showReservationRequestSheet(context, request);
       if (!mounted || decision == ReservationDecision.dismissed) { return; }
       final accepted = decision == ReservationDecision.accepted;
       setState(() => _hasScheduledRideOffers = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            accepted
-                ? 'Reservation accepted · ${request.pickupLabel}'
-                : 'Reservation declined',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: const Color(0xFF111614),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          action: accepted
-              ? SnackBarAction(
-                  label: 'View',
-                  textColor: Colors.white,
-                  onPressed: _openScheduledRides,
-                )
-              : null,
-        ),
-      );
+      IslandMessages.show(accepted
+          ? HomeIslandNotices.reservationAccepted(_openScheduledRides)
+          : HomeIslandNotices.reservationDeclined);
     });
   }
 
@@ -429,13 +439,9 @@ class _DriverHomeState extends State<DriverHome>
     try {
       final journal = await CompletionJournal(active: repo).reconcile();
       if (mounted && journal == JournalReplayOutcome.quarantinedConflict) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('A queued trip conflicted with a newer trip. The newer trip was kept.'),
-        ));
+        IslandMessages.show(HomeIslandNotices.newerTripKept);
       } else if (mounted && journal == JournalReplayOutcome.quarantinedCorrupt) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('An unreadable trip record was set aside. You can continue driving.'),
-        ));
+        IslandMessages.show(HomeIslandNotices.recordSetAside);
       }
       snapshot = await repo.read();
     } on ActiveRideUnreadable {
@@ -444,9 +450,10 @@ class _DriverHomeState extends State<DriverHome>
       return;
     } catch (_) {
       _didAttemptActiveRideRestore = false;
-      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Trip recovery needs a retry. Saved progress is retained.'),
-        action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); }))); }
+      if(mounted) {
+        IslandMessages.show(
+            HomeIslandNotices.recoveryFailed(_restoreActiveRideIfNeeded));
+      }
       return;
     }
     if (!mounted) { return; }
@@ -466,9 +473,10 @@ class _DriverHomeState extends State<DriverHome>
           if (mounted) { setState(() => _recoveryResolved = true); }
         } catch (_) {
           _didAttemptActiveRideRestore = false;
-          if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text('Could not close saved trip. Please retry.'),
-            action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); }))); }
+          if (mounted) {
+            IslandMessages.show(
+                HomeIslandNotices.savedTripNotClosed(_restoreActiveRideIfNeeded));
+          }
         }
         return;
       }
@@ -525,20 +533,16 @@ class _DriverHomeState extends State<DriverHome>
     );
     if (!mounted) { return; }
     if (close != true || repo is! UnreadableRideRecovery) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Close the unreadable trip before going online.'),
-        action: SnackBarAction(label: 'Review', onPressed: () { _restoreActiveRideIfNeeded(); }),
-      ));
+      IslandMessages.show(
+          HomeIslandNotices.unreadableTripOpen(_restoreActiveRideIfNeeded));
       return;
     }
     try {
       await (repo as UnreadableRideRecovery).quarantineUnreadable();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Could not close the unreadable trip. Please retry.'),
-          action: SnackBarAction(label: 'Retry', onPressed: () { _restoreActiveRideIfNeeded(); }),
-        ));
+        IslandMessages.show(HomeIslandNotices.unreadableTripNotClosed(
+            _restoreActiveRideIfNeeded));
       }
       return;
     }
@@ -867,11 +871,13 @@ class _DriverHomeState extends State<DriverHome>
 
   void _goOnline() {
     if (_driverSession.isSuspended) {
+      IslandMessages.show(HomeIslandNotices.accountOnHold);
       unawaited(showDriverSuspendedSheet(context));
       return;
     }
     if(!_recoveryResolved) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Resolve saved trip recovery before going online.'),action:SnackBarAction(label:'Retry',onPressed:_restoreActiveRideIfNeeded)));
+      IslandMessages.show(
+          HomeIslandNotices.recoveryPending(_restoreActiveRideIfNeeded));
       return;
     }
     if (!isAccountActivated) {
@@ -894,8 +900,7 @@ class _DriverHomeState extends State<DriverHome>
     setState(() {
       _driverSession.beginGoingOnline();
       _hasRideOffers = false;
-      _showTodaySummaryPopup = false;
-      _islandShowsLastTrip = false;
+      _islandFace = _IslandFace.hidden;
       _outsideRadarOffer = null;
       _radarHomeOffers.clear();
       _pendingRadarHomeOffers.clear();
@@ -904,6 +909,7 @@ class _DriverHomeState extends State<DriverHome>
     _HomeMapSheet(this)._flashSheet(const Color(0xFF1C6B45));
     _HomeOfferRadar(this)._clearDirectOfferRoute();
     unawaited(_HomeMapSheet(this)._startDriverLocation(moveCamera: true));
+    IslandMessages.show(HomeIslandNotices.online);
 
     _onlineTransitionTimer = Timer(
       const Duration(milliseconds: 1400),
@@ -920,6 +926,7 @@ class _DriverHomeState extends State<DriverHome>
 
   Future<void> _goOffline() async {
     _destinationOpenTimer?.cancel();
+    IslandMessages.show(HomeIslandNotices.offline);
     hideMainPanel = false;
     unawaited(_radarSubscription?.cancel() ?? Future<void>.value());
     _radarSubscription = null;
@@ -1115,6 +1122,12 @@ class _DriverHomeState extends State<DriverHome>
     _sheetToneTimer?.cancel();
     _goOnlinePulseController.dispose();
     _onlineTransitionTimer?.cancel();
+    _islandIdleTimer?.cancel();
+    _islandWakeTimer?.cancel();
+    _lastTripSettleTimer?.cancel();
+    _waybills.lastListenable.removeListener(_lastTripListener);
+    IslandMessages.changes.removeListener(_islandMessagesListener);
+    _islandMessageTimer?.cancel();
     _offerSimulationTimer?.cancel();
     _directOfferTimer?.cancel();
     _HomeOfferRadar(this)._cancelAllOfferTimers();

@@ -36,6 +36,8 @@ import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/trip_bottom_bar.dart';
 import 'package:movera/presentation/driver/accept%20ride/trip_top_reveal.dart';
+import 'package:movera/presentation/driver/home/components/home_island_notices.dart';
+import 'package:movera/presentation/driver/home/components/island_messages.dart';
 import 'package:movera/widgets/route_mark_pins.dart';
 import 'package:movera/presentation/driver/preferences/preferences.dart';
 import 'package:movera/presentation/driver/accept%20ride/rider_cancelled_sheet.dart';
