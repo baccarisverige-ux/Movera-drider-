@@ -2578,7 +2578,7 @@ void main() {
     });
   }
 
-  testWidgets('Only the driver moving the map hides the sheet; recenter brings it back', (
+  testWidgets('Only a zoom hides the trip sheet; recenter brings it back', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -2597,12 +2597,27 @@ void main() {
     await _advanceAnimation(tester, const Duration(milliseconds: 600));
     expect(dockTop(), closeTo(shown, 1));
 
-    // The driver drags the map: the sheet slides away, recenter pulses.
-    final gesture = await tester.startGesture(const Offset(120, 400));
+    // One finger only moves the map: the sheet stays.
+    final drag = await tester.startGesture(const Offset(120, 400));
     map.onCameraMove!(camera);
-    await gesture.moveBy(const Offset(0, 40));
-    await gesture.up();
+    await drag.moveBy(const Offset(0, 40));
+    await drag.up();
     await _advanceAnimation(tester, const Duration(milliseconds: 600));
+    expect(dockTop(), closeTo(shown, 1));
+
+    // Two fingers zoom: the sheet slides away, recenter pulses.
+    final a = await tester.startGesture(const Offset(120, 400), pointer: 7);
+    final b = await tester.startGesture(const Offset(220, 400), pointer: 8);
+    await a.moveBy(const Offset(-30, 0));
+    await b.moveBy(const Offset(30, 0));
+    map.onCameraMove!(camera);
+    await a.up();
+    await b.up();
+    await _advanceAnimation(tester, const Duration(milliseconds: 600));
+    expect(dockTop(), greaterThan(shown + 20));
+
+    // It stays away until recenter, however long the driver looks.
+    await tester.pump(const Duration(seconds: 15));
     expect(dockTop(), greaterThan(shown + 20));
     expect(
       find.byKey(const ValueKey<String>('active-ride-recenter-pulse')),
@@ -2611,7 +2626,6 @@ void main() {
 
     // Recenter: following again and the sheet comes back, even when the
     // map reports its own camera move afterwards.
-    await tester.pump(const Duration(seconds: 1));
     await tester.tap(find.byKey(const ValueKey<String>('active-ride-recenter-button')));
     map.onCameraMove!(camera);
     await _advanceAnimation(tester, const Duration(milliseconds: 700));

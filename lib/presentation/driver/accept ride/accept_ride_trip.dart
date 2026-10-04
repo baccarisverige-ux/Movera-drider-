@@ -636,16 +636,19 @@ extension _AcceptRideTrip on _AcceptRideState {
         return;
       }
       _navigation.pauseFollow();
-      _enterBrowse();
+      // One finger only moves the map; a zoom (two fingers or the wheel)
+      // clears the view for the map.
+      final zoom = _lastMapZoom;
+      if (_mapPointers >= 2 ||
+          (zoom != null &&
+              DateTime.now().difference(zoom) <
+                  const Duration(milliseconds: 700))) {
+        _enterBrowse();
+      }
     }
-    /// The driver moves the map by hand: the sheet slides down so only the
-    /// map and route remain, and recenter pulses softly. After 10 s left
-    /// alone the map follows the car again.
+    /// The driver zooms the map: the sheet slides down so only the map and
+    /// route remain, and recenter pulses softly until tapped.
     void _enterBrowse() {
-      _browseIdle?.cancel();
-      _browseIdle = Timer(const Duration(seconds: 10), () {
-        if (mounted) { _exitBrowse(); }
-      });
       if (_browsing || _incomingOfferOpen) { return; }
       _browsing = true;
       _browseReturnPos = _ridePanelController.isAttached
@@ -663,10 +666,10 @@ extension _AcceptRideTrip on _AcceptRideState {
       unawaited(down());
     }
     void _exitBrowse() {
-      _browseIdle?.cancel();
       // The recenter tap itself reaches the map, and the camera then flies
       // back: neither is the driver browsing.
       _lastMapTouch = null;
+      _lastMapZoom = null;
       _browseQuietUntil = DateTime.now().add(const Duration(milliseconds: 1500));
       if (!_browsing) { return; }
       _rebuild(() => _browsing = false);
