@@ -161,6 +161,7 @@ void main() {
       externalRouting: previous.externalRouting,
       skipAccountActivation: previous.skipAccountActivation,
       liveMapTicker: previous.liveMapTicker,
+      islandHint: previous.islandHint,
     );
     addTearDown(() => DriverRuntimeConfig.current = previous);
     await tester.binding.setSurfaceSize(const Size(375, 812));
@@ -211,6 +212,7 @@ void main() {
       externalRouting: previous.externalRouting,
       skipAccountActivation: previous.skipAccountActivation,
       liveMapTicker: previous.liveMapTicker,
+      islandHint: previous.islandHint,
     );
     addTearDown(() => DriverRuntimeConfig.current = previous);
     await tester.binding.setSurfaceSize(const Size(375, 812));
