@@ -150,7 +150,7 @@ void main() {
     // One trip listed, more waiting: the Radar button counts every open
     // Radar trip, the same ones the full Radar screen lists.
     expect(find.text('Radar offers · 1'), findsOneWidget);
-    expect(find.text('4 trips'), findsOneWidget);
+    expect(find.text('5 trips'), findsOneWidget);
     expect(find.text('New Radar trips'), findsNothing);
 
     // The driver hides the listed trip: the waiting ones open by themselves.
@@ -164,7 +164,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Radar offers · 2'), findsOneWidget);
     // Hiding a trip on Home does not take it off Radar: the count stays.
-    expect(find.text('4 trips'), findsOneWidget);
+    expect(find.text('5 trips'), findsOneWidget);
     expect(find.text('New Radar trips'), findsNothing);
     tester.takeException();
     await tester.pumpWidget(const SizedBox());

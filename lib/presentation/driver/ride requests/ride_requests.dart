@@ -55,7 +55,6 @@ class _RideRequestsState extends State<RideRequests> {
   static const Color _soft = Color(0xFFEDEEED);
   static const Color _green = Color(0xFF19865C);
   static const Color _mint = Color(0xFF58E5A6);
-  static const int _maxVisibleRadarOffers = 4;
 
   Timer? _matchNoticeTimer;
   late final DispatchRepository _dispatch;
@@ -72,9 +71,6 @@ class _RideRequestsState extends State<RideRequests> {
 
   final List<_RadarTrip> _offers = <_RadarTrip>[];
 
-  /// Trip the driver tapped: shown first, with its details open.
-  String? _openTripId;
-
   /// Why a trip is leaving the list.
   final Map<String, _RadarGone> _goneReasons = <String, _RadarGone>{};
 
@@ -85,23 +81,8 @@ class _RideRequestsState extends State<RideRequests> {
       return offer.followsDestination;
     }).toList()
       ..sort((a, b) => a.pickupKm.compareTo(b.pickupKm));
-    final chosen = nearby.indexWhere((offer) => offer.id == _openTripId);
-    if (chosen > 0) { nearby.insert(0, nearby.removeAt(chosen)); }
-    return nearby.take(_maxVisibleRadarOffers).toList(growable: false);
-  }
-
-  /// The open trip: the one the driver tapped, else the first still open.
-  String? _expandedTripId(List<_RadarTrip> offers) {
-    bool open(String id) =>
-        _stateFor(id) != _RadarOfferState.claimedElsewhere;
-    final chosen = _openTripId;
-    if (chosen != null && open(chosen) && offers.any((o) => o.id == chosen)) {
-      return chosen;
-    }
-    for (final offer in offers) {
-      if (open(offer.id)) { return offer.id; }
-    }
-    return null;
+    // Every Radar trip, each with its full details.
+    return List<_RadarTrip>.unmodifiable(nearby);
   }
 
   _RadarTrip _tripFromOffer(RideOffer offer) {
@@ -367,7 +348,6 @@ class _RideRequestsState extends State<RideRequests> {
     final openCount = offers
         .where((offer) => _stateFor(offer.id) != _RadarOfferState.claimedElsewhere)
         .length;
-    final expandedId = _expandedTripId(offers);
 
     return LayoutViewport(
       child: Material(
@@ -391,8 +371,7 @@ class _RideRequestsState extends State<RideRequests> {
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 8),
                           itemBuilder: (context, index) {
-                            final trip = offers[index];
-                            return _tripCard(trip, expanded: trip.id == expandedId);
+                            return _tripCard(offers[index]);
                           },
                         ),
                 ),
@@ -575,7 +554,7 @@ class _RideRequestsState extends State<RideRequests> {
     );
   }
 
-  Widget _tripCard(_RadarTrip trip, {required bool expanded}) {
+  Widget _tripCard(_RadarTrip trip) {
     final state = _stateFor(trip.id);
     final claimed = state == _RadarOfferState.claimedElsewhere;
     final resolving = state == _RadarOfferState.resolving;
@@ -633,7 +612,7 @@ class _RideRequestsState extends State<RideRequests> {
     }
 
     final matchButton = SizedBox(
-      height: expanded ? 46 : 40,
+      height: 46,
       child: FilledButton(
         onPressed: resolving || blockOtherOffers ? null : () => _matchTrip(trip),
         style: FilledButton.styleFrom(
@@ -676,12 +655,10 @@ class _RideRequestsState extends State<RideRequests> {
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: expanded ? _ink : _line, width: 1.5),
+        side: const BorderSide(color: _line, width: 1.5),
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: resolving ? null : () => setState(() => _openTripId = trip.id),
-        child: Padding(
+      child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -717,50 +694,44 @@ class _RideRequestsState extends State<RideRequests> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (!expanded) matchButton,
-                  if (expanded) ...[
-                    const Icon(Icons.star_rounded, size: 16, color: Color(0xFFD7A02C)),
-                    const SizedBox(width: 2),
-                    Text(
-                      trip.rating,
-                      style: const TextStyle(
-                        color: _muted,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  const Icon(Icons.star_rounded, size: 16, color: Color(0xFFD7A02C)),
+                  const SizedBox(width: 2),
+                  Text(
+                    trip.rating,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
+                  ),
                 ],
               ),
-              if (expanded) ...[
-                const SizedBox(height: 12),
-                _routeRow(
-                  square: false,
-                  label: 'Pickup',
-                  place: trip.pickup,
-                  value: '${trip.pickupMinutes} min',
-                  detail: '${trip.pickupKm.toStringAsFixed(1)} km away',
+              const SizedBox(height: 12),
+              _routeRow(
+                square: false,
+                label: 'Pickup',
+                place: trip.pickup,
+                value: '${trip.pickupMinutes} min',
+                detail: '${trip.pickupKm.toStringAsFixed(1)} km away',
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 5),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(width: 2, height: 12, color: _line),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 5),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(width: 2, height: 12, color: _line),
-                  ),
-                ),
-                _routeRow(
-                  square: true,
-                  label: 'Drop-off',
-                  place: trip.dropoff,
-                  value: '${trip.tripMinutes} min',
-                  detail: '${trip.tripKm.toStringAsFixed(1)} km ride',
-                ),
-                const SizedBox(height: 12),
-                SizedBox(width: double.infinity, child: matchButton),
-              ],
+              ),
+              _routeRow(
+                square: true,
+                label: 'Drop-off',
+                place: trip.dropoff,
+                value: '${trip.tripMinutes} min',
+                detail: '${trip.tripKm.toStringAsFixed(1)} km ride',
+              ),
+              const SizedBox(height: 12),
+              SizedBox(width: double.infinity, child: matchButton),
             ],
           ),
-        ),
       ),
     );
   }

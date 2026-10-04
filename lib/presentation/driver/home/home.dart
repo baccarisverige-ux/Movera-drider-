@@ -196,10 +196,6 @@ class _DriverHomeState extends State<DriverHome>
   static const double _homeExpandedFraction = 0.86;
   static const Duration _outsideOfferLifetime = Duration(milliseconds: 8500);
 
-  /// The full Radar screen lists at most this many trips; the Radar button
-  /// count matches it.
-  static const int _radarScreenMaxTrips = 4;
-
   /// How long a Radar trip can be picked once it shows in the Home list.
   static const Duration _radarOfferPickWindow = Duration(seconds: 30);
   static const int _maxHomeRadarOffers = 4;
@@ -1044,7 +1040,7 @@ class _DriverHomeState extends State<DriverHome>
         // Until a Radar trip reaches Home the button keeps scanning.
         final hasRadarOffer = _hasRideOffers || homeTrips > 0;
         final totalTrips = hasRadarOffer
-            ? math.min(math.max(radarTrips, homeTrips), _radarScreenMaxTrips)
+            ? math.max(radarTrips, homeTrips)
             : 0;
 
         return _buildRadarOrb(

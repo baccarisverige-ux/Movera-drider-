@@ -671,37 +671,30 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Full Radar: tapping a trip brings it to the top, open', (
+  testWidgets('Full Radar lists every trip with its details', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.binding.setSurfaceSize(const Size(375, 812));
+    await tester.binding.setSurfaceSize(const Size(375, 2000));
     await tester.pumpWidget(const MaterialApp(home: RideRequests()));
     await tester.pump(const Duration(milliseconds: 120));
 
-    Finder card(String id) => find.byKey(ValueKey<String>(id));
     expect(find.text('Trip radar'), findsOneWidget);
-    // The closest trip opens first; the others are compact rows.
-    expect(find.text('Pickup'), findsOneWidget);
-    final last = ['nearby-1', 'nearby-2', 'nearby-3']
-        .where((id) => card(id).evaluate().isNotEmpty)
-        .last;
-    expect(
-      find.descendant(of: card(last), matching: find.text('Pickup')),
-      findsNothing,
-    );
-
-    await tester.tap(card(last));
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(
-      find.descendant(of: card(last), matching: find.text('Pickup')),
-      findsOneWidget,
-    );
-    for (final id in ['nearby-1', 'nearby-2', 'nearby-3']) {
-      if (id == last || card(id).evaluate().isEmpty) { continue; }
-      expect(tester.getTopLeft(card(last)).dy,
-          lessThan(tester.getTopLeft(card(id)).dy));
+    final cards = ['nearby-1', 'nearby-2', 'nearby-3']
+        .map((id) => find.byKey(ValueKey<String>(id)))
+        .where((card) => card.evaluate().isNotEmpty)
+        .toList();
+    expect(cards, isNotEmpty);
+    // No compact rows: every trip shows pickup, drop-off and Match.
+    for (final card in cards) {
+      expect(find.descendant(of: card, matching: find.text('Pickup')),
+          findsOneWidget);
+      expect(find.descendant(of: card, matching: find.text('Drop-off')),
+          findsOneWidget);
+      expect(find.descendant(of: card, matching: find.text('Match')),
+          findsOneWidget);
     }
+    expect(find.text('Pickup'), findsNWidgets(cards.length));
     _expectNoException(tester);
   });
 
