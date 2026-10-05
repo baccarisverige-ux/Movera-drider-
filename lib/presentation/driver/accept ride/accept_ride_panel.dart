@@ -1504,164 +1504,75 @@ extension _AcceptRidePanel on _AcceptRideState {
       );
     }
     Future<void> _showTripOptions() async {
+      final onTrip = _stage == ActiveRideStage.onTrip;
+      final showNext = _onTripRadarState == _OnTripRadarState.secured &&
+          _waybills.next != null;
       await showMoveraModalSheet<void>(
         context: context,
         barrierColor: Colors.black.withValues(alpha: 0.35),
         heightFactor: 0.78,
+        fitContent: true,
         builder: (sheetContext) {
-          return MoveraModalSheet(
-            heightFactor: 0.78,
-            color: const Color(0xFFF7F9F9),
-            child: SafeArea(
-              top: false,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
-                physics: const BouncingScrollPhysics(),
-                children: [
-                    Container(
-                      width: 44,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD7DEDF),
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _optionTile(
-                      key: const ValueKey<String>('current-trip-waybill-option'),
-                      icon: MoveraMark.receipt,
-                      title: 'Current waybill',
-                      subtitle:
-                          '${widget.pickupAddress} → ${widget.dropoffAddress}',
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        final record = _waybills.current;
-                        if (record != null) {
-                          showMoveraWaybillSheet(
-                            context,
-                            record,
-                            title: 'Current trip waybill',
-                          );
-                        }
-                      },
-                    ),
-                    if (_onTripRadarState == _OnTripRadarState.secured &&
-                        _waybills.next != null)
-                      _optionTile(
-                        key: const ValueKey<String>('next-trip-waybill-option'),
-                        icon: MoveraMark.route,
-                        title: 'Next trip waybill',
-                        subtitle: _waybills.next!.dropoff,
-                        onTap: () {
-                          Navigator.pop(sheetContext);
-                          showMoveraWaybillSheet(
-                            context,
-                            _waybills.next!,
-                            title: 'Next trip waybill',
-                          );
-                        },
-                      ),
-                    _optionTile(
-                      icon: MoveraMark.shield,
-                      title: 'Safety toolkit',
-                      subtitle: 'Share trip, record audio or get help',
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        showSafetyToolKitSheet(context);
-                      },
-                    ),
-                    _optionTile(
-                      key: const ValueKey<String>('active-ride-cancel-option'),
-                      icon: _stage == ActiveRideStage.onTrip
-                          ? MoveraMark.warning
-                          : MoveraMark.close,
-                      title: _stage == ActiveRideStage.onTrip
-                          ? 'End trip early'
-                          : 'Cancel trip',
-                      subtitle: _stage == ActiveRideStage.onTrip
-                          ? 'Stop safely first · reason required'
-                          : 'Choose a reason before cancelling',
-                      danger: true,
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        _showCancellationReasons();
-                      },
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    }
-    Widget _optionTile({
-      Key? key,
-      required MoveraMark icon,
-      required String title,
-      required String subtitle,
-      required VoidCallback onTap,
-      bool danger = false,
-    }) {
-      return Material(
-        key: key,
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 6),
-            child: Row(
+          return _CleanSheet(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: danger
-                        ? const Color(0xFFFFECEE)
-                        : const Color(0xFFF4F5F6),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: MoveraLineIcon(
-                    mark: icon,
-                    color: danger ? _AcceptRideState._danger : _AcceptRideState._ink,
-                    size: 19,
-                  ),
+                _CleanRow(
+                  key: const ValueKey<String>('current-trip-waybill-option'),
+                  title: 'Current waybill',
+                  subtitle:
+                      '${widget.pickupAddress} → ${widget.dropoffAddress}',
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    final record = _waybills.current;
+                    if (record != null) {
+                      showMoveraWaybillSheet(
+                        context,
+                        record,
+                        title: 'Current trip waybill',
+                      );
+                    }
+                  },
                 ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: danger ? _AcceptRideState._danger : const Color(0xFF252E3A),
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF7D898F),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                if (showNext)
+                  _CleanRow(
+                    key: const ValueKey<String>('next-trip-waybill-option'),
+                    title: 'Next trip waybill',
+                    subtitle: _waybills.next!.dropoff,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      showMoveraWaybillSheet(
+                        context,
+                        _waybills.next!,
+                        title: 'Next trip waybill',
+                      );
+                    },
                   ),
+                _CleanRow(
+                  title: 'Safety toolkit',
+                  subtitle: 'Share trip, record audio, get help',
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    showSafetyToolKitSheet(context);
+                  },
                 ),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: Color(0xFFA7B0B4),
+                _CleanRow(
+                  key: const ValueKey<String>('active-ride-cancel-option'),
+                  title: onTrip ? 'End trip early' : 'Cancel trip',
+                  subtitle:
+                      onTrip ? 'Stop safely first · reason required' : null,
+                  danger: true,
+                  last: true,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showCancellationReasons();
+                  },
                 ),
               ],
             ),
-          ),
-        ),
+          );
+        },
       );
     }
     Future<void> _showCancellationReasons() async {
@@ -1677,134 +1588,41 @@ extension _AcceptRidePanel on _AcceptRideState {
       final reason = await showMoveraModalSheet<_TripCancellationReason>(
         context: context,
         barrierColor: Colors.black.withValues(alpha: 0.32),
-        heightFactor: isOnTrip ? 0.72 : 0.66,
+        heightFactor: 0.86,
+        fitContent: true,
         builder: (sheetContext) {
-          return MoveraModalSheet(
+          return _CleanSheet(
             key: const ValueKey<String>('trip-cancellation-reasons-sheet'),
-            heightFactor: isOnTrip ? 0.72 : 0.66,
-            color: const Color(0xFFF8FAF9),
-            radius: 28,
-            child: SafeArea(
-              top: false,
-              child: Column(
+            child: Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                physics: const BouncingScrollPhysics(),
                 children: [
-                  const SizedBox(height: 10),
-                  Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD7DEDB),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
+                  Text(
+                    isOnTrip
+                        ? 'Why are you ending the trip?'
+                        : 'Why are you cancelling?',
+                    style: _CleanSheet.title,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isOnTrip
-                              ? 'Why are you ending the trip?'
-                              : 'Why are you cancelling?',
-                          style: const TextStyle(
-                            color: _AcceptRideState._ink,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.4,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          isOnTrip
-                              ? 'Stop the vehicle in a safe place before ending an active trip.'
-                              : 'Choose the reason that best explains the cancellation.',
-                          style: const TextStyle(
-                            color: _AcceptRideState._muted,
-                            fontSize: 11,
-                            height: 1.4,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isOnTrip
+                        ? 'Stop in a safe place first.'
+                        : 'Pick the reason that fits best.',
+                    style: _CleanSheet.note,
                   ),
-                  Expanded(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(14, 2, 14, 20),
-                      itemCount: reasons.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 7),
-                      itemBuilder: (context, index) {
-                        final reason = reasons[index];
-                        return Material(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(17),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            key: ValueKey<String>(
-                              'trip-cancel-reason-${reason.code}',
-                            ),
-                            onTap: () => Navigator.pop(sheetContext, reason),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 39,
-                                    height: 39,
-                                    decoration: BoxDecoration(
-                                      color: isOnTrip
-                                          ? const Color(0xFFFFEEF0)
-                                          : const Color(0xFFF0F3F2),
-                                      borderRadius: BorderRadius.circular(13),
-                                    ),
-                                    child: MoveraLineIcon(
-                                      mark: reason.icon,
-                                      color: isOnTrip
-                                          ? _AcceptRideState._danger
-                                          : const Color(0xFF58656C),
-                                      size: 19,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 11),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          reason.title,
-                                          style: const TextStyle(
-                                            color: _AcceptRideState._ink,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          reason.subtitle,
-                                          style: const TextStyle(
-                                            color: _AcceptRideState._muted,
-                                            fontSize: 9.5,
-                                            height: 1.3,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: Color(0xFFA5AFB4),
-                                    size: 20,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                  const SizedBox(height: 8),
+                  for (var i = 0; i < reasons.length; i++)
+                    _CleanRow(
+                      key: ValueKey<String>(
+                        'trip-cancel-reason-${reasons[i].code}',
+                      ),
+                      title: reasons[i].title,
+                      subtitle: reasons[i].subtitle,
+                      last: i == reasons.length - 1,
+                      onTap: () => Navigator.pop(sheetContext, reasons[i]),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -1847,6 +1665,134 @@ class _RouteDot extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: square ? BoxShape.rectangle : BoxShape.circle,
+        ),
+      ),
+    );
+  }
+}
+
+/// Plain white bottom sheet: a handle, then the content at its own height.
+class _CleanSheet extends StatelessWidget {
+  const _CleanSheet({super.key, required this.child});
+
+  final Widget child;
+
+  static const TextStyle title = TextStyle(
+    color: Color(0xFF111614),
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.4,
+  );
+  static const TextStyle note = TextStyle(
+    color: Color(0xFF8A9390),
+    fontSize: 14,
+    height: 1.35,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: 16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 10, 22, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD9DDDB),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One row of a clean sheet: title, optional short line, chevron, and a
+/// thin line under it. No icons.
+class _CleanRow extends StatelessWidget {
+  const _CleanRow({
+    super.key,
+    required this.title,
+    this.subtitle,
+    required this.onTap,
+    this.danger = false,
+    this.last = false,
+  });
+
+  final String title;
+  final String? subtitle;
+  final VoidCallback onTap;
+  final bool danger;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          border: last
+              ? null
+              : const Border(bottom: BorderSide(color: Color(0xFFECEEEF))),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: danger
+                          ? const Color(0xFFC2453A)
+                          : const Color(0xFF111614),
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (subtitle != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        subtitle!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF8A9390),
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFFB4BBB8),
+              size: 22,
+            ),
+          ],
         ),
       ),
     );

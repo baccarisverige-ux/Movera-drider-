@@ -10,36 +10,8 @@ class ScheduledRidesScreen extends StatefulWidget {
 class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
   int _selectedTab = 0;
 
-  final List<_ScheduledRide> _requests = [
-    _ScheduledRide(
-      price: '126.75 kr',
-      time: 'Today, 07:40–07:45',
-      category: 'Comfort',
-      distance: '5.8 km',
-      pickup: 'Gamla vägen, Stockholm',
-      destination: 'Rådans gårdsväg, Stockholm',
-    ),
-    _ScheduledRide(
-      price: '209.25 kr',
-      time: 'Today, 10:20–10:30',
-      category: 'Premium',
-      distance: '12 km',
-      pickup: 'Högsätravägen, Lidingö',
-      destination: 'Central Station, Stockholm',
-    ),
-  ];
-
-  final List<_ScheduledRide> _accepted = [
-    _ScheduledRide(
-      price: '184.00 kr',
-      time: 'Tomorrow, 08:15',
-      category: 'Comfort',
-      distance: '9.4 km',
-      pickup: 'Södermalm, Stockholm',
-      destination: 'Bromma Airport',
-      accepted: true,
-    ),
-  ];
+  List<_ScheduledRide> get _requests => ScheduledRideStore._requests;
+  List<_ScheduledRide> get _accepted => ScheduledRideStore._accepted;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +23,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         child: Column(
           children: [
             _buildHeader(context),
-            const Padding(padding: EdgeInsets.all(12), child: Text('Preview — not binding. Decisions reset when reopened.', style: TextStyle(fontSize: 12))),
+            const Padding(padding: EdgeInsets.all(12), child: Text('Preview — not binding. Decisions last until the app restarts.', style: TextStyle(fontSize: 12))),
             _buildTabs(),
             Expanded(
               child: ListView.separated(
@@ -73,7 +45,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
                             ),
                           )),
                           const SizedBox(width: 8),
-                          if (_selectedTab == 0)
+                          if (_selectedTab == 0 && _requests.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 9,
@@ -83,8 +55,8 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
                                 color: const Color(0xFFE4F5ED),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Text(
-                                '2 new',
+                              child: Text(
+                                '${_requests.length} new',
                                 style: TextStyle(
                                   color: Color(0xFF16885B),
                                   fontSize: 10,
@@ -126,6 +98,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         _accepted.insert(0, ride.copyWith(accepted: true));
         _selectedTab = 1;
       });
+      ScheduledRideStore._changed();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Reservation accepted'),
@@ -245,6 +218,68 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         ),
       ),
     );
+  }
+}
+
+/// Reservation requests for this app session. Decisions stay while the app
+/// runs, so the green dot on Home follows what is still unanswered.
+class ScheduledRideStore {
+  const ScheduledRideStore._();
+
+  static final List<_ScheduledRide> _requests = _seedRequests();
+  static List<_ScheduledRide> _seedRequests() => [
+    _ScheduledRide(
+      price: '126.75 kr',
+      time: 'Today, 07:40–07:45',
+      category: 'Comfort',
+      distance: '5.8 km',
+      pickup: 'Gamla vägen, Stockholm',
+      destination: 'Rådans gårdsväg, Stockholm',
+    ),
+    _ScheduledRide(
+      price: '209.25 kr',
+      time: 'Today, 10:20–10:30',
+      category: 'Premium',
+      distance: '12 km',
+      pickup: 'Högsätravägen, Lidingö',
+      destination: 'Central Station, Stockholm',
+    ),
+  ];
+
+  static final List<_ScheduledRide> _accepted = _seedAccepted();
+  static List<_ScheduledRide> _seedAccepted() => [
+    _ScheduledRide(
+      price: '184.00 kr',
+      time: 'Tomorrow, 08:15',
+      category: 'Comfort',
+      distance: '9.4 km',
+      pickup: 'Södermalm, Stockholm',
+      destination: 'Bromma Airport',
+      accepted: true,
+    ),
+  ];
+
+
+  /// Requests the driver has not accepted or declined yet.
+  static final ValueNotifier<int> openRequests =
+      ValueNotifier<int>(_requests.length);
+
+  static void _changed() => openRequests.value = _requests.length;
+
+  /// A request answered outside this screen (the Home popup).
+  static void answer(String pickup, {required bool accepted}) {
+    final index = _requests.indexWhere((ride) => ride.pickup == pickup);
+    if (index < 0) { return; }
+    final ride = _requests.removeAt(index);
+    if (accepted) { _accepted.insert(0, ride.copyWith(accepted: true)); }
+    _changed();
+  }
+
+  @visibleForTesting
+  static void reset() {
+    _requests..clear()..addAll(_seedRequests());
+    _accepted..clear()..addAll(_seedAccepted());
+    _changed();
   }
 }
 

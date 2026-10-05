@@ -15,6 +15,8 @@ Future<T?> showMoveraModalSheet<T>({
   Color barrierColor = const Color(0x59000000),
   Color backgroundColor = Colors.transparent,
   bool barrierDismissible = true,
+  // Size to the content, up to [heightFactor] of the screen.
+  bool fitContent = false,
 }) {
   final surface = LayoutViewport.surfaceSize(context);
   final height = surface.height * heightFactor;
@@ -35,11 +37,20 @@ Future<T?> showMoveraModalSheet<T>({
           child: PointerInterceptor(
             child: ColoredBox(
               color: backgroundColor,
-              child: SizedBox(
-                width: surface.width,
-                height: height,
-                child: builder(sheetContext),
-              ),
+              child: fitContent
+                  ? ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: surface.width,
+                        maxWidth: surface.width,
+                        maxHeight: height,
+                      ),
+                      child: builder(sheetContext),
+                    )
+                  : SizedBox(
+                      width: surface.width,
+                      height: height,
+                      child: builder(sheetContext),
+                    ),
             ),
           ),
         ),

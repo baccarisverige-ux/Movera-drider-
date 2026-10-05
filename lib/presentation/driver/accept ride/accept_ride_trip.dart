@@ -1169,126 +1169,69 @@ extension _AcceptRideTrip on _AcceptRideState {
       final confirmed = await showMoveraModalSheet<bool>(
         context: context,
         barrierColor: Colors.black.withValues(alpha: 0.34),
-        heightFactor: 0.56,
+        heightFactor: 0.7,
+        fitContent: true,
         builder: (sheetContext) {
-          return MoveraModalSheet(
+          return _CleanSheet(
             key: const ValueKey<String>('trip-cancellation-confirmation'),
-            heightFactor: 0.56,
-            color: const Color(0xFFF8FAF9),
-            radius: 28,
-            child: SafeArea(
-              top: false,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-                children: [
-                  const SizedBox(height: 17),
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFECEE),
-                      borderRadius: BorderRadius.circular(17),
-                    ),
-                    child: Icon(
-                      isOnTrip
-                          ? Icons.stop_circle_outlined
-                          : Icons.close_rounded,
-                      color: _AcceptRideState._danger,
-                      size: 25,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    isOnTrip ? 'End this trip early?' : 'Cancel this trip?',
-                    style: const TextStyle(
-                      color: _AcceptRideState._ink,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  isOnTrip ? 'End this trip early?' : 'Cancel this trip?',
+                  style: _CleanSheet.title,
+                ),
+                const SizedBox(height: 6),
+                Text('Reason: ${reason.title}', style: _CleanSheet.note),
+                if (isOnTrip) ...[
                   const SizedBox(height: 6),
-                  Text(
-                    reason.title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: _AcceptRideState._muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  const Text(
+                    'Only end the trip after you have stopped in a safe place and the rider can exit safely.',
+                    style: _CleanSheet.note,
                   ),
-                  if (isOnTrip) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF5E8),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: const Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            color: Color(0xFFB87512),
-                            size: 18,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Only end the trip after you have stopped in a safe place and the rider can exit safely.',
-                              style: TextStyle(
-                                color: Color(0xFF8B641F),
-                                fontSize: 10,
-                                height: 1.35,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                ],
+                const SizedBox(height: 26),
+                SizedBox(
+                  height: 52,
+                  child: FilledButton(
+                    key: const ValueKey<String>('confirm-trip-cancellation'),
+                    onPressed: () => Navigator.pop(sheetContext, true),
+                    style: FilledButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: const Color(0xFFC2453A),
+                      foregroundColor: Colors.white,
+                      shape: const StadiumBorder(),
                     ),
-                  ],
-                  const SizedBox(height: 17),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: FilledButton(
-                      key: const ValueKey<String>(
-                        'confirm-trip-cancellation',
-                      ),
-                      onPressed: () => Navigator.pop(sheetContext, true),
-                      style: FilledButton.styleFrom(
-                        elevation: 0,
-                        backgroundColor: _AcceptRideState._danger,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        isOnTrip ? 'End trip early' : 'Cancel trip',
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w900,
-                        ),
+                    child: Text(
+                      isOnTrip ? 'End trip early' : 'Cancel trip',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 7),
-                  TextButton(
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 52,
+                  child: OutlinedButton(
                     onPressed: () => Navigator.pop(sheetContext, false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF111614),
+                      side: const BorderSide(color: Color(0xFFDADEDC)),
+                      shape: const StadiumBorder(),
+                    ),
                     child: const Text(
                       'Keep trip',
                       style: TextStyle(
-                        color: _AcceptRideState._ink,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
