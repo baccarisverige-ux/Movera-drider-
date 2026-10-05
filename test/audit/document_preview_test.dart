@@ -5,9 +5,9 @@ void main() {
  testWidgets('each document opens its own unverified preview', (tester) async {
  await tester.pumpWidget(const MaterialApp(home: DriverDocuments()));
  expect(find.text('Completed'), findsNothing);
- await tester.tap(find.text('Driver’s License'));
+ await tester.tap(find.text('Driver’s license'));
  await tester.pumpAndSettle();
- expect(find.text('Driver’s License'), findsWidgets);
+ expect(find.text('Driver’s license'), findsWidgets);
  expect(find.textContaining('No document was uploaded'), findsOneWidget);
  });
 }

@@ -193,7 +193,7 @@ void main() {
         await _pumpHome(tester, size);
 
         await _openPanel(tester);
-        expect(find.text('Driver overview').hitTestable(), findsOneWidget);
+        expect(find.byKey(const ValueKey<String>('home-sheet-today')).hitTestable(), findsOneWidget);
         _expectNoException(tester);
 
         await _closePanel(tester);
@@ -244,7 +244,7 @@ void main() {
     var latestPanel =
         tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
     expect((latestPanel.body! as AbsorbPointer).absorbing, isTrue);
-    expect(find.text('Driver overview').hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('home-sheet-today')).hitTestable(), findsOneWidget);
     _expectNoException(tester);
 
     latestPanel.controller!.close();
@@ -935,86 +935,74 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Driver overview shows performance rates and scheduled card opens', (
+  testWidgets('Home sheet lists today and opens reservations', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
     await _openPanel(tester);
 
-    expect(find.text('Performance'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('home-sheet-today')), findsOneWidget);
+    expect(find.text('Rating'), findsOneWidget);
+    expect(find.text('4.88'), findsWidgets);
     expect(find.text('Acceptance'), findsOneWidget);
     expect(find.text('94%'), findsOneWidget);
     expect(find.text('Cancellation'), findsOneWidget);
     expect(find.text('2.4%'), findsOneWidget);
+    expect(find.text('Waybill'), findsOneWidget);
+    expect(find.text('Events'), findsOneWidget);
+    // The old cards are gone.
+    expect(find.text('Performance'), findsNothing);
+    expect(find.text('Work in Stockholm'), findsNothing);
+    expect(find.text('What’s happening'), findsNothing);
     _expectNoException(tester);
 
-    final overviewList = find.byKey(
-      const PageStorageKey<String>('driver-overview-list'),
-    );
-    expect(overviewList, findsOneWidget);
-    await tester.drag(overviewList, const Offset(0, -360));
-    await tester.pump(const Duration(milliseconds: 180));
-    expect(find.text('What’s happening'), findsOneWidget);
-
-    final scheduled = find.text('Scheduled rides available');
-    await tester.ensureVisible(scheduled);
-    await tester.tap(scheduled);
+    final reservations = find.text('Reservations');
+    await tester.ensureVisible(reservations);
+    await tester.tap(reservations);
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
     expect(find.byType(ScheduledRidesScreen), findsOneWidget);
     _expectNoException(tester);
   });
 
-  testWidgets('Home sheet shows Stockholm work areas under What’s happening', (
+  testWidgets('Opening the Home sheet pushes the island away; closing brings it back', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
+    double islandOpacity() => tester
+        .widget<Opacity>(find.descendant(
+          of: find.byKey(const ValueKey<String>('home-island-push')),
+          matching: find.byType(Opacity),
+        ).first)
+        .opacity;
+    expect(islandOpacity(), 1);
     await _openPanel(tester);
-
-    final overviewList = find.byKey(
-      const PageStorageKey<String>('driver-overview-list'),
-    );
-    await tester.drag(overviewList, const Offset(0, -720));
-    await tester.pump(const Duration(milliseconds: 220));
-
-    expect(
-      find.byKey(const ValueKey<String>('stockholm-work-stats')),
-      findsOneWidget,
-    );
-    expect(find.text('Work in Stockholm'), findsOneWidget);
-    expect(find.text('Södermalm'), findsWidgets);
-    expect(find.text('Norrmalm'), findsOneWidget);
-    expect(find.text('Östermalm'), findsOneWidget);
-    expect(find.text('Kungsholmen'), findsOneWidget);
-    expect(find.text('Around Stockholm'), findsOneWidget);
-    expect(find.text('Arlanda'), findsOneWidget);
-    expect(find.text('Södertälje'), findsOneWidget);
-    expect(find.text('Kista'), findsOneWidget);
-    expect(find.text('Bromma'), findsOneWidget);
-    expect(find.text('82%'), findsOneWidget);
-    expect(find.text('69%'), findsOneWidget);
+    expect(islandOpacity(), 0);
+    await _closePanel(tester);
+    expect(islandOpacity(), 1);
     _expectNoException(tester);
   });
 
-  testWidgets('Event details show date time and recommended driving window', (
+  testWidgets('Events row opens the event cards and their details', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpHome(tester, const Size(375, 812));
     await _openPanel(tester);
 
-    final overviewList = find.byKey(
-      const PageStorageKey<String>('driver-overview-list'),
+    final events = find.text('Events');
+    await tester.ensureVisible(events);
+    await tester.tap(events);
+    await _advanceAnimation(tester, const Duration(milliseconds: 420));
+    expect(
+      find.byKey(const ValueKey<String>('driver-events-page')),
+      findsOneWidget,
     );
-    expect(overviewList, findsOneWidget);
-    await tester.drag(overviewList, const Offset(0, -520));
-    await tester.pump(const Duration(milliseconds: 180));
 
     final event = find.text('Stockholm evening demand');
     expect(event, findsOneWidget);
-    await tester.ensureVisible(event);
     await tester.tap(event);
     await _advanceAnimation(tester, const Duration(milliseconds: 420));
 
@@ -1053,9 +1041,11 @@ void main() {
     await _pumpHome(tester, const Size(375, 812));
     await _openPanel(tester);
 
-    final lastWaybill = find.text('Last waybill');
+    final lastWaybill =
+        find.byKey(const ValueKey<String>('home-sheet-last-waybill'));
     await tester.ensureVisible(lastWaybill);
     expect(lastWaybill, findsOneWidget);
+    expect(find.text('259,00 kr'), findsOneWidget);
 
     await tester.tap(lastWaybill);
     await tester.pump(const Duration(milliseconds: 320));
@@ -1276,15 +1266,22 @@ void main() {
       find.byKey(const ValueKey<String>('last-trip-launcher')),
     ).onTap!.call();
     await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    final island = find.byKey(const ValueKey<String>('last-trip-launcher'));
     expect(find.text('UPDATING'), findsOneWidget);
-    expect(find.text('156,80 kr'), findsNothing);
+    expect(
+      find.descendant(of: island, matching: find.text('156,80 kr')),
+      findsNothing,
+    );
 
     // Once settled, the real fare of that trip appears.
     await tester.pump(const Duration(seconds: 3));
     await tester.pump(const Duration(milliseconds: 520));
     expect(find.text('UPDATING'), findsNothing);
     expect(find.text('LAST TRIP'), findsOneWidget);
-    expect(find.text('156,80 kr'), findsOneWidget);
+    expect(
+      find.descendant(of: island, matching: find.text('156,80 kr')),
+      findsOneWidget,
+    );
     _expectNoException(tester);
   });
 
@@ -1876,12 +1873,11 @@ void main() {
     expect(find.text('OFF'), findsOneWidget);
     expect(find.text('Go offline'), findsNothing);
     await _openPanel(tester);
-    await tester.ensureVisible(find.text('Last waybill'));
-    expect(find.text('Last waybill'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('home-sheet-last-waybill')),
-      findsOneWidget,
-    );
+    final lastWaybill =
+        find.byKey(const ValueKey<String>('home-sheet-last-waybill'));
+    await tester.ensureVisible(lastWaybill);
+    expect(lastWaybill, findsOneWidget);
+    expect(find.text('None yet'), findsNothing);
     _expectNoException(tester);
   });
 
@@ -2316,7 +2312,9 @@ void main() {
     expect(panel.maxHeight, closeTo(812 * 0.86, 0.5));
     expect(panel.snapPoint, isNotNull);
     expect(panel.snapPoint!, inInclusiveRange(0.08, 0.92));
-    expect(panel.panelSnapping, isTrue);
+    // The sheet's own spring settles it (immediately, in the finger's
+    // direction), not the panel's built-in snap.
+    expect(panel.panelSnapping, isFalse);
     _expectNoException(tester);
   });
 

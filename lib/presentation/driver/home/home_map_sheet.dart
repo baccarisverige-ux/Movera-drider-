@@ -495,6 +495,10 @@ extension _HomeMapSheet on _DriverHomeState {
       _sheetPointerLastY = event.position.dy;
       _sheetPointerLastMs = DateTime.now().millisecondsSinceEpoch;
       _sheetPointerVelocity = 0;
+      _sheetPointerTravel = 0;
+      _sheetPointerStartPos =
+          _panelController.isAttached ? _panelController.panelPosition : 0;
+      _homeSheetPositionGuardTimer?.cancel();
       _snapSheet.stopSpring();
       _setMapGesturesBlocked(true);
     }
@@ -505,16 +509,17 @@ extension _HomeMapSheet on _DriverHomeState {
       _sheetTrace.up(_sheetPointerVelocity);
       _trackSheetPointer(event);
       _sheetPointerActive = false;
-      if (_mainPanelPosition <= 0.001) {
+      if (!_panelController.isAttached) { return; }
+      // A drag settles at once toward where the finger went, with the same
+      // spring as a tap; no late correction afterwards.
+      if (_sheetPointerTravel > 6) {
+        unawaited(_snapHomeSheet(velocity: _sheetPointerVelocity));
+      } else if (_panelController.panelPosition <= 0.001) {
         _setMapGesturesBlocked(false);
       }
-      // Let SlidingUpPanel finish its native release animation first. iOS web
-      // can occasionally interrupt that settle and leave the sheet between
-      // collapsed / middle / open, so a delayed guard normalizes the position.
-      _scheduleHomeSheetPositionGuard(
-        delay: const Duration(milliseconds: 460),
-      );
     }
+    /// Safety net only: if something outside a drag leaves the sheet
+    /// between stages (e.g. a cancelled animation), settle it.
     void _scheduleHomeSheetPositionGuard({
       Duration delay = const Duration(milliseconds: 180),
     }) {
@@ -523,6 +528,7 @@ extension _HomeMapSheet on _DriverHomeState {
         if (!mounted ||
             _outsideRadarOffer != null ||
             _sheetPointerActive ||
+            _snapSheet.isSpringing ||
             !_panelController.isAttached) {
           return;
         }
@@ -559,6 +565,7 @@ extension _HomeMapSheet on _DriverHomeState {
         final dt = math.max(1, now - _sheetPointerLastMs);
         _sheetPointerVelocity = (event.position.dy - _sheetPointerLastY) / dt * 1000;
       }
+      _sheetPointerTravel += (event.position.dy - _sheetPointerLastY).abs();
       _sheetPointerLastY = event.position.dy;
       _sheetPointerLastMs = now;
     }
@@ -567,8 +574,9 @@ extension _HomeMapSheet on _DriverHomeState {
       _snapSheet.rangePx =
           _homeExpandedHeight(context) - MoveraSheetMetrics.collapsedHeight;
       final snap = _homeSnapPoint(context);
-      final target = MoveraSheetMetrics.targetPosition(
-        position: _panelController.panelPosition,
+      final target = MoveraSheetMetrics.directionalTarget(
+        start: _sheetPointerStartPos,
+        position: _panelController.panelPosition.clamp(0.0, 1.0),
         velocityPxPerSec: velocity ?? _sheetPointerVelocity,
         snap: snap,
       );
@@ -928,13 +936,37 @@ extension _HomeMapSheet on _DriverHomeState {
                 left: 0,
                 right: 0,
                 top: math.max(MediaQuery.paddingOf(context).top - 4, 10.0),
-                child: Align(
-                  alignment: Alignment.topCenter,
+                // Sliding the sheet up from the middle stage pushes the
+                // island off the top; it comes back as the sheet goes down.
+                child: ValueListenableBuilder<double>(
+                  valueListenable: _panelSlidePosition,
                   child: Transform.scale(
                     scale: _islandScale,
                     alignment: Alignment.topCenter,
                     child: _buildTopIsland(viewportWidth / _islandScale),
                   ),
+                  builder: (context, panelPosition, island) {
+                    final snap = _homeSnapPoint(context);
+                    final push = Curves.easeIn.transform(
+                      ((panelPosition - snap) / (1 - snap)).clamp(0.0, 1.0),
+                    );
+                    final lift = MediaQuery.paddingOf(context).top +
+                        DigitalIslandParts.height + 24;
+                    return IgnorePointer(
+                      key: const ValueKey<String>('home-island-push'),
+                      ignoring: push > 0.5,
+                      child: Opacity(
+                        opacity: 1 - push,
+                        child: Transform.translate(
+                          offset: Offset(0, -lift * push),
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: island,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -1229,6 +1261,10 @@ extension _HomeMapSheet on _DriverHomeState {
         MaterialPageRoute<void>(builder: (_) => const DriverRideHistory()),
       );
     }
+    void _onRadarSheetDragStart(DragStartDetails details) {
+      _sheetPointerStartPos =
+          _panelController.isAttached ? _panelController.panelPosition : 0;
+    }
     void _onRadarSheetDragUpdate(DragUpdateDetails details) {
       if (!_panelController.isAttached) { return; }
       _snapSheet.stopSpring();
@@ -1244,6 +1280,7 @@ extension _HomeMapSheet on _DriverHomeState {
     Widget _radarDragToSheet({required Widget child}) {
       return GestureDetector(
         behavior: HitTestBehavior.translucent,
+        onVerticalDragStart: _onRadarSheetDragStart,
         onVerticalDragUpdate: _onRadarSheetDragUpdate,
         onVerticalDragEnd: _onRadarSheetDragEnd,
         child: child,
@@ -1663,9 +1700,9 @@ extension _HomeMapSheet on _DriverHomeState {
         ),
       );
     }
-    Widget _driverEventCard(DriverEventConfig event) {
+    Widget _driverEventCard(DriverEventConfig event, {double width = 252}) {
       return SizedBox(
-        width: 252,
+        width: width,
         child: Material(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -1685,6 +1722,7 @@ extension _HomeMapSheet on _DriverHomeState {
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                           color: const Color(0xFFE8EFEC),
+                          alignment: Alignment.center,
                           child: const MoveraLineIcon(
                             mark: MoveraMark.calendar,
                             color: Color(0xFF1C242C),
@@ -1770,565 +1808,229 @@ extension _HomeMapSheet on _DriverHomeState {
         ),
       );
     }
-    Widget _performanceSummaryCard() {
-      final performance = _adminHomeConfig.performance;
-      final metrics = <({String label, String value, MoveraMark icon})>[
-        if (performance.showRating)
-          (
-            label: 'Rating',
-            value: performance.rating.toStringAsFixed(2),
-            icon: MoveraMark.star,
-          ),
-        if (performance.showAcceptanceRate)
-          (
-            label: 'Acceptance',
-            value: '${performance.acceptanceRate.toStringAsFixed(0)}%',
-            icon: MoveraMark.check,
-          ),
-        if (performance.showCancellationRate)
-          (
-            label: 'Cancellation',
-            value: '${performance.cancellationRate.toStringAsFixed(1)}%',
-            icon: MoveraMark.close,
-          ),
-      ];
-
-      if (metrics.isEmpty) { return const SizedBox.shrink(); }
-
-      return Container(
-        padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(19),
-          border: Border.all(color: const Color(0xFFF0F2F3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Performance',
-              style: TextStyle(
-                color: Color(0xFF252E3A),
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 3),
-            const Text(
-              'Your recent activity',
-              style: TextStyle(
-                color: Color(0xFF8A959A),
-                fontSize: 9.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 13),
-            Row(
-              children: [
-                for (var index = 0; index < metrics.length; index++) ...[
-                  Expanded(
-                    child: _performanceCell(
-                      label: metrics[index].label,
-                      value: metrics[index].value,
-                      icon: metrics[index].icon,
-                    ),
-                  ),
-                  if (index != metrics.length - 1)
-                    Container(
-                      width: 1,
-                      height: 48,
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      color: const Color(0xFFEBEFF0),
-                    ),
-                ],
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-    Widget _stockholmWorkStats() {
-      final stats = _adminHomeConfig.stockholmWork;
-      final strongest = stats.innerAreas.reduce(
-        (current, next) =>
-            next.demandPercent > current.demandPercent ? next : current,
-      );
-      return Container(
-        key: const ValueKey<String>('stockholm-work-stats'),
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: const Color(0xFFE0E9E5)),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF18392E).withValues(alpha: 0.055),
-              blurRadius: 28,
-              offset: const Offset(0, 11),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  height: 43,
-                  width: 43,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF163D31),
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF163D31).withValues(alpha: 0.16),
-                        blurRadius: 12,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: const MoveraLineIcon(
-                    mark: MoveraMark.city,
-                    color: Color(0xFFE8F6EF),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        stats.title,
-                        style: const TextStyle(
-                          color: Color(0xFF1E2932),
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.35,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        stats.subtitle,
-                        style: const TextStyle(
-                          color: Color(0xFF84908E),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          height: 1.25,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    Color(0xFF173F32),
-                    Color(0xFF245845),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(19),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF173F32).withValues(alpha: 0.13),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    height: 36,
-                    width: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.12),
-                      ),
-                    ),
-                    child: const MoveraLineIcon(
-                      mark: MoveraMark.trend,
-                      color: Color(0xFFBCE7D2),
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Strongest area',
-                          style: TextStyle(
-                            color: Color(0xFFBFD5CC),
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.15,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          strongest.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEBF7F1),
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Text(
-                      '${strongest.demandPercent}%',
-                      style: const TextStyle(
-                        color: Color(0xFF176F52),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            for (var i = 0; i < stats.innerAreas.length; i++) ...[
-              _stockholmAreaRow(stats.innerAreas[i]),
-              if (i != stats.innerAreas.length - 1)
-                const SizedBox(height: 8),
-            ],
-            const SizedBox(height: 14),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(12, 11, 12, 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F8F6),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE1EBE6)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        height: 28,
-                        width: 28,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFDFE9E4)),
-                        ),
-                        child: const MoveraLineIcon(
-                          mark: MoveraMark.explore,
-                          size: 15,
-                          color: Color(0xFF1C242C),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        stats.surroundingTitle,
-                        style: const TextStyle(
-                          color: Color(0xFF22312D),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.05,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 9),
-                  Wrap(
-                    spacing: 7,
-                    runSpacing: 7,
-                    children: [
-                      for (final area in stats.surroundingAreas)
-                        _stockholmSurroundingChip(area),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    Widget _stockholmSurroundingChip(StockholmAreaConfig area) {
-      final status = area.demandLabel.toLowerCase();
-      final isBusy = status == 'busy';
-      final isQuiet = status == 'quiet';
-
-      final background = isBusy
-          ? const Color(0xFFE8F5EF)
-          : isQuiet
-              ? const Color(0xFFF3F5F4)
-              : const Color(0xFFF0F7F3);
-      final border = isBusy
-          ? const Color(0xFFCFE7DC)
-          : isQuiet
-              ? const Color(0xFFE2E7E4)
-              : const Color(0xFFDCE9E3);
-      final accent = isBusy
-          ? const Color(0xFF167653)
-          : isQuiet
-              ? const Color(0xFF98A49F)
-              : const Color(0xFF65A98B);
-      final textColor = isBusy
-          ? const Color(0xFF155F47)
-          : isQuiet
-              ? const Color(0xFF737F7A)
-              : const Color(0xFF526F64);
-
-      return Container(
-        padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(99),
-          border: Border.all(color: border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: accent,
-                shape: BoxShape.circle,
-                boxShadow: isBusy
-                    ? [
-                        BoxShadow(
-                          color: accent.withValues(alpha: 0.20),
-                          blurRadius: 4,
-                          spreadRadius: 1,
-                        ),
-                      ]
-                    : null,
-              ),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              area.name,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              '${area.demandPercent}%',
-              style: TextStyle(
-                color: accent,
-                fontSize: 8.5,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    Widget _stockholmAreaRow(StockholmAreaConfig area) {
-      final busy = area.demandPercent >= 75;
-      final accent =
-          busy ? const Color(0xFF1C7D5B) : const Color(0xFF67A98C);
-      final percent =
-          (area.demandPercent / 100).clamp(0.0, 1.0).toDouble();
-
-      return Container(
-        padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE6ECE9)),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  height: 7,
-                  width: 7,
-                  decoration: BoxDecoration(
-                    color: accent,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: accent.withValues(alpha: 0.18),
-                        blurRadius: 5,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    area.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF26323A),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.1,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: busy
-                        ? const Color(0xFFE9F5EF)
-                        : const Color(0xFFF0F4F2),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    area.demandLabel,
-                    style: TextStyle(
-                      color: busy
-                          ? const Color(0xFF177454)
-                          : const Color(0xFF66756F),
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 34,
-                  child: Text(
-                    '${area.demandPercent}%',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      color: busy
-                          ? const Color(0xFF166E50)
-                          : const Color(0xFF5D6B66),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 9),
-            Container(
-              height: 5,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9EEEC),
-                borderRadius: BorderRadius.circular(99),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: FractionallySizedBox(
-                  widthFactor: percent,
-                  heightFactor: 1,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: busy
-                            ? const [
-                                Color(0xFF1A7958),
-                                Color(0xFF4BA17F),
-                              ]
-                            : const [
-                                Color(0xFF6DAE92),
-                                Color(0xFF91C9AF),
-                              ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    Widget _performanceCell({
+    /// One quiet row of the Home sheet list: line icon, label, and a value
+    /// or a chevron when the row opens something.
+    Widget _todayRow({
+      Key? key,
+      required MoveraMark mark,
       required String label,
-      required String value,
-      required MoveraMark icon,
+      String? value,
+      Color valueColor = const Color(0xFF111614),
+      bool dot = false,
+      VoidCallback? onTap,
+      bool last = false,
     }) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          MoveraLineIcon(
-            mark: icon,
-            size: 15,
-            color: const Color(0xFF6B777C),
+      const ink = Color(0xFF111614);
+      return InkWell(
+        key: key,
+        onTap: onTap,
+        child: Container(
+          height: 54,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            border: last
+                ? null
+                : const Border(bottom: BorderSide(color: Color(0xFFEDEFF0))),
           ),
-          const SizedBox(height: 7),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Color(0xFF252E3A),
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.35,
-            ),
+          child: Row(
+            children: [
+              MoveraLineIcon(mark: mark, size: 20, color: ink),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ink,
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (dot) ...[
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: valueColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              if (value != null)
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: valueColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              if (onTap != null)
+                const Padding(
+                  padding: EdgeInsets.only(left: 6),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFFB4BBB8),
+                    size: 22,
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF7D898F),
-              fontSize: 9.2,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+        ),
       );
     }
-    Widget _lastWaybillCard(WaybillRecord last) {
-      return _sheetAlertCard(
-        key: const ValueKey<String>('home-sheet-last-waybill'),
-        mark: MoveraMark.receipt,
-        iconColor: const Color(0xFF1C242C),
-        title: 'Last waybill',
-        subtitle: '${last.service} · ${last.fare} · ${last.dropoff}',
-        onTap: () {
-          showMoveraWaybillSheet(
-            context,
-            last,
-            title: 'Last waybill',
-          );
-        },
+    Widget _todayGroup(List<Widget Function(bool last)> rows) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE7E9EA)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            for (var i = 0; i < rows.length; i++) rows[i](i == rows.length - 1),
+          ],
+        ),
+      );
+    }
+    /// Home sheet, open: "Today" numbers, then Waybill, Reservations and
+    /// Events. Nothing else.
+    List<Widget> _todayList() {
+      final performance = _adminHomeConfig.performance;
+      final events = _adminHomeConfig.events
+          .where((event) => event.enabled)
+          .toList(growable: false);
+      final stats = <Widget Function(bool)>[
+        if (performance.showRating)
+          (last) => _todayRow(
+                mark: MoveraMark.star,
+                label: 'Rating',
+                value: performance.rating.toStringAsFixed(2),
+                last: last,
+              ),
+        if (performance.showAcceptanceRate)
+          (last) => _todayRow(
+                mark: MoveraMark.check,
+                label: 'Acceptance',
+                value: '${performance.acceptanceRate.toStringAsFixed(0)}%',
+                last: last,
+              ),
+        if (performance.showCancellationRate)
+          (last) => _todayRow(
+                mark: MoveraMark.close,
+                label: 'Cancellation',
+                value: '${performance.cancellationRate.toStringAsFixed(1)}%',
+                last: last,
+              ),
+      ];
+      return [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(4, 2, 4, 12),
+          child: Text(
+            'Today',
+            key: ValueKey<String>('home-sheet-today'),
+            style: TextStyle(
+              color: Color(0xFF111614),
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.4,
+            ),
+          ),
+        ),
+        if (stats.isNotEmpty) _todayGroup(stats),
+        const SizedBox(height: 22),
+        ValueListenableBuilder<WaybillRecord?>(
+          valueListenable: _waybills.lastListenable,
+          builder: (context, lastWaybill, _) => _todayGroup([
+            (last) => _todayRow(
+                  key: const ValueKey<String>('home-sheet-last-waybill'),
+                  mark: MoveraMark.receipt,
+                  label: 'Waybill',
+                  value: lastWaybill == null ? 'None yet' : lastWaybill.fare,
+                  valueColor: lastWaybill == null
+                      ? const Color(0xFF8A9390)
+                      : const Color(0xFF111614),
+                  onTap: lastWaybill == null
+                      ? null
+                      : () => showMoveraWaybillSheet(
+                            context,
+                            lastWaybill,
+                            title: 'Last waybill',
+                          ),
+                  last: last,
+                ),
+            if (_adminHomeConfig.scheduledRides.enabled)
+              (last) => _todayRow(
+                    key: const ValueKey<String>('home-sheet-reservations'),
+                    mark: MoveraMark.calendar,
+                    label: 'Reservations',
+                    value: _hasScheduledRideOffers ? 'New' : null,
+                    valueColor: const Color(0xFF1FA463),
+                    dot: _hasScheduledRideOffers,
+                    onTap: _openScheduledRides,
+                    last: last,
+                  ),
+            if (events.isNotEmpty)
+              (last) => _todayRow(
+                    key: const ValueKey<String>('home-sheet-events'),
+                    mark: MoveraMark.city,
+                    label: 'Events',
+                    value: '${events.length}',
+                    valueColor: const Color(0xFF8A9390),
+                    onTap: () => _openDriverEvents(events),
+                    last: last,
+                  ),
+          ]),
+        ),
+      ];
+    }
+    /// The event cards, one under the other, on their own page.
+    void _openDriverEvents(List<DriverEventConfig> events) {
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (pageContext) => Scaffold(
+            key: const ValueKey<String>('driver-events-page'),
+            backgroundColor: const Color(0xFFF6F7F7),
+            appBar: AppBar(
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(pageContext).maybePop(),
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Color(0xFF111614),
+                ),
+              ),
+              centerTitle: true,
+              title: Text(
+                _adminHomeConfig.eventsSectionTitle,
+                style: const TextStyle(
+                  color: Color(0xFF111614),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            body: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+              itemCount: events.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (_, index) =>
+                  _driverEventCard(events[index], width: double.infinity),
+            ),
+          ),
+        ),
       );
     }
     Widget panelColumn(ScrollController sc) {
-      const ink = Color(0xFF252E3A);
-      const muted = Color(0xFF7B878E);
-
       return Stack(
         clipBehavior: Clip.hardEdge,
         children: [
@@ -2354,131 +2056,7 @@ extension _HomeMapSheet on _DriverHomeState {
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(2, 2, 2, 16),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Driver overview",
-                                      style: TextStyle(
-                                        color: ink,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.35,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "Your shift at a glance",
-                                      style: TextStyle(
-                                        color: muted,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 4,
-                                    backgroundColor: Color(0xFF2FBE7B),
-                                  ),
-                                  SizedBox(width: 7),
-                                  Text(
-                                    "Ready",
-                                    style: TextStyle(
-                                      color: Color(0xFF19865C),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        ValueListenableBuilder<WaybillRecord?>(
-                          valueListenable: _waybills.lastListenable,
-                          builder: (context, lastWaybill, _) {
-                            if (lastWaybill == null) {
-                              return const SizedBox.shrink();
-                            }
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: _lastWaybillCard(lastWaybill),
-                            );
-                          },
-                        ),
-                        _performanceSummaryCard(),
-                        if (_adminHomeConfig.scheduledRides.enabled) ...[
-                          const SizedBox(height: 10),
-                          _sheetAlertCard(
-                            mark: MoveraMark.calendar,
-                            iconColor: const Color(0xFF1C242C),
-                            title: _adminHomeConfig.scheduledRides.title,
-                            subtitle: _adminHomeConfig.scheduledRides.subtitle,
-                            onTap: _openScheduledRides,
-                          ),
-                        ],
-                        if (_adminHomeConfig.events
-                            .where((event) => event.enabled)
-                            .isNotEmpty) ...[
-                          const SizedBox(height: 22),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _adminHomeConfig.eventsSectionTitle,
-                                  style: const TextStyle(
-                                    color: ink,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.25,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  _adminHomeConfig.eventsSectionSubtitle,
-                                  style: const TextStyle(
-                                    color: Color(0xFF8A959A),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            height: 208,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: _adminHomeConfig.events
-                                  .where((event) => event.enabled)
-                                  .length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(width: 10),
-                              itemBuilder: (context, index) {
-                                final events = _adminHomeConfig.events
-                                    .where((event) => event.enabled)
-                                    .toList(growable: false);
-                                return _driverEventCard(events[index]);
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _stockholmWorkStats(),
-                        ],
+                        ..._todayList(),
                       ],
                     ),
                   ),
@@ -2528,72 +2106,4 @@ extension _HomeMapSheet on _DriverHomeState {
         ],
       );
     }
-    Widget _sheetAlertCard({
-      Key? key,
-      required MoveraMark mark,
-      required Color iconColor,
-      required String title,
-      String? subtitle,
-      VoidCallback? onTap,
-    }) {
-      return Material(
-        key: key,
-        color: AppColor.white,
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            child: Row(
-              children: [
-                Container(
-                  height: 44,
-                  width: 44,
-                  decoration: BoxDecoration(
-                    color: iconColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: MoveraLineIcon(
-                    mark: mark,
-                    color: AppColor.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 13),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextWidget(
-                        text: title,
-                        color: const Color(0xFF252E3A),
-                        fontSize: 15,
-                        fontWeight: fwSemiBold,
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 3),
-                        TextWidget(
-                          text: subtitle,
-                          color: const Color(0xFF667483),
-                          fontSize: 11,
-                          fontWeight: fwNormal,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (onTap != null)
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Color(0xFFA5AFB4),
-                    size: 20,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
 }
-
