@@ -36,6 +36,7 @@ import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 Future<void> _pumpHome(WidgetTester tester, Size size) async {
   IslandMessages.reset();
+  ScheduledRideStore.reset();
   await tester.binding.setSurfaceSize(size);
   await tester.pumpWidget(const MoveraApp());
 

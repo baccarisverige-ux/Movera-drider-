@@ -262,44 +262,43 @@ class _AcceptRideState extends State<AcceptRide>
   static const Color _muted = Color(0xFF7D898F);
   static const Color _green = Color(0xFF19865C);
   static const Color _line = Color(0xFFE5E9EB);
-  static const Color _danger = Color(0xFFE75D65);
   static const double _nextTripRadarRadiusMeters = 30000;
 
   static const List<_TripCancellationReason> _preTripCancellationReasons = [
     _TripCancellationReason(
       code: 'rider_requested_cancel',
-      title: 'Rider requested cancellation',
-      subtitle: 'The rider asked not to continue with this pickup',
+      title: 'Rider asked to cancel',
+      subtitle: 'The rider doesn’t want to continue',
       icon: MoveraMark.user,
     ),
     _TripCancellationReason(
       code: 'rider_not_at_pickup',
       title: 'Rider not at pickup',
-      subtitle: 'You arrived but could not find or reach the rider',
+      subtitle: 'You arrived but couldn’t find the rider',
       icon: MoveraMark.pin,
     ),
     _TripCancellationReason(
       code: 'unsafe_pickup',
-      title: 'Pickup is unsafe or inaccessible',
-      subtitle: 'You cannot stop or complete the pickup safely',
+      title: 'Pickup unsafe',
+      subtitle: 'You can’t stop there safely',
       icon: MoveraMark.warning,
     ),
     _TripCancellationReason(
       code: 'vehicle_issue_before_start',
       title: 'Vehicle problem',
-      subtitle: 'A vehicle issue prevents the trip from starting',
+      subtitle: 'Your car can’t make the trip',
       icon: MoveraMark.car,
     ),
     _TripCancellationReason(
       code: 'driver_emergency_before_start',
       title: 'Personal emergency',
-      subtitle: 'An urgent situation prevents you from continuing',
+      subtitle: 'Something urgent came up',
       icon: MoveraMark.bolt,
     ),
     _TripCancellationReason(
       code: 'other_before_start',
       title: 'Other reason',
-      subtitle: 'Another issue prevents this pickup',
+      subtitle: 'Something else stops this pickup',
       icon: MoveraMark.more,
     ),
   ];

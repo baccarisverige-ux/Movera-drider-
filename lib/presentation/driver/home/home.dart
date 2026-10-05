@@ -246,7 +246,11 @@ class _DriverHomeState extends State<DriverHome>
   void _rebuild(VoidCallback update) => setState(update);
   void openDestinationPanel() => _HomeMapSheet(this).openDestinationPanel();
   bool _hasRideOffers = false;
-  bool _hasScheduledRideOffers = true;
+  /// Green dot on the scheduled icon: on while any reservation request is
+  /// still unanswered.
+  bool get _hasScheduledRideOffers =>
+      _adminHomeConfig.scheduledRides.hasOpenRequests &&
+      ScheduledRideStore.openRequests.value > 0;
   /// What the top island's screen shows; a tap moves to the next face.
   _IslandFace _islandFace = _IslandFace.hidden;
   _HomeDirectOffer? _outsideRadarOffer;
@@ -364,8 +368,7 @@ class _DriverHomeState extends State<DriverHome>
     _adminHomeConfig = (widget.homeConfigRepository ??
             const LocalDriverHomeConfigRepository())
         .load();
-    _hasScheduledRideOffers =
-        _adminHomeConfig.scheduledRides.hasOpenRequests;
+    ScheduledRideStore.openRequests.addListener(_onScheduledRequests);
     _goOnlinePulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2600),
@@ -425,7 +428,7 @@ class _DriverHomeState extends State<DriverHome>
       final decision = await showReservationRequestSheet(context, request);
       if (!mounted || decision == ReservationDecision.dismissed) { return; }
       final accepted = decision == ReservationDecision.accepted;
-      setState(() => _hasScheduledRideOffers = false);
+      ScheduledRideStore.answer(request.pickupAddress, accepted: accepted);
       IslandMessages.show(accepted
           ? HomeIslandNotices.reservationAccepted
           : HomeIslandNotices.reservationDeclined);
@@ -977,10 +980,11 @@ class _DriverHomeState extends State<DriverHome>
     });
   }
 
+  void _onScheduledRequests() {
+    if (mounted) { setState(() {}); }
+  }
+
   void _openScheduledRides() {
-    setState(() {
-      _hasScheduledRideOffers = false;
-    });
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1121,6 +1125,7 @@ class _DriverHomeState extends State<DriverHome>
 
   @override
   void dispose() {
+    ScheduledRideStore.openRequests.removeListener(_onScheduledRequests);
     _locationEpoch++;
     _reservationPopupTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
