@@ -226,6 +226,8 @@ class _DriverHomeState extends State<DriverHome>
   static const Duration _radarOfferPickWindow = Duration(seconds: 30);
   static const int _maxHomeRadarOffers = 4;
   double _sheetPointerVelocity = 0;
+  double _sheetPointerTravel = 0;
+  double _sheetPointerStartPos = 0;
   double _sheetPointerLastY = 0;
   int _sheetPointerLastMs = 0;
   double _lastSnapHapticAt = -1;
@@ -765,7 +767,8 @@ class _DriverHomeState extends State<DriverHome>
               padding: EdgeInsets.zero,
               boxShadow: [],
               isDraggable: _outsideRadarOffer == null,
-              panelSnapping: _outsideRadarOffer == null,
+              // Our spring settles the sheet (see _snapHomeSheet).
+              panelSnapping: false,
               snapPoint: _HomeMapSheet(this)._homeSnapPoint(context),
               defaultPanelState: PanelState.CLOSED,
               maxHeight: _HomeMapSheet(this)._homeExpandedHeight(context),

@@ -144,29 +144,13 @@ extension _AcceptRidePanel on _AcceptRideState {
         velocityPxPerSec: v,
       );
     }
-    /// Where a released drag goes: a flick follows its direction; a small
-    /// push already opens (or closes) the next stage; otherwise nearest.
-    double _rideTarget(double start, double pos, double v, double snap) {
-      if (v.abs() > MoveraSheetMetrics.flickVelocity) {
-        return MoveraSheetMetrics.targetPosition(
+    double _rideTarget(double start, double pos, double v, double snap) =>
+        MoveraSheetMetrics.directionalTarget(
+          start: start,
           position: pos,
           velocityPxPerSec: v,
           snap: snap,
         );
-      }
-      final stops = <double>[0, snap, 1];
-      if (pos > start + 0.03) {
-        return stops.firstWhere((s) => s >= pos - 0.06, orElse: () => 1);
-      }
-      if (pos < start - 0.03) {
-        return stops.lastWhere((s) => s <= pos + 0.06, orElse: () => 0);
-      }
-      return MoveraSheetMetrics.targetPosition(
-        position: pos,
-        velocityPxPerSec: 0,
-        snap: snap,
-      );
-    }
     /// Big turn card and small address card change with a fade and a
     /// smooth change of height, both anchored at the top.
     Widget _morphTopCard(Widget card, {required bool big}) {

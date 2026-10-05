@@ -87,6 +87,38 @@ class MoveraSheetMetrics {
     return 1;
   }
 
+  /// Where a released drag goes: a flick follows its direction; a small
+  /// push already opens (or closes) the next stage; otherwise nearest.
+  static double directionalTarget({
+    required double start,
+    required double position,
+    required double velocityPxPerSec,
+    required double snap,
+  }) {
+    if (velocityPxPerSec.abs() > flickVelocity) {
+      return targetPosition(
+        position: position,
+        velocityPxPerSec: velocityPxPerSec,
+        snap: snap,
+      );
+    }
+    final stops = <double>[0, snap, 1];
+    // Only stages past the one the drag started from count.
+    if (position > start + 0.03) {
+      return stops.firstWhere(
+        (s) => s > start + 0.01 && s >= position - 0.06,
+        orElse: () => 1,
+      );
+    }
+    if (position < start - 0.03) {
+      return stops.lastWhere(
+        (s) => s < start - 0.01 && s <= position + 0.06,
+        orElse: () => 0,
+      );
+    }
+    return targetPosition(position: position, velocityPxPerSec: 0, snap: snap);
+  }
+
   static double notchDepthFor(double position) {
     const collapsed = 58.0;
     const expanded = 8.0;

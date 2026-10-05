@@ -26,7 +26,6 @@ class DriverSideMenu extends StatelessWidget {
   static const Color _green = Color(0xFF19865C);
   static const Color _canvas = Colors.white;
   static const Color _gap = Color(0xFFF1F2F2);
-  static const Color _line = Color(0xFFE3E8E6);
 
   // Deliberately keep the Drawer open under the destination route.
   // When the driver presses Back, Flutter reveals the menu again instead of
@@ -61,9 +60,6 @@ class DriverSideMenu extends StatelessWidget {
               child: Column(
                 children: [
                   _buildHeader(context),
-                  const SizedBox(height: 10),
-                  _buildPerformanceStrip(),
-                  const SizedBox(height: 4),
                 ],
               ),
             ),
@@ -163,51 +159,71 @@ class DriverSideMenu extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    const orange = Color(0xFFF08C2B);
+    const green = Color(0xFF1FA463);
     final statusColor = isOnline
         ? const Color(0xFF2FBE7B)
-        : const Color(0xFF9AA4A9);
+        : const Color(0xFF8A9390);
     final statusText = isOnline ? 'ONLINE' : 'OFFLINE';
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 310;
+        final photo = compact ? 60.0 : 72.0;
 
         return Padding(
           padding: EdgeInsets.fromLTRB(
-            compact ? 14 : 18,
+            compact ? 14 : 20,
             16,
-            compact ? 10 : 14,
-            0,
+            compact ? 10 : 16,
+            10,
           ),
           child: Row(
             children: [
+              // The ring tells the account state: orange while pending or on
+              // hold, white once active.
               InkWell(
                 key: const ValueKey<String>('menu-profile-avatar'),
                 onTap: () => _open(context, const DriverProfile()),
-                borderRadius: BorderRadius.circular(30),
+                customBorder: const CircleBorder(),
                 child: Container(
-                  height: compact ? 50 : 58,
-                  width: compact ? 50 : 58,
-                  padding: const EdgeInsets.all(3),
+                  key: ValueKey<String>(
+                    accountActive ? 'menu-ring-active' : 'menu-ring-pending',
+                  ),
+                  height: photo,
+                  width: photo,
+                  padding: const EdgeInsets.all(3.5),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: accountActive ? Colors.white : orange,
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFDCE4E0)),
                     boxShadow: [
                       BoxShadow(
-                        color: _ink.withValues(alpha: 0.08),
+                        color: const Color(0xFF172027)
+                            .withValues(alpha: accountActive ? 0.18 : 0.10),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: const CircleAvatar(
-                    backgroundImage: AssetImage(AppAssets.profileImg),
-                    backgroundColor: Color(0xFFE9EEEC),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1C2421),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'MD',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: compact ? 19 : 22,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
                   ),
                 ),
               ),
-              SizedBox(width: compact ? 8 : 12),
+              SizedBox(width: compact ? 10 : 16),
               Expanded(
                 child: InkWell(
                   key: const ValueKey<String>('menu-profile-header'),
@@ -223,37 +239,66 @@ class DriverSideMenu extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: _ink,
-                            fontSize: compact ? 16 : 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.35,
+                            color: const Color(0xFF111614),
+                            fontSize: compact ? 19 : 22,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
+                        const SizedBox(height: 7),
+                        // Wraps to two lines when the drawer is narrow.
+                        Wrap(
+                          spacing: compact ? 10 : 16,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Container(
-                              height: 7,
-                              width: 7,
-                              decoration: BoxDecoration(
-                                color: statusColor,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                isOnline
-                                    ? 'Available for trips'
-                                    : 'Driver profile',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: _muted,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                            const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.star_rounded,
+                                  size: 16,
+                                  color: Color(0xFF111614),
                                 ),
-                              ),
+                                SizedBox(width: 4),
+                                Text(
+                                  '4.88',
+                                  style: TextStyle(
+                                    color: Color(0xFF111614),
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  height: 8,
+                                  width: 8,
+                                  decoration: BoxDecoration(
+                                    color: accountActive ? green : orange,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 7),
+                                Flexible(
+                                  child: Text(
+                                    accountActive ? 'Active' : 'Pending',
+                                    key: const ValueKey<String>('menu-account-state'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: accountActive
+                                          ? green
+                                          : const Color(0xFFB8661A),
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -266,11 +311,13 @@ class DriverSideMenu extends StatelessWidget {
               Container(
                 key: const ValueKey<String>('menu-live-status'),
                 padding: EdgeInsets.symmetric(
-                  horizontal: compact ? 7 : 10,
+                  horizontal: compact ? 8 : 12,
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.10),
+                  color: isOnline
+                      ? statusColor.withValues(alpha: 0.10)
+                      : const Color(0xFFF1F2F2),
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(
@@ -279,9 +326,9 @@ class DriverSideMenu extends StatelessWidget {
                       : statusText,
                   style: TextStyle(
                     color: statusColor,
-                    fontSize: 8.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: compact ? 0.35 : 0.8,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: compact ? 0.4 : 1.2,
                   ),
                 ),
               ),
@@ -289,48 +336,6 @@ class DriverSideMenu extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildPerformanceStrip() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _line),
-        ),
-        child: Row(
-          children: [
-            const Expanded(
-              child: _MetricTile(
-                icon: Icons.star_rounded,
-                value: '4.88',
-                label: 'Rating',
-                accent: Color(0xFFD99B24),
-              ),
-            ),
-            const SizedBox(
-              height: 48,
-              child: VerticalDivider(width: 1, color: _line),
-            ),
-            Expanded(
-              child: _MetricTile(
-                icon: accountActive
-                    ? Icons.verified_outlined
-                    : Icons.pending_outlined,
-                value: accountActive ? 'Active' : 'Pending',
-                label: 'Account',
-                accent: accountActive
-                    ? _green
-                    : const Color(0xFFB9801F),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -535,59 +540,6 @@ class _MenuAction {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-}
-
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.accent,
-  });
-
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 10),
-      child: Row(
-        children: [
-          Icon(icon, color: accent, size: 18),
-          const SizedBox(width: 7),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: DriverSideMenu._ink,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: DriverSideMenu._muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _DriverMenuRoute extends ModalRoute<void> {

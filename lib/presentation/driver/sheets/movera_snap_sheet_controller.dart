@@ -22,6 +22,8 @@ class MoveraSnapSheetController {
 
   bool get isAttached => panel.isAttached;
 
+  bool get isSpringing => _spring != null;
+
   void stopSpring() {
     _spring?.dispose();
     _spring = null;
