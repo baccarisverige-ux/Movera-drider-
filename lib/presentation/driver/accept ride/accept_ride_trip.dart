@@ -494,7 +494,7 @@ extension _AcceptRideTrip on _AcceptRideState {
 
         _positionSubscription?.cancel();
         _positionSubscription = _locationService
-            .watchPosition(distanceFilterMeters: kIsWeb ? 20 : 8)
+            .watchPosition(distanceFilterMeters: 0)
             .listen(
           (position) {
             if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) { return; }

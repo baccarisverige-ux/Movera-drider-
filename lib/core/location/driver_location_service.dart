@@ -45,17 +45,44 @@ class DriverLocationService implements DriverLocationRepository {
     }
   }
 
+  LocationSettings _streamSettings(int distanceFilterMeters) {
+    final navigation = distanceFilterMeters == 0;
+    if (kIsWeb || !navigation) {
+      return LocationSettings(
+        accuracy: kIsWeb
+            ? LocationAccuracy.high
+            : LocationAccuracy.bestForNavigation,
+        distanceFilter: distanceFilterMeters,
+      );
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+        intervalDuration: const Duration(seconds: 1),
+      );
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      return AppleSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+        activityType: ActivityType.automotiveNavigation,
+        pauseLocationUpdatesAutomatically: false,
+      );
+    }
+    return LocationSettings(
+      accuracy: LocationAccuracy.bestForNavigation,
+      distanceFilter: 0,
+    );
+  }
+
   @override
   Stream<DriverLocation> watchPosition({int distanceFilterMeters = 8}) async* {
     await _ensurePermission();
 
     yield* Geolocator.getPositionStream(
-      locationSettings: LocationSettings(
-        accuracy: kIsWeb
-            ? LocationAccuracy.high
-            : LocationAccuracy.bestForNavigation,
-        distanceFilter: distanceFilterMeters,
-      ),
+      locationSettings: _streamSettings(distanceFilterMeters),
     ).map(_toDriverLocation);
   }
 

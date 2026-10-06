@@ -18,6 +18,31 @@
       span: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
       angle: Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180 / Math.PI};
   };
+  function shiftToAnchor(state, nativeMove) {
+    const projection = state.overlay.getProjection();
+    const height = state.div.clientHeight;
+    if (!projection || !height) return;
+    const available = Math.max(0, height - state.top - state.bottom);
+    if (!available) return;
+    const margin = Math.min(24, available / 2);
+    const desiredY = state.anchor === .5 ? state.top + available / 2 :
+      clamp(height * state.anchor, state.top + margin,
+        height - state.bottom - margin);
+    const center = projection.fromLatLngToContainerPixel(state.map.getCenter());
+    if (!center) return;
+    const dy = desiredY - height / 2;
+    if (Math.abs(dy) < 0.5) return;
+    const target = projection.fromContainerPixelToLatLng(
+      new sdk.Point(center.x, center.y - dy));
+    if (!target) return;
+    // Re-assert zoom/heading/tilt so a property write cannot keep animating.
+    nativeMove({
+      center: target,
+      zoom: state.map.getZoom(),
+      heading: state.map.getHeading() || 0,
+      tilt: state.map.getTilt() || 0,
+    });
+  }
   function pan(state, dx, dy) {
     const projection = state.overlay.getProjection();
     if (!projection) return;
@@ -28,7 +53,7 @@
   }
   function install(map, div, id) {
     const state = {map, div, top: 0, bottom: 0, anchor: .5,
-      callbacks: new Set(), heading: 0, car: null};
+      callbacks: new Set(), heading: 0, car: null, claim: false, anchorToken: 0};
     const overlay = new sdk.OverlayView();
     overlay.onAdd = () => {};
     overlay.draw = () => {};
@@ -37,8 +62,31 @@
     state.overlay = overlay;
     states.set(id, state);
     byMap.set(map, state);
+    const nativeMove = map.moveCamera.bind(map);
+    const nativePanTo = typeof map.panTo === 'function'
+      ? map.panTo.bind(map)
+      : latLng => nativeMove({center: latLng});
+    // Flutter web applies a camera update with panTo, which animates. A follow
+    // frame claims the next pan so it is instant and anchored before paint.
+    map.panTo = latLng => {
+      if (!state.claim) {
+        nativePanTo(latLng);
+        return;
+      }
+      state.claim = false;
+      nativeMove({center: latLng});
+      const token = ++state.anchorToken;
+      queueMicrotask(() => {
+        if (token !== state.anchorToken) return;
+        shiftToAnchor(state, nativeMove);
+      });
+    };
     let previous, travel = 0, startedAt = 0, maxTouches = 0, lastTap = -Infinity;
-    const release = () => { state.callbacks.forEach(callback => callback()); };
+    const release = () => {
+      state.claim = false;
+      state.anchorToken++;
+      state.callbacks.forEach(callback => callback());
+    };
     div.style.touchAction = 'none';
     div.addEventListener('pointerdown', release, {capture: true});
     div.addEventListener('wheel', release, {capture: true, passive: true});
@@ -166,14 +214,12 @@
     },
     anchor(id) {
       const state = states.get(id); if (!state) return;
-      const height = state.div.clientHeight;
-      const available = Math.max(0, height - state.top - state.bottom);
-      if (!available) return;
-      const margin = Math.min(24, available / 2);
-      const desiredY = state.anchor === .5 ? state.top + available / 2 :
-        clamp(height * state.anchor, state.top + margin,
-          height - state.bottom - margin);
-      pan(state, 0, desiredY - height / 2);
-    }
+      const nativeMove = state.map.moveCamera.bind(state.map);
+      shiftToAnchor(state, nativeMove);
+    },
+    claim(id) {
+      const state = states.get(id); if (!state) return;
+      state.claim = true;
+    },
   };
 })();

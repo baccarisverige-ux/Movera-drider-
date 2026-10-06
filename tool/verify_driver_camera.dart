@@ -34,6 +34,9 @@ class RecordingCamera implements DriverCameraPort {
   }
 
   @override
+  void retarget(DriverCameraPose pose) {}
+
+  @override
   void interrupt() {
     interrupts++;
   }

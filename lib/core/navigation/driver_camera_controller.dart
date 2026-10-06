@@ -20,16 +20,28 @@ class DriverCameraPose {
     this.bearing,
     this.tilt, {
     this.duration = const Duration(milliseconds: 450),
+    this.speedMetersPerSecond = 0,
+    this.coast = false,
   });
   final GeoPoint target;
   final double zoom;
   final double bearing;
   final double tilt;
   final Duration duration;
+
+  /// Used only to coast the chase point between GPS fixes. Never the car marker.
+  final double speedMetersPerSecond;
+
+  /// On-route driving only. Explore, waiting and off-route stays stay put.
+  final bool coast;
 }
 
 abstract interface class DriverCameraPort {
   Future<void> animate(DriverCameraPose pose);
+
+  /// Latest GPS while a follow animation is already running. Must not start
+  /// a second command; the in-flight animation steers toward this pose.
+  void retarget(DriverCameraPose pose);
   Future<void> overview(List<GeoPoint> points, double padding);
   void interrupt();
   void dispose();
@@ -71,14 +83,14 @@ class DriverCameraPolicy {
     bool waiting = false,
     bool immediate = false,
   }) {
-    if (!identical(route, _route)) {
-      _route = route;
+    if (!_samePolyline(route, _route)) {
       _along = null;
       _instructionHint = 0;
       _geometry = route == null || route.points.isEmpty
           ? null
           : RouteCameraGeometry(route.points);
     }
+    _route = route;
     _course = location.courseOr(_course);
     vehiclePoint = location.point;
     final rawSpeed = location.speedMetersPerSecond;
@@ -92,6 +104,7 @@ class DriverCameraPolicy {
         ? (autoZoom ? zoomForSpeed(speed) : (_previous?.zoom ?? 16.5))
         : 16.8;
     var tilt = navigating && !waiting ? 45.0 : 0.0;
+    var onRoute = false;
     if (navigating && !waiting && route != null && route.points.length > 1) {
       final progress = _progress.measure(
         route: route,
@@ -102,6 +115,7 @@ class DriverCameraPolicy {
       _along = progress.alongMeters;
       _instructionHint = progress.instructionIndex;
       if (!progress.offRoute) {
+        onRoute = true;
         final car = _geometry!.at(progress.alongMeters);
         vehiclePoint = car;
         final ahead = _geometry!.at(
@@ -137,15 +151,45 @@ class DriverCameraPolicy {
         }
       }
     }
-    // All axes are smoothed by elapsed animation time in the SDK adapter.
-    // A per-GPS-sample zoom limit would miss junction framing at highway speed.
+    // One noisy GPS heading must not spin the map. A sustained turn still
+    // catches up; the SDK adapter damps what remains. Entry/recenter is immediate
+    // and aims straight down the road.
+    if (!immediate && navigating && !waiting && _previous != null) {
+      final turn = angleDelta(_previous!.bearing, bearing).clamp(-55.0, 55.0);
+      bearing = (_previous!.bearing + turn * 0.65 + 360) % 360;
+    }
     return _previous = DriverCameraPose(
       vehiclePoint!,
       zoom,
       bearing,
       tilt,
       duration: Duration(milliseconds: immediate ? 900 : 450),
+      speedMetersPerSecond: speed,
+      coast: onRoute && speed >= 1,
     );
+  }
+
+  bool _samePolyline(RoadRoute? next, RoadRoute? previous) {
+    if (identical(next, previous)) {
+      return true;
+    }
+    if (next == null || previous == null) {
+      return false;
+    }
+    final a = next.points;
+    final b = previous.points;
+    if (a.length != b.length) {
+      return false;
+    }
+    if (a.isEmpty) {
+      return true;
+    }
+    bool same(GeoPoint p, GeoPoint q) =>
+        p.latitude == q.latitude && p.longitude == q.longitude;
+    final mid = a.length ~/ 2;
+    return same(a.first, b.first) &&
+        same(a[mid], b[mid]) &&
+        same(a.last, b.last);
   }
 
   bool _needsPreview(RouteManeuverType type) => switch (type) {
@@ -317,6 +361,10 @@ class DriverCameraController {
     if (immediate) {
       _throttle?.cancel();
       _throttle = null;
+    }
+    final pending = _pending;
+    if (_busy && pending != null) {
+      _port?.retarget(pending);
     }
     if (!_busy && _throttle == null) {
       unawaited(_flush());

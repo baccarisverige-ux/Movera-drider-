@@ -10,11 +10,15 @@ Driver only. Rider, palette and trip business lifecycle are unchanged.
 - `DriverCameraController`: Explore/Preview/Following/Free state, usable-fix
   validation, lifecycle and serialized/coalesced output. Route updates and car
   progress continue in Free but do not move its camera.
-- `GoogleDriverCameraPort`: four-axis smoothstep interpolation. 900 ms on
-  guidance entry/recenter, 450 ms driving; shortest-angle bearing. Physical input
-  invalidates the frame producer immediately. Reduced motion is instant.
+- `GoogleDriverCameraPort`: one damped follow loop. GPS retargets it in
+  place instead of finishing a stale 450 ms ease-in-out and braking. Position,
+  bearing and zoom use separate time constants; 900 ms entry/recenter still
+  flies without dragging the car. On-route coast (max 1.1 s / 22 m) bridges
+  gaps between fixes. Reduced motion is instant. Physical input cancels the loop.
 - `CustomGoogleMap`: physical input release, native gesture-arena ownership,
   SDK callbacks and conditional web bridge. Camera callbacks never imply input.
+  The port ignores SDK echoes while it owns follow, so the anchor shift cannot
+  become the next frame's origin.
 - `RouteCameraGeometry`: reusable along-route sampling for car, look-ahead and
   split route stroke. Remaining stroke starts at the car (5 dp, round caps);
   traveled stroke is thin/faded (3 dp, 18% alpha), never thick behind the car.
@@ -36,7 +40,10 @@ the pinned Flutter web plugin does not implement camera padding.
 Course is accepted only with valid speed >=1 m/s; otherwise retain the last good
 course (unknown speed is not evidence of movement). Look-ahead is 3 seconds of
 travel, clamped 40–250 m. Its shortest-angle delta from GPS course is clamped
-to +/-30 degrees and blended at 70%. Entry/recenter aims directly down the route.
+to +/-30 degrees and blended at 70%. While already following, a single sample
+cannot rotate the camera more than 55 degrees, and only 65% of that step is
+applied, so a bad heading does not spin the map. Entry/recenter aims directly
+down the route. Refreshing the same polyline does not reset along-track progress.
 Auto Zoom defaults on: 17.5 below 20 km/h, 16.5 at 20–50, 15.5 at 50–80,
 14.75 above 80. Inside 180 m of significant maneuvers, zoom tightens toward
 17.8 and tilt eases toward 20 degrees, recovering after passing. Last 35 m
@@ -56,6 +63,12 @@ API-key loading, traffic and the original SDK instances. No cloud map ID is
 created/required. The constructor interception is isolated in
 `web/driver_map_camera.js`; upgrading the plugin requires rechecking this adapter
 against its element-ID and marker-option contracts.
+
+Flutter web 0.5.14+2 applies `newCameraPosition` with `panTo`, which animates
+and stacked a second glide on every follow frame. A claimed follow pan is
+instant (`moveCamera`) and the 72% anchor is applied in the same turn, after
+tilt is set and before paint. Unclaimed pans (mouse, overview) stay with the
+SDK. The anchor must not be applied again from Dart after `moveCamera`.
 
 That adapter owns touch pan, simultaneous pinch/twist, two-finger vertical tilt
 (0–60), double tap and two-finger tap, and reports first touch/wheel to Dart.

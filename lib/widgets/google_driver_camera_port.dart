@@ -9,91 +9,208 @@ import 'driver_map_web_bridge_stub.dart'
     if (dart.library.js_interop) 'driver_map_web_bridge.dart'
     as web;
 
-/// Four-axis interpolation with cancellation of the actual frame producer.
+/// Continuous damped follow. One in-flight animation is retargeted as GPS
+/// arrives, so the map does not brake to a stop between fixes.
+///
+/// The logical pose (vehicle at the camera target) is never replaced by the
+/// web anchor shift. That shift is applied inside the same Maps update.
 class GoogleDriverCameraPort implements DriverCameraPort {
   GoogleDriverCameraPort(
     this.controller, {
     this.reducedMotion = false,
     this.onFrame,
     CameraPosition? initialPosition,
-  }) : _position = initialPosition;
+  }) : _logical = initialPosition;
   final GoogleMapController controller;
   final bool reducedMotion;
   final void Function(CameraPosition)? onFrame;
-  CameraPosition? _position;
+  CameraPosition? _logical;
+  DriverCameraPose? _goal;
+  DateTime _goalAt = DateTime.now();
+  Completer<void>? _active;
   int _generation = 0;
   bool _disposed = false;
+  bool _looping = false;
   bool _producingFrames = false;
+  bool _followOwned = false;
+
   void onMove(CameraPosition position) {
-    if (!_producingFrames) {
-      _position = position;
+    // SDK echoes include the web anchor pan. While we own follow, the logical
+    // vehicle pose is the only legal interpolation origin.
+    if (_producingFrames || _followOwned) {
+      return;
     }
+    _logical = position;
   }
 
   void onIdle() {} // Idle is not evidence of a user gesture.
 
+  CameraPosition _at(DriverCameraPose pose, GeoPoint target) => CameraPosition(
+    target: LatLng(target.latitude, target.longitude),
+    zoom: pose.zoom,
+    bearing: pose.bearing,
+    tilt: pose.tilt,
+  );
+
+  GeoPoint _coasted(DriverCameraPose goal) {
+    if (!goal.coast || goal.speedMetersPerSecond < 1) {
+      return goal.target;
+    }
+    final seconds = DateTime.now().difference(_goalAt).inMicroseconds / 1e6;
+    final meters = math.min(goal.speedMetersPerSecond * math.min(seconds, 1.1), 22);
+    if (meters < 0.5) {
+      return goal.target;
+    }
+    final rad = goal.bearing * math.pi / 180;
+    final lat = goal.target.latitude + (meters * math.cos(rad)) / 111320.0;
+    final lngScale = math.max(
+      0.2,
+      math.cos(goal.target.latitude * math.pi / 180),
+    );
+    final lng =
+        goal.target.longitude + (meters * math.sin(rad)) / (111320.0 * lngScale);
+    return GeoPoint(lat, lng);
+  }
+
+  CameraPosition _approach(
+    CameraPosition from,
+    CameraPosition to,
+    int dtMicros,
+    Duration duration,
+  ) {
+    final span = math.max(200000, duration.inMicroseconds);
+    double step(num tau) => 1 - math.exp(-dtMicros / tau);
+    final pos = step(span * 0.70);
+    final bearing = step(span * 1.60);
+    final zoom = step(span * 1.10);
+    return CameraPosition(
+      target: LatLng(
+        from.target.latitude + (to.target.latitude - from.target.latitude) * pos,
+        from.target.longitude +
+            (to.target.longitude - from.target.longitude) * pos,
+      ),
+      zoom: from.zoom + (to.zoom - from.zoom) * zoom,
+      bearing: GeoPoint.shortestAngleLerp(from.bearing, to.bearing, bearing),
+      tilt: from.tilt + (to.tilt - from.tilt) * zoom,
+    );
+  }
+
+  bool _settled(CameraPosition a, CameraPosition b) {
+    if ((a.target.latitude - b.target.latitude).abs() > 0.00002) {
+      return false;
+    }
+    if ((a.target.longitude - b.target.longitude).abs() > 0.00002) {
+      return false;
+    }
+    if (DriverCameraPolicy.angleDelta(a.bearing, b.bearing).abs() > 0.4) {
+      return false;
+    }
+    if ((a.zoom - b.zoom).abs() > 0.02 || (a.tilt - b.tilt).abs() > 0.4) {
+      return false;
+    }
+    return true;
+  }
+
+  bool _trackCar(CameraPosition next, DriverCameraPose goal) {
+    // Recenter/entry flights must not drag the car across the browsed map.
+    if (goal.duration.inMilliseconds > 600) {
+      return false;
+    }
+    final meters = GeoPoint(
+      next.target.latitude,
+      next.target.longitude,
+    ).distanceMetersTo(goal.target);
+    return meters < 25;
+  }
+
   Future<void> _move(
-    CameraPosition position, {
-    bool trackVehicle = false,
+    CameraPosition logical, {
+    required bool trackVehicle,
   }) async {
-    await controller.moveCamera(CameraUpdate.newCameraPosition(position));
-    _position = position;
-    web.applyAnchor(controller.mapId);
+    _logical = logical;
+    web.claim(controller.mapId);
+    await controller.moveCamera(CameraUpdate.newCameraPosition(logical));
     if (trackVehicle) {
-      onFrame?.call(position);
+      onFrame?.call(logical);
     }
   }
 
   @override
-  Future<void> animate(DriverCameraPose pose) async {
-    if (_disposed) {
+  void retarget(DriverCameraPose pose) {
+    if (_disposed || !_looping) {
       return;
     }
-    final generation = ++_generation;
+    _goal = pose;
+    _goalAt = DateTime.now();
+  }
+
+  @override
+  Future<void> animate(DriverCameraPose pose) {
+    if (_disposed) {
+      return Future<void>.value();
+    }
+    _goal = pose;
+    _goalAt = DateTime.now();
+    _followOwned = true;
     _producingFrames = true;
-    final from = _position;
-    final to = CameraPosition(
-      target: LatLng(pose.target.latitude, pose.target.longitude),
-      zoom: pose.zoom,
-      bearing: pose.bearing,
-      tilt: pose.tilt,
-    );
-    if (reducedMotion || from == null) {
-      await _move(to, trackVehicle: true);
+    if (_looping) {
+      return _active?.future ?? Future<void>.value();
+    }
+    final session = Completer<void>();
+    _active = session;
+    _looping = true;
+    final generation = ++_generation;
+    unawaited(_run(session, generation));
+    return session.future;
+  }
+
+  Future<void> _run(Completer<void> session, int generation) async {
+    try {
+      final initial = _goal;
+      if (initial == null) {
+        return;
+      }
+      if (reducedMotion || _logical == null) {
+        await _move(_at(initial, initial.target), trackVehicle: true);
+        return;
+      }
+      var dt = 16000;
+      while (!_disposed && generation == _generation) {
+        final goal = _goal;
+        if (goal == null || generation != _generation) {
+          break;
+        }
+        final destination = _at(goal, _coasted(goal));
+        final from = _logical ?? destination;
+        final settled = _settled(from, destination);
+        if (!settled) {
+          final next = _approach(from, destination, dt, goal.duration);
+          await _move(next, trackVehicle: _trackCar(next, goal));
+        }
+        if (_disposed || generation != _generation) {
+          break;
+        }
+        final stamp = DateTime.now();
+        await Future<void>.delayed(
+          Duration(milliseconds: settled ? 50 : 16),
+        );
+        if (_disposed || generation != _generation) {
+          break;
+        }
+        final real = DateTime.now().difference(stamp).inMicroseconds;
+        dt = math.max(settled ? 50000 : 16000, real);
+      }
+    } catch (_) {
+      // An unavailable map must not break the trip.
+    } finally {
       if (generation == _generation) {
         _producingFrames = false;
+        _followOwned = false;
+        _looping = false;
       }
-      return;
-    }
-    var elapsed = 0;
-    final duration = pose.duration.inMicroseconds;
-    while (!_disposed && generation == _generation) {
-      final fraction = (elapsed / duration).clamp(0.0, 1.0);
-      final t = fraction * fraction * (3 - 2 * fraction);
-      await _move(
-        CameraPosition(
-          target: LatLng(
-            from.target.latitude +
-                (to.target.latitude - from.target.latitude) * t,
-            from.target.longitude +
-                (to.target.longitude - from.target.longitude) * t,
-          ),
-          zoom: from.zoom + (to.zoom - from.zoom) * t,
-          bearing: GeoPoint.shortestAngleLerp(from.bearing, to.bearing, t),
-          tilt: from.tilt + (to.tilt - from.tilt) * t,
-        ),
-        // Recenter flies across an arbitrary browsed viewport. Never move the
-        // vehicle along that flight; only regular GPS interpolation shares it.
-        trackVehicle: pose.duration.inMilliseconds <= 600 || fraction >= 1,
-      );
-      if (fraction >= 1 || generation != _generation) {
-        break;
+      if (!session.isCompleted) {
+        session.complete();
       }
-      await Future<void>.delayed(const Duration(milliseconds: 16));
-      elapsed += 16000;
-    }
-    if (generation == _generation) {
-      _producingFrames = false;
     }
   }
 
@@ -120,9 +237,17 @@ class GoogleDriverCameraPort implements DriverCameraPort {
       west -= .0002;
       east += .0002;
     }
-    final position = _position;
+    final position = _logical;
     if (position != null) {
-      await _move(CameraPosition(target: position.target, zoom: position.zoom));
+      await _move(
+        CameraPosition(
+          target: position.target,
+          zoom: position.zoom,
+          bearing: position.bearing,
+          tilt: position.tilt,
+        ),
+        trackVehicle: false,
+      );
     }
     if (_disposed || generation != _generation) {
       return;
@@ -142,6 +267,9 @@ class GoogleDriverCameraPort implements DriverCameraPort {
   void interrupt() {
     _generation++;
     _producingFrames = false;
+    _followOwned = false;
+    _looping = false;
+    _goal = null;
   }
 
   @override

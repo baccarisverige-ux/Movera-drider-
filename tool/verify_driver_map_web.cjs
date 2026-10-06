@@ -39,6 +39,7 @@ const maps = {Map: MapMock, Marker: MarkerMock, OverlayView: OverlayMock,
   Point: class {constructor(x,y) {this.x=x;this.y=y;}}, RenderingType: {VECTOR: 'VECTOR'}};
 const images = [];
 const context = {google: {maps}, performance: {now: () => clock},
+  queueMicrotask,
   document: {body: new Element(), createElement: () => {
     const image = new Element(); images.push(image); return image;
   }},
@@ -94,4 +95,13 @@ assert.ok(images[0].style.transform.includes('rotate(60deg)'), 'Free rotation pr
 marker.setMap(null);
 remove(); const count = gestures; div.fire('pointerdown');
 assert.equal(gestures,count,'Disposed Flutter listener released');
-console.log('PASS: vector palette, immediate release, pan, combined pinch/twist, tilt, taps, anchor and vehicle overlay');
+map.moveCamera({center: {x:0,y:400}, zoom: 16, heading: 12, tilt: 30});
+api.claim(7);
+map.panTo({x:0,y:400});
+queueMicrotask(() => {
+  assert.equal(map.camera.center.y, 224, 'Claimed follow pan anchors before paint');
+  assert.equal(map.getZoom(), 16);
+  assert.equal(map.getHeading(), 12);
+  assert.equal(map.getTilt(), 30);
+  console.log('PASS: vector palette, immediate release, pan, combined pinch/twist, tilt, taps, anchor and vehicle overlay');
+});
