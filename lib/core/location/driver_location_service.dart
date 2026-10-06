@@ -37,7 +37,9 @@ class DriverLocationService implements DriverLocationRepository {
     } catch (error, stack) {
       DriverLog.warn('Current GPS failed, trying last known: $error');
       final last = await Geolocator.getLastKnownPosition();
-      if (last != null) { return _toDriverLocation(last); }
+      if (last != null) {
+        return _toDriverLocation(last);
+      }
       DriverLog.error('No GPS fix available', error, stack);
       rethrow;
     }
@@ -61,6 +63,7 @@ class DriverLocationService implements DriverLocationRepository {
     return DriverLocation(
       point: GeoPoint(position.latitude, position.longitude),
       headingDegrees: position.heading,
+      speedMetersPerSecond: position.speed,
       measuredAt: position.timestamp,
       accuracyMeters: position.accuracy,
     );
