@@ -280,6 +280,7 @@ class NavigationController extends ChangeNotifier {
       primary: RouteInstructionCopy.livePrimary(action: action, meters: meters),
       distanceLabel: RouteInstructionCopy.formatDistance(meters),
       roadName: instruction.roadName,
+      exitNumber: instruction.exitNumber,
       symbol: RouteInstructionCopy.symbolFor(
         type: instruction.type,
         modifier: instruction.modifier,

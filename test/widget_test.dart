@@ -126,6 +126,8 @@ Future<void> _collapseActiveRideSheet(WidgetTester tester) async {
 }
 
 Future<void> _expandActiveRideSheet(WidgetTester tester) async {
+  // Flush a still-running middle-sheet spring before asking for full details.
+  for (var i=0;i<30;i++) { await tester.pump(const Duration(milliseconds: 40)); }
   _activeRidePanel(tester).controller!.open();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
   // The top cards then change with a short fade.
@@ -134,6 +136,8 @@ Future<void> _expandActiveRideSheet(WidgetTester tester) async {
 
 /// Middle sheet: rider and the slide action; the full sheet has neither.
 Future<void> _middleActiveRideSheet(WidgetTester tester) async {
+  if (find.byKey(const ValueKey('active-ride-arrived-button')).evaluate().isNotEmpty ||
+      find.byKey(const ValueKey('active-ride-primary-action')).evaluate().isNotEmpty) { return; }
   _activeRidePanel(tester).controller!.animatePanelToSnapPoint();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
   // The top cards then change with a short fade.
@@ -2225,6 +2229,7 @@ void main() {
 
     // Trip options live in the full sheet.
     await _expandActiveRideSheet(tester);
+    await tester.ensureVisible(find.byKey(const ValueKey<String>('active-ride-trip-options')));
     await tester.tap(
       find.byKey(const ValueKey<String>('active-ride-trip-options')),
     );
@@ -2670,7 +2675,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
     expect(find.text("I've arrived"), findsNothing);
     await _middleActiveRideSheet(tester);
-    await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     // Arriving is a button, not a slide.
     expect(find.byKey(const ValueKey<String>('active-ride-arrived-button')), findsOneWidget);
@@ -2686,7 +2690,6 @@ void main() {
       stopAddresses: <String>['Unlocated stop'],
     )));
     await tester.pump(const Duration(milliseconds: 160));
-    await _middleActiveRideSheet(tester);
     await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     await _tapArrived(tester);

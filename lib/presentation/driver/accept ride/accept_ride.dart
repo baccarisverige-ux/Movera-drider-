@@ -1046,7 +1046,7 @@ class _AcceptRideState extends State<AcceptRide>
             MediaQuery.paddingOf(context).bottom,
           );
           final safeTop = MediaQuery.paddingOf(context).top;
-          final bannerReserve = safeTop + 190;
+          final bannerReserve = safeTop + 210;
           final expanded = math.min(
             MoveraSheetMetrics.expandedHeight(viewport),
             math.max(collapsed + 160, viewport - bannerReserve),
@@ -1190,7 +1190,7 @@ class _AcceptRideState extends State<AcceptRide>
                         progress: _legFraction ?? 0,
                         waitingSeconds: _countingWait ? _waitSeconds : null,
                         waitingMessage: _tripBarStatus,
-                        paidWait: _paidStopWait,
+                        paidWait: _paidStopWait || (_countingWait && !_inIncludedWait),
                         paidByCash: widget.paidByCash,
                         lastTripLabel: _waybills.last?.fare ?? DigitalIslandParts.sampleLastTrip,
                         radarVisible: _stage == ActiveRideStage.onTrip,

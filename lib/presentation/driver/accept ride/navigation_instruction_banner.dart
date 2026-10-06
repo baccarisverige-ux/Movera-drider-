@@ -576,9 +576,10 @@ class _ArrivalRoadPainter extends CustomPainter {
 
 /// Thin navigation cue. Drawn, not a stock flag or turn glyph.
 class NavigationCuePainter extends CustomPainter {
-  NavigationCuePainter({required this.symbol, required this.icon, this.color = Colors.white});
+  NavigationCuePainter({required this.symbol, required this.icon, this.color = Colors.white, this.exitNumber});
 
   final Color color;
+  final String? exitNumber;
 
   final NavigationBannerSymbol? symbol;
   final IconData icon;
@@ -704,6 +705,12 @@ class NavigationCuePainter extends CustomPainter {
       );
       canvas.drawLine(p(11, 19), p(11, 15.7), stroke);
       arrowHead(p(16.4, 8), -0.75);
+      if (exitNumber != null) {
+        final text = TextPainter(text: TextSpan(text: exitNumber,
+          style: TextStyle(color: color, fontSize: 4.6 * s, fontWeight: FontWeight.w800)),
+          textDirection: TextDirection.ltr)..layout(maxWidth: 7 * s);
+        text.paint(canvas, p(11, 10.5) - Offset(text.width / 2, text.height / 2));
+      }
       return;
     }
     if (kind == NavigationBannerSymbol.merge) {
@@ -737,7 +744,7 @@ class NavigationCuePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant NavigationCuePainter oldDelegate) =>
-      oldDelegate.symbol != symbol || oldDelegate.icon != icon || oldDelegate.color != color;
+      oldDelegate.symbol != symbol || oldDelegate.icon != icon || oldDelegate.color != color || oldDelegate.exitNumber != exitNumber;
 }
 
 class _NextStopLine extends StatefulWidget {

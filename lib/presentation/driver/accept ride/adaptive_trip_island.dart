@@ -155,8 +155,16 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
               alignment: Alignment.topCenter,
               children: [
                 ...previous.map(
-                  (child) =>
-                      Positioned.fill(child: IgnorePointer(child: child)),
+                  (child) => Positioned.fill(
+                    child: IgnorePointer(
+                      child: OverflowBox(
+                        alignment: Alignment.topCenter,
+                        minHeight: 0,
+                        maxHeight: double.infinity,
+                        child: child,
+                      ),
+                    ),
+                  ),
                 ),
                 ?current,
               ],
@@ -203,10 +211,12 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
     final symbol = widget.arrival != null
         ? NavigationBannerSymbol.arrive
         : live?.symbol;
-    final exit = RegExp(
-      r'exit\s+(\d+)',
-      caseSensitive: false,
-    ).firstMatch(live?.primary ?? '')?.group(1);
+    final exit =
+        live?.exitNumber ??
+        RegExp(
+          r'exit\s+(\d+)',
+          caseSensitive: false,
+        ).firstMatch(live?.primary ?? '')?.group(1);
     return Row(
       children: [
         Semantics(
@@ -228,17 +238,9 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                     symbol: symbol,
                     icon: Icons.near_me_outlined,
                     color: const Color(0xFF54D8AC),
+                    exitNumber: exit,
                   ),
                 ),
-                if (exit != null)
-                  Text(
-                    exit,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
               ],
             ),
           ),
@@ -343,6 +345,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 25,
+                              height: 1.1,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -351,6 +354,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                             style: const TextStyle(
                               color: Color(0xFF54D8AC),
                               fontSize: 10,
+                              height: 1.2,
                             ),
                           ),
                         ],

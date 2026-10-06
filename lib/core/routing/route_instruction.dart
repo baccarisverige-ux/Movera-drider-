@@ -64,6 +64,7 @@ class NavigationBanner {
     this.roadName,
     this.symbol = NavigationBannerSymbol.straight,
     this.status,
+    this.exitNumber,
   });
 
   final String primary;
@@ -71,6 +72,7 @@ class NavigationBanner {
   final String? roadName;
   final NavigationBannerSymbol symbol;
   final String? status;
+  final String? exitNumber;
 }
 
 enum NavigationBannerSymbol {

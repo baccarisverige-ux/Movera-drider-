@@ -80,7 +80,7 @@ extension _AcceptRidePanel on _AcceptRideState {
       final collapsed = MoveraSheetMetrics.activeCollapsedTotal(
             MediaQuery.paddingOf(context).bottom,
           );
-      final bannerReserve = MediaQuery.paddingOf(context).top + 190;
+      final bannerReserve = MediaQuery.paddingOf(context).top + 210;
       return math.min(
         MoveraSheetMetrics.expandedHeight(viewport),
         math.max(collapsed + 160, viewport - bannerReserve),
@@ -129,6 +129,12 @@ extension _AcceptRidePanel on _AcceptRideState {
       _snapSheet.rangePx = _rideRangePx(context);
       // Same spring as a drag, so a tap and a slide feel the same.
       unawaited(_snapSheet.springTo(_rideSnapPoint(context)));
+    }
+    void _showRideFull() {
+      if (!_ridePanelController.isAttached) { return; }
+      _snapSheet.stopSpring();
+      _rideSheetPositionGuardTimer?.cancel();
+      unawaited(_ridePanelController.open());
     }
     double _rideRangePx(BuildContext context) =>
         _rideExpandedHeight(context) -
@@ -839,7 +845,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                       onPreferences: _openRidePreferences,
                       onDetails: full
                           ? _showRideMiddle
-                          : () => _ridePanelController.open(),
+                          : _showRideFull,
                       onStatusTap: _countingWait ? _openWaitingTime : null,
                       expanded: full,
                       showDetailsButton: full,

@@ -1,6 +1,7 @@
 import 'dart:ui' show SemanticsAction, SemanticsActionEvent;
 
 import 'package:flutter/material.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
@@ -28,6 +29,8 @@ void main() {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 30));
     }
+    tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel).last).controller!.animatePanelToSnapPoint();
+    for (var i=0;i<14;i++) { await tester.pump(const Duration(milliseconds: 50)); }
     final node = tester.getSemantics(
       find.bySemanticsLabel(RegExp('start trip', caseSensitive: false)).first,
     );

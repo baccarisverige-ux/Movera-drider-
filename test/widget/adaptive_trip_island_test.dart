@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/routing/route_instruction.dart';
+import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/adaptive_trip_island.dart';
 
 Widget surface({int? seconds, VoidCallback? route}) => MaterialApp(
@@ -42,7 +43,12 @@ void main() {
       var route = 0;
       await tester.pumpWidget(surface(route: () => route++));
       expect(find.text('Roundabout, exit 3'), findsOneWidget);
-      expect(find.text('3'), findsOneWidget);
+      final cue = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<NavigationCuePainter>()
+          .single;
+      expect(cue.exitNumber, '3');
       expect(find.text('Sveavägen 20'), findsOneWidget);
       await tester.tap(find.byTooltip('Trip route and options'));
       await tester.pump();
