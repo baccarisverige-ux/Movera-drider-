@@ -82,7 +82,7 @@ div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 assert.equal(map.getZoom(), beforeTap, 'Double tap zooms in');
 api.configure(7, 100, 200, .72);
 map.moveCamera({center: {x:0,y:400}}); api.anchor(7);
-assert.equal(map.camera.center.y, 340, '72% unobstructed viewport anchor');
+assert.equal(map.camera.center.y, 224, '72% screen anchor above overlays');
 const marker = new maps.Marker({title:'Driver camera vehicle', position:{x:1,y:2},
   icon:{url:'vehicle.png',scaledSize:{width:40,height:40}}, visible:true});
 marker.setMap(map); api.vehicle(7,90);
