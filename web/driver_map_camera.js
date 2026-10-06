@@ -168,7 +168,11 @@
       const state = states.get(id); if (!state) return;
       const height = state.div.clientHeight;
       const available = Math.max(0, height - state.top - state.bottom);
-      const desiredY = state.top + available * state.anchor;
+      if (!available) return;
+      const margin = Math.min(24, available / 2);
+      const desiredY = state.anchor === .5 ? state.top + available / 2 :
+        clamp(height * state.anchor, state.top + margin,
+          height - state.bottom - margin);
       pan(state, 0, desiredY - height / 2);
     }
   };
