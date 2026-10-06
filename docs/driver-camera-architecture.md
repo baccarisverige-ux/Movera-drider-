@@ -25,11 +25,11 @@ Driver only. Rider, palette and trip business lifecycle are unchanged.
 | --- | --- | --- |
 | Explore | Driver-centered, north-up, flat, neighborhood zoom 16.8 | Real course |
 | Preview | Entire destination route fitted, north-up/flat; no GPS follow | Real course |
-| Following | Heading-up, 45 degrees, speed zoom; vehicle at 72% of unobstructed map | Real course, on-route snapped |
+| Following | Heading-up, 45 degrees, speed zoom; vehicle at 72% of screen, above overlays | Real course, on-route snapped |
 | Free | Driver owns pan/zoom/bearing/tilt until Recenter | Continues real course and snapping |
 
-The anchor is measured within the **visible map above the collapsed trip sheet**,
-not the part of the screen hidden behind that sheet. Horizontal anchor is 50%.
+The driving anchor is **72% of screen height**, clamped above the collapsed
+sheet and below the top banner with 24 dp vehicle clearance. Horizontal is 50%.
 Native SDK padding realizes the anchor; web uses OverlayView projection because
 the pinned Flutter web plugin does not implement camera padding.
 
