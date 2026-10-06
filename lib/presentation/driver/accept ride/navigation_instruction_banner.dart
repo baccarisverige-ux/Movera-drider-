@@ -576,10 +576,11 @@ class _ArrivalRoadPainter extends CustomPainter {
 
 /// Thin navigation cue. Drawn, not a stock flag or turn glyph.
 class NavigationCuePainter extends CustomPainter {
-  NavigationCuePainter({required this.symbol, required this.icon, this.color = Colors.white, this.exitNumber});
+  NavigationCuePainter({required this.symbol, required this.icon, this.color = Colors.white, this.exitNumber, this.exitAngleDegrees});
 
   final Color color;
   final String? exitNumber;
+  final double? exitAngleDegrees;
 
   final NavigationBannerSymbol? symbol;
   final IconData icon;
@@ -696,15 +697,26 @@ class NavigationCuePainter extends CustomPainter {
       return;
     }
     if (kind == NavigationBannerSymbol.roundabout) {
-      canvas.drawArc(
-        Rect.fromCircle(center: p(11, 10.5), radius: 5.2 * s),
-        0.6,
-        math.pi * 1.55,
-        false,
-        stroke,
-      );
+      final exitAngle = exitAngleDegrees;
+      canvas.drawCircle(p(11, 10.5), 5.2 * s,
+        Paint()..color = color.withValues(alpha: .25)..style = PaintingStyle.stroke..strokeWidth = stroke.strokeWidth);
       canvas.drawLine(p(11, 19), p(11, 15.7), stroke);
-      arrowHead(p(16.4, 8), -0.75);
+      if (exitAngle != null && exitAngle.isFinite) {
+        final outgoing = exitAngle * math.pi / 180 - math.pi / 2;
+        var sweep = outgoing - math.pi / 2;
+        while (sweep >= -0.001) { sweep -= math.pi * 2; }
+        while (sweep < -math.pi * 2) { sweep += math.pi * 2; }
+        canvas.drawArc(Rect.fromCircle(center: p(11, 10.5), radius: 5.2 * s),
+          math.pi / 2, sweep, false, stroke);
+        final direction = Offset(math.cos(outgoing), math.sin(outgoing));
+        final center = p(11, 10.5);
+        canvas.drawLine(center + direction * 5.2 * s, center + direction * 8.3 * s, stroke);
+        arrowHead(center + direction * 9.1 * s, outgoing);
+      } else {
+        // Unsurveyed exit: circular cue and number without guessing a road.
+        canvas.drawArc(Rect.fromCircle(center: p(11, 10.5), radius: 5.2 * s),
+          .6, math.pi * 1.55, false, stroke);
+      }
       if (exitNumber != null) {
         final text = TextPainter(text: TextSpan(text: exitNumber,
           style: TextStyle(color: color, fontSize: 4.6 * s, fontWeight: FontWeight.w800)),
@@ -744,7 +756,7 @@ class NavigationCuePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant NavigationCuePainter oldDelegate) =>
-      oldDelegate.symbol != symbol || oldDelegate.icon != icon || oldDelegate.color != color || oldDelegate.exitNumber != exitNumber;
+      oldDelegate.symbol != symbol || oldDelegate.icon != icon || oldDelegate.color != color || oldDelegate.exitNumber != exitNumber || oldDelegate.exitAngleDegrees != exitAngleDegrees;
 }
 
 class _NextStopLine extends StatefulWidget {

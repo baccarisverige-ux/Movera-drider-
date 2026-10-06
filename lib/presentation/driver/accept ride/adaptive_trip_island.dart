@@ -239,6 +239,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                     icon: Icons.near_me_outlined,
                     color: const Color(0xFF54D8AC),
                     exitNumber: exit,
+                    exitAngleDegrees: live?.exitAngleDegrees,
                   ),
                 ),
               ],

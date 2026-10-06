@@ -18,7 +18,7 @@ The active route is black at 4 dp with round caps; traveled geometry remains fad
 
 ## Data limits
 
-Maneuver icons use the routing provider's existing symbols. Roundabouts display the provider's exit number. No traffic lights or regulatory signs are invented: the current route model does not provide those attributes. The circular cue is a schematic, not a geometrically surveyed junction.
+Maneuver icons use the routing provider's existing symbols. Roundabouts display the provider's exit number. No traffic lights or regulatory signs are invented: the current route model does not provide those attributes. Roundabout exit arrows use entry and explicit exit bearings when available; missing bearings show a circular cue and exit number without guessing the outgoing road. The cue remains a schematic, not a surveyed junction.
 
 ## Restore
 

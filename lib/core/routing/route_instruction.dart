@@ -30,6 +30,7 @@ class RouteInstruction {
     required this.maneuverLocation,
     this.roadName,
     this.exitNumber,
+    this.exitAngleDegrees,
   });
 
   final RouteManeuverType type;
@@ -39,6 +40,9 @@ class RouteInstruction {
   final GeoPoint maneuverLocation;
   final String? roadName;
   final String? exitNumber;
+
+  /// Outgoing road direction relative to entry, when both bearings exist.
+  final double? exitAngleDegrees;
 
   bool get isArrival =>
       type == RouteManeuverType.arrive ||
@@ -53,6 +57,7 @@ class RouteInstruction {
       maneuverLocation: maneuverLocation,
       roadName: roadName,
       exitNumber: exitNumber,
+      exitAngleDegrees: exitAngleDegrees,
     );
   }
 }
@@ -65,6 +70,7 @@ class NavigationBanner {
     this.symbol = NavigationBannerSymbol.straight,
     this.status,
     this.exitNumber,
+    this.exitAngleDegrees,
   });
 
   final String primary;
@@ -73,6 +79,9 @@ class NavigationBanner {
   final NavigationBannerSymbol symbol;
   final String? status;
   final String? exitNumber;
+
+  /// Outgoing road direction relative to entry, when both bearings exist.
+  final double? exitAngleDegrees;
 }
 
 enum NavigationBannerSymbol {
@@ -137,8 +146,12 @@ class RouteInstructionCopy {
   const RouteInstructionCopy._();
 
   static String formatDistance(double meters) {
-    if (meters < 25) { return 'now'; }
-    if (meters < 1000) { return '${meters.round()} m'; }
+    if (meters < 25) {
+      return 'now';
+    }
+    if (meters < 1000) {
+      return '${meters.round()} m';
+    }
     final km = meters / 1000;
     return '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
   }
@@ -165,22 +178,24 @@ class RouteInstructionCopy {
       case RouteManeuverType.exitRoundabout:
       case RouteManeuverType.exitRotary:
         final exit = exitNumber ?? '';
-        if (exit.isEmpty) { return 'At the roundabout, continue'; }
+        if (exit.isEmpty) {
+          return 'At the roundabout, continue';
+        }
         return 'At roundabout, take exit $exit';
       case RouteManeuverType.offRamp:
       case RouteManeuverType.ramp:
         return modifier.contains('left')
             ? 'Take the exit on the left$onto'
             : modifier.contains('right')
-                ? 'Take the exit on the right$onto'
-                : 'Take the exit$onto';
+            ? 'Take the exit on the right$onto'
+            : 'Take the exit$onto';
       case RouteManeuverType.onRamp:
       case RouteManeuverType.merge:
         return modifier.contains('left')
             ? 'Merge left$onto'
             : modifier.contains('right')
-                ? 'Merge right$onto'
-                : 'Merge$onto';
+            ? 'Merge right$onto'
+            : 'Merge$onto';
       case RouteManeuverType.fork:
         return modifier.contains('left') ? 'Keep left$onto' : 'Keep right$onto';
       case RouteManeuverType.endOfRoad:
@@ -219,15 +234,15 @@ class RouteInstructionCopy {
         return modifier.contains('left')
             ? 'Exit left'
             : modifier.contains('right')
-                ? 'Exit right'
-                : 'Take the exit';
+            ? 'Exit right'
+            : 'Take the exit';
       case RouteManeuverType.onRamp:
       case RouteManeuverType.merge:
         return modifier.contains('left')
             ? 'Merge left'
             : modifier.contains('right')
-                ? 'Merge right'
-                : 'Merge';
+            ? 'Merge right'
+            : 'Merge';
       case RouteManeuverType.fork:
         return modifier.contains('left') ? 'Keep left' : 'Keep right';
       case RouteManeuverType.endOfRoad:
@@ -239,15 +254,18 @@ class RouteInstructionCopy {
     }
   }
 
-  static String livePrimary({
-    required String action,
-    required double meters,
-  }) {
+  static String livePrimary({required String action, required double meters}) {
     final lower = action.toLowerCase();
-    if (lower.startsWith('roundabout')) { return action; }
+    if (lower.startsWith('roundabout')) {
+      return action;
+    }
     final dist = formatDistance(meters);
-    if (dist == 'now') { return '$action now'; }
-    if (lower.startsWith('continue')) { return '$action $dist'; }
+    if (dist == 'now') {
+      return '$action now';
+    }
+    if (lower.startsWith('continue')) {
+      return '$action $dist';
+    }
     return '$action in $dist';
   }
 
@@ -310,7 +328,9 @@ class RouteInstructionCopy {
     }
     if (type == RouteManeuverType.roundabout ||
         type == RouteManeuverType.rotary ||
-        type == RouteManeuverType.exitRoundabout) {
+        type == RouteManeuverType.exitRoundabout ||
+        type == RouteManeuverType.exitRotary ||
+        type == RouteManeuverType.roundaboutTurn) {
       return NavigationBannerSymbol.roundabout;
     }
     if (type == RouteManeuverType.offRamp || type == RouteManeuverType.ramp) {
