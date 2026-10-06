@@ -463,7 +463,6 @@ extension _AcceptRideTrip on _AcceptRideState {
       _rebuild(() {
         if (pointsChanged && mappedRoute != null) {
           _roadGeoPoints = mappedRoute.points;
-          _roadRoutePoints = mappedRoute.latLngPoints;
 
           _routeDurationSeconds = mappedRoute.durationSeconds;
         }
@@ -567,7 +566,6 @@ extension _AcceptRideTrip on _AcceptRideState {
       if (target == null) {
         _rebuild(() {
           _roadGeoPoints = [];
-          _roadRoutePoints = [];
 
           _routeDurationSeconds = null;
           _locationStatus = 'Stop location unavailable';
@@ -586,7 +584,6 @@ extension _AcceptRideTrip on _AcceptRideState {
       _rebuild(() {
         if (route != null && route.points.length >= 2) {
           _roadGeoPoints = route.points;
-          _roadRoutePoints = route.latLngPoints;
 
           _routeDurationSeconds = route.durationSeconds;
         }

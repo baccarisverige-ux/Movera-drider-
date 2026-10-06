@@ -67,8 +67,8 @@
         const tilting = Math.abs(vertical) > Math.abs(next.x - previous.x) &&
           Math.abs(twist) < 2 && Math.abs(Math.log2(ratio)) < .03;
         map.moveCamera({zoom: clamp(map.getZoom() + Math.log2(ratio), 3, 21),
-          heading: (map.getHeading() - twist + 360) % 360,
-          tilt: clamp(map.getTilt() - (tilting ? vertical * .3 : 0), 0, 60)});
+          heading: ((map.getHeading() || 0) - twist + 360) % 360,
+          tilt: clamp((map.getTilt() || 0) - (tilting ? vertical * .3 : 0), 0, 60)});
         if (!tilting) pan(state, next.x - previous.x, next.y - previous.y);
       } else pan(state, next.x - previous.x, next.y - previous.y);
       previous = next;

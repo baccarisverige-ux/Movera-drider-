@@ -460,7 +460,6 @@ class _AcceptRideState extends State<AcceptRide>
 
   LatLng _driverPosition = _fallbackDriverPosition;
   List<GeoPoint> _roadGeoPoints = <GeoPoint>[];
-  List<LatLng> _roadRoutePoints = <LatLng>[];
   double? _routeDurationSeconds;
   bool _hasLiveLocation = false;
   DriverLocation? _lastLocation;
