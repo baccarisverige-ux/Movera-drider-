@@ -5,6 +5,7 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/navigation/driver_camera_controller.dart';
 import 'package:movera/widgets/google_driver_camera_port.dart';
+import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
 
 import '../../integration_test/headless_map_platform.dart';
 
@@ -17,6 +18,12 @@ class RecordingMapPlatform extends HeadlessMapPlatform {
 }
 
 void main() {
+  test('driving anchor is 72% of screen and clears overlays', () {
+    const insets = MapOverlayInsets(top: 100, bottom: 200, left: 32, right: 32);
+    final padding = insets.drivingInsets(800, following: true);
+    expect((800 + padding.top - padding.bottom) / 2, 576);
+    expect(() => insets.drivingInsets(250, following: true), returnsNormally);
+  });
   testWidgets('four axes interpolate shortest-angle and input cancels frames', (
     tester,
   ) async {
