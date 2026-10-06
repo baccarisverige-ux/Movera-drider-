@@ -28,7 +28,6 @@ import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dar
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/widgets/custom_google_map.dart';
-import 'package:movera/widgets/movera_sheet_metrics.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
@@ -80,6 +79,7 @@ Future<void> _confirmShortTripIfAsked(WidgetTester tester) async {
 }
 
 Future<void> _tapArrived(WidgetTester tester) async {
+  await _middleActiveRideSheet(tester);
   final button =
       find.byKey(const ValueKey<String>('active-ride-arrived-button'));
   expect(button, findsOneWidget);
@@ -91,6 +91,7 @@ Future<void> _tapArrived(WidgetTester tester) async {
 }
 
 Future<void> _slideActiveRideAction(WidgetTester tester) async {
+  await _middleActiveRideSheet(tester);
   final action =
       find.byKey(const ValueKey<String>('active-ride-primary-action'));
   expect(action, findsOneWidget);
@@ -125,6 +126,8 @@ Future<void> _collapseActiveRideSheet(WidgetTester tester) async {
 }
 
 Future<void> _expandActiveRideSheet(WidgetTester tester) async {
+  // Flush a still-running middle-sheet spring before asking for full details.
+  for (var i=0;i<30;i++) { await tester.pump(const Duration(milliseconds: 40)); }
   _activeRidePanel(tester).controller!.open();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
   // The top cards then change with a short fade.
@@ -133,6 +136,8 @@ Future<void> _expandActiveRideSheet(WidgetTester tester) async {
 
 /// Middle sheet: rider and the slide action; the full sheet has neither.
 Future<void> _middleActiveRideSheet(WidgetTester tester) async {
+  if (find.byKey(const ValueKey('active-ride-arrived-button')).evaluate().isNotEmpty ||
+      find.byKey(const ValueKey('active-ride-primary-action')).evaluate().isNotEmpty) { return; }
   _activeRidePanel(tester).controller!.animatePanelToSnapPoint();
   await _advanceAnimation(tester, const Duration(milliseconds: 520));
   // The top cards then change with a short fade.
@@ -1719,6 +1724,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
 
     expect(find.text('Heading to pickup'), findsOneWidget);
+    await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     expect(find.text('Slide to confirm pickup'), findsNothing);
     expect(
@@ -1953,6 +1959,7 @@ void main() {
     ));
     await tester.pump(const Duration(milliseconds: 160));
 
+    await _middleActiveRideSheet(tester);
     expect(find.byType(PointerInterceptor), findsWidgets);
     CustomGoogleMap map = tester.widget<CustomGoogleMap>(
       find.byType(CustomGoogleMap),
@@ -2220,11 +2227,8 @@ void main() {
 
     expect(find.textContaining('Dropping off'), findsOneWidget);
 
-    // Trip options live in the full sheet.
-    await _expandActiveRideSheet(tester);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('active-ride-trip-options')),
-    );
+    // The relocated island action remains available while the radar offer is visible.
+    await tester.tap(find.byTooltip('Trip route and options').hitTestable());
     await tester.pump(const Duration(milliseconds: 220));
 
     expect(find.text('End trip early'), findsOneWidget);
@@ -2399,76 +2403,23 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Active ride keeps a live navigation banner and a collapsible sheet', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('Active ride opens collapsed with one island and expands on demand', (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(375, 812));
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
-
-    // The trip opens on the middle sheet: small destination card on top,
-    // rider and slide action below, no trip details yet.
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-destination-card')),
-      findsOneWidget,
-    );
-    expect(find.text('Heading to pickup'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-arrived-button')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-journey-card')),
-      findsNothing,
-    );
-
-    final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect(panel.minHeight, MoveraSheetMetrics.activeCollapsedTotal(0));
-    expect(panel.snapPoint, isNotNull);
-    expect(panel.panelSnapping, isFalse);
-
-    final mapControls = find.byKey(
-      const ValueKey<String>('active-ride-map-controls'),
-    );
-    expect(mapControls, findsOneWidget);
-    final middleY = tester.getTopLeft(mapControls).dy;
-
-    await _collapseActiveRideSheet(tester);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-compact-dock')),
-      findsOneWidget,
-    );
-    expect(find.text('Odlarvägen 22'), findsWidgets);
-    // One line: time, distance, the next address and the payment logo.
-    expect(
-      tester.widget<Text>(
-        find.byKey(const ValueKey<String>('trip-bar-next-address')),
-      ).data,
-      'Odlarvägen 22',
-    );
-    // Sheet down: the route icon sits left; preferences come with the lift.
-    expect(find.byTooltip('Trip route'), findsOneWidget);
-    expect(find.byTooltip('Ride preferences'), findsNothing);
-    final banner = tester.getRect(
-      find.byKey(const ValueKey<String>('active-ride-navigation-card')),
-    );
-    expect(banner.top, closeTo(0, 0.5));
-    expect(banner.left, closeTo(0, 0.5));
-    expect(banner.width, closeTo(375, 1));
-    // The map buttons ride down with the sheet.
-    expect(tester.getTopLeft(mapControls).dy, greaterThan(middleY));
-
-    // Full sheet: clean details, no action.
+    expect(find.byKey(const ValueKey('trip-guidance-island')), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-ride-navigation-card')), findsNothing);
+    expect(find.byKey(const ValueKey('active-ride-destination-card')), findsNothing);
+    expect(find.byKey(const ValueKey('active-ride-compact-dock')), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-ride-arrived-button')), findsNothing);
+    expect(find.byTooltip('Ride preferences'), findsOneWidget);
+    expect(_activeRidePanel(tester).controller!.panelPosition, closeTo(0, .01));
+    await tester.tap(find.byTooltip('Trip details'));
+    await _advanceAnimation(tester, const Duration(milliseconds: 520));
+    expect(find.byKey(const ValueKey('active-ride-arrived-button')), findsOneWidget);
     await _expandActiveRideSheet(tester);
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-journey-card')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('active-ride-primary-action')),
-      findsNothing,
-    );
+    expect(find.byKey(const ValueKey('active-ride-journey-card')), findsOneWidget);
     _expectNoException(tester);
   });
 
@@ -2483,6 +2434,7 @@ void main() {
     ));
     await tester.pump(const Duration(milliseconds: 160));
 
+    await _middleActiveRideSheet(tester);
     // Middle sheet: call on the left, message on the right.
     expect(find.byTooltip('Call rider'), findsOneWidget);
     await tester.tap(find.byTooltip('Message rider'));
@@ -2512,7 +2464,7 @@ void main() {
         of: dock,
         matching: find.byKey(const ValueKey<String>('active-ride-arrived-button')),
       ),
-      findsOneWidget,
+      findsNothing,
     );
     // Tapping the bar lifts it to the middle sheet with the action.
     await tester.tap(find.byKey(const ValueKey<String>('trip-bar-next-address')));
@@ -2524,8 +2476,8 @@ void main() {
     );
     // The middle sheet has no details button; tapping its header opens
     // the full trip details.
-    expect(find.byTooltip('Trip details'), findsNothing);
-    await tester.tap(find.text('Heading to pickup'));
+    expect(find.byTooltip('Trip details'), findsOneWidget);
+    await tester.tap(find.byTooltip('Trip details'));
     for (var i = 0; i < 12; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
@@ -2577,7 +2529,7 @@ void main() {
     });
   }
 
-  testWidgets('Only a zoom hides the trip sheet; recenter brings it back', (
+  testWidgets('Map gestures keep the collapsed trip sheet visible', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -2613,11 +2565,11 @@ void main() {
     await a.up();
     await b.up();
     await _advanceAnimation(tester, const Duration(milliseconds: 600));
-    expect(dockTop(), greaterThan(shown + 20));
+    expect(dockTop(), closeTo(shown, 1));
 
     // It stays away until recenter, however long the driver looks.
     await tester.pump(const Duration(seconds: 15));
-    expect(dockTop(), greaterThan(shown + 20));
+    expect(dockTop(), closeTo(shown, 1));
     expect(
       find.byKey(const ValueKey<String>('active-ride-recenter-pulse')),
       findsOneWidget,
@@ -2652,7 +2604,7 @@ void main() {
     expect(find.byType(AcceptRide), findsOneWidget);
     expect(find.text('Heading to pickup'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('active-ride-destination-card')),
+      find.byKey(const ValueKey<String>('trip-guidance-island')),
       findsOneWidget,
     );
     _expectNoException(tester);
@@ -2717,6 +2669,8 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(375, 812));
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
+    expect(find.text("I've arrived"), findsNothing);
+    await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     // Arriving is a button, not a slide.
     expect(find.byKey(const ValueKey<String>('active-ride-arrived-button')), findsOneWidget);
@@ -2732,9 +2686,11 @@ void main() {
       stopAddresses: <String>['Unlocated stop'],
     )));
     await tester.pump(const Duration(milliseconds: 160));
+    await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     await _tapArrived(tester);
     expect(find.text('This stop needs a verified map location before arrival.'), findsOneWidget);
+    await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     _expectNoException(tester);
   });

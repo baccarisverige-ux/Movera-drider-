@@ -80,7 +80,7 @@ extension _AcceptRidePanel on _AcceptRideState {
       final collapsed = MoveraSheetMetrics.activeCollapsedTotal(
             MediaQuery.paddingOf(context).bottom,
           );
-      final bannerReserve = MediaQuery.paddingOf(context).top + 130;
+      final bannerReserve = MediaQuery.paddingOf(context).top + 210;
       return math.min(
         MoveraSheetMetrics.expandedHeight(viewport),
         math.max(collapsed + 160, viewport - bannerReserve),
@@ -130,6 +130,12 @@ extension _AcceptRidePanel on _AcceptRideState {
       // Same spring as a drag, so a tap and a slide feel the same.
       unawaited(_snapSheet.springTo(_rideSnapPoint(context)));
     }
+    void _showRideFull() {
+      if (!_ridePanelController.isAttached) { return; }
+      _snapSheet.stopSpring();
+      _rideSheetPositionGuardTimer?.cancel();
+      unawaited(_ridePanelController.open());
+    }
     double _rideRangePx(BuildContext context) =>
         _rideExpandedHeight(context) -
         MoveraSheetMetrics.activeCollapsedTotal(MediaQuery.paddingOf(context).bottom);
@@ -151,45 +157,11 @@ extension _AcceptRidePanel on _AcceptRideState {
           velocityPxPerSec: v,
           snap: snap,
         );
-    /// Big turn card and small address card change with a fade and a
-    /// smooth change of height, both anchored at the top.
-    Widget _morphTopCard(Widget card, {required bool big}) {
-      return AnimatedSize(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        alignment: Alignment.topCenter,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          layoutBuilder: (current, previous) => Stack(
-            alignment: Alignment.topCenter,
-            children: [...previous, ?current],
-          ),
-          // The old card is mostly gone before the new one shows.
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: CurvedAnimation(
-              parent: animation,
-              curve: const Interval(0.45, 1),
-            ),
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.96, end: 1).animate(animation),
-              alignment: Alignment.topCenter,
-              child: child,
-            ),
-          ),
-          child: KeyedSubtree(
-            key: ValueKey<bool>(big),
-            child: card,
-          ),
-        ),
-      );
-    }
     /// The trip's step on the island, e.g. "Waiting for Angelica".
     String get _islandStatus {
       final first = widget.riderName.split(' ').first;
       return switch (_stage) {
-        ActiveRideStage.headingToPickup => 'To pickup',
+        ActiveRideStage.headingToPickup => 'Heading to pickup',
         ActiveRideStage.waitingForRider => 'Waiting for $first',
         _ => _stopCursor < widget.stopAddresses.length
             ? 'To next stop'
@@ -678,39 +650,6 @@ extension _AcceptRidePanel on _AcceptRideState {
               },
       );
     }
-    Widget _buildNavigationCard() {
-      final onTrip = _stage == ActiveRideStage.onTrip;
-      final waiting = _stage == ActiveRideStage.waitingForRider;
-      final title = waiting
-          ? 'Pickup'
-          : onTrip
-              ? 'Drop-off'
-              : 'Heading to pickup';
-
-      return NavigationInstructionBanner(
-        etaLabel: waiting ? _waitLabel : _routeEtaText,
-        eyebrow: _nextStopEyebrow,
-        title: title,
-        detail: _nextStopDetail,
-        address: _nextStopAddress,
-        icon: waiting
-            ? Icons.location_on_outlined
-            : onTrip
-                ? Icons.flag_outlined
-                : Icons.near_me_outlined,
-        arrivalPointKind: _showArrivalApproach ? _approachKind : null,
-        arrivalDistanceMeters: _approachDistanceMeters,
-        arrivalLabel: _approachLabel,
-        arrivalAddress: _approachAddress,
-        arrivalArrived: _arrivalApproachArrived,
-        radarSwitch: onTrip,
-        radarOn: _onTripRadarOn,
-        onRadarToggle: _AcceptRideTrip(this)._toggleOnTripRadar,
-        waitSeconds: _countingWait ? _waitSeconds : null,
-        waitPaid: _paidStopWait,
-        onWaitTap: _openWaitingTime,
-      );
-    }
     void _openRidePreferences() {
       Navigator.push(
         context,
@@ -858,22 +797,11 @@ extension _AcceptRidePanel on _AcceptRideState {
                           ? _waitBarStatus
                           : _soonStatus ?? _tripBarStatus,
                       statusColor: _soonStatus != null ? _AcceptRideState._green : null,
-                      progress: _legFraction ?? (_soonStatus != null ? 1 : null),
-                      nextMark: _nextMarkKind,
-                      soonTitle: _soonStatus != null ? 'Almost there' : null,
-                      waitFraction: _waitFraction,
-                      waitPaidFrom: _AcceptRideState._includedWaitSeconds /
-                          _AcceptRideState._noShowWaitSeconds,
-                      waitAlert: _waitSeconds >= _AcceptRideState._noShowWaitSeconds,
-                      nextAddress: _approachAddress,
-                      paidByCash: widget.paidByCash,
+                      waiting: _countingWait,
                       onPreferences: _openRidePreferences,
                       onDetails: _showRideMiddle,
                       onStatusTap: _countingWait ? _openWaitingTime : null,
-                      onArrived: _arrivalTarget != null
-                          ? _AcceptRideTrip(this)._onArrivedTap
-                          : null,
-                      arrivedEnabled: _nearArrivalTarget,
+
                     )
                   else ...[
                     // Grip line: the sheet can be pulled up for details.
@@ -895,24 +823,15 @@ extension _AcceptRidePanel on _AcceptRideState {
                       distanceLabel: _countingWait ? null : _routeDistanceText,
                       statusLabel: _countingWait
                           ? _waitBarStatus
-                          : _soonStatus ?? _title,
+                          : _soonStatus ?? _tripBarStatus,
                       statusColor: _soonStatus != null ? _AcceptRideState._green : null,
-                      progress: _legFraction ?? (_soonStatus != null ? 1 : null),
-                      nextMark: _nextMarkKind,
-                      soonTitle: _soonStatus != null ? 'Almost there' : null,
-                      waitFraction: _waitFraction,
-                      waitPaidFrom: _AcceptRideState._includedWaitSeconds /
-                          _AcceptRideState._noShowWaitSeconds,
-                      waitAlert: _waitSeconds >= _AcceptRideState._noShowWaitSeconds,
-                      nextAddress: _approachAddress,
-                      paidByCash: widget.paidByCash,
+                      waiting: _countingWait,
                       onPreferences: _openRidePreferences,
                       onDetails: full
                           ? _showRideMiddle
-                          : () => _ridePanelController.open(),
+                          : _showRideFull,
                       onStatusTap: _countingWait ? _openWaitingTime : null,
                       expanded: full,
-                      showDetailsButton: full,
                     ),
                     const Divider(height: 1, thickness: 1, color: Color(0xFFECEEEF)),
                     if (!full) ...[

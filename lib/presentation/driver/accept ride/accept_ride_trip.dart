@@ -610,11 +610,10 @@ extension _AcceptRideTrip on _AcceptRideState {
         _enterBrowse();
       }
     }
-    /// The driver zooms the map: the sheet slides down so only the map and
-    /// route remain, and recenter pulses softly until tapped.
+    /// Manual zoom collapses expanded details, retaining the rider dock.
     void _enterBrowse() {
       if (_browsing || _incomingOfferOpen) { return; }
-      _browsing = true;
+      _rebuild(() => _browsing = true);
       _browseReturnPos = _ridePanelController.isAttached
           ? _ridePanelController.panelPosition
           : 0;
@@ -625,7 +624,6 @@ extension _AcceptRideTrip on _AcceptRideState {
         if (_ridePanelController.isAttached && _browseReturnPos > 0.001) {
           await _snapSheet.springTo(0);
         }
-        if (mounted && _browsing) { await _browse.forward(); }
       }
       unawaited(down());
     }
@@ -641,10 +639,9 @@ extension _AcceptRideTrip on _AcceptRideState {
         ..value = 0;
       if (!_browsing) { _rebuild(() {}); return; }
       _rebuild(() => _browsing = false);
-      unawaited(_browse.reverse().then((_) {
-        if (!mounted || _browsing || _browseReturnPos <= 0.001) { return; }
+      if (_browseReturnPos > 0.001) {
         unawaited(_snapSheet.springTo(_browseReturnPos));
-      }));
+      }
     }
     Future<void> _fitRoute() async {
       // Starting/changing a leg updates route context without stealing a

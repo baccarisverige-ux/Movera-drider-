@@ -17,7 +17,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/geo/geo_point_maps.dart';
-import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/navigation/live_vehicle_animator.dart';
@@ -36,7 +35,7 @@ import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/waiting_time_sheet.dart';
 import 'package:movera/presentation/driver/accept%20ride/trip_bottom_bar.dart';
-import 'package:movera/presentation/driver/accept%20ride/trip_top_reveal.dart';
+import 'package:movera/presentation/driver/accept%20ride/adaptive_trip_island.dart';
 import 'package:movera/presentation/driver/home/components/home_island_notices.dart';
 import 'package:movera/presentation/driver/home/components/island_messages.dart';
 import 'package:movera/widgets/route_mark_pins.dart';
@@ -384,16 +383,12 @@ class _AcceptRideState extends State<AcceptRide>
       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
   Map<RouteMarkKind, BitmapDescriptor> _pinIcons = const {};
   final GlobalKey<ScaffoldState> _rideScaffoldKey = GlobalKey<ScaffoldState>();
-  // Browsing the map by hand: the sheet steps aside, recenter pulses.
+  // Manual browsing keeps the collapsed dock visible; recenter pulses.
   bool _browsing = false;
-  // Last two-finger touch or wheel on the map: a zoom, which hides the sheet.
+  // Last two-finger touch or wheel on the map, used to detect manual zoom.
   DateTime? _lastMapZoom;
   int _mapPointers = 0;
   double _browseReturnPos = 0;
-  late final AnimationController _browse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 320),
-  )..addListener(() => _rebuild(() {}));
   late final AnimationController _browsePulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2000),
@@ -522,10 +517,9 @@ class _AcceptRideState extends State<AcceptRide>
         _waybills.secureNext(_AcceptRideTrip(this)._buildNextWaybill(_nextTripRadarOffer!));
       }
       _AcceptRideTrip(this)._resumeStageSideEffects();
-      // The trip opens on the middle sheet: rider and the next action.
+      // Keep the trip dock visible at its lowest resting position.
       if (_ridePanelController.isAttached && !_incomingOfferOpen) {
-        _ridePanelController.panelPosition =
-            _AcceptRidePanel(this)._rideSnapPoint(context);
+        _ridePanelController.panelPosition = 0;
       }
       _rideLifecycle.persistNow();
       unawaited(_AcceptRideTrip(this)._loadVehicleIdentity());
@@ -565,7 +559,6 @@ class _AcceptRideState extends State<AcceptRide>
   @override
   void dispose() {
     _camera.dispose();
-    _browse.dispose();
     _browsePulse.dispose();
     _locationEpoch++;
     _projectionRetry?.cancel();
@@ -743,8 +736,8 @@ class _AcceptRideState extends State<AcceptRide>
       Polyline(
         polylineId: const PolylineId('active-road-route'),
         points: geometry.remaining(along).map((p) => p.toLatLng()).toList(),
-        width: 5,
-        color: RouteMarkPins.ink,
+        width: 4,
+        color: Colors.black,
         geodesic: false,
         startCap: Cap.roundCap,
         endCap: Cap.roundCap,
@@ -807,13 +800,6 @@ class _AcceptRideState extends State<AcceptRide>
         'Drop-off in $meters m · ${street(widget.dropoffAddress)}',
     };
   }
-
-  /// Mark of the point the driver is heading to.
-  RouteMarkKind get _nextMarkKind => switch (_approachKind) {
-    ArrivalPointKind.pickup => RouteMarkKind.pickup,
-    ArrivalPointKind.stop => RouteMarkKind.stop,
-    ArrivalPointKind.destination => RouteMarkKind.dropoff,
-  };
 
   /// Share of the way to the next point already driven; null while
   /// waiting or before a road route exists.
@@ -920,12 +906,6 @@ class _AcceptRideState extends State<AcceptRide>
 
 
 
-  String get _waitLabel {
-    final minutes = _waitSeconds ~/ 60;
-    final seconds = (_waitSeconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
-
   static const int _includedWaitSeconds = 120;
   static const int _noShowWaitSeconds = 300;
 
@@ -955,11 +935,6 @@ class _AcceptRideState extends State<AcceptRide>
 
   /// Share of the pickup wait window used (free minutes, then paid up to
   /// the no-show point); null at a stop, where waiting is paid throughout.
-  double? get _waitFraction {
-    if (_stage != ActiveRideStage.waitingForRider) { return null; }
-    return (_waitSeconds / _noShowWaitSeconds).clamp(0.0, 1.0);
-  }
-
   Color get _waitBarColor {
     if (_inIncludedWait) { return _ink; }
     if (!_paidStopWait && _waitSeconds >= _noShowWaitSeconds) {
@@ -1002,20 +977,6 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
 
-  String get _title {
-    switch (_stage) {
-      case ActiveRideStage.headingToPickup:
-        return 'Heading to pickup';
-      case ActiveRideStage.waitingForRider:
-        return 'Waiting for rider';
-      case ActiveRideStage.onTrip:
-        return 'Dropping off ${widget.riderName}';
-    }
-  }
-
-
-
-
   String get _onwardAddress {
     if (_stopCursor < widget.stopAddresses.length &&
         (_stage == ActiveRideStage.onTrip ||
@@ -1023,17 +984,6 @@ class _AcceptRideState extends State<AcceptRide>
       return widget.stopAddresses[_stopCursor];
     }
     return widget.dropoffAddress;
-  }
-
-  String get _nextStopEyebrow {
-    switch (_stage) {
-      case ActiveRideStage.headingToPickup:
-        return 'NEXT STOP';
-      case ActiveRideStage.waitingForRider:
-        return 'UP NEXT';
-      case ActiveRideStage.onTrip:
-        return widget.stopAddresses.isEmpty ? 'DROP-OFF' : 'NEXT STOP';
-    }
   }
 
   String get _nextStopAddress {
@@ -1079,7 +1029,7 @@ class _AcceptRideState extends State<AcceptRide>
             MediaQuery.paddingOf(context).bottom,
           );
           final safeTop = MediaQuery.paddingOf(context).top;
-          final bannerReserve = safeTop + 130;
+          final bannerReserve = safeTop + 210;
           final expanded = math.min(
             MoveraSheetMetrics.expandedHeight(viewport),
             math.max(collapsed + 160, viewport - bannerReserve),
@@ -1091,9 +1041,8 @@ class _AcceptRideState extends State<AcceptRide>
           );
 
           final offerOpen = _incomingOfferOpen;
-          // While browsing, the sheet slides down out of the way.
-          final sheetFloor = collapsed *
-              (1 - Curves.easeInOutCubic.transform(_browse.value));
+          // Browsing keeps the collapsed sheet visible.
+          final sheetFloor = collapsed;
           return Stack(
             children: [
               SlidingUpPanel(
@@ -1210,70 +1159,34 @@ class _AcceptRideState extends State<AcceptRide>
                   right: 0,
                   top: 0,
                   child: _AcceptRidePanel(this)._mapOverlay(
-                    child: TripTopReveal(
-                    status: _islandStatus,
-                    lastTripLabel: _waybills.last?.fare ?? DigitalIslandParts.sampleLastTrip,
-                    onMenu: () => _rideScaffoldKey.currentState?.openDrawer(),
-                    onSearch: _openDestinationPicker,
-                    onHistory: () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(builder: (_) => const DriverRideHistory()),
-                    ),
-                    child: ValueListenableBuilder<double>(
-                      valueListenable: _ridePanelPosition,
-                      builder: (context, pos, card) {
-                        // While waiting, the card with the clock stays;
-                        // sheet lifted: only the next address stays on top.
-                        // The two cards melt into each other, no jump.
-                        final big = pos < snap * 0.5 || _countingWait;
-                        return _AcceptRidePanel(this)._morphTopCard(big ? card! : TripDestinationCard(
-                          address: _nextStopAddress,
-                          kind: switch (_stage) {
-                            ActiveRideStage.headingToPickup => RouteMarkKind.pickup,
-                            _ => _stopCursor < widget.stopAddresses.length
-                                ? RouteMarkKind.stop
-                                : RouteMarkKind.dropoff,
-                          },
-                          fallbackArea:
-                              _stage == ActiveRideStage.headingToPickup
-                                  ? widget.pickupArea
-                                  : null,
-                        ), big: big);
-                      },
-                      child: ListenableBuilder(
+                    child: ListenableBuilder(
                       listenable: _navigation,
-                      builder: (context, _) {
-                        final banner = _navigation.snapshot.banner;
-                        if (banner == null) {
-                          return _AcceptRidePanel(this)._buildNavigationCard();
-                        }
-                        return NavigationInstructionBanner(
-                          banner: banner,
-                          etaLabel: _stage == ActiveRideStage.waitingForRider
-                              ? _waitLabel
-                              : _routeEtaText,
-                          eyebrow: _nextStopEyebrow,
-                          detail: _nextStopDetail,
-                          address: _nextStopAddress,
-                          arrivalPointKind:
-                              _showArrivalApproach ||
-                                      banner.symbol == NavigationBannerSymbol.arrive
-                                  ? _approachKind
-                                  : null,
-                          arrivalDistanceMeters: _approachDistanceMeters,
-                          arrivalLabel: _approachLabel,
-                          arrivalAddress: _approachAddress,
-                          arrivalArrived: _arrivalApproachArrived,
-                          radarSwitch: _stage == ActiveRideStage.onTrip,
-                          radarOn: _onTripRadarOn,
-                          onRadarToggle: _AcceptRideTrip(this)._toggleOnTripRadar,
-                          waitSeconds: _countingWait ? _waitSeconds : null,
-                          waitPaid: _paidStopWait,
-                          onWaitTap: _AcceptRidePanel(this)._openWaitingTime,
-                        );
-                      },
-                    ),
-                    ),
+                      builder: (context, _) => AdaptiveTripIsland(
+                        banner: _navigation.snapshot.banner,
+                        status: _navigation.snapshot.status ?? _islandStatus,
+                        address: _showArrivalApproach ? _approachAddress : _nextStopAddress,
+                        detail: _nextStopDetail,
+                        eta: _routeEtaText,
+                        distance: _routeDistanceText,
+                        arrival: _showArrivalApproach ? _approachLabel : null,
+                        arrived: _arrivalApproachArrived,
+                        progress: _legFraction ?? 0,
+                        waitingSeconds: _countingWait ? _waitSeconds : null,
+                        waitingMessage: _tripBarStatus,
+                        paidWait: _paidStopWait || (_countingWait && !_inIncludedWait),
+                        paidByCash: widget.paidByCash,
+                        lastTripLabel: _waybills.last?.fare ?? DigitalIslandParts.sampleLastTrip,
+                        radarVisible: _stage == ActiveRideStage.onTrip,
+                        radarOn: _onTripRadarOn,
+                        onRadar: _AcceptRideTrip(this)._toggleOnTripRadar,
+                        onMenu: () => _rideScaffoldKey.currentState?.openDrawer(),
+                        onSearch: _openDestinationPicker,
+                        onHistory: () => Navigator.push(context,
+                          MaterialPageRoute<void>(builder: (_) => const DriverRideHistory())),
+                        onRoute: _AcceptRidePanel(this)._showTripOptions,
+                        onSafety: () => showSafetyToolKitSheet(context),
+                        onWait: _AcceptRidePanel(this)._openWaitingTime,
+                      ),
                     ),
                   ),
                 ),
