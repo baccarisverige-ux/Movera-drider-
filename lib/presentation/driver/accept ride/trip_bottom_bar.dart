@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:movera/widgets/route_mark_pins.dart';
 
-/// Active Ride bar: the route icon on the left (Ride preferences once the
-/// sheet is lifted); in the middle the line to the next point and one line
-/// of text: time, distance, the next address and how the rider pays.
-/// "I've arrived" on the right once the driver is close.
+/// Persistent rider summary. Trip actions live in the expanded sheet;
+/// route progress and payment controls live in the top island.
 class TripBottomBar extends StatelessWidget {
   const TripBottomBar({
     super.key,
@@ -13,78 +10,23 @@ class TripBottomBar extends StatelessWidget {
     required this.onPreferences,
     required this.onDetails,
     this.distanceLabel,
-    this.nextAddress,
-    this.paidByCash = false,
     this.onStatusTap,
-    this.onArrived,
-    this.arrivedEnabled = false,
     this.expanded = false,
-    this.showDetailsButton = true,
+    this.waiting = false,
     this.etaColor,
     this.statusColor,
-    this.progress,
-    this.nextMark,
-    this.soonTitle,
-    this.waitFraction,
-    this.waitPaidFrom = 0.4,
-    this.waitAlert = false,
   });
 
-  /// Pickup wait as a line: share of the wait window already used, 0..1.
-  /// The part before [waitPaidFrom] is free waiting (ink), the rest is paid
-  /// (green, or red with [waitAlert] once a no-show is allowed).
-  final double? waitFraction;
-  final double waitPaidFrom;
-  final bool waitAlert;
-
-  /// Share of the way to the next point already driven, 0..1. Draws a
-  /// line under the time with the car moving along it; null hides it.
-  final double? progress;
-
-  /// Mark at the end of the line and before [soonTitle].
-  final RouteMarkKind? nextMark;
-
-  /// Short headline once the next point is close, e.g. "Almost there";
-  /// it replaces the time and the line.
-  final String? soonTitle;
-
-  /// Colour of the small line, e.g. green for "Pickup coming up".
-  final Color? statusColor;
-
-  /// Middle sheet hides the details button: swiping up opens details.
-  final bool showDetailsButton;
-
-  /// Colour of the big time, e.g. green once paid waiting starts.
-  final Color? etaColor;
-
-  /// Header of the open sheet: the right button closes it instead.
-  final bool expanded;
-
-  final String etaLabel;
+  final String etaLabel, statusLabel;
   final String? distanceLabel;
-  final String statusLabel;
-
-  /// Address of the next point: pickup, stop or drop-off.
-  final String? nextAddress;
-
-  /// Cash in the car; otherwise paid by card.
-  final bool paidByCash;
-  final VoidCallback onPreferences;
-  final VoidCallback onDetails;
-
-  /// Tapping the middle; defaults to [onDetails].
+  final VoidCallback onPreferences, onDetails;
   final VoidCallback? onStatusTap;
-
-  /// "I've arrived" pill, shown in place of the details button once the
-  /// driver is close enough ([arrivedEnabled]).
-  final VoidCallback? onArrived;
-  final bool arrivedEnabled;
-
+  final bool expanded, waiting;
+  final Color? etaColor, statusColor;
   static const _ink = Color(0xFF111614);
 
   @override
   Widget build(BuildContext context) {
-    final waiting = waitFraction != null;
     return SizedBox(
       height: 76,
       child: Row(

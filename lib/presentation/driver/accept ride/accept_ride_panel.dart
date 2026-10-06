@@ -797,15 +797,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                           ? _waitBarStatus
                           : _soonStatus ?? _tripBarStatus,
                       statusColor: _soonStatus != null ? _AcceptRideState._green : null,
-                      progress: _legFraction ?? (_soonStatus != null ? 1 : null),
-                      nextMark: _nextMarkKind,
-                      soonTitle: _soonStatus != null ? 'Almost there' : null,
-                      waitFraction: _waitFraction,
-                      waitPaidFrom: _AcceptRideState._includedWaitSeconds /
-                          _AcceptRideState._noShowWaitSeconds,
-                      waitAlert: _waitSeconds >= _AcceptRideState._noShowWaitSeconds,
-                      nextAddress: _approachAddress,
-                      paidByCash: widget.paidByCash,
+                      waiting: _countingWait,
                       onPreferences: _openRidePreferences,
                       onDetails: _showRideMiddle,
                       onStatusTap: _countingWait ? _openWaitingTime : null,
@@ -833,22 +825,13 @@ extension _AcceptRidePanel on _AcceptRideState {
                           ? _waitBarStatus
                           : _soonStatus ?? _tripBarStatus,
                       statusColor: _soonStatus != null ? _AcceptRideState._green : null,
-                      progress: _legFraction ?? (_soonStatus != null ? 1 : null),
-                      nextMark: _nextMarkKind,
-                      soonTitle: _soonStatus != null ? 'Almost there' : null,
-                      waitFraction: _waitFraction,
-                      waitPaidFrom: _AcceptRideState._includedWaitSeconds /
-                          _AcceptRideState._noShowWaitSeconds,
-                      waitAlert: _waitSeconds >= _AcceptRideState._noShowWaitSeconds,
-                      nextAddress: _approachAddress,
-                      paidByCash: widget.paidByCash,
+                      waiting: _countingWait,
                       onPreferences: _openRidePreferences,
                       onDetails: full
                           ? _showRideMiddle
                           : _showRideFull,
                       onStatusTap: _countingWait ? _openWaitingTime : null,
                       expanded: full,
-                      showDetailsButton: full,
                     ),
                     const Divider(height: 1, thickness: 1, color: Color(0xFFECEEEF)),
                     if (!full) ...[

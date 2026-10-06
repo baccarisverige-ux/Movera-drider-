@@ -16,8 +16,6 @@ void main() {
                 etaLabel: '2 min',
                 distanceLabel: '1.4 km',
                 statusLabel: 'Picking up Michael',
-                arrivedEnabled: true,
-                onArrived: () {},
                 onPreferences: () => preferences++,
                 onDetails: () => details++,
               ),
@@ -46,7 +44,7 @@ void main() {
             child: TripBottomBar(
               etaLabel: '1:30',
               statusLabel: 'Included wait · then paid',
-              waitFraction: .2,
+              waiting: true,
               onPreferences: () {},
               onDetails: () {},
             ),

@@ -383,16 +383,12 @@ class _AcceptRideState extends State<AcceptRide>
       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
   Map<RouteMarkKind, BitmapDescriptor> _pinIcons = const {};
   final GlobalKey<ScaffoldState> _rideScaffoldKey = GlobalKey<ScaffoldState>();
-  // Browsing the map by hand: the sheet steps aside, recenter pulses.
+  // Manual browsing keeps the collapsed dock visible; recenter pulses.
   bool _browsing = false;
-  // Last two-finger touch or wheel on the map: a zoom, which hides the sheet.
+  // Last two-finger touch or wheel on the map, used to detect manual zoom.
   DateTime? _lastMapZoom;
   int _mapPointers = 0;
   double _browseReturnPos = 0;
-  late final AnimationController _browse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 320),
-  )..addListener(() => _rebuild(() {}));
   late final AnimationController _browsePulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2000),
@@ -563,7 +559,6 @@ class _AcceptRideState extends State<AcceptRide>
   @override
   void dispose() {
     _camera.dispose();
-    _browse.dispose();
     _browsePulse.dispose();
     _locationEpoch++;
     _projectionRetry?.cancel();
@@ -806,13 +801,6 @@ class _AcceptRideState extends State<AcceptRide>
     };
   }
 
-  /// Mark of the point the driver is heading to.
-  RouteMarkKind get _nextMarkKind => switch (_approachKind) {
-    ArrivalPointKind.pickup => RouteMarkKind.pickup,
-    ArrivalPointKind.stop => RouteMarkKind.stop,
-    ArrivalPointKind.destination => RouteMarkKind.dropoff,
-  };
-
   /// Share of the way to the next point already driven; null while
   /// waiting or before a road route exists.
   double? get _legFraction {
@@ -947,11 +935,6 @@ class _AcceptRideState extends State<AcceptRide>
 
   /// Share of the pickup wait window used (free minutes, then paid up to
   /// the no-show point); null at a stop, where waiting is paid throughout.
-  double? get _waitFraction {
-    if (_stage != ActiveRideStage.waitingForRider) { return null; }
-    return (_waitSeconds / _noShowWaitSeconds).clamp(0.0, 1.0);
-  }
-
   Color get _waitBarColor {
     if (_inIncludedWait) { return _ink; }
     if (!_paidStopWait && _waitSeconds >= _noShowWaitSeconds) {
@@ -1058,7 +1041,7 @@ class _AcceptRideState extends State<AcceptRide>
           );
 
           final offerOpen = _incomingOfferOpen;
-          // While browsing, the sheet slides down out of the way.
+          // Browsing keeps the collapsed sheet visible.
           final sheetFloor = collapsed;
           return Stack(
             children: [
@@ -1181,7 +1164,7 @@ class _AcceptRideState extends State<AcceptRide>
                       builder: (context, _) => AdaptiveTripIsland(
                         banner: _navigation.snapshot.banner,
                         status: _navigation.snapshot.status ?? _islandStatus,
-                        address: _nextStopAddress,
+                        address: _showArrivalApproach ? _approachAddress : _nextStopAddress,
                         detail: _nextStopDetail,
                         eta: _routeEtaText,
                         distance: _routeDistanceText,
