@@ -1,6 +1,7 @@
-/// Map colors sampled from the supplied October 6 PNG references.
-/// PNG flat fills are authoritative; JPEG variants include compression shifts.
-/// Traffic and route overlays remain separate from this base-map palette.
+/// Reference map palette sampled from October 6 PNGs, including close-ups.
+/// Flat-fill samples are exact screenshot pixels; layer assignments are inferred.
+/// Roads have zoom/texture variations. Boundary color is retained, unconfirmed.
+/// Traffic, route and location overlays are independent of this base-map style.
 const String moveraReferenceMapStyle = '''
 [
   {
@@ -67,7 +68,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#fafcfa"
+        "color": "#e1e4e5"
       }
     ]
   },
@@ -76,7 +77,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#e2e7e9"
+        "color": "#e1e4e5"
       }
     ]
   },
@@ -85,7 +86,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#92999c"
+        "color": "#8e9496"
       }
     ]
   },
@@ -103,7 +104,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#158945"
+        "color": "#118742"
       }
     ]
   },
@@ -112,7 +113,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#d2dbe1"
+        "color": "#d1d6da"
       }
     ]
   },
@@ -121,7 +122,25 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.stroke",
     "stylers": [
       {
-        "color": "#d2dbe1"
+        "color": "#d1d6da"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#565c61"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#ffffff"
       }
     ]
   },
@@ -130,7 +149,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#c0c5cb"
+        "color": "#b6bbc0"
       }
     ]
   },
@@ -139,7 +158,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.stroke",
     "stylers": [
       {
-        "color": "#c0c5cb"
+        "color": "#b6bbc0"
       }
     ]
   },
@@ -166,7 +185,34 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#e2eaed"
+        "color": "#e1e4e5"
+      }
+    ]
+  },
+  {
+    "featureType": "transit",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#8e9496"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.line",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#d2cecc"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.station",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#e1e4e5"
       }
     ]
   },
@@ -184,7 +230,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#2676b5"
+        "color": "#1360a7"
       }
     ]
   }

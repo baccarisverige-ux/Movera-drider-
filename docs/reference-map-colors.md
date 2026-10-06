@@ -1,29 +1,52 @@
-# Reference map colors — October 6, 2026
+# Complete reference map palette — October 6, 2026
 
-Both Movera apps use identical base-map JSON sampled from the supplied images.
-The lossless PNGs are the source of flat fill colors; JPEG compression shifts
-some channels by one or more levels.
+The same JSON is used in Rider and Driver. Rider Home shares its fallback
+constant. These values come from original map references, not the Map Color Lab
+editor screenshots (those display the previous palette and an edited background).
 
-| Feature | Color | Evidence |
+| Layer | Applied color | Evidence / confidence |
 | --- | --- | --- |
-| Land | `#FAFCFA` | Dominant land fill in all PNGs |
-| Water | `#9EE4FF` | Dominant water fill in all PNGs |
-| Parks | `#BEF2C9` | Green fill in IMG_7395/IMG_7396 |
-| Natural green areas | `#DDF7E3` | Pale green fill in IMG_7390/IMG_7393 |
-| Buildings / POIs | `#E2E7E9` | Urban grey fill in IMG_7395/IMG_7396 |
-| Minor roads / boundaries | `#D2DBE1` | Light grey map detail |
-| Main roads | `#C0C5CB` | Grey road pixels in IMG_7395 |
-| Highways | `#8E9496`, `#8C939A` | Dark grey road pixels in IMG_7395 |
-| General label fill | `#565C61` | Dark text pixels in IMG_7395 |
-| Park label fill | `#158945` | Green text pixels in IMG_7395 |
-| Water label fill | `#2676B5` | Visual match for antialiased blue labels |
+| Land / background | `#FAFCFA` | Exact dominant PNG fill |
+| General labels | `#565C61` | Dark text core in IMG_7405 |
+| Label halo | `#FFFFFF` | White outline pixels; antialiasing adds intermediate shades |
+| Administrative boundaries | `#D2DBE1` | Retained previous value; unconfirmed, not newly sampled |
+| Built areas / buildings | `#E1E4E5` | Exact urban fill in IMG_7405 and IMG_7406 |
+| POI areas | `#E1E4E5` | Exact station and parking-area fill in close-ups |
+| POI labels | `#8E9496` | Text core at Spånga Station / parking |
+| Parks | `#BEF2C9` | Exact green fill in PNGs |
+| Park labels | `#118742` | Most frequent green text core in IMG_7395 and IMG_7404 |
+| Natural areas | `#DDF7E3` | Exact pale green fill in wider IMG_7390/IMG_7393; feature assignment inferred |
+| Local roads | `#D1D6DA` | Frequent road pixel in close-up; textured rather than uniform |
+| Local road edges | `#D1D6DA` | Separate border not distinguishable; reuse fill, not an independently detected edge |
+| Main roads | `#B6BBC0` | Frequent road pixel in close-ups; wider views include `#C0C5CB` |
+| Main road edges | `#B6BBC0` | Separate border not distinguishable; reuse fill |
+| Highway fill | `#8E9496` | Frequent dark highway pixel in wider PNG |
+| Highway edge | `#8C939A` | Frequent adjacent grey highway shade; edge assignment inferred |
+| Road labels | `#565C61` | Same dark text core, white halo |
+| Transit areas | `#E1E4E5` | Exact Spånga Station area fill |
+| Railway lines | `#D2CECC` | Exact track/tie pixels in IMG_7405 |
+| Transit labels | `#8E9496` | Spånga Station text core |
+| Water | `#9EE4FF` | Exact dominant PNG water fill |
+| Water labels | `#1360A7` | Most frequent blue text core in IMG_7395 |
 
-Feature assignments are inferred from the screenshots; screenshots do not
-contain the original map provider style. Google Maps geometry and text rendering
-can differ from the reference provider. These values match the sampled palette,
-but do not imply an identical rendered screenshot.
+## Separate overlay colors observed
 
-Traffic, route lines, location accuracy circles and custom markers are overlays;
-they are not recolored or fabricated by the base-map style. Rider Home and its
-shared map fallback use one constant to prevent palette drift. Driver uses the
-same JSON for its shared map fallback.
+Traffic red/orange, incident symbols, road-number shields, location markers,
+accuracy circles and navigation routes are not base-map geometry. They must not
+be painted onto every road to imitate a screenshot. Existing overlay behavior
+is preserved. The green road shields also contain `#118742`; their appearance
+is controlled by the provider, not the park-label rule.
+
+## Limits of matching
+
+The previous palette missed the close-up built-area, transit, railway and label
+samples. This revision corrects those and adds explicit road and transit labels.
+All 16 Map Color Lab categories are covered, with uncertainty stated for
+boundaries and undistinguished edges. Additional park, road and transit labels
+and railway rules prevent those elements from inheriting the generic color.
+
+Screenshots do not reveal the source provider's layer metadata. Google Maps
+can classify polygons differently and use different geometry, label placement,
+zoom-dependent detail and antialiasing. Exact sampled RGB values do not prove
+pixel-identical rendering. Roads in these references have textured gradients;
+the chosen road values represent common shades, not every road pixel.
