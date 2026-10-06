@@ -1460,7 +1460,7 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
         zoomControlsEnabled: false,
         mapToolbarEnabled: false,
         compassEnabled: false,
-        trafficEnabled: false,
+        trafficEnabled: true,
         buildingsEnabled: true,
         indoorViewEnabled: false,
         scrollGesturesEnabled: !widget.blockGestures,
