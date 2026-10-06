@@ -88,6 +88,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       }
     }
     void _pauseLiveUpdates() {
+      _camera.suspend();
       if (_liveUpdatesPaused) { return; }
       _liveUpdatesPaused = true;
       _locationEpoch++;
@@ -104,6 +105,7 @@ extension _AcceptRideTrip on _AcceptRideState {
     void _resumeLiveUpdates() {
       if (!_liveUpdatesPaused) { return; }
       _liveUpdatesPaused = false;
+      _camera.resume();
       if (!MediaQuery.disableAnimationsOf(context) && !_radarPulseController.isAnimating) {
         _radarPulseController.repeat(reverse: true);
       }
@@ -169,6 +171,7 @@ extension _AcceptRideTrip on _AcceptRideState {
     }
     void _syncNavigationStage() {
       _navigation.setStage(_rideLifecycle.stage);
+      unawaited(_followVehicle());
     }
     void _onRealtimeEvent(DriverRealtimeEvent event) {
       if (!mounted || event.tripId != widget.offerId) { return; }
@@ -542,6 +545,11 @@ extension _AcceptRideTrip on _AcceptRideState {
       _locationStatus = _navigation.status;
       _vehicle.moveTo(next, _navigation.snapshot.headingDegrees);
 
+      // Camera GPS updates are independent of slow route/network requests.
+      _camera.update(location: location, route: _navigation.route,
+        navigating: _stage != ActiveRideStage.waitingForRider && !_paidStopWait,
+        waiting: _stage == ActiveRideStage.waitingForRider || _paidStopWait);
+
       final lastSnap = _lastSnapshotAt;
       if (lastSnap == null ||
           DateTime.now().difference(lastSnap) > const Duration(minutes: 2)) {
@@ -594,55 +602,20 @@ extension _AcceptRideTrip on _AcceptRideState {
       });
     }
     Future<void> _followVehicle({bool force = false}) async {
-      if (!_allowExternalRouting) { return; }
-      if (!force && !_navigation.followCamera) { return; }
-      final controller = _mapController;
-      if (controller == null) { return; }
-      final now = DateTime.now();
-      if (!force &&
-          _lastCameraFollowAt != null &&
-          now.difference(_lastCameraFollowAt!) < const Duration(milliseconds: 900)) {
-        return;
-      }
-      _lastCameraFollowAt = now;
-      _cameraProgrammatic = true;
-      try {
-        await controller.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: _vehicle.current.position,
-              zoom: 16.8,
-              bearing: _vehicle.current.headingDegrees,
-              tilt: 30,
-            ),
-          ),
-        );
-      } catch (_) {}
-      _cameraProgrammatic = false;
+      final location = _lastLocation;
+      if (location == null || _liveUpdatesPaused) { return; }
+      _camera.update(location: location, route: _navigation.route,
+        navigating: _stage != ActiveRideStage.waitingForRider && !_paidStopWait,
+        waiting: _stage == ActiveRideStage.waitingForRider || _paidStopWait);
+      if (force) { _camera.recenter(); }
     }
     void _onCameraMove(CameraPosition position) {
-      if (_cameraProgrammatic) { return; }
-      // Only the driver's own finger or wheel counts. The web map reports
-      // the rest of an app camera move after the app stopped waiting for
-      // it, which used to hide the sheet again right after recenter.
-      final touch = _lastMapTouch;
-      final byDriver = _mapPointers > 0 ||
-          (touch != null &&
-              DateTime.now().difference(touch) <
-                  const Duration(milliseconds: 700));
-      final quiet = _browseQuietUntil;
-      if (!byDriver ||
-          (quiet != null && DateTime.now().isBefore(quiet) && _mapPointers == 0)) {
-        return;
-      }
-      _navigation.pauseFollow();
-      // One finger only moves the map; a zoom (two fingers or the wheel)
-      // clears the view for the map.
+      // Camera callbacks are not gesture evidence. SDK animation callbacks can
+      // arrive after animateCamera completes; only physical input pauses follow.
+      if (_camera.mode != DriverCameraMode.browsing) { return; }
       final zoom = _lastMapZoom;
-      if (_mapPointers >= 2 ||
-          (zoom != null &&
-              DateTime.now().difference(zoom) <
-                  const Duration(milliseconds: 700))) {
+      if (_mapPointers >= 2 || (zoom != null &&
+          DateTime.now().difference(zoom) < const Duration(milliseconds: 700))) {
         _enterBrowse();
       }
     }
@@ -668,66 +641,24 @@ extension _AcceptRideTrip on _AcceptRideState {
     void _exitBrowse() {
       // The recenter tap itself reaches the map, and the camera then flies
       // back: neither is the driver browsing.
-      _lastMapTouch = null;
       _lastMapZoom = null;
-      _browseQuietUntil = DateTime.now().add(const Duration(milliseconds: 1500));
-      if (!_browsing) { return; }
-      _rebuild(() => _browsing = false);
+      _navigation.resumeFollow();
+      _camera.recenter();
+      unawaited(_followVehicle());
       _browsePulse
         ..stop()
         ..value = 0;
-      _navigation.resumeFollow();
-      unawaited(_followVehicle(force: true));
+      if (!_browsing) { _rebuild(() {}); return; }
+      _rebuild(() => _browsing = false);
       unawaited(_browse.reverse().then((_) {
         if (!mounted || _browsing || _browseReturnPos <= 0.001) { return; }
         unawaited(_snapSheet.springTo(_browseReturnPos));
       }));
     }
     Future<void> _fitRoute() async {
-      final controller = _mapController;
-      if (controller == null) { return; }
-
-      final points = _roadRoutePoints.isNotEmpty
-          ? _roadRoutePoints
-          : <LatLng>[_driverPosition, if (_routeTarget != null) _routeTarget!];
-      var minLat = points.first.latitude;
-      var maxLat = points.first.latitude;
-      var minLng = points.first.longitude;
-      var maxLng = points.first.longitude;
-
-      for (final point in points.skip(1)) {
-        minLat = math.min(minLat, point.latitude);
-        maxLat = math.max(maxLat, point.latitude);
-        minLng = math.min(minLng, point.longitude);
-        maxLng = math.max(maxLng, point.longitude);
-      }
-
-      if ((maxLat - minLat).abs() < 0.0004) {
-        minLat -= 0.003;
-        maxLat += 0.003;
-      }
-      if ((maxLng - minLng).abs() < 0.0004) {
-        minLng -= 0.003;
-        maxLng += 0.003;
-      }
-
-      try {
-        final insets = MapOverlayInsets.forActiveRide(
-          safeTop: MediaQuery.paddingOf(context).top,
-          collapsedSheet: MoveraSheetMetrics.activeCollapsedTotal(
-            MediaQuery.paddingOf(context).bottom,
-          ),
-        );
-        await controller.animateCamera(
-          CameraUpdate.newLatLngBounds(
-            LatLngBounds(
-              southwest: LatLng(minLat, minLng),
-              northeast: LatLng(maxLat, maxLng),
-            ),
-            insets.boundsPadding,
-          ),
-        );
-      } catch (_) {}
+      // Starting/changing a leg updates route context without stealing a
+      // manually browsed viewport. Recenter is the sole manual resume action.
+      await _followVehicle();
     }
     Future<void> _advanceRide() async {
       if (_stageTransitioning || !mounted || _rideLifecycle.terminal) { return; }
@@ -956,19 +887,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       }
     }
     Future<void> _focusWaitingPickup() async {
-      final controller = _mapController;
-      if (controller == null) { return; }
-
-      try {
-        await controller.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: widget.pickupPosition,
-              zoom: 17.2,
-            ),
-          ),
-        );
-      } catch (_) {}
+      await _followVehicle();
     }
     void _startOnTripRadar() {
       if (_onTripRadarState == _OnTripRadarState.stopped) { return; }

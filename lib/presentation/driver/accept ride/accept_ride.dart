@@ -2,6 +2,8 @@ import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
 import 'package:movera/core/location/location_freshness.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'dart:async';
+import 'package:movera/core/navigation/driver_camera_controller.dart';
+import 'package:movera/widgets/google_driver_camera_port.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -385,11 +387,8 @@ class _AcceptRideState extends State<AcceptRide>
   final GlobalKey<ScaffoldState> _rideScaffoldKey = GlobalKey<ScaffoldState>();
   // Browsing the map by hand: the sheet steps aside, recenter pulses.
   bool _browsing = false;
-  // Last time a finger or wheel touched the map: only that is browsing.
-  DateTime? _lastMapTouch;
   // Last two-finger touch or wheel on the map: a zoom, which hides the sheet.
   DateTime? _lastMapZoom;
-  DateTime? _browseQuietUntil;
   int _mapPointers = 0;
   double _browseReturnPos = 0;
   late final AnimationController _browse = AnimationController(
@@ -420,7 +419,8 @@ class _AcceptRideState extends State<AcceptRide>
   bool _ridePointerActive = false;
   Timer? _rideSheetPositionGuardTimer;
 
-  GoogleMapController? _mapController;
+  final DriverCameraController _camera = DriverCameraController();
+  GoogleDriverCameraPort? _cameraPort;
   StreamSubscription<DriverLocation>? _positionSubscription;
   late final ActiveRideController _rideLifecycle = ActiveRideController(
     tripId: widget.offerId,
@@ -479,8 +479,6 @@ class _AcceptRideState extends State<AcceptRide>
   bool _completionInFlight = false;
   bool _cancellationInFlight = false;
   bool _blockMapGestures = false;
-  bool _cameraProgrammatic = false;
-  DateTime? _lastCameraFollowAt;
   late final AnimationController _radarPulseController;
   late final AnimationController _radarSweepController;
   String? _locationStatus;
@@ -570,6 +568,7 @@ class _AcceptRideState extends State<AcceptRide>
 
   @override
   void dispose() {
+    _camera.dispose();
     _browse.dispose();
     _browsePulse.dispose();
     _locationEpoch++;
@@ -596,7 +595,6 @@ class _AcceptRideState extends State<AcceptRide>
     _vehicle.dispose();
     _snapSheet.dispose();
     _ridePanelPosition.dispose();
-    _mapController = null;
     super.dispose();
   }
 
@@ -1152,16 +1150,14 @@ class _AcceptRideState extends State<AcceptRide>
                   child: Listener(
                   onPointerDown: (_) {
                     _mapPointers++;
-                    _lastMapTouch = DateTime.now();
-                    if (_mapPointers >= 2) { _lastMapZoom = _lastMapTouch; }
+                    if (_mapPointers >= 2) { _lastMapZoom = DateTime.now(); }
                   },
                   onPointerMove: (_) {
-                    _lastMapTouch = DateTime.now();
-                    if (_mapPointers >= 2) { _lastMapZoom = _lastMapTouch; }
+                    if (_mapPointers >= 2) { _lastMapZoom = DateTime.now(); }
                   },
-                  onPointerUp: (_) { _mapPointers = math.max(0, _mapPointers - 1); _lastMapTouch = DateTime.now(); },
+                  onPointerUp: (_) { _mapPointers = math.max(0, _mapPointers - 1); },
                   onPointerCancel: (_) => _mapPointers = math.max(0, _mapPointers - 1),
-                  onPointerSignal: (_) => _lastMapTouch = _lastMapZoom = DateTime.now(),
+                  onPointerSignal: (_) => _lastMapZoom = DateTime.now(),
                   child: _ThrottledVehicleMap(
                     key: const ValueKey<String>('active-ride-throttled-map'),
                     vehicle: _vehicle,
@@ -1182,10 +1178,18 @@ class _AcceptRideState extends State<AcceptRide>
                     blockGestures: _blockMapGestures,
                     initialTarget: _driverPosition,
                     onCameraMove: _onCameraMoveListener,
+                    onCameraIdle: () => _cameraPort?.onIdle(),
+                    onUserGesture: () {
+                      _rebuild(_camera.userGesture);
+                      if (!MediaQuery.disableAnimationsOf(context)) {
+                        _browsePulse.repeat();
+                      }
+                      _navigation.pauseFollow();
+                    },
                     onMapCreated: (controller) {
-                      final firstCreate = _mapController == null;
-                      _mapController = controller;
-                      if (!firstCreate) { return; }
+                      _cameraPort = GoogleDriverCameraPort(controller,
+                        reducedMotion: MediaQuery.disableAnimationsOf(context));
+                      _camera.attach(_cameraPort!);
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (mounted) { unawaited(_AcceptRideTrip(this)._fitRoute()); }
                       });
@@ -1349,6 +1353,8 @@ class _ThrottledVehicleMap extends StatefulWidget {
     required this.initialTarget,
     required this.onMapCreated,
     required this.onCameraMove,
+    required this.onCameraIdle,
+    required this.onUserGesture,
   });
 
   final LiveVehicleAnimator vehicle;
@@ -1367,6 +1373,8 @@ class _ThrottledVehicleMap extends StatefulWidget {
   final LatLng initialTarget;
   final void Function(GoogleMapController) onMapCreated;
   final void Function(CameraPosition) onCameraMove;
+  final VoidCallback onCameraIdle;
+  final VoidCallback onUserGesture;
 
   @override
   State<_ThrottledVehicleMap> createState() => _ThrottledVehicleMapState();
@@ -1470,6 +1478,8 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
         mapType: MapType.normal,
         padding: widget.padding,
         onCameraMove: widget.onCameraMove,
+        onCameraIdle: widget.onCameraIdle,
+        onUserGesture: widget.onUserGesture,
         onMapCreated: widget.onMapCreated,
       ),
     );

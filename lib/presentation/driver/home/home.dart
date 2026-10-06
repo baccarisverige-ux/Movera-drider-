@@ -2,6 +2,8 @@ import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'dart:async';
+import 'package:movera/core/navigation/driver_camera_controller.dart';
+import 'package:movera/widgets/google_driver_camera_port.dart';
 import 'package:movera/core/session/driver_route_observer.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -129,6 +131,7 @@ class _DriverHomeState extends State<DriverHome>
     if (_liveVisible) { _resumeHomeUpdates(); } else { _pauseHomeUpdates(); }
   }
   void _pauseHomeUpdates() {
+    _camera.suspend();
     _locationEpoch++;
     _driverLocationSubscription?.cancel();
     _driverLocationSubscription = null;
@@ -140,6 +143,7 @@ class _DriverHomeState extends State<DriverHome>
   }
   void _resumeHomeUpdates() {
     if (!mounted || !_liveVisible) { return; }
+    _camera.resume();
     unawaited(_HomeMapSheet(this)._startDriverLocation());
     _HomeOfferRadar(this)._scheduleVisibleOffers();
     if(!MediaQuery.disableAnimationsOf(context)) { _goOnlinePulseController.repeat(reverse: true); _radarSweepController.repeat(); }
@@ -207,6 +211,10 @@ class _DriverHomeState extends State<DriverHome>
   bool _updatePromptShown = false;
 
   GoogleMapController? _mapController;
+  final DriverCameraController _camera = DriverCameraController();
+  GoogleDriverCameraPort? _cameraPort;
+  RoadRoute? _cameraRoute;
+  DriverLocation? _cameraLocation;
   StreamSubscription<DriverLocation>? _driverLocationSubscription;
   bool _hasLiveDriverLocation = false;
   bool _didCenterOnLiveLocation = false;
@@ -1125,6 +1133,7 @@ class _DriverHomeState extends State<DriverHome>
 
   @override
   void dispose() {
+    _camera.dispose();
     ScheduledRideStore.openRequests.removeListener(_onScheduledRequests);
     _locationEpoch++;
     _reservationPopupTimer?.cancel();
@@ -1171,5 +1180,3 @@ class _DriverHomeState extends State<DriverHome>
   }
 
 }
-
-
