@@ -69,6 +69,7 @@ extension _HomeMapSheet on _DriverHomeState {
       if (!mounted || !_liveVisible || !location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs() > 90 || location.point.longitude.abs() > 180) { return; }
 
       final next = location.point.toLatLng();
+      _cameraLocation = location;
       final heading =
           location.headingDegrees.isFinite && location.headingDegrees >= 0
               ? location.headingDegrees
@@ -94,6 +95,7 @@ extension _HomeMapSheet on _DriverHomeState {
       if (_destinationModeActive) {
         _refreshDestinationRoadRoute();
       }
+      unawaited(_animateToDriverLocation());
     }
     Future<void> _prepareDriverVehicleMarker() async {
       final icon = await MoveraVehicleMarker.createIcon();
@@ -115,26 +117,16 @@ extension _HomeMapSheet on _DriverHomeState {
       });
     }
     Future<void> _animateToDriverLocation() async {
-      final controller = _mapController;
-      if (controller == null) { return; }
-
-      try {
-        await controller.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: _driverPosition,
-              zoom: 16.8,
-              bearing: _driverHeading,
-              tilt: 35,
-            ),
-          ),
-        );
-      } catch (_) {}
+      final location = _cameraLocation;
+      if (location == null || !_liveVisible) { return; }
+      _camera.update(location: location,
+        route: _destinationModeActive ? _cameraRoute : null,
+        navigating: _destinationModeActive);
     }
     Future<void> _zoomToDriverLocation() async {
-      await _startDriverLocation(moveCamera: true);
-      if (!mounted) { return; }
-      await _animateToDriverLocation();
+      _camera.recenter();
+      await _startDriverLocation();
+      if (mounted) { await _animateToDriverLocation(); }
     }
     Widget _buildDriverLocationButton() {
       return PointerInterceptor(
@@ -276,43 +268,9 @@ extension _HomeMapSheet on _DriverHomeState {
         padding: insets.boundsPadding,
       );
     }
-    Future<void> _fitPoints(
-      List<LatLng> points, {
-      double padding = 80,
-    }) async {
-      if (points.isEmpty || _mapController == null) { return; }
-
-      var south = points.first.latitude;
-      var north = points.first.latitude;
-      var west = points.first.longitude;
-      var east = points.first.longitude;
-
-      for (final point in points.skip(1)) {
-        south = math.min(south, point.latitude);
-        north = math.max(north, point.latitude);
-        west = math.min(west, point.longitude);
-        east = math.max(east, point.longitude);
-      }
-
-      if ((north - south).abs() < 0.00001 &&
-          (east - west).abs() < 0.00001) {
-        await _mapController!.animateCamera(
-          CameraUpdate.newLatLngZoom(points.first, 16),
-        );
-        return;
-      }
-
-      try {
-        await _mapController!.animateCamera(
-          CameraUpdate.newLatLngBounds(
-            LatLngBounds(
-              southwest: LatLng(south, west),
-              northeast: LatLng(north, east),
-            ),
-            padding,
-          ),
-        );
-      } catch (_) {}
+    Future<void> _fitPoints(List<LatLng> points, {double padding = 80}) async {
+      await _camera.preview(points.map(GeoPointMaps.fromLatLng).toList(),
+        padding: padding);
     }
     void _openDestinationModePicker() {
       _closeHomeFloatingPopupsForSheet();
@@ -376,6 +334,9 @@ extension _HomeMapSheet on _DriverHomeState {
           destination: GeoPointMaps.fromLatLng(destination),
         );
         if (!mounted || _destinationPosition != destination) { return; }
+
+        _cameraRoute = route;
+        unawaited(_animateToDriverLocation());
 
         _rebuild(() {
           _destinationRoutePolylines = {
@@ -616,13 +577,18 @@ extension _HomeMapSheet on _DriverHomeState {
           trafficEnabled: true,
           buildingsEnabled: true,
           indoorViewEnabled: false,
-          scrollGesturesEnabled: false,
-          zoomGesturesEnabled: false,
-          rotateGesturesEnabled: false,
-          tiltGesturesEnabled: false,
+          scrollGesturesEnabled: true,
+          zoomGesturesEnabled: true,
+          rotateGesturesEnabled: true,
+          tiltGesturesEnabled: true,
+          onUserGesture: _camera.userGesture,
+          onCameraIdle: () => _cameraPort?.onIdle(),
           mapType: MapType.normal,
           onMapCreated: (GoogleMapController controller) {
             _mapController = controller;
+            _cameraPort = GoogleDriverCameraPort(controller,
+              reducedMotion: MediaQuery.disableAnimationsOf(context));
+            _camera.attach(_cameraPort!);
           },
           onTap: (LatLng position) {},
         ),
@@ -654,6 +620,8 @@ extension _HomeMapSheet on _DriverHomeState {
               mapToolbarEnabled: false,
               compassEnabled: false,
               trafficEnabled: true,
+              onUserGesture: _camera.userGesture,
+              onCameraIdle: () => _cameraPort?.onIdle(),
               buildingsEnabled: true,
               indoorViewEnabled: false,
               mapType: MapType.normal,
@@ -664,6 +632,9 @@ extension _HomeMapSheet on _DriverHomeState {
               ).edgeInsets,
               onMapCreated: (GoogleMapController controller) {
                 _mapController = controller;
+                _cameraPort = GoogleDriverCameraPort(controller,
+                  reducedMotion: MediaQuery.disableAnimationsOf(context));
+                _camera.attach(_cameraPort!);
                 if (_hasLiveDriverLocation) {
                   unawaited(_animateToDriverLocation());
                 }

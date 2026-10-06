@@ -29,6 +29,9 @@ class CustomGoogleMap extends StatefulWidget {
   final void Function(LatLng)? onLongPress;
   final void Function(CameraPosition)? onCameraMove;
   final void Function()? onCameraIdle;
+
+  /// Fired only for physical drag/pinch/rotate/tilt/wheel input, never SDK moves.
+  final VoidCallback? onUserGesture;
   final EdgeInsets padding;
   final String? customMapStyle;
 
@@ -60,6 +63,7 @@ class CustomGoogleMap extends StatefulWidget {
     this.onLongPress,
     this.onCameraMove,
     this.onCameraIdle,
+    this.onUserGesture,
     this.padding = EdgeInsets.zero,
     this.customMapStyle,
     this.webCameraControlEnabled = true,
@@ -70,6 +74,17 @@ class CustomGoogleMap extends StatefulWidget {
 }
 
 class _CustomGoogleMapState extends State<CustomGoogleMap> {
+  final Map<int, Offset> _pointerOrigins = {};
+  bool _gestureReported = false;
+
+  void _reportGesture() {
+    if (_gestureReported) {
+      return;
+    }
+    _gestureReported = true;
+    widget.onUserGesture?.call();
+  }
+
   GoogleMapController? _mapController;
 
   // Default location - central Stockholm, the app's operating city.
@@ -80,39 +95,62 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
 
   @override
   Widget build(BuildContext context) {
-    return GoogleMap(
-      initialCameraPosition: widget.initialPosition ?? _defaultPosition,
-      markers: widget.markers ?? {},
-      polylines: widget.polylines ?? {},
-      circles: widget.circles ?? {},
-      polygons: widget.polygons ?? {},
-      myLocationEnabled: widget.myLocationEnabled,
-      myLocationButtonEnabled: widget.myLocationButtonEnabled,
-      zoomControlsEnabled: widget.zoomControlsEnabled,
-      mapToolbarEnabled: widget.mapToolbarEnabled,
-      compassEnabled: widget.compassEnabled,
-      trafficEnabled: widget.trafficEnabled,
-      buildingsEnabled: widget.buildingsEnabled,
-      indoorViewEnabled: widget.indoorViewEnabled,
-      scrollGesturesEnabled: widget.scrollGesturesEnabled,
-      zoomGesturesEnabled: widget.zoomGesturesEnabled,
-      rotateGesturesEnabled: widget.rotateGesturesEnabled,
-      tiltGesturesEnabled: widget.tiltGesturesEnabled,
-      mapType: widget.mapType,
-      padding: widget.padding,
-      webCameraControlEnabled: widget.webCameraControlEnabled,
-      style: widget.customMapStyle ?? moveraReferenceMapStyle,
-      onMapCreated: (GoogleMapController controller) {
-        _mapController = controller;
-        // Call the provided onMapCreated callback
-        if (widget.onMapCreated != null) {
-          widget.onMapCreated!(controller);
+    return Listener(
+      onPointerDown: (event) {
+        if (_pointerOrigins.isEmpty) {
+          _gestureReported = false;
+        }
+        _pointerOrigins[event.pointer] = event.position;
+        if (_pointerOrigins.length >= 2) {
+          _reportGesture();
         }
       },
-      onTap: widget.onTap,
-      onLongPress: widget.onLongPress,
-      onCameraMove: widget.onCameraMove,
-      onCameraIdle: widget.onCameraIdle,
+      onPointerMove: (event) {
+        final origin = _pointerOrigins[event.pointer];
+        if (origin != null && (event.position - origin).distance >= 6) {
+          _reportGesture();
+        }
+      },
+      onPointerUp: (event) => _pointerOrigins.remove(event.pointer),
+      onPointerCancel: (event) => _pointerOrigins.remove(event.pointer),
+      onPointerSignal: (_) {
+        _gestureReported = false;
+        _reportGesture();
+      },
+      child: GoogleMap(
+        initialCameraPosition: widget.initialPosition ?? _defaultPosition,
+        markers: widget.markers ?? {},
+        polylines: widget.polylines ?? {},
+        circles: widget.circles ?? {},
+        polygons: widget.polygons ?? {},
+        myLocationEnabled: widget.myLocationEnabled,
+        myLocationButtonEnabled: widget.myLocationButtonEnabled,
+        zoomControlsEnabled: widget.zoomControlsEnabled,
+        mapToolbarEnabled: widget.mapToolbarEnabled,
+        compassEnabled: widget.compassEnabled,
+        trafficEnabled: widget.trafficEnabled,
+        buildingsEnabled: widget.buildingsEnabled,
+        indoorViewEnabled: widget.indoorViewEnabled,
+        scrollGesturesEnabled: widget.scrollGesturesEnabled,
+        zoomGesturesEnabled: widget.zoomGesturesEnabled,
+        rotateGesturesEnabled: widget.rotateGesturesEnabled,
+        tiltGesturesEnabled: widget.tiltGesturesEnabled,
+        mapType: widget.mapType,
+        padding: widget.padding,
+        webCameraControlEnabled: widget.webCameraControlEnabled,
+        style: widget.customMapStyle ?? moveraReferenceMapStyle,
+        onMapCreated: (GoogleMapController controller) {
+          _mapController = controller;
+          // Call the provided onMapCreated callback
+          if (widget.onMapCreated != null) {
+            widget.onMapCreated!(controller);
+          }
+        },
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        onCameraMove: widget.onCameraMove,
+        onCameraIdle: widget.onCameraIdle,
+      ),
     );
   }
 

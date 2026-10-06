@@ -747,7 +747,7 @@ extension _AcceptRidePanel on _AcceptRideState {
             alignment: Alignment.center,
             children: [
           // Browsing: a soft ring grows and fades around recenter.
-          if (_browsing)
+          if (_camera.mode == DriverCameraMode.browsing)
             Positioned(
               left: -18,
               right: -18,
@@ -790,8 +790,6 @@ extension _AcceptRidePanel on _AcceptRideState {
                 _AcceptRideTrip(this)._exitBrowse();
                 return;
               }
-              _navigation.resumeFollow();
-              unawaited(_AcceptRideTrip(this)._followVehicle(force: true));
               // Same quiet window as leaving browse: the fly-back is ours.
               _AcceptRideTrip(this)._exitBrowse();
             },
