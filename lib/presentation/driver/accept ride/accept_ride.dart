@@ -17,7 +17,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/geo/geo_point_maps.dart';
-import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/navigation/live_vehicle_animator.dart';
@@ -995,20 +994,6 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
 
-  String get _title {
-    switch (_stage) {
-      case ActiveRideStage.headingToPickup:
-        return 'Heading to pickup';
-      case ActiveRideStage.waitingForRider:
-        return 'Waiting for rider';
-      case ActiveRideStage.onTrip:
-        return 'Dropping off ${widget.riderName}';
-    }
-  }
-
-
-
-
   String get _onwardAddress {
     if (_stopCursor < widget.stopAddresses.length &&
         (_stage == ActiveRideStage.onTrip ||
@@ -1061,7 +1046,7 @@ class _AcceptRideState extends State<AcceptRide>
             MediaQuery.paddingOf(context).bottom,
           );
           final safeTop = MediaQuery.paddingOf(context).top;
-          final bannerReserve = safeTop + 130;
+          final bannerReserve = safeTop + 190;
           final expanded = math.min(
             MoveraSheetMetrics.expandedHeight(viewport),
             math.max(collapsed + 160, viewport - bannerReserve),

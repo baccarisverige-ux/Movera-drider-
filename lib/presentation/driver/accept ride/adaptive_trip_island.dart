@@ -101,7 +101,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
     if (_pointers != 0) {
       return;
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    scheduleMicrotask(() {
       if (mounted) {
         _touch();
         _startIdle();

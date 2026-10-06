@@ -1,3 +1,4 @@
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,6 +24,9 @@ Future<void> _mount(WidgetTester tester, ActiveRideRepository repo) async {
       offerId: 'confirmation-test', initialStage: ActiveRideStage.waitingForRider,
       activeRideRepository: repo))));
   for (var i=0;i<10;i++) { await tester.pump(const Duration(milliseconds:30)); }
+  tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel).last).controller!.animatePanelToSnapPoint();
+  for (var i=0;i<14;i++) { await tester.pump(const Duration(milliseconds:50)); }
+
 }
 
 void main() {

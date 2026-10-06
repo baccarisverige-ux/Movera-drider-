@@ -28,7 +28,6 @@ import 'package:movera/presentation/driver/scheduled%20rides/scheduled_rides.dar
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/widgets/custom_google_map.dart';
-import 'package:movera/widgets/movera_sheet_metrics.dart';
 import 'package:movera/presentation/common/chat/chat.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
@@ -1721,6 +1720,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
 
     expect(find.text('Heading to pickup'), findsOneWidget);
+    await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     expect(find.text('Slide to confirm pickup'), findsNothing);
     expect(
@@ -1955,6 +1955,7 @@ void main() {
     ));
     await tester.pump(const Duration(milliseconds: 160));
 
+    await _middleActiveRideSheet(tester);
     expect(find.byType(PointerInterceptor), findsWidgets);
     CustomGoogleMap map = tester.widget<CustomGoogleMap>(
       find.byType(CustomGoogleMap),
@@ -2602,7 +2603,7 @@ void main() {
     expect(find.byType(AcceptRide), findsOneWidget);
     expect(find.text('Heading to pickup'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('active-ride-destination-card')),
+      find.byKey(const ValueKey<String>('trip-guidance-island')),
       findsOneWidget,
     );
     _expectNoException(tester);
@@ -2669,6 +2670,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
     expect(find.text("I've arrived"), findsNothing);
     await _middleActiveRideSheet(tester);
+    await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     // Arriving is a button, not a slide.
     expect(find.byKey(const ValueKey<String>('active-ride-arrived-button')), findsOneWidget);
@@ -2685,9 +2687,11 @@ void main() {
     )));
     await tester.pump(const Duration(milliseconds: 160));
     await _middleActiveRideSheet(tester);
+    await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     await _tapArrived(tester);
     expect(find.text('This stop needs a verified map location before arrival.'), findsOneWidget);
+    await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     _expectNoException(tester);
   });

@@ -80,7 +80,7 @@ extension _AcceptRidePanel on _AcceptRideState {
       final collapsed = MoveraSheetMetrics.activeCollapsedTotal(
             MediaQuery.paddingOf(context).bottom,
           );
-      final bannerReserve = MediaQuery.paddingOf(context).top + 130;
+      final bannerReserve = MediaQuery.paddingOf(context).top + 190;
       return math.min(
         MoveraSheetMetrics.expandedHeight(viewport),
         math.max(collapsed + 160, viewport - bannerReserve),
@@ -155,7 +155,7 @@ extension _AcceptRidePanel on _AcceptRideState {
     String get _islandStatus {
       final first = widget.riderName.split(' ').first;
       return switch (_stage) {
-        ActiveRideStage.headingToPickup => 'To pickup',
+        ActiveRideStage.headingToPickup => 'Heading to pickup',
         ActiveRideStage.waitingForRider => 'Waiting for $first',
         _ => _stopCursor < widget.stopAddresses.length
             ? 'To next stop'

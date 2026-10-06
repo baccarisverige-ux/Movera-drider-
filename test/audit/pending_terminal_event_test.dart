@@ -1,3 +1,4 @@
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -68,6 +69,9 @@ void main() {
     expect(snapshot, isNotNull);
     expect(snapshot!.stage, ActiveRideStage.waitingForRider);
 
+
+  tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel).last).controller!.animatePanelToSnapPoint();
+  for (var i=0;i<14;i++) { await tester.pump(const Duration(milliseconds:50)); }
     repo.hold = Completer<void>();
     final action = find.byKey(const ValueKey<String>('active-ride-primary-action'));
     await tester.ensureVisible(action);
