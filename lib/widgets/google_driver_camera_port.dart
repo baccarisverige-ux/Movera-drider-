@@ -32,11 +32,16 @@ class GoogleDriverCameraPort implements DriverCameraPort {
 
   void onIdle() {} // Idle is not evidence of a user gesture.
 
-  Future<void> _move(CameraPosition position) async {
+  Future<void> _move(
+    CameraPosition position, {
+    bool trackVehicle = false,
+  }) async {
     await controller.moveCamera(CameraUpdate.newCameraPosition(position));
     _position = position;
     web.applyAnchor(controller.mapId);
-    onFrame?.call(position);
+    if (trackVehicle) {
+      onFrame?.call(position);
+    }
   }
 
   @override
@@ -54,7 +59,7 @@ class GoogleDriverCameraPort implements DriverCameraPort {
       tilt: pose.tilt,
     );
     if (reducedMotion || from == null) {
-      await _move(to);
+      await _move(to, trackVehicle: true);
       if (generation == _generation) {
         _producingFrames = false;
       }
@@ -77,6 +82,9 @@ class GoogleDriverCameraPort implements DriverCameraPort {
           bearing: GeoPoint.shortestAngleLerp(from.bearing, to.bearing, t),
           tilt: from.tilt + (to.tilt - from.tilt) * t,
         ),
+        // Recenter flies across an arbitrary browsed viewport. Never move the
+        // vehicle along that flight; only regular GPS interpolation shares it.
+        trackVehicle: pose.duration.inMilliseconds <= 600 || fraction >= 1,
       );
       if (fraction >= 1 || generation != _generation) {
         break;
