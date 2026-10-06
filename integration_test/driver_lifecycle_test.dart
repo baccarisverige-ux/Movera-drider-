@@ -75,9 +75,11 @@ Future<void> _tapArrived(WidgetTester tester) async {
 }
 
 Future<void> _slide(WidgetTester tester) async {
-  tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel).last).controller!.animatePanelToSnapPoint();
-  await _elapse(tester, const Duration(milliseconds: 700));
   final action = find.byKey(const ValueKey<String>('active-ride-primary-action'));
+  if (action.evaluate().isEmpty) {
+    tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel).last).controller!.animatePanelToSnapPoint();
+    await _elapse(tester, const Duration(milliseconds: 700));
+  }
   expect(action, findsOneWidget);
   await tester.ensureVisible(action);
   await tester.drag(action, const Offset(320, 0));
@@ -178,10 +180,8 @@ void main() {
     await _slide(tester);
     expect(find.textContaining('Dropping off'), findsOneWidget);
 
-    // Trip options live in the full sheet.
-    tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel)).controller!.open();
-    await _elapse(tester, const Duration(milliseconds: 600));
-    await tester.tap(find.byKey(const ValueKey<String>('active-ride-trip-options')));
+    // The island keeps trip options reachable even while Radar covers the sheet.
+    await tester.tap(find.byTooltip('Trip route and options').hitTestable());
     await _elapse(tester, const Duration(milliseconds: 250));
     await tester.tap(find.byKey(const ValueKey<String>('active-ride-cancel-option')));
     await _elapse(tester, const Duration(milliseconds: 300));
