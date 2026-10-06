@@ -2228,7 +2228,7 @@ void main() {
     expect(find.textContaining('Dropping off'), findsOneWidget);
 
     // The relocated island action remains available while the radar offer is visible.
-    await tester.tap(find.byTooltip('Trip route and options'));
+    await tester.tap(find.byTooltip('Trip route and options').hitTestable());
     await tester.pump(const Duration(milliseconds: 220));
 
     expect(find.text('End trip early'), findsOneWidget);
