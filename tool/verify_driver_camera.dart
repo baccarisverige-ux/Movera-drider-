@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
@@ -209,7 +210,7 @@ Future<void> runCameraContractTests() async {
 
 Future<void> main() async {
   await runCameraContractTests();
-  print(
+  stdout.writeln(
     'PASS: Driver camera policy, follow/browse, recenter, lifecycle and queue contracts',
   );
 }
