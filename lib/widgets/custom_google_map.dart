@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'dart:math' as math;
+
+import '../styles/reference_map_style.dart';
 
 class CustomGoogleMap extends StatefulWidget {
   final CameraPosition? initialPosition;
@@ -75,99 +78,6 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
     zoom: 13.0,
   );
 
-  // Map style with custom client colors
-  // Exact visual palette shared with Movera Rider.
-  static const String _defaultMapStyle = '''
-[
-  {
-    "elementType": "geometry",
-    "stylers": [{"color": "#e6eaed"}]
-  },
-  {
-    "elementType": "labels.icon",
-    "stylers": [{"visibility": "off"}]
-  },
-  {
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#536170"}]
-  },
-  {
-    "elementType": "labels.text.stroke",
-    "stylers": [{"color": "#f4f6f7"}, {"weight": 2}]
-  },
-  {
-    "featureType": "administrative",
-    "elementType": "geometry.stroke",
-    "stylers": [{"color": "#9ca8b3"}]
-  },
-  {
-    "featureType": "landscape",
-    "elementType": "geometry",
-    "stylers": [{"color": "#e6eaed"}]
-  },
-  {
-    "featureType": "landscape.man_made",
-    "elementType": "geometry",
-    "stylers": [{"color": "#e3e7ea"}]
-  },
-  {
-    "featureType": "poi",
-    "elementType": "geometry",
-    "stylers": [{"color": "#e2e7e9"}]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "geometry",
-    "stylers": [{"color": "#d8e9df"}]
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry",
-    "stylers": [{"color": "#f8fafb"}]
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry.stroke",
-    "stylers": [{"color": "#d5dbe0"}]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry",
-    "stylers": [{"color": "#9bb1dd"}]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry.stroke",
-    "stylers": [{"color": "#879fd1"}]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry",
-    "stylers": [{"color": "#8fa8dc"}]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry.stroke",
-    "stylers": [{"color": "#7893cb"}]
-  },
-  {
-    "featureType": "transit",
-    "elementType": "geometry",
-    "stylers": [{"color": "#cfd6dd"}]
-  },
-  {
-    "featureType": "water",
-    "elementType": "geometry",
-    "stylers": [{"color": "#9fd2f3"}]
-  },
-  {
-    "featureType": "water",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#197a91"}]
-  }
-]
-''';
-
   @override
   Widget build(BuildContext context) {
     return GoogleMap(
@@ -191,7 +101,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
       mapType: widget.mapType,
       padding: widget.padding,
       webCameraControlEnabled: widget.webCameraControlEnabled,
-      style: widget.customMapStyle ?? _defaultMapStyle,
+      style: widget.customMapStyle ?? moveraReferenceMapStyle,
       onMapCreated: (GoogleMapController controller) {
         _mapController = controller;
         // Call the provided onMapCreated callback
