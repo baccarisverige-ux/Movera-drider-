@@ -2227,12 +2227,8 @@ void main() {
 
     expect(find.textContaining('Dropping off'), findsOneWidget);
 
-    // Trip options live in the full sheet.
-    await _expandActiveRideSheet(tester);
-    await tester.ensureVisible(find.byKey(const ValueKey<String>('active-ride-trip-options')));
-    await tester.tap(
-      find.byKey(const ValueKey<String>('active-ride-trip-options')),
-    );
+    // The relocated island action remains available while the radar offer is visible.
+    await tester.tap(find.byTooltip('Trip route and options'));
     await tester.pump(const Duration(milliseconds: 220));
 
     expect(find.text('End trip early'), findsOneWidget);

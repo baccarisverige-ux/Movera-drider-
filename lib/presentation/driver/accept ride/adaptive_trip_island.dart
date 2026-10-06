@@ -145,11 +145,10 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
         },
         onPointerUp: (_) => _release(),
         onPointerCancel: (_) => _release(),
-        child: AnimatedSize(
-          duration: duration,
-          curve: Curves.easeInOutCubic,
-          alignment: Alignment.topCenter,
-          child: AnimatedSwitcher(
+        child: _sizeTransition(
+          duration,
+          reduced,
+          AnimatedSwitcher(
             duration: duration,
             layoutBuilder: (current, previous) => Stack(
               alignment: Alignment.topCenter,
@@ -205,6 +204,16 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
       ),
     );
   }
+
+  Widget _sizeTransition(Duration duration, bool reduced, Widget child) =>
+      reduced
+      ? child
+      : AnimatedSize(
+          duration: duration,
+          curve: Curves.easeInOutCubic,
+          alignment: Alignment.topCenter,
+          child: child,
+        );
 
   Widget _guidance() {
     final live = widget.banner;
