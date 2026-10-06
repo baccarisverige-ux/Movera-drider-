@@ -37,8 +37,11 @@ class MarkerMock {
 }
 const maps = {Map: MapMock, Marker: MarkerMock, OverlayView: OverlayMock,
   Point: class {constructor(x,y) {this.x=x;this.y=y;}}, RenderingType: {VECTOR: 'VECTOR'}};
+const images = [];
 const context = {google: {maps}, performance: {now: () => clock},
-  document: {body: new Element(), createElement: () => new Element()},
+  document: {body: new Element(), createElement: () => {
+    const image = new Element(); images.push(image); return image;
+  }},
   MutationObserver: class {observe() {} disconnect() {}}};
 vm.runInNewContext(fs.readFileSync('web/driver_map_camera.js', 'utf8'), context);
 const div = new Element('plugins.flutter.io/google_maps_7');
@@ -84,6 +87,10 @@ const marker = new maps.Marker({title:'Driver camera vehicle', position:{x:1,y:2
   icon:{url:'vehicle.png',scaledSize:{width:40,height:40}}, visible:true});
 marker.setMap(map); api.vehicle(7,90);
 assert.equal(marker.getVisible(), false, 'Rotatable vehicle overlay replaces bitmap');
+map.moveCamera({heading:90}); api.vehicle(7,90);
+assert.ok(images[0].style.transform.includes('rotate(0deg)'), 'Heading-up car points up');
+map.moveCamera({heading:30}); api.vehicle(7,90);
+assert.ok(images[0].style.transform.includes('rotate(60deg)'), 'Free rotation preserves real car course');
 marker.setMap(null);
 remove(); const count = gestures; div.fire('pointerdown');
 assert.equal(gestures,count,'Disposed Flutter listener released');

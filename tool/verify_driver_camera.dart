@@ -166,7 +166,10 @@ Future<void> runCameraContractTests() async {
     route: route(RouteManeuverType.turn),
     navigating: true,
   );
-  check((smooth.zoom - offRoute.zoom).abs() <= .25, 'Bound zoom changes');
+  check(
+    smooth.duration.inMilliseconds == 450,
+    'Time-based four-axis smoothing',
+  );
 
   final curve = DriverCameraPolicy();
   final curvedRoute = route(RouteManeuverType.turn);
@@ -212,6 +215,22 @@ Future<void> runCameraContractTests() async {
     immediate: true,
   );
   check(arrival.tilt == 0, 'Arrival flattens');
+  final fast = DriverCameraPolicy();
+  fast.resolve(
+    location: fix(origin, speed: 30),
+    route: curvedRoute,
+    navigating: true,
+    immediate: true,
+  );
+  final fastJunction = fast.resolve(
+    location: fix(const GeoPoint(59.3335, 18.06), speed: 30),
+    route: curvedRoute,
+    navigating: true,
+  );
+  check(
+    fastJunction.zoom > 17 && fastJunction.tilt < 45,
+    'Highway-speed junction framing does not wait for many GPS samples',
+  );
 
   final camera = DriverCameraController(now: () => now);
   final port = RecordingCamera();

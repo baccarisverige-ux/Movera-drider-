@@ -137,14 +137,8 @@ class DriverCameraPolicy {
         }
       }
     }
-    final previous = _previous;
-    if (!immediate && previous != null) {
-      // Bound zoom changes and use the shortest rotation across 359° -> 0°.
-      zoom = previous.zoom + (zoom - previous.zoom).clamp(-0.25, 0.25);
-      // The SDK adapter interpolates shortest-angle bearing over 450 ms.
-      // Avoid another sample-rate-dependent bearing filter here.
-      tilt = previous.tilt + (tilt - previous.tilt).clamp(-8.0, 8.0);
-    }
+    // All axes are smoothed by elapsed animation time in the SDK adapter.
+    // A per-GPS-sample zoom limit would miss junction framing at highway speed.
     return _previous = DriverCameraPose(
       vehiclePoint!,
       zoom,
