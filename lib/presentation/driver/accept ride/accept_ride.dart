@@ -3,6 +3,7 @@ import 'package:movera/core/location/location_freshness.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'dart:async';
 import 'package:movera/core/navigation/driver_camera_controller.dart';
+import 'package:movera/core/navigation/route_camera_geometry.dart';
 import 'package:movera/widgets/google_driver_camera_port.dart';
 import 'dart:math' as math;
 
@@ -460,8 +461,6 @@ class _AcceptRideState extends State<AcceptRide>
   LatLng _driverPosition = _fallbackDriverPosition;
   List<GeoPoint> _roadGeoPoints = <GeoPoint>[];
   List<LatLng> _roadRoutePoints = <LatLng>[];
-  List<LatLng> _cachedPolylinePoints = const <LatLng>[];
-  Set<Polyline> _cachedPolylines = <Polyline>{};
   double? _routeDurationSeconds;
   bool _hasLiveLocation = false;
   DriverLocation? _lastLocation;
@@ -732,28 +731,28 @@ class _AcceptRideState extends State<AcceptRide>
   }
 
   Set<Polyline> get _polylines {
-    if (_roadRoutePoints.length < 2) {
-      if (_cachedPolylines.isEmpty) { return _cachedPolylines; }
-      _cachedPolylines = <Polyline>{};
-      return _cachedPolylines;
-    }
-    if (identical(_cachedPolylinePoints, _roadRoutePoints) &&
-        _cachedPolylines.isNotEmpty) {
-      return _cachedPolylines;
-    }
-    _cachedPolylinePoints = _roadRoutePoints;
-    _cachedPolylines = {
+    if (_roadGeoPoints.length < 2) { return {}; }
+    final geometry = RouteCameraGeometry(_roadGeoPoints);
+    final along = _camera.alongMeters;
+    return {
+      if (along > 0) Polyline(
+        polylineId: const PolylineId('traveled-road-route'),
+        points: geometry.traveled(along).map((p) => p.toLatLng()).toList(),
+        width: 3,
+        color: RouteMarkPins.ink.withValues(alpha: .18),
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+      ),
       Polyline(
         polylineId: const PolylineId('active-road-route'),
-        points: _roadRoutePoints,
-        width: 6,
+        points: geometry.remaining(along).map((p) => p.toLatLng()).toList(),
+        width: 5,
         color: RouteMarkPins.ink,
         geodesic: false,
         startCap: Cap.roundCap,
         endCap: Cap.roundCap,
       ),
     };
-    return _cachedPolylines;
   }
 
 
@@ -1174,7 +1173,11 @@ class _AcceptRideState extends State<AcceptRide>
                     padding: MapOverlayInsets.forActiveRide(
                       safeTop: safeTop,
                       collapsedSheet: collapsed,
-                    ).edgeInsets,
+                    ).drivingInsets(MediaQuery.sizeOf(context).height,
+                      following: _camera.isGuidance &&
+                          _camera.mode == DriverCameraMode.following),
+                    cameraAnchor: _camera.isGuidance &&
+                        _camera.mode == DriverCameraMode.following ? .72 : .5,
                     blockGestures: _blockMapGestures,
                     initialTarget: _driverPosition,
                     onCameraMove: _onCameraMoveListener,
@@ -1188,6 +1191,14 @@ class _AcceptRideState extends State<AcceptRide>
                     },
                     onMapCreated: (controller) {
                       _cameraPort = GoogleDriverCameraPort(controller,
+                        onFrame: (position) {
+                          if (_camera.mode == DriverCameraMode.following &&
+                              _camera.isGuidance) {
+                            _vehicle.snapTo(position.target, _camera.vehicleCourse);
+                          }
+                        },
+                        initialPosition: CameraPosition(target: _driverPosition,
+                          zoom: 15.8),
                         reducedMotion: MediaQuery.disableAnimationsOf(context));
                       _camera.attach(_cameraPort!);
                       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1349,6 +1360,7 @@ class _ThrottledVehicleMap extends StatefulWidget {
     required this.dropoffAddress,
     required this.polylines,
     required this.padding,
+    required this.cameraAnchor,
     required this.blockGestures,
     required this.initialTarget,
     required this.onMapCreated,
@@ -1369,6 +1381,7 @@ class _ThrottledVehicleMap extends StatefulWidget {
   final Map<RouteMarkKind, BitmapDescriptor> pinIcons;
   final Set<Polyline> polylines;
   final EdgeInsets padding;
+  final double cameraAnchor;
   final bool blockGestures;
   final LatLng initialTarget;
   final void Function(GoogleMapController) onMapCreated;
@@ -1389,7 +1402,7 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
     super.initState();
     _pose = widget.vehicle.current;
     if (!DriverRuntimeConfig.current.liveMapTicker) { return; }
-    _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
+    _ticker = Timer.periodic(const Duration(milliseconds: 33), (_) {
       if (!mounted) { return; }
       final next = widget.vehicle.current;
       if (next.position.latitude == _pose.position.latitude &&
@@ -1427,6 +1440,7 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
         icon: widget.vehicleIcon,
         // No default map bubble on the car.
         consumeTapEvents: true,
+        infoWindow: const InfoWindow(title: 'Driver camera vehicle'),
       ),
     };
     Marker pin(String id, LatLng at, RouteMarkKind kind) => Marker(
@@ -1463,6 +1477,7 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
         ),
         markers: _markers,
         polylines: widget.polylines,
+        cameraAnchor: widget.cameraAnchor,
         myLocationEnabled: false,
         myLocationButtonEnabled: false,
         zoomControlsEnabled: false,

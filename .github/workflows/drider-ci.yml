@@ -49,6 +49,9 @@ jobs:
       - name: Test
         run: flutter test
 
+      - name: Driver web camera gesture contracts
+        run: node tool/verify_driver_map_web.cjs
+
       - name: Critical lifecycle
         run: flutter test integration_test/driver_lifecycle_test.dart -d flutter-tester
 
@@ -139,4 +142,3 @@ jobs:
 
       - name: Compile iOS release without codesign
         run: flutter build ios --release --no-codesign
-

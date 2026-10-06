@@ -70,10 +70,7 @@ extension _HomeMapSheet on _DriverHomeState {
 
       final next = location.point.toLatLng();
       _cameraLocation = location;
-      final heading =
-          location.headingDegrees.isFinite && location.headingDegrees >= 0
-              ? location.headingDegrees
-              : _driverHeading;
+      final heading = location.courseOr(_driverHeading);
       _rebuild(() {
         _driverPosition = next;
         _driverHeading = heading;
@@ -82,7 +79,7 @@ extension _HomeMapSheet on _DriverHomeState {
           Marker(
             markerId: const MarkerId('driver_location'),
             position: next,
-            infoWindow: const InfoWindow(title: 'Your live location'),
+            infoWindow: const InfoWindow(title: 'Driver camera vehicle'),
             icon: _driverVehicleIcon,
             flat: true,
             anchor: MoveraVehicleMarker.anchor,
@@ -106,7 +103,7 @@ extension _HomeMapSheet on _DriverHomeState {
           Marker(
             markerId: const MarkerId('driver_location'),
             position: _driverPosition,
-            infoWindow: const InfoWindow(title: 'Your live location'),
+            infoWindow: const InfoWindow(title: 'Driver camera vehicle'),
             icon: _driverVehicleIcon,
             flat: true,
             anchor: MoveraVehicleMarker.anchor,
@@ -121,7 +118,7 @@ extension _HomeMapSheet on _DriverHomeState {
       if (location == null || !_liveVisible) { return; }
       _camera.update(location: location,
         route: _destinationModeActive ? _cameraRoute : null,
-        navigating: _destinationModeActive);
+        navigating: false);
     }
     Future<void> _zoomToDriverLocation() async {
       _camera.recenter();
@@ -254,7 +251,7 @@ extension _HomeMapSheet on _DriverHomeState {
               polylineId: const PolylineId('direct_offer_road_route'),
               points: roadPoints,
               color: AppColor.primary,
-              width: 6,
+              width: 5,
               geodesic: false,
               startCap: Cap.roundCap,
               endCap: Cap.roundCap,
@@ -344,7 +341,7 @@ extension _HomeMapSheet on _DriverHomeState {
               polylineId: const PolylineId('destination_mode_road_route'),
               points: route.latLngPoints,
               color: AppColor.primary,
-              width: 6,
+              width: 5,
               geodesic: false,
               startCap: Cap.roundCap,
               endCap: Cap.roundCap,
@@ -583,10 +580,12 @@ extension _HomeMapSheet on _DriverHomeState {
           tiltGesturesEnabled: true,
           onUserGesture: _camera.userGesture,
           onCameraIdle: () => _cameraPort?.onIdle(),
+          onCameraMove: (position) => _cameraPort?.onMove(position),
           mapType: MapType.normal,
           onMapCreated: (GoogleMapController controller) {
             _mapController = controller;
             _cameraPort = GoogleDriverCameraPort(controller,
+              initialPosition: _DriverHomeState._initialPosition,
               reducedMotion: MediaQuery.disableAnimationsOf(context));
             _camera.attach(_cameraPort!);
           },
@@ -622,6 +621,7 @@ extension _HomeMapSheet on _DriverHomeState {
               trafficEnabled: true,
               onUserGesture: _camera.userGesture,
               onCameraIdle: () => _cameraPort?.onIdle(),
+              onCameraMove: (position) => _cameraPort?.onMove(position),
               buildingsEnabled: true,
               indoorViewEnabled: false,
               mapType: MapType.normal,
@@ -633,6 +633,7 @@ extension _HomeMapSheet on _DriverHomeState {
               onMapCreated: (GoogleMapController controller) {
                 _mapController = controller;
                 _cameraPort = GoogleDriverCameraPort(controller,
+                  initialPosition: _DriverHomeState._initialPosition,
                   reducedMotion: MediaQuery.disableAnimationsOf(context));
                 _camera.attach(_cameraPort!);
                 if (_hasLiveDriverLocation) {

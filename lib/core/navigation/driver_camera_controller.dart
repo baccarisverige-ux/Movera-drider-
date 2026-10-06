@@ -1,20 +1,31 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/navigation/route_progress.dart';
+import 'package:movera/core/navigation/route_camera_geometry.dart';
 
 enum DriverCameraMode { following, browsing, overview }
 
+enum DriverCameraState { explore, preview, following, free }
+
 /// SDK-neutral output: no widgets, trip lifecycle or Google Maps dependency.
 class DriverCameraPose {
-  const DriverCameraPose(this.target, this.zoom, this.bearing, this.tilt);
+  const DriverCameraPose(
+    this.target,
+    this.zoom,
+    this.bearing,
+    this.tilt, {
+    this.duration = const Duration(milliseconds: 450),
+  });
   final GeoPoint target;
   final double zoom;
   final double bearing;
   final double tilt;
+  final Duration duration;
 }
 
 abstract interface class DriverCameraPort {
@@ -32,6 +43,26 @@ class DriverCameraPolicy {
   double? _along;
   int _instructionHint = 0;
   DriverCameraPose? _previous;
+  RouteCameraGeometry? _geometry;
+  double _course = 0;
+  GeoPoint? vehiclePoint;
+  double get vehicleCourse => _course;
+  double get alongMeters => _along ?? 0;
+  bool autoZoom = true;
+
+  static double zoomForSpeed(double speed) {
+    final kmh = speed * 3.6;
+    return kmh < 20
+        ? 17.5
+        : kmh < 50
+        ? 16.5
+        : kmh < 80
+        ? 15.5
+        : 14.75;
+  }
+
+  static double angleDelta(double from, double to) =>
+      (to - from + 540) % 360 - 180;
 
   DriverCameraPose resolve({
     required DriverLocation location,
@@ -44,13 +75,23 @@ class DriverCameraPolicy {
       _route = route;
       _along = null;
       _instructionHint = 0;
+      _geometry = route == null || route.points.isEmpty
+          ? null
+          : RouteCameraGeometry(route.points);
     }
-    var bearing =
-        location.headingDegrees.isFinite && location.headingDegrees >= 0
-        ? location.headingDegrees % 360
-        : (_previous?.bearing ?? 0.0);
-    var zoom = waiting ? 17.2 : 16.8;
-    var tilt = navigating && !waiting ? 40.0 : 0.0;
+    _course = location.courseOr(_course);
+    vehiclePoint = location.point;
+    final rawSpeed = location.speedMetersPerSecond;
+    final speed = rawSpeed != null && rawSpeed.isFinite && rawSpeed >= 0
+        ? rawSpeed
+        : 0.0;
+    var bearing = navigating && !waiting ? _course : 0.0;
+    var zoom = waiting
+        ? 17.2
+        : navigating
+        ? (autoZoom ? zoomForSpeed(speed) : (_previous?.zoom ?? 16.5))
+        : 16.8;
+    var tilt = navigating && !waiting ? 45.0 : 0.0;
     if (navigating && !waiting && route != null && route.points.length > 1) {
       final progress = _progress.measure(
         route: route,
@@ -61,30 +102,38 @@ class DriverCameraPolicy {
       _along = progress.alongMeters;
       _instructionHint = progress.instructionIndex;
       if (!progress.offRoute) {
-        final index = progress.closestIndex;
-        // Local tangent, not bearing to the final destination. Repeated points
-        // and very short segments must not produce a spurious north bearing.
-        final from = route.points[index];
-        for (var i = index + 1; i < route.points.length; i++) {
-          if (from.distanceMetersTo(route.points[i]) >= 12 ||
-              i == route.points.length - 1) {
-            if (from.distanceMetersTo(route.points[i]) >= 1) {
-              bearing = from.bearingTo(route.points[i]);
-            }
-            break;
-          }
+        final car = _geometry!.at(progress.alongMeters);
+        vehiclePoint = car;
+        final ahead = _geometry!.at(
+          progress.alongMeters + (speed * 3).clamp(40.0, 250.0),
+        );
+        if (car.distanceMetersTo(ahead) > 1) {
+          final roadBearing = car.bearingTo(ahead);
+          // On guidance entry aim down the road even if GPS is stationary.
+          // While moving, anticipate curves without leading course >30°.
+          bearing = immediate
+              ? roadBearing
+              : speed < 1
+              ? (_previous?.bearing ?? roadBearing)
+              : (_course +
+                        angleDelta(_course, roadBearing).clamp(-30.0, 30.0) *
+                            .7 +
+                        360) %
+                    360;
         }
         final maneuver = progress.nextInstruction;
         final distance = progress.distanceToManeuverMeters;
-        if (maneuver != null && _needsPreview(maneuver.type)) {
-          if (distance <= 70) {
-            // 16.1 -> 17.6 as the car approaches the intersection/roundabout.
-            zoom = 16.1 + 1.5 * (1 - distance / 70).clamp(0.0, 1.0);
-            tilt = 30;
-          } else if (distance <= 250) {
-            zoom = 16.1 + 0.7 * ((distance - 70) / 180);
-            tilt = 30;
-          }
+        if (autoZoom &&
+            maneuver != null &&
+            _needsPreview(maneuver.type) &&
+            distance < 180) {
+          final approach = (1 - distance / 180).clamp(0.0, 1.0);
+          zoom = math.max(zoom, 17.0 + .8 * approach);
+          tilt = 45 - 25 * approach;
+        }
+        if (progress.remainingMeters < 35) {
+          tilt = 0;
+          zoom = 17.5;
         }
       }
     }
@@ -92,10 +141,17 @@ class DriverCameraPolicy {
     if (!immediate && previous != null) {
       // Bound zoom changes and use the shortest rotation across 359° -> 0°.
       zoom = previous.zoom + (zoom - previous.zoom).clamp(-0.25, 0.25);
-      bearing = GeoPoint.shortestAngleLerp(previous.bearing, bearing, 0.45);
+      // The SDK adapter interpolates shortest-angle bearing over 450 ms.
+      // Avoid another sample-rate-dependent bearing filter here.
       tilt = previous.tilt + (tilt - previous.tilt).clamp(-8.0, 8.0);
     }
-    return _previous = DriverCameraPose(location.point, zoom, bearing, tilt);
+    return _previous = DriverCameraPose(
+      vehiclePoint!,
+      zoom,
+      bearing,
+      tilt,
+      duration: Duration(milliseconds: immediate ? 900 : 450),
+    );
   }
 
   bool _needsPreview(RouteManeuverType type) => switch (type) {
@@ -136,6 +192,22 @@ class DriverCameraController {
   Timer? _throttle;
   DriverCameraMode _mode = DriverCameraMode.following;
   DriverCameraMode get mode => _mode;
+  DriverCameraState get state => mode == DriverCameraMode.browsing
+      ? DriverCameraState.free
+      : mode == DriverCameraMode.overview
+      ? DriverCameraState.preview
+      : isGuidance
+      ? DriverCameraState.following
+      : DriverCameraState.explore;
+  GeoPoint? get vehiclePoint => _policy.vehiclePoint;
+  double get vehicleCourse => _policy.vehicleCourse;
+  double get alongMeters => _policy.alongMeters;
+  bool get isGuidance => _navigating && !_waiting;
+  bool get autoZoom => _policy.autoZoom;
+  void setAutoZoom(bool enabled) {
+    _policy.autoZoom = enabled;
+    _request();
+  }
 
   void attach(DriverCameraPort port) {
     if (_disposed) {
@@ -160,9 +232,21 @@ class DriverCameraController {
     }
     _location = location;
     _route = route;
+    final enteringGuidance = navigating && !_navigating;
     _navigating = navigating;
     _waiting = waiting;
-    _request();
+    // Track car/route progress even while the viewport belongs to the driver.
+    final pose = _policy.resolve(
+      location: location,
+      route: route,
+      navigating: navigating,
+      waiting: waiting,
+      immediate: enteringGuidance,
+    );
+    if (enteringGuidance && mode == DriverCameraMode.overview) {
+      _mode = DriverCameraMode.following;
+    }
+    _request(immediate: enteringGuidance, resolved: pose);
   }
 
   void userGesture() {
@@ -222,18 +306,20 @@ class DriverCameraController {
     _busy = false;
   }
 
-  void _request({bool immediate = false}) {
+  void _request({bool immediate = false, DriverCameraPose? resolved}) {
     final location = _location;
     if (!_canFollow || location == null || !location.isUsableAt(_now())) {
       return;
     }
-    _pending = _policy.resolve(
-      location: location,
-      route: _route,
-      navigating: _navigating,
-      waiting: _waiting,
-      immediate: immediate,
-    );
+    _pending =
+        resolved ??
+        _policy.resolve(
+          location: location,
+          route: _route,
+          navigating: _navigating,
+          waiting: _waiting,
+          immediate: immediate,
+        );
     if (immediate) {
       _throttle?.cancel();
       _throttle = null;
@@ -261,7 +347,7 @@ class DriverCameraController {
       return;
     }
     _busy = false;
-    _throttle = Timer(const Duration(milliseconds: 250), () {
+    _throttle = Timer(const Duration(milliseconds: 16), () {
       _throttle = null;
       if (_canFollow) {
         unawaited(_flush());

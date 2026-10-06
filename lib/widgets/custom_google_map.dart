@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'dart:math' as math;
 
 import '../styles/reference_map_style.dart';
+import 'driver_map_web_bridge_stub.dart'
+    if (dart.library.js_interop) 'driver_map_web_bridge.dart'
+    as web;
 
 class CustomGoogleMap extends StatefulWidget {
   final CameraPosition? initialPosition;
@@ -33,6 +38,9 @@ class CustomGoogleMap extends StatefulWidget {
   /// Fired only for physical drag/pinch/rotate/tilt/wheel input, never SDK moves.
   final VoidCallback? onUserGesture;
   final EdgeInsets padding;
+
+  /// Vertical anchor in the unobstructed map. .5 explores; .72 drives.
+  final double cameraAnchor;
   final String? customMapStyle;
 
   /// Web only: Google's camera (zoom / pan) control in the corner.
@@ -65,6 +73,7 @@ class CustomGoogleMap extends StatefulWidget {
     this.onCameraIdle,
     this.onUserGesture,
     this.padding = EdgeInsets.zero,
+    this.cameraAnchor = .5,
     this.customMapStyle,
     this.webCameraControlEnabled = true,
   });
@@ -86,6 +95,31 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
   }
 
   GoogleMapController? _mapController;
+  void Function()? _removeWebGesture;
+
+  @override
+  void didUpdateWidget(CustomGoogleMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final controller = _mapController;
+    if (controller != null) {
+      web.configure(
+        controller.mapId,
+        widget.padding.top,
+        widget.padding.bottom,
+        widget.cameraAnchor,
+      );
+      _updateWebVehicle(controller.mapId);
+    }
+  }
+
+  void _updateWebVehicle(int mapId) {
+    for (final marker in widget.markers ?? <Marker>{}) {
+      if (marker.markerId.value == 'driver' ||
+          marker.markerId.value == 'driver_location') {
+        web.vehicle(mapId, marker.rotation);
+      }
+    }
+  }
 
   // Default location - central Stockholm, the app's operating city.
   static const CameraPosition _defaultPosition = CameraPosition(
@@ -101,9 +135,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
           _gestureReported = false;
         }
         _pointerOrigins[event.pointer] = event.position;
-        if (_pointerOrigins.length >= 2) {
-          _reportGesture();
-        }
+        _reportGesture();
       },
       onPointerMove: (event) {
         final origin = _pointerOrigins[event.pointer];
@@ -137,10 +169,26 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
         tiltGesturesEnabled: widget.tiltGesturesEnabled,
         mapType: widget.mapType,
         padding: widget.padding,
+        gestureRecognizers: {
+          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+        },
+        webGestureHandling: WebGestureHandling.greedy,
         webCameraControlEnabled: widget.webCameraControlEnabled,
         style: widget.customMapStyle ?? moveraReferenceMapStyle,
         onMapCreated: (GoogleMapController controller) {
           _mapController = controller;
+          web.configure(
+            controller.mapId,
+            widget.padding.top,
+            widget.padding.bottom,
+            widget.cameraAnchor,
+          );
+          _removeWebGesture = web.listen(controller.mapId, () {
+            if (mounted) {
+              widget.onUserGesture?.call();
+            }
+          });
+          _updateWebVehicle(controller.mapId);
           // Call the provided onMapCreated callback
           if (widget.onMapCreated != null) {
             widget.onMapCreated!(controller);
@@ -159,6 +207,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
 
   @override
   void dispose() {
+    _removeWebGesture?.call();
     // GoogleMap owns its platform controller. Avoid a second web disposal.
     _mapController = null;
     super.dispose();

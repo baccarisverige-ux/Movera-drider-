@@ -110,11 +110,7 @@ class NavigationController extends ChangeNotifier {
       return;
     }
 
-    final heading = location.point.resolvedHeading(
-      gpsHeading: location.headingDegrees,
-      previous: _snapshot.vehicle,
-      fallback: _snapshot.headingDegrees,
-    );
+    final heading = location.courseOr(_snapshot.headingDegrees);
 
     _snapshot = NavigationSnapshot(
       vehicle: location.point,

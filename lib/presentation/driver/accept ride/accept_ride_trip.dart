@@ -528,14 +528,6 @@ extension _AcceptRideTrip on _AcceptRideState {
       final next = location.point.toLatLng();
       if (!mounted) { return; }
 
-      if (!forceRoute &&
-          kIsWeb &&
-          _lastGpsAppliedAt != null &&
-          DateTime.now().difference(_lastGpsAppliedAt!) <
-              const Duration(milliseconds: 800)) {
-        _vehicle.moveTo(next, _navigation.snapshot.headingDegrees);
-        return;
-      }
       _lastGpsAppliedAt = DateTime.now();
       _lastLocation = location;
 
@@ -543,12 +535,13 @@ extension _AcceptRideTrip on _AcceptRideState {
       _driverPosition = next;
       _hasLiveLocation = location.isUsableAt(DateTime.now());
       _locationStatus = _navigation.status;
-      _vehicle.moveTo(next, _navigation.snapshot.headingDegrees);
 
       // Camera GPS updates are independent of slow route/network requests.
       _camera.update(location: location, route: _navigation.route,
         navigating: _stage != ActiveRideStage.waitingForRider && !_paidStopWait,
         waiting: _stage == ActiveRideStage.waitingForRider || _paidStopWait);
+      _vehicle.moveTo((_camera.vehiclePoint ?? location.point).toLatLng(),
+          _camera.vehicleCourse);
 
       final lastSnap = _lastSnapshotAt;
       if (lastSnap == null ||
@@ -610,6 +603,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       if (force) { _camera.recenter(); }
     }
     void _onCameraMove(CameraPosition position) {
+      _cameraPort?.onMove(position);
       // Camera callbacks are not gesture evidence. SDK animation callbacks can
       // arrive after animateCamera completes; only physical input pauses follow.
       if (_camera.mode != DriverCameraMode.browsing) { return; }

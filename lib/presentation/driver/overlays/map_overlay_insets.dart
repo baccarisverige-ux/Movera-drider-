@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
 import 'package:movera/widgets/movera_sheet_metrics.dart';
 
 /// UI-aware map padding so fitted routes stay in the unobstructed viewport.
@@ -17,8 +18,22 @@ class MapOverlayInsets {
   final double left;
   final double right;
 
-  EdgeInsets get edgeInsets =>
-      EdgeInsets.fromLTRB(left, top, right, bottom);
+  EdgeInsets get edgeInsets => EdgeInsets.fromLTRB(left, top, right, bottom);
+
+  /// Center the vehicle at 72% of the visible map, above the collapsed sheet.
+  /// Web does not implement SDK padding: its projection adapter applies this.
+  EdgeInsets drivingInsets(double height, {required bool following}) {
+    if (kIsWeb) {
+      return edgeInsets;
+    }
+    final visible = math.max(0.0, height - top - bottom);
+    return EdgeInsets.fromLTRB(
+      32,
+      top + (following ? visible * .44 : 0),
+      32,
+      bottom,
+    );
+  }
 
   double get boundsPadding {
     final shortest = [top, bottom, left, right].reduce(math.min);
