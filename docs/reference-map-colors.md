@@ -1,4 +1,4 @@
-# Complete reference map palette — October 6, 2026
+# Reference map palette — October 6, 2026
 
 The same JSON is used in Rider and Driver. Rider Home shares its fallback
 constant. These values come from original map references, not the Map Color Lab
@@ -33,15 +33,15 @@ editor screenshots (those display the previous palette and an edited background)
 
 Traffic red/orange, incident symbols, road-number shields, location markers,
 accuracy circles and navigation routes are not base-map geometry. They must not
-be painted onto every road to imitate a screenshot. Existing overlay behavior
-is preserved. The green road shields also contain `#118742`; their appearance
+be painted onto every road to imitate a screenshot. Live operational maps now enable the provider traffic layer. Historical ride maps
+keep traffic disabled because present traffic does not describe a past ride. The green road shields also contain `#118742`; their appearance
 is controlled by the provider, not the park-label rule.
 
 ## Limits of matching
 
 The previous palette missed the close-up built-area, transit, railway and label
 samples. This revision corrects those and adds explicit road and transit labels.
-All 16 Map Color Lab categories are covered, with uncertainty stated for
+The 16 Map Color Lab categories are mapped in code, but detection remains incomplete for
 boundaries and undistinguished edges. Additional park, road and transit labels
 and railway rules prevent those elements from inheriting the generic color.
 
@@ -50,3 +50,23 @@ can classify polygons differently and use different geometry, label placement,
 zoom-dependent detail and antialiasing. Exact sampled RGB values do not prove
 pixel-identical rendering. Roads in these references have textured gradients;
 the chosen road values represent common shades, not every road pixel.
+
+## Orange road segments — follow-up correction
+
+The previous base-map change omitted the visible orange road segments. Two road-only
+crops in IMG_7404(2).png contain dominant orange samples `#FEB87F` (light) and
+`#FE9F60` (deeper). These are measured screenshot pixels, not confirmed road-class
+metadata. Red and orange segments changing along grey roads are consistent with
+a traffic overlay; this assignment remains an inference from the screenshots.
+
+Both apps previously passed `trafficEnabled: false` on their operational maps.
+Those call sites now enable Google's real-time traffic layer. Google chooses its
+traffic colors and coverage; this flag does not apply the sampled orange RGB
+values or reproduce the reference provider's shaded strokes. Do not replace all
+arterial or highway fills with orange, and do not fabricate congestion polylines.
+
+Official provider layer documentation:
+https://developers.google.com/maps/documentation/javascript/trafficlayer
+
+Boundaries and separate local/main-road edges still lack confirmed samples.
+Passing CI does not establish an exact visual match.
