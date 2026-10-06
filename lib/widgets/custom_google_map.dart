@@ -39,7 +39,7 @@ class CustomGoogleMap extends StatefulWidget {
   final VoidCallback? onUserGesture;
   final EdgeInsets padding;
 
-  /// Vertical anchor in the unobstructed map. .5 explores; .72 drives.
+  /// Vertical screen anchor; .72 drives, clamped above sheet overlays.
   final double cameraAnchor;
   final String? customMapStyle;
 
