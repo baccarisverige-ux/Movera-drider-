@@ -1,3 +1,4 @@
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -40,6 +41,10 @@ Future<void> _mount(WidgetTester tester) async {
 }
 
 Future<void> _tapArrived(WidgetTester tester) async {
+  final panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+  panel.controller!.animatePanelToSnapPoint();
+  for (var i=0;i<14;i++) { await tester.pump(const Duration(milliseconds: 50)); }
+
   final button = find.byKey(const ValueKey<String>('active-ride-arrived-button'));
   await tester.ensureVisible(button);
   await tester.tap(button);

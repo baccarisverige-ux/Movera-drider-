@@ -158,7 +158,7 @@ void main() {
     bus.dispose();
   });
 
-  test('collapsed active ride keeps the explicit arrival action wired', () {
+  test('arrival action remains wired in the expanded sheet', () {
     final rideSource = activeRideLibrary();
     final dockSource = File(
       'lib/presentation/driver/accept ride/trip_bottom_bar.dart',
@@ -166,9 +166,9 @@ void main() {
 
     expect(rideSource.contains('_confirmPickupArrival'), isTrue);
     expect(rideSource.contains('DriverRealtimeKind.driverArrived'), isTrue);
-    expect(rideSource.contains('onArrived: _arrivalTarget != null'), isTrue);
-    expect(dockSource.contains("active-ride-arrived-button"), isTrue);
-    expect(dockSource.contains("I've arrived"), isTrue);
+    expect(rideSource.contains('_buildPrimaryAction()'), isTrue);
+    expect(dockSource.contains("active-ride-arrived-button"), isFalse);
+    expect(rideSource.contains("I've arrived"), isTrue);
   });
 
   test('active ride consumes rider cancellation as rider-owned terminal state', () {

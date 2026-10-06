@@ -122,7 +122,7 @@ class NavigationInstructionBanner extends StatelessWidget {
                     child: Center(
                       child: CustomPaint(
                         size: const Size(50, 54),
-                        painter: _CuePainter(symbol: symbol, icon: icon),
+                        painter: NavigationCuePainter(symbol: symbol, icon: icon),
                       ),
                     ),
                   ),
@@ -575,8 +575,10 @@ class _ArrivalRoadPainter extends CustomPainter {
 }
 
 /// Thin navigation cue. Drawn, not a stock flag or turn glyph.
-class _CuePainter extends CustomPainter {
-  _CuePainter({required this.symbol, required this.icon});
+class NavigationCuePainter extends CustomPainter {
+  NavigationCuePainter({required this.symbol, required this.icon, this.color = Colors.white});
+
+  final Color color;
 
   final NavigationBannerSymbol? symbol;
   final IconData icon;
@@ -587,13 +589,13 @@ class _CuePainter extends CustomPainter {
     Offset p(double x, double y) => Offset(x * s, y * s);
 
     final stroke = Paint()
-      ..color = Colors.white
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.15 * s
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     final fill = Paint()
-      ..color = Colors.white
+      ..color = color
       ..style = PaintingStyle.fill;
 
     void arrowHead(Offset tip, double angle) {
@@ -734,8 +736,8 @@ class _CuePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _CuePainter oldDelegate) =>
-      oldDelegate.symbol != symbol || oldDelegate.icon != icon;
+  bool shouldRepaint(covariant NavigationCuePainter oldDelegate) =>
+      oldDelegate.symbol != symbol || oldDelegate.icon != icon || oldDelegate.color != color;
 }
 
 class _NextStopLine extends StatefulWidget {

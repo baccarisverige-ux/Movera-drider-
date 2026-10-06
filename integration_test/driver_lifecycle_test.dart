@@ -65,6 +65,8 @@ Future<void> _goOnlineFromHome(WidgetTester tester) async {
 }
 
 Future<void> _tapArrived(WidgetTester tester) async {
+  tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel).last).controller!.animatePanelToSnapPoint();
+  await _elapse(tester, const Duration(milliseconds: 700));
   final button = find.byKey(const ValueKey<String>('active-ride-arrived-button'));
   expect(button, findsOneWidget);
   await tester.ensureVisible(button);
@@ -73,6 +75,8 @@ Future<void> _tapArrived(WidgetTester tester) async {
 }
 
 Future<void> _slide(WidgetTester tester) async {
+  tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel).last).controller!.animatePanelToSnapPoint();
+  await _elapse(tester, const Duration(milliseconds: 700));
   final action = find.byKey(const ValueKey<String>('active-ride-primary-action'));
   expect(action, findsOneWidget);
   await tester.ensureVisible(action);
