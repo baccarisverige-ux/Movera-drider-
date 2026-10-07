@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/contracts/trip_status.dart';
@@ -510,7 +511,7 @@ class _DriverHomeState extends State<DriverHome>
     }
 
     if (!mounted) { return; }
-    Navigator.of(context).push(
+    pushSingle(context,
       BottomToTopTransition(
         AcceptRide.fromPersisted(
           snapshot,
@@ -673,7 +674,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _openActivationDocuments() {
-    Navigator.push(
+    pushSingle(
       context,
       MaterialPageRoute<void>(builder: (_) => const DriverDocuments()),
     );
@@ -993,7 +994,7 @@ class _DriverHomeState extends State<DriverHome>
   }
 
   void _openScheduledRides() {
-    Navigator.push(
+    pushSingle(
       context,
       MaterialPageRoute(
         builder: (_) => const ScheduledRidesScreen(),

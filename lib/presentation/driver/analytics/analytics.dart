@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
 import 'package:movera/presentation/driver/analytics/acceptance%20rate/acceptance_rate.dart';
@@ -463,7 +464,7 @@ class Analytics extends StatelessWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: () => Navigator.push(context, RightToLeftTransition(page)),
+        onTap: () => pushSingle(context, RightToLeftTransition(page)),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.fromLTRB(14, 13, 10, 13),

@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:movera/constants/appassets.dart';
@@ -89,7 +90,7 @@ class DriverSheetNav {
                           asset: AppAssets.navCreditCard,
                           tooltip: 'Wallet',
                           onTap: () {
-                            Navigator.push(
+                            pushSingle(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const WalletScreen(),
@@ -109,7 +110,7 @@ class DriverSheetNav {
                           asset: AppAssets.navMessagesSquare,
                           tooltip: 'Inbox',
                           onTap: () {
-                            Navigator.push(
+                            pushSingle(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const SupportInboxScreen(),
@@ -194,7 +195,7 @@ class DriverSheetNav {
             asset: AppAssets.navCreditCard,
             tooltip: 'Wallet',
             onTap: () {
-              Navigator.push(
+              pushSingle(
                 context,
                 MaterialPageRoute(builder: (_) => const WalletScreen()),
               );
@@ -204,7 +205,7 @@ class DriverSheetNav {
             asset: AppAssets.navMessagesSquare,
             tooltip: 'Inbox',
             onTap: () {
-              Navigator.push(
+              pushSingle(
                 context,
                 MaterialPageRoute(builder: (_) => const SupportInboxScreen()),
               );
@@ -257,7 +258,7 @@ class DriverSheetNav {
   }
 
   static void _openRidePreferences(BuildContext context) {
-    Navigator.push(
+    pushSingle(
       context,
       MaterialPageRoute<void>(builder: (_) => const Preferences()),
     );

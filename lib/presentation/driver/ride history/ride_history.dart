@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/money/money.dart';
 import 'package:flutter/material.dart';
@@ -727,7 +728,7 @@ class _HistoryRideCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          Navigator.of(context).push(
+          pushSingle(context,
             MaterialPageRoute<void>(
               builder: (_) => DriverRideHistoryDetail(
                 record: TripHistoryRecord(

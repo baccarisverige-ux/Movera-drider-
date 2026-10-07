@@ -651,7 +651,7 @@ extension _AcceptRidePanel on _AcceptRideState {
       );
     }
     void _openRidePreferences() {
-      Navigator.push(
+      pushSingle(
         context,
         MaterialPageRoute<void>(builder: (_) => const Preferences()),
       );
@@ -1138,7 +1138,7 @@ extension _AcceptRidePanel on _AcceptRideState {
       );
     }
     void _messageRider() {
-      Navigator.push(
+      pushSingle(
         context,
         BottomToTopTransition(
           Chat(riderDisplayName: widget.riderName),

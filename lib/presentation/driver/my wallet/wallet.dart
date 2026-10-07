@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/presentation/driver/my%20bank/my_bank.dart';
 
@@ -290,7 +291,7 @@ class WalletScreen extends StatelessWidget {
         ),
         TextButton(
           onPressed: () {
-            Navigator.of(context).push(
+            pushSingle(context,
               MaterialPageRoute<void>(builder: (_) => const MyBank()),
             );
           },
@@ -333,7 +334,7 @@ class WalletScreen extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: () {
-              Navigator.of(context).push(
+              pushSingle(context,
                 MaterialPageRoute<void>(builder: (_) => const MyBank()),
               );
             },

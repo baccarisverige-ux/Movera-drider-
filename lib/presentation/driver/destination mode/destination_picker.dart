@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -15,7 +16,7 @@ class DriverDestinationPicker extends StatefulWidget {
   const DriverDestinationPicker({super.key});
 
   static Future<DriverDestinationResult?> open(BuildContext context) {
-    return Navigator.of(context).push<DriverDestinationResult>(
+    return pushSingle<DriverDestinationResult>(context,
       MaterialPageRoute(
         builder: (_) => const DriverDestinationPicker(),
       ),

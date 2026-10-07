@@ -33,17 +33,24 @@ class MoveraSnapSheetController {
   /// `panelSnapping` is false. Assigning position stops that controller
   /// so our spring owns the settle.
   void stopPanelAnimation() {
-    if (!panel.isAttached) { return; }
+    if (!panel.isAttached) {
+      return;
+    }
     panel.panelPosition = panel.panelPosition.clamp(0.0, 1.0);
   }
 
-  Future<void> springTo(
-    double target, {
-    double velocityPxPerSec = 0,
-  }) async {
-    if (!panel.isAttached) { return; }
+  Future<void> springTo(double target, {double velocityPxPerSec = 0}) async {
+    stopSpring();
+    if (!panel.isAttached) {
+      return;
+    }
+    target = target.clamp(0.0, 1.0);
     stopPanelAnimation();
-    if(reduceMotion?.call()==true) { stopSpring(); panel.panelPosition=target; return; }
+    if (reduceMotion?.call() == true) {
+      stopSpring();
+      panel.panelPosition = target;
+      return;
+    }
     final start = panel.panelPosition;
     if ((start - target).abs() < 0.003) {
       panel.panelPosition = target;
@@ -61,12 +68,18 @@ class MoveraSnapSheetController {
       velocity,
     );
     controller.addListener(() {
-      if (!panel.isAttached) { return; }
+      if (!panel.isAttached) {
+        return;
+      }
       panel.panelPosition = controller.value.clamp(0.0, 1.0);
     });
     try {
       await controller.animateWith(simulation).orCancel;
-      if (kDebugMode) { debugPrint('SHEET spring-end position=$position target=$target velocity=$velocityPxPerSec'); }
+      if (kDebugMode) {
+        debugPrint(
+          'SHEET spring-end position=$position target=$target velocity=$velocityPxPerSec',
+        );
+      }
     } on TickerCanceled {
       // A new drag or disposal owns the panel now.
     } finally {
