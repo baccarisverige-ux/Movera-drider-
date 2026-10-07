@@ -7,7 +7,8 @@ import 'package:movera/widgets/responsive_size.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class EmergencyContactsScreen extends StatefulWidget {
-  const EmergencyContactsScreen({super.key});
+  const EmergencyContactsScreen({super.key, this.repository});
+  final SettingsRepository? repository;
 
   @override
   State<EmergencyContactsScreen> createState() =>
@@ -38,109 +39,110 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     ),
   ];
 
-  final _settings=SettingsRepository();
-  bool _loading=true;
+  late final _settings = widget.repository ?? SettingsRepository();
+  bool _loading = true;
+  bool _restoreFailed = false;
+  bool _adding = false;
   @override
-  void initState() { super.initState(); _restore(); }
-  Future<void> _restore() async {
-    try {
-      final data=await _settings.read('contacts');
-      final rows=data['rows'];
-      if(mounted) { setState(() {
-        if(rows is List) {
-          _contacts.removeWhere((c)=>c.phone!='112');
-          for(final row in rows) { if(row is Map && row['name'] is String && row['phone'] is String && _validPhone(row['phone'] as String)) { _contacts.add(_EmergencyContact(name:row['name'] as String,phone:row['phone'] as String,relation:row['relation'] as String? ?? 'Trusted contact')); } }
-        }
-        _loading=false;
-      }); }
-    } catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Could not load trusted contacts.'),action:SnackBarAction(label:'Retry',onPressed:_restore))); } }
+  void initState() {
+    super.initState();
+    _restore();
   }
-  bool _validPhone(String phone) => RegExp(r'^\+?[0-9]{7,15}$').hasMatch(phone.replaceAll(RegExp(r'[\s()-]'),'')) || phone=='112';
-  Future<void> _addContact() async {
-    if(_loading) { return; }
-    final name = TextEditingController();
-    final phone = TextEditingController();
-    final relation = TextEditingController(text: 'Family');
-    final created = await showModalBottomSheet<_EmergencyContact>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            16,
-            20,
-            20 + MediaQuery.viewInsetsOf(sheetContext).bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Add trusted contact',
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: name,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              TextField(
-                controller: phone,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Phone'),
-              ),
-              TextField(
-                controller: relation,
-                decoration: const InputDecoration(labelText: 'Relation'),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton(
-                  onPressed: () {
-                    if (name.text.trim().isEmpty || !_validPhone(phone.text.trim())) {
-                      return;
-                    }
-                    Navigator.pop(
-                      sheetContext,
-                      _EmergencyContact(
-                        name: name.text.trim(),
-                        phone: phone.text.trim(),
-                        relation: relation.text.trim().isEmpty
-                            ? 'Trusted contact'
-                            : relation.text.trim(),
-                      ),
-                    );
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF19865C),
+
+  Future<void> _restore() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _restoreFailed = false;
+      });
+    }
+    try {
+      final data = await _settings.read('contacts');
+      final rows = data['rows'];
+      if (mounted) {
+        setState(() {
+          if (rows is List) {
+            _contacts.removeWhere((c) => c.phone != '112');
+            for (final row in rows) {
+              if (row is Map &&
+                  row['name'] is String &&
+                  row['phone'] is String &&
+                  _validPhone(row['phone'] as String)) {
+                _contacts.add(
+                  _EmergencyContact(
+                    name: row['name'] as String,
+                    phone: row['phone'] as String,
+                    relation: row['relation'] is String
+                        ? row['relation'] as String
+                        : 'Trusted contact',
                   ),
-                  child: const Text('Save contact'),
-                ),
+                );
+              }
+            }
+          }
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _restoreFailed = true;
+        });
+      }
+    }
+  }
+
+  bool _validPhone(String phone) =>
+      RegExp(r'^\+?[0-9]{7,15}$')
+          .hasMatch(phone.replaceAll(RegExp(r'[\s()-]'), '')) ||
+      phone == '112';
+  Future<void> _addContact() async {
+    if (_loading || _restoreFailed || _adding) return;
+    setState(() => _adding = true);
+    try {
+      final created = await showModalBottomSheet<_EmergencyContact>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (_) => _ContactComposer(validPhone: _validPhone),
+      );
+      if (created != null && mounted) {
+        final updated = [..._contacts, created];
+        try {
+          await _settings.save('contacts', {
+            'rows': updated
+                .where((c) => c.phone != '112')
+                .map(
+                  (c) => {
+                    'name': c.name,
+                    'phone': c.phone,
+                    'relation': c.relation,
+                  },
+                )
+                .toList(),
+          });
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Contact could not be saved. Retry.'),
               ),
-            ],
-          ),
-        );
-      },
-    );
-    name.dispose();
-    phone.dispose();
-    relation.dispose();
-    if (created != null && mounted) {
-      final updated=[..._contacts,created];
-      try { await _settings.save('contacts',{'rows':updated.where((c)=>c.phone!='112').map((c)=>{'name':c.name,'phone':c.phone,'relation':c.relation}).toList()}); }
-      catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Contact could not be saved. Retry.'))); }return; }
-      if(mounted) { setState(() => _contacts.add(created)); }
+            );
+          }
+          return;
+        }
+        if (mounted) {
+          setState(() => _contacts.add(created));
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _adding = false);
+      }
     }
   }
 
@@ -149,8 +151,18 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
       'tel:${contact.phone.replaceAll(RegExp(r'[^0-9+]'), '')}',
     );
     try {
-      if(!await launchUrl(uri) && mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Dialer is unavailable.'))); }
-    } catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Dialer is unavailable.'))); } }
+      if (!await launchUrl(uri) && mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Dialer is unavailable.')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Dialer is unavailable.')));
+      }
+    }
   }
 
   @override
@@ -162,7 +174,8 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         backgroundColor: AppColor.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.pop(context),
           icon: Icon(
             Icons.arrow_back_ios_rounded,
@@ -178,9 +191,12 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
           fontWeight: fwMedium,
         ),
         actions: [
-          IconButton(tooltip: 'Add trusted contact', 
+          IconButton(
+            tooltip: 'Add trusted contact',
             key: const ValueKey<String>('add-emergency-contact'),
-            onPressed: _addContact,
+            onPressed: _loading || _restoreFailed || _adding
+                ? null
+                : _addContact,
             icon: const Icon(Icons.add_rounded, color: Color(0xFF19865C)),
           ),
         ],
@@ -188,6 +204,12 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
         children: [
+          if (_loading) const LinearProgressIndicator(),
+          if (_restoreFailed)
+            TextButton(
+              onPressed: _restore,
+              child: const Text('Could not load trusted contacts — Retry'),
+            ),
           const Text(
             'Trusted contacts stay on this device. Calling opens your dialer.',
             style: TextStyle(color: _muted, fontSize: 12.5, height: 1.4),
@@ -208,7 +230,8 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                     ),
                   ),
                   subtitle: Text('${contact.relation} · ${contact.phone}'),
-                  trailing: IconButton(tooltip: 'Call ${contact.name}', 
+                  trailing: IconButton(
+                    tooltip: 'Call ${contact.name}',
                     icon: const Icon(Icons.phone_outlined),
                     onPressed: () => _call(contact),
                   ),
@@ -219,4 +242,91 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
       ),
     );
   }
+}
+
+class _ContactComposer extends StatefulWidget {
+  const _ContactComposer({required this.validPhone});
+  final bool Function(String) validPhone;
+  @override
+  State<_ContactComposer> createState() => _ContactComposerState();
+}
+
+class _ContactComposerState extends State<_ContactComposer> {
+  final _form = GlobalKey<FormState>();
+  final name = TextEditingController();
+  final phone = TextEditingController();
+  final relation = TextEditingController(text: 'Family');
+  @override
+  void dispose() {
+    name.dispose();
+    phone.dispose();
+    relation.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    child: Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _form,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Add trusted contact',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Enter a name'
+                      : null,
+                ),
+                TextFormField(
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Phone'),
+                  validator: (value) => widget.validPhone(value?.trim() ?? '')
+                      ? null
+                      : 'Enter a valid phone number',
+                ),
+                TextFormField(
+                  controller: relation,
+                  decoration: const InputDecoration(labelText: 'Relation'),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () {
+                    if (!_form.currentState!.validate()) return;
+                    Navigator.pop(
+                      context,
+                      _EmergencyContact(
+                        name: name.text.trim(),
+                        phone: phone.text.trim(),
+                        relation: relation.text.trim().isEmpty
+                            ? 'Trusted contact'
+                            : relation.text.trim(),
+                      ),
+                    );
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF19865C),
+                  ),
+                  child: const Text('Save contact'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }

@@ -28,7 +28,7 @@ class BottomToTopTransition extends ModalRoute<void> {
   bool get maintainState => true;
 
   @override
-  Duration get transitionDuration => _motionDuration(1000);
+  Duration get transitionDuration => _motionDuration(280);
 
   @override
   Duration get reverseTransitionDuration => _motionDuration(200);
@@ -126,7 +126,7 @@ class TopToBottomTransition extends PageRouteBuilder {
   TopToBottomTransition(this.page)
       : super(
           pageBuilder: (context, animation, anotherAnimation) => page,
-          transitionDuration: _motionDuration(1000),
+          transitionDuration: _motionDuration(280),
           reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
             if (MediaQuery.disableAnimationsOf(context)) { return child; }
@@ -152,7 +152,7 @@ class SwitchTransition extends PageRouteBuilder {
   SwitchTransition(this.page)
       : super(
           pageBuilder: (context, animation, anotherAnimation) => page,
-          transitionDuration: _motionDuration(1000),
+          transitionDuration: _motionDuration(280),
           reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
             if (MediaQuery.disableAnimationsOf(context)) { return child; }
@@ -179,7 +179,7 @@ class LeftToRightTransition extends PageRouteBuilder {
   LeftToRightTransition(this.page)
       : super(
           pageBuilder: (context, animation, anotherAnimation) => page,
-          transitionDuration: _motionDuration(1000),
+          transitionDuration: _motionDuration(280),
           reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
             if (MediaQuery.disableAnimationsOf(context)) { return child; }
@@ -206,7 +206,7 @@ class RightToLeftTransition extends PageRouteBuilder {
   RightToLeftTransition(this.page)
       : super(
           pageBuilder: (context, animation, anotherAnimation) => page,
-          transitionDuration: _motionDuration(1000),
+          transitionDuration: _motionDuration(280),
           reverseTransitionDuration: _motionDuration(200),
           transitionsBuilder: (context, animation, anotherAnimation, child) {
             if (MediaQuery.disableAnimationsOf(context)) { return child; }
