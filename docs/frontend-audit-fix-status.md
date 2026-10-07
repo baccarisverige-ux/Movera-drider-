@@ -8,9 +8,9 @@ Baseline: `55026d5211bb41b921f819b9f6b88be5f8619811`. No merge or deployment aut
 | 008–010 | Phase 2: destination identity, full geometry comparison, route failure/retry | New CI regressions; device journeys pending |
 | 001–002 | Phase 3: cloud-style vector construction and observed raster fallback | JS contract passes; cloud configuration and real SDK screenshots pending |
 | 014, 022–023 | Phase 3: owned service disposal, settled scheduler stop, camera retry feedback | Port regressions; device profiling pending |
-| 011–013 | Phase 4: navigation/overlay ownership | Pending |
-| 015–021, 024–025 | Phase 5: forms, responsive/accessibility/chat | Pending |
-| 026–028 | Phase 6: legacy ownership and production boundary | Pending; production adapters remain separate integration |
+| 011–013 | Phase 4: route entry guards, composer single flight, spring cancellation | Added regressions; runtime chaos pending |
+| 015–021, 024–025 | Phase 5: field validation, keyboard-safe contacts, voice semantics, lazy chat, text/motion/year policy | Added regressions; screenshots/device traces pending |
+| 026–028 | Phase 6: route-local onboarding ownership, atomic advance, local progress tickers, disabled unavailable sign-in, production root/build guard | Added regressions; real authentication prerequisites and production adapters remain integration work |
 
 ## Styled vector map configuration
 
