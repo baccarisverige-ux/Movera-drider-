@@ -11,12 +11,15 @@ import 'package:movera/presentation/driver/auth/additional%20detail/screens/vehi
 import 'package:movera/widgets/custom_btn.dart';
 import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/navigation_transition.dart';
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
 
 class AdditionalInfoNavigationController extends GetxController {
   final RxInt currentPageIndex = 0.obs;
   final PageController pageController = PageController();
+  bool _moving = false;
+  bool _closed = false;
 
   final List<Widget> pages = [
     AdditionDetailAddVehicle(
@@ -37,49 +40,72 @@ class AdditionalInfoNavigationController extends GetxController {
     ),
   ];
 
-  void moveToNextStep(BuildContext context) {
-    if (currentPageIndex.value < pages.length - 1) {
-      currentPageIndex.value++;
-      pageController.animateToPage(
-        currentPageIndex.value,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      Navigator.push(context, TopToBottomTransition(SelectDocumentType()));
-      // Last step reached
-      // Handle navigation to next screen
+  Future<void> moveToNextStep(BuildContext context) async {
+    if (_moving || _closed || !pageController.hasClients) return;
+    _moving = true;
+    try {
+      if (currentPageIndex.value < pages.length - 1) {
+        final next = currentPageIndex.value + 1;
+        await pageController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeInOut,
+        );
+        if (!_closed) currentPageIndex.value = next;
+      } else {
+        await pushSingle(context, TopToBottomTransition(SelectDocumentType()));
+      }
+    } finally {
+      _moving = false;
     }
   }
 
-  void moveToPreviousStep() {
-    if (currentPageIndex.value > 0) {
-      currentPageIndex.value--;
-      pageController.animateToPage(
-        currentPageIndex.value,
-        duration: const Duration(milliseconds: 500),
+  Future<void> moveToPreviousStep(BuildContext context) async {
+    if (_moving || _closed || !pageController.hasClients) return;
+    if (currentPageIndex.value == 0) {
+      Navigator.maybePop(context);
+      return;
+    }
+    _moving = true;
+    try {
+      final previous = currentPageIndex.value - 1;
+      await pageController.animateToPage(
+        previous,
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeInOut,
       );
-    } else {
-      Get.back(); // GetX navigation
+      if (!_closed) currentPageIndex.value = previous;
+    } finally {
+      _moving = false;
     }
   }
 
   @override
   void onClose() {
+    _closed = true;
     pageController.dispose();
     super.onClose();
   }
 }
 
 // Updated main widget using GetX
-class AdditionalInfoNavigation extends StatelessWidget {
+class AdditionalInfoNavigation extends StatefulWidget {
   const AdditionalInfoNavigation({super.key});
+  @override
+  State<AdditionalInfoNavigation> createState() =>
+      _AdditionalInfoNavigationState();
+}
+
+class _AdditionalInfoNavigationState extends State<AdditionalInfoNavigation> {
+  final controller = AdditionalInfoNavigationController();
+  @override
+  void dispose() {
+    controller.onClose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(AdditionalInfoNavigationController());
-
     return Scaffold(
       body: SizedBox(
         child: Column(
@@ -87,8 +113,9 @@ class AdditionalInfoNavigation extends StatelessWidget {
             46.height,
             Row(
               children: [
-                IconButton(tooltip: 'Back', 
-                  onPressed: controller.moveToPreviousStep,
+                IconButton(
+                  tooltip: 'Back',
+                  onPressed: () => controller.moveToPreviousStep(context),
                   icon: Icon(
                     Icons.arrow_back_ios_rounded,
                     color: AppColor.title,
@@ -134,127 +161,71 @@ class AdditionalInfoNavigation extends StatelessWidget {
   }
 }
 
-class CircularProgressController extends GetxController
-    with GetTickerProviderStateMixin {
-  late AnimationController animationController;
-  late Animation<double> progressAnimation;
-
-  final RxDouble _currentProgress = 0.0.obs;
-  final RxInt _currentPageIndex = 0.obs;
-  final RxInt _totalPages = 4.obs;
-
-  double get currentProgress => _currentProgress.value;
-  int get currentPageIndex => _currentPageIndex.value;
-  int get totalPages => _totalPages.value;
-
-  @override
-  void onInit() {
-    super.onInit();
-
-    animationController = AnimationController(
-      duration: const Duration(
-        milliseconds: 1500,
-      ), // ✅ Slower animation (1.5 seconds)
-      vsync: this,
-    );
-
-    // Initialize animation with current progress
-    progressAnimation = Tween<double>(begin: 0.0, end: _currentProgress.value)
-        .animate(
-          CurvedAnimation(
-            parent: animationController,
-            curve: Curves.easeInOutCubic,
-          ),
-        );
-  }
-
-  void updateProgress(int pageIndex, int total) {
-    final newProgress = (pageIndex + 1) / total;
-
-    // Create new animation from current progress to new progress
-    progressAnimation =
-        Tween<double>(
-          begin: _currentProgress.value,
-          end: newProgress, // Animate to new value
-        ).animate(
-          CurvedAnimation(
-            parent: animationController,
-            curve: Curves.easeInOutCubic,
-          ),
-        );
-
-    // Update observable values
-    _currentProgress.value = newProgress;
-    _currentPageIndex.value = pageIndex;
-    _totalPages.value = total;
-
-    // Start animation
-    animationController.reset();
-    animationController.forward();
-  }
-
-  @override
-  void onClose() {
-    animationController.dispose();
-    super.onClose();
-  }
-}
-
-class ProgressWidget extends StatelessWidget {
+/// Each progress indicator owns its ticker; no global Get registration.
+class ProgressWidget extends StatefulWidget {
   final int currentPageIndex;
   final int totalPages;
-
   const ProgressWidget({
     super.key,
     required this.currentPageIndex,
     required this.totalPages,
   });
+  @override
+  State<ProgressWidget> createState() => _ProgressWidgetState();
+}
+
+class _ProgressWidgetState extends State<ProgressWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _progress = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+    value: _value,
+  );
+  double get _value => widget.totalPages <= 0
+      ? 0
+      : ((widget.currentPageIndex + 1) / widget.totalPages).clamp(0.0, 1.0);
+  @override
+  void initState() {
+    super.initState();
+    _progress;
+  }
 
   @override
-  Widget build(BuildContext context) {
-    // Get or create the controller
-    final CircularProgressController controller = Get.put(
-      CircularProgressController(),
-    );
-
-    // Update progress when widget rebuilds with new values
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.updateProgress(currentPageIndex, totalPages);
-    });
-
-    return GetBuilder<CircularProgressController>(
-      builder: (controller) {
-        return AnimatedBuilder(
-          animation: controller.progressAnimation,
-          builder: (context, child) {
-            return SizedBox(
-              height: ResSize.h * 65,
-              width: ResSize.w * 65,
-              child: CircleProgressBar(
-                animationDuration: Duration.zero, // Disable internal animation
-                strokeWidth: 6,
-                backgroundColor: const Color(0xffECECEC),
-                foregroundColor: AppColor.primary,
-                value: controller.progressAnimation.value,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Container(
-                    decoration: const BoxDecoration(shape: BoxShape.circle),
-                    child: Center(
-                      child: TextWidget(
-                        text: "${currentPageIndex + 1} of $totalPages",
-                        fontSize: 12,
-                        fontWeight: fwSemiBold,
-                        color: AppColor.title,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
+  void didUpdateWidget(ProgressWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentPageIndex != widget.currentPageIndex ||
+        oldWidget.totalPages != widget.totalPages) {
+      _progress.animateTo(_value);
+    }
   }
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _progress,
+    builder: (_, __) => SizedBox(
+      height: ResSize.h * 65,
+      width: ResSize.w * 65,
+      child: CircleProgressBar(
+        animationDuration: Duration.zero,
+        strokeWidth: 6,
+        backgroundColor: const Color(0xffECECEC),
+        foregroundColor: AppColor.primary,
+        value: _progress.value,
+        child: Center(
+          child: TextWidget(
+            text: '${widget.currentPageIndex + 1} of ${widget.totalPages}',
+            fontSize: 12,
+            fontWeight: fwSemiBold,
+            color: AppColor.title,
+          ),
+        ),
+      ),
+    ),
+  );
 }

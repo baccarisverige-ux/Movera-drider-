@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:movera/core/session/driver_composition_guard.dart';
 import 'package:movera/core/session/driver_route_observer.dart';
 
 import 'package:movera/core/session/driver_runtime_scope.dart';
@@ -28,6 +29,7 @@ import 'package:movera/widgets/layout_viewport.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  validateDriverComposition(production: driverProductionRequested);
   installGlobalErrorHooks();
   runApp(const MoveraApp());
 }
@@ -62,6 +64,7 @@ class _MoveraAppState extends State<MoveraApp> {
   @override
   void initState() {
     super.initState();
+    validateDriverComposition(production: driverProductionRequested);
     _sessionStore = MemoryDriverSessionRepository();
     _session = DriverSessionController(repository: _sessionStore);
     _waybills = InMemoryWaybillRepository.instance;

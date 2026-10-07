@@ -121,14 +121,9 @@ class DriverPhoneVerification extends StatelessWidget {
                         fontWeight: fwNormal,
                       ),
                       TextButton(
-                        onPressed: () {
-                          // Navigator.push(
-                          //   context,
-                          //   RightToLeftTransition(SignInPhone()),
-                          // );
-                        },
+                        onPressed: null,
                         child: TextWidget(
-                          text: "Sign in",
+                          text: "Sign in unavailable in preview",
                           color: AppColor.primary,
                           fontSize: 15,
                           fontWeight: fwNormal,
