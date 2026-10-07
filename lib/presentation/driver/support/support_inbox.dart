@@ -159,6 +159,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
     message.addListener(() {
       unawaited(saveDraft());
     });
+    bool attempted = false;
     final created = await showModalBottomSheet<_Ticket>(
       context: context,
       isScrollControlled: true,
@@ -237,14 +238,24 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: subject,
-                        decoration: _decoration('Subject'),
+                        decoration: _decoration('Subject').copyWith(
+                          errorText: attempted && subject.text.trim().isEmpty
+                              ? 'Enter a subject'
+                              : null,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: message,
                         minLines: 4,
                         maxLines: 6,
-                        decoration: _decoration('Tell us what happened'),
+                        decoration: _decoration('Tell us what happened')
+                            .copyWith(
+                              errorText:
+                                  attempted && message.text.trim().isEmpty
+                                  ? 'Enter a message'
+                                  : null,
+                            ),
                       ),
                       const SizedBox(height: 18),
                       SizedBox(
@@ -264,6 +275,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                           onPressed: () {
                             if (subject.text.trim().isEmpty ||
                                 message.text.trim().isEmpty) {
+                              setSheetState(() => attempted = true);
                               return;
                             }
                             Navigator.pop(

@@ -1,4 +1,5 @@
 import 'package:movera/widgets/single_route_entry.dart';
+import 'package:movera/core/vehicle/vehicle_year_policy.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -58,7 +59,7 @@ class _AddVehicleState extends State<AddVehicle> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        final years = List<String>.generate(37, (index) => '${2026 - index}');
+        final years = VehicleYearPolicy.choices(now: DateTime.now(), selected: _year);
         return ListView(
           children: [
             const SizedBox(height: 12),

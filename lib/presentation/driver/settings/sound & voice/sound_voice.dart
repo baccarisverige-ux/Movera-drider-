@@ -174,10 +174,12 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
               ],
             ),
           ),
-          Switch.adaptive(
-            value: value,
-            activeTrackColor: _ink,
-            onChanged: onChanged,
+          Semantics(label: title, toggled: value, onTap: () => onChanged(!value),
+            child: ExcludeSemantics(child: Switch.adaptive(
+              value: value,
+              activeTrackColor: _ink,
+              onChanged: onChanged,
+            )),
           ),
         ],
       ),

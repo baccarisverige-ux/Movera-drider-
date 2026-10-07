@@ -20,7 +20,8 @@ class Chat extends StatefulWidget {
 class _ChatState extends State<Chat> {
   final TextEditingController _messageController = TextEditingController();
 
-  final List<Widget> _messages = [];
+  final List<String> _messages = [];
+  final ScrollController _scroll = ScrollController();
   bool showSendIcon = false;
 
   @override
@@ -31,13 +32,14 @@ class _ChatState extends State<Chat> {
         return;
       }
       setState(() {
-        showSendIcon = _messageController.text.isNotEmpty;
+        showSendIcon = _messageController.text.trim().isNotEmpty;
       });
     });
   }
 
   @override
   void dispose() {
+    _scroll.dispose();
     _messageController.dispose();
     super.dispose();
   }
@@ -48,9 +50,20 @@ class _ChatState extends State<Chat> {
       return; // Don't send if text is empty
     }
 
-    _messages.add(SenderMessage(text: _messageController.text));
+    _messages.add(_messageController.text.trim());
     setState(() {});
     _messageController.clear();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scroll.hasClients) {
+        _scroll.animateTo(
+          0,
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -88,15 +101,13 @@ class _ChatState extends State<Chat> {
             ),
             10.height,
             Expanded(
-              child: StatefulBuilder(
-                builder: (context, i) {
-                  return SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: _messages,
-                    ),
-                  );
-                },
+              child: ListView.builder(
+                controller: _scroll,
+                reverse: true,
+                itemCount: _messages.length,
+                itemBuilder: (_, index) => SenderMessage(
+                  text: _messages[_messages.length - 1 - index],
+                ),
               ),
             ),
             Container(
