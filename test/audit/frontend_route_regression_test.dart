@@ -37,6 +37,7 @@ void main() {
       final repo = DelayedRoutes();
       final nav = NavigationController(routeRepository: repo);
       addTearDown(nav.dispose);
+      nav.setVehicle(const DriverLocation(point: origin));
       final requestA = nav.ensureRoute(origin: origin, destination: a);
       final requestB = nav.ensureRoute(origin: origin, destination: b);
       expect(repo.destinations, [a, b]);
@@ -56,6 +57,7 @@ void main() {
       final repo = DelayedRoutes();
       final nav = NavigationController(routeRepository: repo);
       addTearDown(nav.dispose);
+      nav.setVehicle(const DriverLocation(point: origin));
       final first = nav.ensureRoute(origin: origin, destination: a);
       repo.responses[0].complete(road(a));
       await first;
