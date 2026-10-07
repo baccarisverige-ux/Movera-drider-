@@ -21,6 +21,7 @@ import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/navigation/live_vehicle_animator.dart';
 import 'package:movera/core/navigation/navigation_controller.dart';
+import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/realtime/driver_realtime.dart';
