@@ -163,12 +163,14 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                 if (live?.roadName?.isNotEmpty ?? false) live!.roadName!,
               ].join(' · ');
         final scale = MediaQuery.textScalerOf(context);
-        final heading = TextStyle(
-          color: Colors.white,
-          fontSize: waiting && !_waitingMessage ? 30 : 19,
-          fontWeight: FontWeight.w600,
-          height: 1.15,
-          fontFeatures: const [FontFeature.tabularFigures()],
+        final heading = DefaultTextStyle.of(context).style.merge(
+          TextStyle(
+            color: Colors.white,
+            fontSize: waiting && !_waitingMessage ? 30 : 19,
+            fontWeight: FontWeight.w600,
+            height: 1.15,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         );
         // Size follows measured text. Timer ticks reserve a fixed digit width.
         final measuredTitle = waiting && !_waitingMessage

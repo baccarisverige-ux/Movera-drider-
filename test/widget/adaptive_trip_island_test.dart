@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
@@ -14,7 +15,9 @@ Widget surface({
   String waitingMessage = 'Waiting for Angelica',
   double width = 320,
   double textScale = 1,
+  String? fontFamily,
 }) => MaterialApp(
+  theme: ThemeData(fontFamily: fontFamily),
   builder: (context, child) => MediaQuery(
     data: MediaQuery.of(context)
         .copyWith(textScaler: TextScaler.linear(textScale)),
@@ -59,6 +62,19 @@ void main() {
   testWidgets('Record rendered guidance and alternating waiting views', (
     tester,
   ) async {
+    String? font;
+    final root = Platform.environment['FLUTTER_ROOT'];
+    if (root != null) {
+      final file = File(
+        '$root/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
+      );
+      if (file.existsSync()) {
+        final loader = FontLoader('IslandProof')
+          ..addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
+        await loader.load();
+        font = 'IslandProof';
+      }
+    }
     Future<void> capture(String name) async {
       await tester.pump();
       final boundary = tester.renderObject<RenderRepaintBoundary>(
@@ -74,9 +90,9 @@ void main() {
       });
     }
 
-    await tester.pumpWidget(surface());
+    await tester.pumpWidget(surface(fontFamily: font));
     await capture('guidance');
-    await tester.pumpWidget(surface(seconds: 125));
+    await tester.pumpWidget(surface(seconds: 125, fontFamily: font));
     await tester.pump(const Duration(seconds: 1));
     await capture('timer');
     await tester.pump(const Duration(seconds: 7));
