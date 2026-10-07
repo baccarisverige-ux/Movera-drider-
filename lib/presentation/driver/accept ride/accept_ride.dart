@@ -760,6 +760,12 @@ class _AcceptRideState extends State<AcceptRide>
     return '${(meters / 1000).toStringAsFixed(1)} km';
   }
 
+  String? get _sheetDistanceText {
+    final meters = _remainingMeters;
+    if (meters == null) { return null; }
+    return '${(meters / 1000).toStringAsFixed(meters < 1000 ? 2 : 1)} km';
+  }
+
   /// One line under the time and distance in the collapsed trip bar.
   String get _tripBarStatus {
     switch (_stage) {
@@ -793,7 +799,8 @@ class _AcceptRideState extends State<AcceptRide>
     if (banner != null &&
         banner.symbol != NavigationBannerSymbol.arrive &&
         banner.symbol != NavigationBannerSymbol.straight) {
-      return banner.primary;
+      return banner.symbol == NavigationBannerSymbol.roundabout
+          ? '${banner.primary} · ${banner.distanceLabel}' : banner.primary;
     }
     if (_showArrivalApproach) {
       return switch (_approachKind) {

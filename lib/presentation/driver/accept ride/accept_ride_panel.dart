@@ -791,7 +791,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                     TripBottomBar(
                       key: const ValueKey<String>('active-ride-compact-dock'),
                       etaLabel: _sheetEtaText,
-                      distanceLabel: _countingWait ? null : _routeDistanceText,
+                      distanceLabel: _countingWait ? null : _sheetDistanceText,
                       statusLabel: _sheetStatus,
                       stopCount: widget.stopAddresses.length,
                       nextPointIndex: _sheetNextPointIndex,
@@ -817,7 +817,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                     TripBottomBar(
                       key: const ValueKey<String>('active-ride-expanded-header'),
                       etaLabel: _sheetEtaText,
-                      distanceLabel: _countingWait ? null : _routeDistanceText,
+                      distanceLabel: _countingWait ? null : _sheetDistanceText,
                       statusLabel: _sheetStatus,
                       stopCount: widget.stopAddresses.length,
                       nextPointIndex: _sheetNextPointIndex,
