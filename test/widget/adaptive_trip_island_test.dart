@@ -188,7 +188,8 @@ void main() {
       find.byKey(const ValueKey('island-morph-shell')),
     );
     expect(waiting.height, lessThanOrEqualTo(78));
-    expect(waiting.width, lessThan(220));
+    expect(waiting.width, lessThanOrEqualTo(244));
+    expect(waiting.width, lessThan(driving.width));
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(

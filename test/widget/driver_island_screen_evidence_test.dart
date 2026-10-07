@@ -6,6 +6,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+
+import '../../integration_test/headless_map_platform.dart';
+
 import 'package:movera/core/geo/geo_point.dart';
 import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
@@ -61,6 +65,8 @@ void main() {
   testWidgets('Capture every trip layout in the real Driver screen', (
     tester,
   ) async {
+    final oldMap = GoogleMapsFlutterPlatform.instance;
+    GoogleMapsFlutterPlatform.instance = HeadlessMapPlatform();
     final old = DriverRuntimeConfig.current;
     DriverRuntimeConfig.current = const DriverRuntimeConfig(
       simulatedArrival: true,
@@ -74,6 +80,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() async {
       DriverRuntimeConfig.current = old;
+      GoogleMapsFlutterPlatform.instance = oldMap;
       await tester.binding.setSurfaceSize(null);
     });
     final loader = FontLoader('MaterialIcons')

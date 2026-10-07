@@ -104,12 +104,16 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                               size: 28,
                             ),
                             SizedBox(width: 12),
-                            Text(
-                              'Trip completed',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                            Flexible(
+                              child: Text(
+                                'Trip completed',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],

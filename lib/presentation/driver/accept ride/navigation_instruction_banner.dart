@@ -699,30 +699,79 @@ class NavigationCuePainter extends CustomPainter {
     }
     if (kind == NavigationBannerSymbol.roundabout) {
       final exitAngle = exitAngleDegrees;
-      canvas.drawCircle(p(11, 10.5), 5.2 * s,
-        Paint()..color = color.withValues(alpha: .25)..style = PaintingStyle.stroke..strokeWidth = stroke.strokeWidth);
+      // Three circulation arrows make the roundabout recognizable even at
+      // compact sizes. The outgoing arrow still uses the provider's angle.
+      final ring = Rect.fromCircle(center: p(10, 11), radius: 6.4 * s);
+      for (var i = 0; i < 3; i++) {
+        final start = .4 + i * math.pi * 2 / 3;
+        const sweep = -1.25;
+        canvas.drawArc(ring, start, sweep, false, stroke);
+        final end = start + sweep;
+        final tip = p(10, 11) + Offset(math.cos(end), math.sin(end)) * 6.4 * s;
+        final tangent = end - math.pi / 2;
+        final direction = Offset(math.cos(tangent), math.sin(tangent));
+        final side = Offset(-direction.dy, direction.dx);
+        final base = tip - direction * 3.2 * s;
+        canvas.drawPath(
+          Path()
+            ..moveTo(tip.dx, tip.dy)
+            ..lineTo((base + side * 2.1 * s).dx, (base + side * 2.1 * s).dy)
+            ..lineTo((base - side * 2.1 * s).dx, (base - side * 2.1 * s).dy)
+            ..close(),
+          fill,
+        );
+      }
       canvas.drawLine(p(11, 19), p(11, 15.7), stroke);
       if (exitAngle != null && exitAngle.isFinite) {
         final outgoing = exitAngle * math.pi / 180 - math.pi / 2;
         var sweep = outgoing - math.pi / 2;
-        while (sweep >= -0.001) { sweep -= math.pi * 2; }
-        while (sweep < -math.pi * 2) { sweep += math.pi * 2; }
-        canvas.drawArc(Rect.fromCircle(center: p(11, 10.5), radius: 5.2 * s),
-          math.pi / 2, sweep, false, stroke);
+        while (sweep >= -0.001) {
+          sweep -= math.pi * 2;
+        }
+        while (sweep < -math.pi * 2) {
+          sweep += math.pi * 2;
+        }
+        canvas.drawArc(
+          Rect.fromCircle(center: p(11, 10.5), radius: 5.2 * s),
+          math.pi / 2,
+          sweep,
+          false,
+          stroke,
+        );
         final direction = Offset(math.cos(outgoing), math.sin(outgoing));
         final center = p(11, 10.5);
-        canvas.drawLine(center + direction * 5.2 * s, center + direction * 8.3 * s, stroke);
+        canvas.drawLine(
+          center + direction * 5.2 * s,
+          center + direction * 8.3 * s,
+          stroke,
+        );
         arrowHead(center + direction * 9.1 * s, outgoing);
       } else {
         // Unsurveyed exit: circular cue and number without guessing a road.
-        canvas.drawArc(Rect.fromCircle(center: p(11, 10.5), radius: 5.2 * s),
-          .6, math.pi * 1.55, false, stroke);
+        canvas.drawArc(
+          Rect.fromCircle(center: p(11, 10.5), radius: 5.2 * s),
+          .6,
+          math.pi * 1.55,
+          false,
+          stroke,
+        );
       }
       if (exitNumber != null) {
-        final text = TextPainter(text: TextSpan(text: exitNumber,
-          style: TextStyle(color: color, fontSize: 4.6 * s, fontWeight: FontWeight.w800, fontFamily: fontFamily)),
-          textDirection: TextDirection.ltr)..layout(maxWidth: 7 * s);
-        text.paint(canvas, p(11, 10.5) - Offset(text.width / 2, text.height / 2));
+        final badge = p(17.2, 4.3);
+        canvas.drawCircle(badge, 4.2 * s, fill);
+        final text = TextPainter(
+          text: TextSpan(
+            text: exitNumber,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 5.8 * s,
+              fontWeight: FontWeight.w800,
+              fontFamily: fontFamily,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: 7 * s);
+        text.paint(canvas, badge - Offset(text.width / 2, text.height / 2));
       }
       return;
     }

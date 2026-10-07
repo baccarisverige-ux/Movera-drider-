@@ -221,7 +221,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
             ? (_waitingMessage ? 'waiting-message' : 'waiting-timer')
             : widget.arrival != null
             ? 'arrival'
-            : 'guidance-${live?.symbol.name ?? 'overview'}-$title';
+            : 'guidance-${live?.symbol.name ?? 'overview'}-${live?.roadName}-${live?.exitNumber}';
         return Align(
           alignment: Alignment.topCenter,
           heightFactor: 1,
