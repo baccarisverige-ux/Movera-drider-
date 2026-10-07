@@ -34,7 +34,6 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/widgets/movera_line_icon.dart';
 import 'package:movera/widgets/map_control_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/presentation/driver/accept%20ride/accept_ride.dart';
 import 'package:movera/presentation/driver/destination%20mode/destination_picker.dart';
