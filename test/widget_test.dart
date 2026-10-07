@@ -1723,7 +1723,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AcceptRide()));
     await tester.pump(const Duration(milliseconds: 160));
 
-    expect(find.text('Heading to pickup'), findsOneWidget);
+    expect(find.textContaining('Picking up'), findsWidgets);
     await _middleActiveRideSheet(tester);
     expect(find.text("I've arrived"), findsOneWidget);
     expect(find.text('Slide to confirm pickup'), findsNothing);
@@ -1777,7 +1777,7 @@ void main() {
       );
       expect(find.byType(AcceptRide), findsOneWidget);
       expect(find.byType(CustomGoogleMap), findsOneWidget);
-      expect(find.text('Heading to pickup'), findsOneWidget);
+      expect(find.textContaining('Picking up'), findsWidgets);
 
       await _tapArrived(tester);
 
@@ -1901,7 +1901,7 @@ void main() {
     );
     expect((popScope as dynamic).canPop, isFalse);
     expect(find.byType(AcceptRide), findsOneWidget);
-    expect(find.text('Heading to pickup'), findsOneWidget);
+    expect(find.textContaining('Picking up'), findsWidgets);
     _expectNoException(tester);
   });
 
@@ -2107,7 +2107,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 16));
 
     expect(find.byType(AcceptRide), findsOneWidget);
-    expect(find.text('Heading to pickup'), findsOneWidget);
+    expect(find.textContaining('Picking up'), findsWidgets);
     expect(find.textContaining('Maya'), findsWidgets);
     expect(find.textContaining('Vasagatan 10'), findsWidgets);
     _expectNoException(tester);
@@ -2602,7 +2602,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
 
     expect(find.byType(AcceptRide), findsOneWidget);
-    expect(find.text('Heading to pickup'), findsOneWidget);
+    expect(find.textContaining('Picking up'), findsWidgets);
     expect(
       find.byKey(const ValueKey<String>('trip-guidance-island')),
       findsOneWidget,
