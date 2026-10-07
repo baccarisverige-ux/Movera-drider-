@@ -38,7 +38,7 @@ Widget surface({int? seconds, VoidCallback? route}) => MaterialApp(
 
 void main() {
   testWidgets(
-    'Island contains maneuver, exit, address and relocated route; touch restores after idle',
+    'Island presents one maneuver and relocated route; touch restores after idle',
     (tester) async {
       var route = 0;
       await tester.pumpWidget(surface(route: () => route++));
@@ -49,7 +49,9 @@ void main() {
           .whereType<NavigationCuePainter>()
           .single;
       expect(cue.exitNumber, '3');
-      expect(find.text('Sveavägen 20'), findsOneWidget);
+      expect(find.text('Sveavägen 20'), findsNothing);
+      expect(find.text('To pickup'), findsNothing);
+      expect(find.text('150 m · Sveavägen'), findsOneWidget);
       await tester.tap(find.byTooltip('Trip route and options'));
       await tester.pump();
       expect(
@@ -57,12 +59,12 @@ void main() {
         1,
         reason: 'Touching the island must not swallow its controls.',
       );
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 900));
       expect(find.byKey(const ValueKey('trip-default-island')), findsOneWidget);
-      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pump(const Duration(milliseconds: 900));
       expect(find.byKey(const ValueKey('trip-default-island')), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 300));
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 900));
       expect(
         find.byKey(const ValueKey('trip-guidance-island')),
         findsOneWidget,
@@ -80,11 +82,11 @@ void main() {
     expect(find.text('02:05'), findsOneWidget);
     expect(find.text('Waiting for Angelica'), findsNothing);
     await tester.pump(const Duration(seconds: 8));
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 900));
     expect(find.text('Waiting for Angelica'), findsOneWidget);
     expect(find.text('02:05'), findsNothing);
-    await tester.pump(const Duration(milliseconds: 1600));
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.pump(const Duration(milliseconds: 900));
     expect(find.text('02:05'), findsOneWidget);
     expect(find.text('Waiting for Angelica'), findsNothing);
     await tester.pumpWidget(const SizedBox());
