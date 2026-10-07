@@ -9,6 +9,7 @@ import 'package:movera/core/geo/geo_point_maps.dart';
 import 'package:movera/core/routing/route_repository.dart';
 import 'package:movera/core/session/driver_runtime_config.dart';
 import 'package:movera/widgets/custom_google_map.dart';
+import 'package:movera/widgets/driver_route_style.dart';
 import 'package:movera/widgets/map_control_button.dart';
 import 'package:movera/widgets/route_mark_pins.dart';
 
@@ -198,8 +199,8 @@ class _ReservationRouteMapState extends State<ReservationRouteMap> {
         Polyline(
           polylineId: const PolylineId('reservation-route'),
           points: [for (final p in widget.route) p.toLatLng()],
-          color: RouteMarkPins.ink,
-          width: widget.labelled ? 5 : 4,
+          color: DriverRouteStyle.color,
+          width: DriverRouteStyle.width,
           jointType: JointType.round,
           startCap: Cap.roundCap,
           endCap: Cap.roundCap,

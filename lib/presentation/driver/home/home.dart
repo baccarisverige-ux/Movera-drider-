@@ -4,6 +4,7 @@ import 'package:movera/core/contracts/trip_status.dart';
 import 'dart:async';
 import 'package:movera/core/navigation/driver_camera_controller.dart';
 import 'package:movera/widgets/google_driver_camera_port.dart';
+import 'package:movera/widgets/driver_route_style.dart';
 import 'package:movera/core/session/driver_route_observer.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
