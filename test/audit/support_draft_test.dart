@@ -21,6 +21,6 @@ void main() {
       LocalSupportRepository.key:'{broken-json',
     });
 
-    expect(await LocalSupportRepository().read(),isEmpty);
+    await expectLater(LocalSupportRepository().read(), throwsA(isA<SupportDataUnreadable>()));
   });
 }
