@@ -187,9 +187,10 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
 
         final minWidth = math.min(available, waiting ? 210.0 : 286.0);
         // Secondary distance updates do not resize the capsule every GPS tick.
-        final desired = measure(measuredTitle, heading) + 108;
+        final contentInset = widget.arrival != null && !waiting ? 132.0 : 104.0;
+        final desired = measure(measuredTitle, heading) + contentInset + 4;
         final width = desired.clamp(minWidth, available).toDouble();
-        final textWidth = math.max(1.0, width - 104);
+        final textWidth = math.max(1.0, width - contentInset);
         final painter = TextPainter(
           text: TextSpan(text: title, style: heading),
           textDirection: Directionality.of(context),
@@ -281,6 +282,14 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                                           ),
                                         ),
                                 ),
+                                if (widget.arrival != null && !waiting) ...[
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.location_on_rounded,
+                                    color: Color(0xFFF05B60),
+                                    size: 28,
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -332,8 +341,8 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
           : '${live?.symbol.name ?? 'To destination'}${exit == null ? '' : ', exit $exit'}',
       child: arrival
           ? const Icon(
-              Icons.location_on_rounded,
-              color: Color(0xFFF05B60),
+              Icons.directions_walk_rounded,
+              color: Colors.white,
               size: 44,
             )
           : live == null

@@ -16,6 +16,7 @@ Widget surface({
   double width = 320,
   double textScale = 1,
   String? fontFamily,
+  String? arrival,
 }) => MaterialApp(
   theme: ThemeData(fontFamily: fontFamily),
   builder: (context, child) => MediaQuery(
@@ -41,6 +42,7 @@ Widget surface({
           detail: 'Picking up Angelica',
           eta: '2 min',
           distance: '1.4 km',
+          arrival: arrival,
           progress: .4,
           waitingSeconds: seconds,
           waitingMessage: waitingMessage,
@@ -95,6 +97,11 @@ void main() {
 
     await tester.pumpWidget(surface(fontFamily: font));
     await capture('guidance');
+    await tester.pumpWidget(
+      surface(fontFamily: font, arrival: 'Arriving soon'),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    await capture('arrival');
     await tester.pumpWidget(surface(seconds: 125, fontFamily: font));
     await tester.pump(const Duration(seconds: 1));
     await capture('timer');
