@@ -2199,6 +2199,10 @@ void main() {
         find.byKey(const ValueKey<String>('active-ride-panel-headingToPickup')),
         findsWidgets,
       );
+      // The compact header now names the journey stage, not the passenger.
+      // Verify the actual handoff identity before opening its rider details.
+      expect(tester.widget<AcceptRide>(find.byType(AcceptRide)).riderName, 'Maya');
+      await _middleActiveRideSheet(tester);
       expect(find.textContaining('Maya'), findsWidgets);
       await _expandActiveRideSheet(tester);
       expect(find.textContaining('Vasagatan 10'), findsWidgets);

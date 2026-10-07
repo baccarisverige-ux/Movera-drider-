@@ -80,7 +80,8 @@ void main() {
     );
     await _mount(tester);
     await _tapArrived(tester);
-    expect(find.text('Included wait · then paid'), findsWidgets);
+    expect(find.byKey(const ValueKey<String>('active-ride-panel-waitingForRider')), findsOneWidget);
+    expect(find.text('Waiting for Angelica'), findsWidgets);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
