@@ -15,6 +15,7 @@ import 'package:movera/presentation/driver/accept%20ride/adaptive_trip_island.da
 
 Widget surface({
   int? seconds,
+  bool waitingAtStop = false,
   VoidCallback? route,
   String waitingMessage = 'Waiting for Angelica',
   double width = 320,
@@ -53,6 +54,7 @@ Widget surface({
           arrival: arrival,
           progress: progress,
           waitingSeconds: seconds,
+          waitingAtStop: waitingAtStop,
           waitingMessage: waitingMessage,
           lastTripLabel: '120 kr',
           onRadar: () {},
@@ -196,6 +198,7 @@ void main() {
         seconds: 155,
         fontFamily: font,
         waitingMessage: 'Waiting at stop 2',
+        waitingAtStop: true,
       ),
     );
     await capture('10b-stop-timer');

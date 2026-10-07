@@ -165,7 +165,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
               measure(measuredTitle, heading),
               measure(subtitle, const TextStyle(fontSize: 9)),
             ) +
-            72;
+            84;
         final width = desired.clamp(minWidth, maximumWidth).toDouble();
         final size = Size(
           _controller.defaultFace
