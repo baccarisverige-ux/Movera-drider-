@@ -59,6 +59,8 @@ class LocalSupportRepository {
     if (tickets is! List) return false;
     for (final row in tickets) {
       if (row is! Map ||
+          row['subject'] is! String ||
+          row['preview'] is! String ||
           ![
             'subject',
             'preview',
@@ -73,6 +75,7 @@ class LocalSupportRepository {
               messages.any(
                 (message) =>
                     message is! Map ||
+                    message['text'] is! String ||
                     !['text', 'time'].every(
                       (key) => message[key] == null || message[key] is String,
                     ) ||
