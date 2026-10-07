@@ -152,17 +152,17 @@ void main() {
       routeRepository: _Route(type, modifier),
       pickupAddress: 'Köpmangatan 12',
       pickupPosition: near
-          ? const LatLng(59.3295, 18.0686)
+          ? const LatLng(59.3302, 18.0686)
           : const LatLng(59.3400, 18.0686),
       dropoffAddress: 'Storgatan 8',
       dropoffPosition: near
-          ? const LatLng(59.3295, 18.0686)
+          ? const LatLng(59.3302, 18.0686)
           : const LatLng(59.3450, 18.0686),
       stopAddresses: stop ? const ['Sveavägen 20'] : const [],
       stopPositions: stop
           ? [
               near
-                  ? const LatLng(59.3295, 18.0686)
+                  ? const LatLng(59.3302, 18.0686)
                   : const LatLng(59.3400, 18.0686),
             ]
           : const [],
