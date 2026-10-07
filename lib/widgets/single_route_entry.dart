@@ -24,8 +24,9 @@ Future<T?> pushSingle<T extends Object?>(
 
   listener = (status) {
     if (status == AnimationStatus.completed ||
-        status == AnimationStatus.dismissed)
+        status == AnimationStatus.dismissed) {
       release();
+    }
   };
   try {
     final result = navigator.push<T>(route);
