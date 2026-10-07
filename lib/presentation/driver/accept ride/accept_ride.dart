@@ -561,6 +561,8 @@ class _AcceptRideState extends State<AcceptRide>
   @override
   void dispose() {
     _camera.dispose();
+    final ownedRouting = _routeService;
+    if (widget.routeRepository == null && ownedRouting is RoadRouteService) { ownedRouting.dispose(); }
     _browsePulse.dispose();
     _locationEpoch++;
     _projectionRetry?.cancel();
@@ -1148,6 +1150,12 @@ class _AcceptRideState extends State<AcceptRide>
                     },
                     onMapCreated: (controller) {
                       _cameraPort = GoogleDriverCameraPort(controller,
+                        onStatus: (status) {
+                          if (status != null && mounted && ModalRoute.of(context)?.isCurrent == true) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status),
+                              action: SnackBarAction(label: 'Retry', onPressed: _camera.recenter)));
+                          }
+                        },
                         onFrame: (position) {
                           if (_camera.mode == DriverCameraMode.following &&
                               _camera.isGuidance) {

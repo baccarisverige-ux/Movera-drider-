@@ -26,3 +26,13 @@ void Function() listen(int mapId, void Function() onGesture) {
   final remove = _listen(mapId.toJS, onGesture.toJS);
   return () => remove.callAsFunction();
 }
+
+@JS('driverMapCamera.supports3D')
+external JSBoolean _supports3D(JSNumber mapId);
+bool supports3D(int mapId) => _supports3D(mapId.toJS).toDart;
+@JS('driverMapCamera.listenRenderer')
+external JSFunction _listenRenderer(JSNumber mapId, JSFunction callback);
+void Function() listenRenderer(int mapId, void Function() onChanged) {
+  final remove = _listenRenderer(mapId.toJS, onChanged.toJS);
+  return () => remove.callAsFunction();
+}

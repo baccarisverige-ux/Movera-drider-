@@ -14,6 +14,8 @@ class MapMock {
   constructor(div, options) { this.div = div; this.options = options;
     this.camera = {center: {x: 0, y: 0}, zoom: 16, heading: 0, tilt: 0}; }
   moveCamera(camera) { Object.assign(this.camera, camera); }
+  addListener(event, callback) { this.listeners ??= {}; this.listeners[event] = callback; return {remove: () => delete this.listeners[event]}; }
+  getRenderingType() { return this.renderer ?? this.options.renderingType; }
   getCenter() { return this.camera.center; } getZoom() { return this.camera.zoom; }
   getHeading() { return this.camera.heading; } getTilt() { return this.camera.tilt; }
 }
@@ -36,11 +38,11 @@ class MarkerMock {
   setVisible(visible) { this.options.visible = visible; this.handlers.visible_changed?.(); }
 }
 const maps = {Map: MapMock, Marker: MarkerMock, OverlayView: OverlayMock,
-  Point: class {constructor(x,y) {this.x=x;this.y=y;}}, RenderingType: {VECTOR: 'VECTOR'}};
+  Point: class {constructor(x,y) {this.x=x;this.y=y;}}, RenderingType: {VECTOR: 'VECTOR', RASTER: 'RASTER'}};
 const images = [];
 const context = {google: {maps}, performance: {now: () => clock},
   queueMicrotask,
-  document: {body: new Element(), createElement: () => {
+  document: {querySelector: () => ({content: 'configured-vector-style'}), body: new Element(), createElement: () => {
     const image = new Element(); images.push(image); return image;
   }},
   MutationObserver: class {observe() {} disconnect() {}}};
@@ -49,9 +51,27 @@ const div = new Element('plugins.flutter.io/google_maps_7');
 const style = [{featureType: 'water'}];
 const map = new maps.Map(div, {styles: style});
 assert.equal(map.options.renderingType, 'VECTOR');
-assert.equal(map.options.styles, style, 'Preserve exact inline map palette');
+assert.equal(map.options.styles, undefined, 'Cloud style and inline styles cannot coexist');
+assert.equal(map.options.mapId, 'configured-vector-style');
 assert.equal(map.options.headingInteractionEnabled, true);
 const api = context.driverMapCamera;
+assert.equal(api.supports3D(7), true);
+context.document.querySelector = () => ({content: ''});
+const rasterDiv = new Element('plugins.flutter.io/google_maps_8');
+const raster = new maps.Map(rasterDiv, {styles: style});
+assert.equal(raster.options.renderingType, 'RASTER');
+assert.equal(raster.options.styles, style, 'Explicit 2D preview retains approved palette');
+assert.equal(api.supports3D(8), false);
+rasterDiv.fire('touchstart', [{clientX:100,clientY:100},{clientX:200,clientY:100}]);
+rasterDiv.fire('touchmove', [{clientX:80,clientY:80},{clientX:220,clientY:120}]);
+assert.equal(raster.getHeading(), 0, 'Raster gestures do not request rotation');
+assert.equal(raster.getTilt(), 0, 'Raster gestures do not request tilt');
+let changed = 0;
+const removeRenderer = api.listenRenderer(7, () => changed++);
+map.renderer = 'RASTER'; map.listeners.renderingtype_changed();
+assert.equal(changed, 1); assert.equal(api.supports3D(7), false);
+removeRenderer(); map.renderer = 'VECTOR'; map.listeners.renderingtype_changed();
+assert.equal(changed, 1, 'Renderer listener is released');
 let gestures = 0;
 const remove = api.listen(7, () => gestures++);
 div.fire('pointerdown'); assert.equal(gestures, 1, 'Release on first touch');

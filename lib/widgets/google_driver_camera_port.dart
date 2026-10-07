@@ -19,11 +19,13 @@ class GoogleDriverCameraPort implements DriverCameraPort {
     this.controller, {
     this.reducedMotion = false,
     this.onFrame,
+    this.onStatus,
     CameraPosition? initialPosition,
   }) : _logical = initialPosition;
   final GoogleMapController controller;
   final bool reducedMotion;
   final void Function(CameraPosition)? onFrame;
+  final void Function(String?)? onStatus;
   CameraPosition? _logical;
   DriverCameraPose? _goal;
   DateTime _goalAt = DateTime.now();
@@ -48,8 +50,8 @@ class GoogleDriverCameraPort implements DriverCameraPort {
   CameraPosition _at(DriverCameraPose pose, GeoPoint target) => CameraPosition(
     target: LatLng(target.latitude, target.longitude),
     zoom: pose.zoom,
-    bearing: pose.bearing,
-    tilt: pose.tilt,
+    bearing: web.supports3D(controller.mapId) ? pose.bearing : 0,
+    tilt: web.supports3D(controller.mapId) ? pose.tilt : 0,
   );
 
   GeoPoint _coasted(DriverCameraPose goal) {
@@ -57,7 +59,10 @@ class GoogleDriverCameraPort implements DriverCameraPort {
       return goal.target;
     }
     final seconds = DateTime.now().difference(_goalAt).inMicroseconds / 1e6;
-    final meters = math.min(goal.speedMetersPerSecond * math.min(seconds, 1.1), 22);
+    final meters = math.min(
+      goal.speedMetersPerSecond * math.min(seconds, 1.1),
+      22,
+    );
     if (meters < 0.5) {
       return goal.target;
     }
@@ -68,7 +73,8 @@ class GoogleDriverCameraPort implements DriverCameraPort {
       math.cos(goal.target.latitude * math.pi / 180),
     );
     final lng =
-        goal.target.longitude + (meters * math.sin(rad)) / (111320.0 * lngScale);
+        goal.target.longitude +
+        (meters * math.sin(rad)) / (111320.0 * lngScale);
     return GeoPoint(lat, lng);
   }
 
@@ -85,7 +91,8 @@ class GoogleDriverCameraPort implements DriverCameraPort {
     final zoom = step(span * 1.10);
     return CameraPosition(
       target: LatLng(
-        from.target.latitude + (to.target.latitude - from.target.latitude) * pos,
+        from.target.latitude +
+            (to.target.latitude - from.target.latitude) * pos,
         from.target.longitude +
             (to.target.longitude - from.target.longitude) * pos,
       ),
@@ -130,6 +137,7 @@ class GoogleDriverCameraPort implements DriverCameraPort {
     _logical = logical;
     web.claim(controller.mapId);
     await controller.moveCamera(CameraUpdate.newCameraPosition(logical));
+    onStatus?.call(null);
     if (trackVehicle) {
       onFrame?.call(logical);
     }
@@ -187,13 +195,11 @@ class GoogleDriverCameraPort implements DriverCameraPort {
           final next = _approach(from, destination, dt, goal.duration);
           await _move(next, trackVehicle: _trackCar(next, goal));
         }
-        if (_disposed || generation != _generation) {
+        if (_disposed || generation != _generation || settled) {
           break;
         }
         final stamp = DateTime.now();
-        await Future<void>.delayed(
-          Duration(milliseconds: settled ? 50 : 16),
-        );
+        await Future<void>.delayed(Duration(milliseconds: settled ? 50 : 16));
         if (_disposed || generation != _generation) {
           break;
         }
@@ -201,11 +207,14 @@ class GoogleDriverCameraPort implements DriverCameraPort {
         dt = math.max(settled ? 50000 : 16000, real);
       }
     } catch (_) {
-      // An unavailable map must not break the trip.
+      if (!_disposed && generation == _generation) {
+        onStatus?.call('Map camera unavailable — tap recenter to retry');
+      }
     } finally {
       if (generation == _generation) {
         _producingFrames = false;
-        _followOwned = false;
+        // Retain logical follow ownership while idle: delayed SDK anchor echoes
+        // must not become the interpolation origin for the next GPS fix.
         _looping = false;
       }
       if (!session.isCompleted) {
@@ -252,15 +261,22 @@ class GoogleDriverCameraPort implements DriverCameraPort {
     if (_disposed || generation != _generation) {
       return;
     }
-    await controller.moveCamera(
-      CameraUpdate.newLatLngBounds(
-        LatLngBounds(
-          southwest: LatLng(south, west),
-          northeast: LatLng(north, east),
+    try {
+      await controller.moveCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(
+            southwest: LatLng(south, west),
+            northeast: LatLng(north, east),
+          ),
+          padding,
         ),
-        padding,
-      ),
-    );
+      );
+      onStatus?.call(null);
+    } catch (_) {
+      if (!_disposed && generation == _generation) {
+        onStatus?.call('Map camera unavailable — tap recenter to retry');
+      }
+    }
   }
 
   @override
