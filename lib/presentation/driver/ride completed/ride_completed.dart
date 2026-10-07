@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movera/presentation/driver/accept%20ride/island_morph.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
@@ -41,8 +42,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
   @override
   void initState() {
     super.initState();
-    _waybills =
-        widget.waybillRepository ?? InMemoryWaybillRepository.instance;
+    _waybills = widget.waybillRepository ?? InMemoryWaybillRepository.instance;
   }
 
   void _finish() {
@@ -91,6 +91,32 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const Center(
+                      child: IslandMorph(
+                        size: Size(230, 56),
+                        face: 'trip-completed',
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: Color(0xFF31D995),
+                              size: 28,
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Trip completed',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     _buildHeader(),
                     const SizedBox(height: 18),
                     _buildRiderCard(record),
@@ -113,9 +139,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
               ),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Color(0xFFEFF2F1)),
-                ),
+                border: Border(top: BorderSide(color: Color(0xFFEFF2F1))),
               ),
               child: SizedBox(
                 height: 52,
@@ -132,10 +156,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                   ),
                   child: const Text(
                     'Done',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
                   ),
                 ),
               ),
@@ -158,10 +179,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
             shape: BoxShape.circle,
             border: Border.all(color: const Color(0xFFD7EBE1)),
           ),
-          child: Image.asset(
-            AppAssets.sucess,
-            fit: BoxFit.contain,
-          ),
+          child: Image.asset(AppAssets.sucess, fit: BoxFit.contain),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -193,11 +211,14 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
           itemSize: 30,
           itemPadding: const EdgeInsets.symmetric(horizontal: 3),
           unratedColor: const Color(0xFFD5DADC),
-          itemBuilder: (_, __) => const Icon(
-            Icons.star_rounded,
-            color: Color(0xFFF2A12E),
-          ),
-          onRatingUpdate: (rating) { setState(() => _rating = rating); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rating not sent (demo)'))); },
+          itemBuilder: (_, __) =>
+              const Icon(Icons.star_rounded, color: Color(0xFFF2A12E)),
+          onRatingUpdate: (rating) {
+            setState(() => _rating = rating);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Rating not sent (demo)')),
+            );
+          },
           updateOnDrag: true,
         ),
       ],
@@ -272,10 +293,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
             padding: EdgeInsets.only(left: 4),
             child: SizedBox(
               height: 18,
-              child: VerticalDivider(
-                color: Color(0xFFD5DDDA),
-                thickness: 1,
-              ),
+              child: VerticalDivider(color: Color(0xFFD5DDDA), thickness: 1),
             ),
           ),
           _routeRow(
@@ -308,9 +326,9 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
     final completedAt = issued == null
         ? 'Just now'
         : '${issued.year}-${issued.month.toString().padLeft(2, '0')}-'
-            '${issued.day.toString().padLeft(2, '0')} · '
-            '${issued.hour.toString().padLeft(2, '0')}:'
-            '${issued.minute.toString().padLeft(2, '0')}';
+              '${issued.day.toString().padLeft(2, '0')} · '
+              '${issued.hour.toString().padLeft(2, '0')}:'
+              '${issued.minute.toString().padLeft(2, '0')}';
 
     return _card(
       title: 'Waybill',
@@ -318,11 +336,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
           ? null
           : TextButton.icon(
               onPressed: () {
-                showMoveraWaybillSheet(
-                  context,
-                  record,
-                  title: 'Last waybill',
-                );
+                showMoveraWaybillSheet(context, record, title: 'Last waybill');
               },
               icon: const MoveraLineIcon(
                 mark: MoveraMark.receipt,
@@ -348,11 +362,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
     );
   }
 
-  Widget _card({
-    String? title,
-    Widget? trailing,
-    required Widget child,
-  }) {
+  Widget _card({String? title, Widget? trailing, required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -400,10 +410,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
           width: 9,
           height: 9,
           margin: const EdgeInsets.only(top: 4),
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 10),
         Expanded(

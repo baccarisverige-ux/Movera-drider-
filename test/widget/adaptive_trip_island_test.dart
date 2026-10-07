@@ -17,6 +17,8 @@ Widget surface({
   double textScale = 1,
   String? fontFamily,
   String? arrival,
+  NavigationBanner? banner,
+  double progress = .4,
 }) => MaterialApp(
   theme: ThemeData(fontFamily: fontFamily),
   builder: (context, child) => MediaQuery(
@@ -31,19 +33,21 @@ Widget surface({
         width: width,
         height: 220,
         child: AdaptiveTripIsland(
-          banner: const NavigationBanner(
-            primary: 'Roundabout, exit 3',
-            distanceLabel: '150 m',
-            symbol: NavigationBannerSymbol.roundabout,
-            roadName: 'Sveavägen',
-          ),
+          banner:
+              banner ??
+              const NavigationBanner(
+                primary: 'Roundabout, exit 3',
+                distanceLabel: '150 m',
+                symbol: NavigationBannerSymbol.roundabout,
+                roadName: 'Sveavägen',
+              ),
           status: 'To pickup',
           address: 'Sveavägen 20',
           detail: 'Picking up Angelica',
           eta: '2 min',
           distance: '1.4 km',
           arrival: arrival,
-          progress: .4,
+          progress: progress,
           waitingSeconds: seconds,
           waitingMessage: waitingMessage,
           lastTripLabel: '120 kr',
@@ -95,20 +99,96 @@ void main() {
       });
     }
 
-    await tester.pumpWidget(surface(fontFamily: font));
-    await capture('guidance');
-    await tester.pumpWidget(
-      surface(fontFamily: font, arrival: 'Arriving soon'),
-    );
+    final stages = <String, NavigationBanner>{
+      '01-pickup': const NavigationBanner(
+        primary: 'Toward pickup · 450 m',
+        distanceLabel: '',
+        symbol: NavigationBannerSymbol.arrive,
+      ),
+      '02-straight': const NavigationBanner(
+        primary: 'Continue ahead · 800 m',
+        distanceLabel: '',
+        symbol: NavigationBannerSymbol.straight,
+      ),
+      '03-right': const NavigationBanner(
+        primary: 'Turn right · 180 m',
+        distanceLabel: '',
+        roadName: 'Sveavägen',
+        symbol: NavigationBannerSymbol.right,
+      ),
+      '04-roundabout': const NavigationBanner(
+        primary: 'Take 2nd exit',
+        distanceLabel: 'Roundabout · 50 m',
+        exitNumber: '2',
+        exitAngleDegrees: 90,
+        symbol: NavigationBannerSymbol.roundabout,
+      ),
+      '08-trip-started': const NavigationBanner(
+        primary: 'Taking Angelica to destination',
+        distanceLabel: '',
+        symbol: NavigationBannerSymbol.arrive,
+      ),
+      '09-dropoff': const NavigationBanner(
+        primary: 'Keep left · 300 m',
+        distanceLabel: '',
+        roadName: 'E4 toward Stockholm',
+        symbol: NavigationBannerSymbol.slightLeft,
+      ),
+      '10-stop': const NavigationBanner(
+        primary: 'Arriving at stop · 100 m',
+        distanceLabel: '',
+        symbol: NavigationBannerSymbol.arrive,
+      ),
+    };
+    for (final entry in stages.entries) {
+      await tester.pumpWidget(surface(fontFamily: font, banner: entry.value));
+      await tester.pump(const Duration(seconds: 1));
+      await capture(entry.key);
+    }
+    await tester.pumpWidget(surface(fontFamily: font, arrival: 'Pickup'));
     await tester.pump(const Duration(seconds: 1));
-    await capture('arrival');
-    await tester.pumpWidget(surface(seconds: 125, fontFamily: font));
-    await tester.pump(const Duration(seconds: 1));
-    await capture('timer');
+    await capture('05-arrival-pickup');
+    await tester.pumpWidget(surface(seconds: 155, fontFamily: font));
+    for (var frame = 0; frame < 30; frame++) {
+      await tester.pump(const Duration(milliseconds: 33));
+      await capture('motion-${frame.toString().padLeft(3, '0')}');
+    }
+    await capture('06-timer');
     await tester.pump(const Duration(seconds: 7));
     await tester.pump(const Duration(seconds: 1));
-    await capture('rider-message');
+    await capture('07-rider-message');
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(
+      surface(
+        seconds: 155,
+        fontFamily: font,
+        waitingMessage: 'Waiting at stop 2',
+      ),
+    );
+    await capture('10b-stop-timer');
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pump(const Duration(seconds: 1));
+    await capture('10c-stop-message');
+    await tester.pumpWidget(surface(fontFamily: font, arrival: 'Destination'));
+    await tester.pump(const Duration(seconds: 1));
+    await capture('11-arrival-destination');
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('Normal islands stay compact at phone width', (tester) async {
+    await tester.pumpWidget(surface(width: 375));
+    final driving = tester.getSize(
+      find.byKey(const ValueKey('island-morph-shell')),
+    );
+    expect(driving.height, lessThanOrEqualTo(104));
+    expect(driving.width, lessThanOrEqualTo(351));
+    await tester.pumpWidget(surface(width: 375, seconds: 155));
+    await tester.pump(const Duration(seconds: 1));
+    final waiting = tester.getSize(
+      find.byKey(const ValueKey('island-morph-shell')),
+    );
+    expect(waiting.height, lessThanOrEqualTo(78));
+    expect(waiting.width, lessThan(220));
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(
