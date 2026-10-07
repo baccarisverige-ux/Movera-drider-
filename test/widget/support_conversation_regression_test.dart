@@ -61,6 +61,7 @@ void main() {
     await tester.drag(history, const Offset(0, 450));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Newest local reply');
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('local-reply-save')));
     await tester.pumpAndSettle();
     expect(find.text('Newest local reply').hitTestable(), findsOneWidget);
@@ -74,6 +75,7 @@ void main() {
     final repository = _Support(messageCount: 1)..fail = true;
     await _open(tester, repository);
     await tester.enterText(find.byType(TextField), 'Retry this reply');
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('local-reply-save')));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextField, 'Retry this reply'), findsOneWidget);
@@ -94,6 +96,7 @@ void main() {
     await _open(tester, repository);
     final save = find.byKey(const ValueKey('local-reply-save'));
     await tester.enterText(find.byType(TextField), 'First reply');
+    await tester.pump();
     await tester.tap(save);
     await tester.pump();
     expect(tester.widget<IconButton>(save).onPressed, isNull);
