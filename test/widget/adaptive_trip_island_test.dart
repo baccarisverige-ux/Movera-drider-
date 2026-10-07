@@ -188,14 +188,14 @@ void main() {
     final driving = tester.getSize(
       find.byKey(const ValueKey('island-morph-shell')),
     );
-    expect(driving.height, lessThanOrEqualTo(104));
+    expect(driving.height, lessThanOrEqualTo(88));
     expect(driving.width, lessThanOrEqualTo(351));
     await tester.pumpWidget(surface(width: 375, seconds: 155));
     await tester.pump(const Duration(seconds: 1));
     final waiting = tester.getSize(
       find.byKey(const ValueKey('island-morph-shell')),
     );
-    expect(waiting.height, lessThanOrEqualTo(78));
+    expect(waiting.height, lessThanOrEqualTo(62));
     expect(waiting.width, lessThanOrEqualTo(244));
     expect(waiting.width, lessThan(driving.width));
     await tester.pumpWidget(const SizedBox());

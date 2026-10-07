@@ -171,7 +171,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
         final heading = DefaultTextStyle.of(context).style.merge(
           TextStyle(
             color: Colors.white,
-            fontSize: waiting && !_waitingMessage ? 28 : 16,
+            fontSize: waiting && !_waitingMessage ? 24 : 15,
             fontWeight: FontWeight.w600,
             height: 1.15,
             fontFeatures: const [FontFeature.tabularFigures()],
@@ -205,12 +205,12 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
         )..layout(maxWidth: textWidth);
         final subtitleHeight = subtitle.isEmpty
             ? 0.0
-            : 3.0 + (scale.scale(12) * 1.2).ceilToDouble();
+            : 2.0 + (scale.scale(waiting ? 10 : 11) * 1.2).ceilToDouble();
         final height = math.max(
-          waiting ? 60.0 : 84.0,
-          24.0 +
-              math.max(36.0, painter.height.ceilToDouble() + subtitleHeight) +
-              (waiting ? 0.0 : 22.0),
+          waiting ? 48.0 : 64.0,
+          16.0 +
+              math.max(32.0, painter.height.ceilToDouble() + subtitleHeight) +
+              (waiting ? 0.0 : 16.0),
         );
         final size = _defaultFace
             ? Size(math.min(available, 244 * .8), 50.4 * .8)
@@ -254,7 +254,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 12,
+                          vertical: 8,
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -271,8 +271,8 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                                         onTap: widget.onRoute,
                                         borderRadius: BorderRadius.circular(22),
                                         child: SizedBox(
-                                          width: 44,
-                                          height: 44,
+                                          width: 40,
+                                          height: 32,
                                           child: Center(
                                             child: _cue(false, live),
                                           ),
@@ -318,7 +318,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                               ),
                             ),
                             if (!waiting) ...[
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               _routeProgress(),
                             ],
                           ],
@@ -338,12 +338,16 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
     children: [
       Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: heading),
       if (subtitle.isNotEmpty) ...[
-        const SizedBox(height: 3),
+        const SizedBox(height: 2),
         Text(
           subtitle,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: _muted, fontSize: 12, height: 1.2),
+          style: TextStyle(
+            color: _muted,
+            fontSize: widget.waitingSeconds != null ? 10 : 11,
+            height: 1.2,
+          ),
         ),
       ],
     ],
@@ -351,7 +355,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
 
   Widget _cue(bool waiting, NavigationBanner? live) {
     if (waiting) {
-      return const Icon(Icons.timer_outlined, color: _lavender, size: 34);
+      return const Icon(Icons.timer_outlined, color: _lavender, size: 28);
     }
     final arrival = widget.arrival != null;
     final exit =
@@ -368,16 +372,16 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
           ? const Icon(
               Icons.directions_walk_rounded,
               color: Colors.white,
-              size: 36,
+              size: 32,
             )
           : live == null
           ? const Icon(
               Icons.person_outline_rounded,
               color: Colors.white,
-              size: 36,
+              size: 32,
             )
           : CustomPaint(
-              size: const Size(36, 36),
+              size: const Size(32, 32),
               painter: NavigationCuePainter(
                 symbol: live.symbol,
                 icon: Icons.navigation_rounded,
@@ -465,7 +469,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                 ? Duration.zero
                 : const Duration(milliseconds: 350),
             builder: (context, progress, _) => SizedBox(
-              height: 18,
+              height: 14,
               child: LayoutBuilder(
                 builder: (context, constraints) => Stack(
                   children: [
@@ -477,19 +481,19 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                         borderRadius: BorderRadius.circular(3),
                         child: LinearProgressIndicator(
                           value: progress,
-                          minHeight: 4,
+                          minHeight: 3,
                           color: _blue,
                           backgroundColor: const Color(0xFF40434A),
                         ),
                       ),
                     ),
                     Positioned(
-                      left: (constraints.maxWidth - 16) * progress,
+                      left: (constraints.maxWidth - 14) * progress,
                       bottom: 0,
                       child: const Icon(
                         Icons.arrow_upward_rounded,
                         color: _blue,
-                        size: 16,
+                        size: 14,
                       ),
                     ),
                   ],

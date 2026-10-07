@@ -93,7 +93,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                   children: [
                     const Center(
                       child: IslandMorph(
-                        size: Size(230, 56),
+                        size: Size(230, 48),
                         face: 'trip-completed',
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
