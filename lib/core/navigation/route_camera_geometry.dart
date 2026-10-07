@@ -4,7 +4,8 @@ import 'package:movera/core/geo/geo_point.dart';
 
 /// Along-route sampling shared by camera, car snapping and traveled stroke.
 class RouteCameraGeometry {
-  RouteCameraGeometry(this.points) {
+  RouteCameraGeometry(List<GeoPoint> points)
+    : points = List<GeoPoint>.unmodifiable(points) {
     for (var i = 1; i < points.length; i++) {
       distances.add(distances.last + points[i - 1].distanceMetersTo(points[i]));
     }

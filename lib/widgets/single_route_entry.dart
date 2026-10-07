@@ -32,7 +32,7 @@ Future<T?> pushSingle<T extends Object?>(
     final result = navigator.push<T>(route);
     animation = route is TransitionRoute<T> ? route.animation : null;
     animation?.addStatusListener(listener);
-    if (animation == null || animation!.isCompleted) {
+    if (animation == null || animation.isCompleted) {
       WidgetsBinding.instance.addPostFrameCallback((_) => release());
     }
     result.then(
