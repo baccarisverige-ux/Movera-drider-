@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
@@ -17,37 +21,70 @@ Widget surface({
     child: child!,
   ),
   home: Scaffold(
-    body: SizedBox(
-      width: width,
-      child: AdaptiveTripIsland(
-        banner: const NavigationBanner(
-          primary: 'Roundabout, exit 3',
-          distanceLabel: '150 m',
-          symbol: NavigationBannerSymbol.roundabout,
-          roadName: 'Sveavägen',
+    body: RepaintBoundary(
+      key: const ValueKey('island-visual-proof'),
+      child: SizedBox(
+        width: width,
+        height: 220,
+        child: AdaptiveTripIsland(
+          banner: const NavigationBanner(
+            primary: 'Roundabout, exit 3',
+            distanceLabel: '150 m',
+            symbol: NavigationBannerSymbol.roundabout,
+            roadName: 'Sveavägen',
+          ),
+          status: 'To pickup',
+          address: 'Sveavägen 20',
+          detail: 'Picking up Angelica',
+          eta: '2 min',
+          distance: '1.4 km',
+          progress: .4,
+          waitingSeconds: seconds,
+          waitingMessage: waitingMessage,
+          lastTripLabel: '120 kr',
+          onRadar: () {},
+          onMenu: () {},
+          onSearch: () {},
+          onHistory: () {},
+          onRoute: route ?? () {},
+          onSafety: () {},
+          onWait: () {},
         ),
-        status: 'To pickup',
-        address: 'Sveavägen 20',
-        detail: 'Picking up Angelica',
-        eta: '2 min',
-        distance: '1.4 km',
-        progress: .4,
-        waitingSeconds: seconds,
-        waitingMessage: waitingMessage,
-        lastTripLabel: '120 kr',
-        onRadar: () {},
-        onMenu: () {},
-        onSearch: () {},
-        onHistory: () {},
-        onRoute: route ?? () {},
-        onSafety: () {},
-        onWait: () {},
       ),
     ),
   ),
 );
 
 void main() {
+  testWidgets('Record rendered guidance and alternating waiting views', (
+    tester,
+  ) async {
+    Future<void> capture(String name) async {
+      await tester.pump();
+      final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find.byKey(const ValueKey('island-visual-proof')),
+      );
+      await tester.runAsync(() async {
+        final image = await boundary.toImage(pixelRatio: 2);
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        final file = File('build/test-evidence/island-$name.png');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(bytes!.buffer.asUint8List());
+        image.dispose();
+      });
+    }
+
+    await tester.pumpWidget(surface());
+    await capture('guidance');
+    await tester.pumpWidget(surface(seconds: 125));
+    await tester.pump(const Duration(seconds: 1));
+    await capture('timer');
+    await tester.pump(const Duration(seconds: 7));
+    await tester.pump(const Duration(seconds: 1));
+    await capture('rider-message');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'Waiting digit ticks keep geometry stable and stop message is distinct',
     (tester) async {

@@ -315,7 +315,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
 
   Widget _cue(bool waiting, NavigationBanner? live) {
     if (waiting) {
-      return const Icon(Icons.timer_outlined, color: _lavender, size: 40);
+      return const Icon(Icons.history_rounded, color: _lavender, size: 40);
     }
     final arrival = widget.arrival != null;
     final exit =

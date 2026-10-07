@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
@@ -133,7 +131,7 @@ class _IslandMorphState extends State<IslandMorph>
           height: size.height,
           child: Material(
             color: const Color(0xFF111214),
-            borderRadius: BorderRadius.circular(math.min(size.height / 2, 48)),
+            borderRadius: BorderRadius.circular(size.height / 2),
             clipBehavior: Clip.antiAlias,
             child: Stack(
               children: [
