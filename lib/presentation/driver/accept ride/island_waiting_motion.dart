@@ -39,6 +39,7 @@ class _IslandWaitingLaneState extends State<IslandWaitingLane>
       child: AnimatedBuilder(
         animation: _motion,
         builder: (context, _) => SizedBox(
+          width: double.infinity,
           height: 3,
           child: CustomPaint(
             painter: _LanePainter(widget.color, _motion.value),

@@ -99,30 +99,33 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                           TripIslandGeometry.height,
                         ),
                         face: 'trip-completed',
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.check_circle_rounded,
-                              color: Color(0xFF6EDBB0),
-                              size: 22,
-                            ),
-                            SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Trip completed',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color: Color(0xFF6EDBB0),
+                                size: 22,
                               ),
-                            ),
-                            SizedBox(width: 28),
-                          ],
+                              SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Trip completed',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 28),
+                            ],
+                          ),
                         ),
                       ),
                     ),
