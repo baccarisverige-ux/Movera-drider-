@@ -104,22 +104,24 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                           children: [
                             Icon(
                               Icons.check_circle_rounded,
-                              color: Color(0xFF31D995),
-                              size: 28,
+                              color: Color(0xFF6EDBB0),
+                              size: 22,
                             ),
-                            SizedBox(width: 12),
-                            Flexible(
+                            SizedBox(width: 6),
+                            Expanded(
                               child: Text(
                                 'Trip completed',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            SizedBox(width: 28),
                           ],
                         ),
                       ),

@@ -1,4 +1,7 @@
 import 'dart:io';
+
+import 'package:movera/presentation/driver/accept%20ride/island_waiting_motion.dart';
+
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -151,7 +154,17 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await capture(entry.key);
     }
-    await tester.pumpWidget(surface(fontFamily: font, arrival: 'Pickup'));
+    await tester.pumpWidget(
+      surface(
+        fontFamily: font,
+        arrival: 'Pickup',
+        banner: const NavigationBanner(
+          primary: 'Pickup',
+          distanceLabel: '',
+          symbol: NavigationBannerSymbol.arrive,
+        ),
+      ),
+    );
     await tester.pump(const Duration(seconds: 1));
     await capture('05-arrival-pickup');
     await tester.pumpWidget(surface(seconds: 155, fontFamily: font));
@@ -183,7 +196,17 @@ void main() {
     await tester.pump(const Duration(seconds: 8));
     await tester.pump(const Duration(seconds: 1));
     await capture('10c-stop-message');
-    await tester.pumpWidget(surface(fontFamily: font, arrival: 'Destination'));
+    await tester.pumpWidget(
+      surface(
+        fontFamily: font,
+        arrival: 'Destination',
+        banner: const NavigationBanner(
+          primary: 'Destination',
+          distanceLabel: '',
+          symbol: NavigationBannerSymbol.arrive,
+        ),
+      ),
+    );
     await tester.pump(const Duration(seconds: 1));
     await capture('11-arrival-destination');
     await tester.tap(find.text('Arriving soon'));
@@ -208,7 +231,7 @@ void main() {
     );
     expect(waiting.height, TripIslandGeometry.height);
     expect(waiting.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
-    expect(waiting.width, lessThanOrEqualTo(driving.width));
+    expect(waiting.width, TripIslandGeometry.width);
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(
@@ -298,15 +321,30 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(surface(seconds: 125));
-    expect(find.text('02:05'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is IslandRollingClock && w.text == '02:05',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Waiting for Angelica'), findsNothing);
     await tester.pump(const Duration(seconds: 8));
     await tester.pump(const Duration(milliseconds: 900));
     expect(find.text('Waiting for Angelica'), findsOneWidget);
-    expect(find.text('02:05'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is IslandRollingClock && w.text == '02:05',
+      ),
+      findsNothing,
+    );
     await tester.pump(const Duration(milliseconds: 1100));
     await tester.pump(const Duration(milliseconds: 900));
-    expect(find.text('02:05'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is IslandRollingClock && w.text == '02:05',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Waiting for Angelica'), findsNothing);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 10));

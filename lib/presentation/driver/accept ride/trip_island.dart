@@ -11,7 +11,7 @@ abstract final class TripIslandGeometry {
   static const scale = .8;
   static const width = DigitalIslandParts.width * scale;
   static const height = DigitalIslandParts.height * scale;
-  static const maximumWidth = width * 1.23;
+  static const maximumWidth = width * 1.15;
 }
 
 /// The Home island on the trip screen: menu, the money screen and search,

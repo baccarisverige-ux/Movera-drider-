@@ -965,7 +965,7 @@ extension _HomeMapSheet on _DriverHomeState {
       final width = message != null
           ? (DigitalMessageFace.widthFor(context, message.title) +
                     14 + 14 + 2 + 36)
-                .clamp(math.min(244.0, maxWidth), maxWidth)
+                .clamp(math.min(244.0, maxWidth), math.min(244.0 * 1.15, maxWidth))
                 .toDouble()
           : _islandWake >= 1
               ? math.min(maxWidth, 244.0)
@@ -997,7 +997,7 @@ extension _HomeMapSheet on _DriverHomeState {
           calm: _isOnline,
           // Every size change, out and back, glides with a soft spring.
           duration: const Duration(milliseconds: 680),
-          curve: Curves.easeOutBack,
+          curve: Curves.easeOutCubic,
           child: Row(
             children: [
               side(Builder(
