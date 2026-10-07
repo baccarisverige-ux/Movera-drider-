@@ -196,23 +196,23 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
         )..layout(maxWidth: textWidth);
         final subtitleHeight = subtitle.isEmpty
             ? 0.0
-            : 6 + scale.scale(13) * 1.2;
+            : 6.0 + scale.scale(13) * 1.2;
         final height = math.max(
           waiting ? 70.0 : 142.0,
-          32 +
+          32.0 +
               math.max(44.0, painter.height + subtitleHeight) +
-              (waiting ? 0 : 62),
+              (waiting ? 0.0 : 62.0),
         );
         final size = _defaultFace
             ? Size(math.min(available, 244 * .8), 50.4 * .8)
-            : Size(width, height);
+            : Size(width, height.toDouble());
         final face = _defaultFace
             ? 'default'
             : waiting
             ? (_waitingMessage ? 'waiting-message' : 'waiting-timer')
             : widget.arrival != null
             ? 'arrival'
-            : 'guidance-${live?.symbol?.name ?? 'overview'}-$title';
+            : 'guidance-${live?.symbol.name ?? 'overview'}-$title';
         return Align(
           alignment: Alignment.topCenter,
           heightFactor: 1,
@@ -314,8 +314,9 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
   );
 
   Widget _cue(bool waiting, NavigationBanner? live) {
-    if (waiting)
+    if (waiting) {
       return const Icon(Icons.timer_outlined, color: _lavender, size: 40);
+    }
     final arrival = widget.arrival != null;
     final exit =
         live?.exitNumber ??
@@ -326,7 +327,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
     return Semantics(
       label: arrival
           ? 'Arrival'
-          : '${live?.symbol?.name ?? 'To destination'}${exit == null ? '' : ', exit $exit'}',
+          : '${live?.symbol.name ?? 'To destination'}${exit == null ? '' : ', exit $exit'}',
       child: arrival
           ? const Icon(
               Icons.location_on_rounded,
