@@ -1,14 +1,14 @@
-/// Reference map palette sampled from October 6 PNGs, including close-ups.
-/// Flat-fill samples are exact screenshot pixels; layer assignments are inferred.
-/// Roads have zoom/texture variations. Boundary color is retained, unconfirmed.
-/// Traffic, route and location overlays are independent of this base-map style.
+/// Movera cream/sage palette specified by the product owner on 2026-10-07.
+/// Shared verbatim by Driver and Rider. Route/traffic overlays are independent.
+/// Embedded Google Maps styling cannot add dashed arterial centerlines or
+/// configure water-label visibility by zoom; retain provider label density.
 const String moveraReferenceMapStyle = '''
 [
   {
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#fafcfa"
+        "color": "#FAF7EF"
       }
     ]
   },
@@ -24,7 +24,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#565c61"
+        "color": "#4E5346"
       }
     ]
   },
@@ -32,7 +32,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.stroke",
     "stylers": [
       {
-        "color": "#ffffff"
+        "color": "#DAE2CE"
       }
     ]
   },
@@ -41,7 +41,16 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.stroke",
     "stylers": [
       {
-        "color": "#d2dbe1"
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#5F5F5F"
       }
     ]
   },
@@ -50,7 +59,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#fafcfa"
+        "color": "#FAF7EF"
       }
     ]
   },
@@ -59,7 +68,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#ddf7e3"
+        "color": "#FAF7EF"
       }
     ]
   },
@@ -68,7 +77,16 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#e1e4e5"
+        "color": "#E7E7E7"
+      }
+    ]
+  },
+  {
+    "featureType": "landscape",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#5F5F5F"
       }
     ]
   },
@@ -77,7 +95,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#e1e4e5"
+        "color": "#E7E7E7"
       }
     ]
   },
@@ -86,7 +104,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#8e9496"
+        "color": "#5F5F5F"
       }
     ]
   },
@@ -95,16 +113,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#bef2c9"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#118742"
+        "color": "#CCE5A6"
       }
     ]
   },
@@ -113,7 +122,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#d1d6da"
+        "color": "#C5CDC2"
       }
     ]
   },
@@ -122,7 +131,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.stroke",
     "stylers": [
       {
-        "color": "#d1d6da"
+        "visibility": "off"
       }
     ]
   },
@@ -131,7 +140,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#565c61"
+        "color": "#4E5346"
       }
     ]
   },
@@ -140,7 +149,28 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.stroke",
     "stylers": [
       {
-        "color": "#ffffff"
+        "color": "#DAE2CE"
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#C5CDC2"
+      },
+      {
+        "weight": 1
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "geometry.stroke",
+    "stylers": [
+      {
+        "visibility": "off"
       }
     ]
   },
@@ -149,7 +179,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#b6bbc0"
+        "color": "#99BD86"
       }
     ]
   },
@@ -158,7 +188,10 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.stroke",
     "stylers": [
       {
-        "color": "#b6bbc0"
+        "visibility": "on"
+      },
+      {
+        "color": "#7A976B"
       }
     ]
   },
@@ -167,7 +200,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#8e9496"
+        "color": "#63A08A"
       }
     ]
   },
@@ -176,7 +209,10 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.stroke",
     "stylers": [
       {
-        "color": "#8c939a"
+        "visibility": "on"
+      },
+      {
+        "color": "#3F6658"
       }
     ]
   },
@@ -185,7 +221,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#e1e4e5"
+        "color": "#FAF7EF"
       }
     ]
   },
@@ -194,16 +230,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#8e9496"
-      }
-    ]
-  },
-  {
-    "featureType": "transit.line",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#d2cecc"
+        "color": "#5F5F5F"
       }
     ]
   },
@@ -212,7 +239,16 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#e1e4e5"
+        "color": "#FAF7EF"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.line",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#777777"
       }
     ]
   },
@@ -221,7 +257,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#9ee4ff"
+        "color": "#9FD4DA"
       }
     ]
   },
@@ -230,7 +266,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#1360a7"
+        "color": "#4E5346"
       }
     ]
   }
