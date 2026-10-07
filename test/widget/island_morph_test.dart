@@ -30,7 +30,23 @@ void main() {
     expect(intermediate.width, lessThan(340));
     expect(intermediate.height, greaterThan(70));
     expect(intermediate.height, lessThan(150));
+    double guidanceOpacity() => tester
+        .widget<Opacity>(
+          find
+              .ancestor(
+                of: find.text('guidance'),
+                matching: find.byType(Opacity),
+              )
+              .first,
+        )
+        .opacity;
+    final opacity = guidanceOpacity();
     await tester.pumpWidget(surface(const Size(260, 80), 'arrival'));
+    expect(
+      guidanceOpacity(),
+      closeTo(opacity, .001),
+      reason: 'Interrupted content must not flash to full opacity.',
+    );
     expect(shell(tester).width, closeTo(intermediate.width, .01));
     expect(shell(tester).height, closeTo(intermediate.height, .01));
     await tester.pump(const Duration(seconds: 1));

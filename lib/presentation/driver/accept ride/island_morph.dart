@@ -29,15 +29,19 @@ class _IslandMorphState extends State<IslandMorph>
   )..addStatusListener(_settled);
   late Size _from = widget.size;
   late Size _to = widget.size;
-  Widget? _outgoing;
-  Size? _outgoingSize;
+  List<_IslandLayer> _outgoing = [];
+
+  double get _incomingOpacity =>
+      _outgoing.isEmpty ? 1 : ((_phase - .15) / .85).clamp(0, 1);
 
   double get _phase => _motion.value.clamp(0.0, 1.0);
   Size get _visible => Size.lerp(_from, _to, _phase)!;
 
   void _settled(AnimationStatus status) {
-    if (status == AnimationStatus.completed && _outgoing != null && mounted) {
-      setState(() => _outgoing = null);
+    if (status == AnimationStatus.completed &&
+        _outgoing.isNotEmpty &&
+        mounted) {
+      setState(() => _outgoing = []);
     }
   }
 
@@ -47,7 +51,7 @@ class _IslandMorphState extends State<IslandMorph>
     if (widget.reducedMotion) {
       _motion.stop();
       _from = _to = widget.size;
-      _outgoing = null;
+      _outgoing = [];
       _motion.value = 1;
       return;
     }
@@ -70,9 +74,18 @@ class _IslandMorphState extends State<IslandMorph>
                   length)
               .clamp(0.0, 3.0)
               .toDouble();
+    // Capture the opacity of every visible layer as well as its geometry.
+    // A rapid new instruction must not flash an only-partly-visible face.
+    final fade = (1 - _phase / .35).clamp(0.0, 1.0);
+    final layers = [
+      for (final layer in _outgoing)
+        if (layer.opacity * fade > .01)
+          _IslandLayer(layer.child, layer.size, layer.opacity * fade),
+      if (_incomingOpacity > .01)
+        _IslandLayer(oldWidget.child, oldWidget.size, _incomingOpacity),
+    ];
     _motion.stop();
-    _outgoing = oldWidget.child;
-    _outgoingSize = oldWidget.size;
+    _outgoing = layers;
     _from = visible;
     _to = widget.size;
     _motion.value = 0;
@@ -135,18 +148,15 @@ class _IslandMorphState extends State<IslandMorph>
             clipBehavior: Clip.antiAlias,
             child: Stack(
               children: [
-                if (_outgoing != null && t < .35)
-                  _face(
-                    _outgoing!,
-                    _outgoingSize!,
-                    (1 - t / .35).clamp(0, 1),
-                    outgoing: true,
-                  ),
-                _face(
-                  widget.child,
-                  widget.size,
-                  _outgoing == null ? 1 : ((t - .15) / .85).clamp(0, 1),
-                ),
+                if (t < .35)
+                  for (final layer in _outgoing)
+                    _face(
+                      layer.child,
+                      layer.size,
+                      layer.opacity * (1 - t / .35).clamp(0, 1),
+                      outgoing: true,
+                    ),
+                _face(widget.child, widget.size, _incomingOpacity),
               ],
             ),
           ),
@@ -154,4 +164,11 @@ class _IslandMorphState extends State<IslandMorph>
       );
     },
   );
+}
+
+class _IslandLayer {
+  const _IslandLayer(this.child, this.size, this.opacity);
+  final Widget child;
+  final Size size;
+  final double opacity;
 }
