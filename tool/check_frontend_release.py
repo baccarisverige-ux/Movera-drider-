@@ -13,7 +13,9 @@ REQUIRED = {
 
 
 def validate(document, require_complete=False):
-    if not isinstance(document, dict) or document.get("schemaVersion") != 1:
+    if (not isinstance(document, dict)
+            or type(document.get("schemaVersion")) is not int
+            or document.get("schemaVersion") != 1):
         raise ValueError("unsupported candidate manifest")
     candidate = document.get("commit")
     if not isinstance(candidate, str) or not re.fullmatch(r"[0-9a-f]{40}", candidate):
@@ -27,11 +29,11 @@ def validate(document, require_complete=False):
         if not isinstance(row, dict):
             raise ValueError("check must be an object")
         check = row.get("id")
-        if not isinstance(check, str) or not check or check in seen:
+        if not isinstance(check, str) or not check.strip() or check in seen:
             raise ValueError("check IDs must be nonempty and unique")
         seen.add(check)
         result = row.get("result")
-        if result not in {"PENDING", "PASS", "FAIL", "N/A"}:
+        if not isinstance(result, str) or result not in {"PENDING", "PASS", "FAIL", "N/A"}:
             raise ValueError(f"{check}: invalid result")
         detail = row.get("detail")
         if result in {"PASS", "FAIL", "N/A"} and (
@@ -44,7 +46,7 @@ def validate(document, require_complete=False):
             artifact = row.get("artifact")
             if not isinstance(artifact, str) or not artifact.strip():
                 raise ValueError(f"{check}: PASS requires an artifact")
-        if check in REQUIRED and result != "PASS":
+        if result == "FAIL" or (check in REQUIRED and result != "PASS"):
             incomplete.append(check)
     missing = REQUIRED - seen
     if missing:

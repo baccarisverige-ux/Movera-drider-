@@ -66,6 +66,32 @@ class CandidateEvidenceTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate(document)
 
+    def test_malformed_result_is_rejected_without_type_error(self):
+        for result in [[], {}, None, 1]:
+            with self.subTest(result=result):
+                document = manifest()
+                document["checks"][0]["result"] = result
+                with self.assertRaisesRegex(ValueError, "invalid result"):
+                    validate(document)
+
+    def test_schema_version_requires_integer_one(self):
+        for version in [True, 1.0, "1", None]:
+            with self.subTest(version=version):
+                document = manifest()
+                document["schemaVersion"] = version
+                with self.assertRaisesRegex(ValueError, "unsupported"):
+                    validate(document)
+
+    def test_additional_failed_check_blocks_release(self):
+        document = manifest()
+        document["checks"].append({
+            "id": "new-regression", "result": "FAIL", "commit": "a" * 40,
+            "artifact": "evidence/failure.log", "detail": "Confirmed regression",
+        })
+        self.assertEqual(validate(document), ["new-regression"])
+        with self.assertRaisesRegex(ValueError, "release incomplete"):
+            validate(document, True)
+
 
 if __name__ == "__main__":
     unittest.main()
