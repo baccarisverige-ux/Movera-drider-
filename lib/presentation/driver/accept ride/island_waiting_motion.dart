@@ -17,7 +17,8 @@ class _IslandWaitingLaneState extends State<IslandWaitingLane>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context) || !TickerMode.of(context)) {
+    if (MediaQuery.disableAnimationsOf(context) ||
+        !TickerMode.valuesOf(context).enabled) {
       _motion.stop();
       _motion.value = .5;
     } else if (!_motion.isAnimating) {
