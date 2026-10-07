@@ -2109,6 +2109,7 @@ void main() {
     expect(find.byType(AcceptRide), findsOneWidget);
     expect(find.textContaining('Picking up'), findsWidgets);
     expect(find.textContaining('Maya'), findsWidgets);
+    await _expandActiveRideSheet(tester);
     expect(find.textContaining('Vasagatan 10'), findsWidgets);
     _expectNoException(tester);
   });
@@ -2228,6 +2229,7 @@ void main() {
     expect(find.textContaining('Dropping off'), findsOneWidget);
 
     // The relocated island action remains available while the radar offer is visible.
+    await _advanceAnimation(tester, const Duration(milliseconds: 700));
     await tester.tap(find.byTooltip('Trip route and options').hitTestable());
     await tester.pump(const Duration(milliseconds: 220));
 

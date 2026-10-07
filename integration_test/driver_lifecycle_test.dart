@@ -181,6 +181,7 @@ void main() {
     expect(find.textContaining('Dropping off'), findsOneWidget);
 
     // The island keeps trip options reachable even while Radar covers the sheet.
+    await _elapse(tester, const Duration(milliseconds: 700));
     await tester.tap(find.byTooltip('Trip route and options').hitTestable());
     await _elapse(tester, const Duration(milliseconds: 250));
     await tester.tap(find.byKey(const ValueKey<String>('active-ride-cancel-option')));
