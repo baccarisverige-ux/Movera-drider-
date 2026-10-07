@@ -314,10 +314,23 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
       final titleHeight = constraints.maxHeight - (showSubtitle ? 10.5 : 0);
       // Geometry remains the default height, including large text settings.
       // Full copy remains available to screen readers and the tooltip.
-      final fontSize = math.min(
+      var fontSize = math.min(
         heading.fontSize!,
         titleHeight / (scaler.scale(1) * 1.05),
       );
+      if (clock) {
+        final metrics = TextPainter(
+          text: TextSpan(
+            text: title,
+            style: heading.copyWith(fontSize: fontSize),
+          ),
+          textDirection: Directionality.of(context),
+          textScaler: scaler,
+        )..layout();
+        if (metrics.width > constraints.maxWidth - 2) {
+          fontSize *= math.max(0.0, constraints.maxWidth - 2) / metrics.width;
+        }
+      }
       return Semantics(
         label: [title, if (subtitle.isNotEmpty) subtitle].join(', '),
         excludeSemantics: true,

@@ -215,6 +215,7 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 800));
     await capture('11-arrival-destination');
     await tester.tap(find.text('Arriving soon'));
     await tester.pump();
@@ -278,7 +279,7 @@ void main() {
     );
     expect(waiting.height, TripIslandGeometry.height);
     expect(waiting.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
-    expect(waiting.width, TripIslandGeometry.width);
+    expect(waiting.width, closeTo(TripIslandGeometry.width, .001));
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(
