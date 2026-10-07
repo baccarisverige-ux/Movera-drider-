@@ -88,11 +88,11 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
 
   Future<void> _newTicket() async {
     if (_opening || _loading || _restoreFailed) return;
-    _opening = true;
+    setState(() => _opening = true);
     try {
       await _createTicket();
     } finally {
-      _opening = false;
+      if (mounted) setState(() => _opening = false);
     }
   }
 
@@ -238,6 +238,9 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: subject,
+                        onChanged: (_) {
+                          if (attempted) setSheetState(() {});
+                        },
                         decoration: _decoration('Subject').copyWith(
                           errorText: attempted && subject.text.trim().isEmpty
                               ? 'Enter a subject'
@@ -247,6 +250,9 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: message,
+                        onChanged: (_) {
+                          if (attempted) setSheetState(() {});
+                        },
                         minLines: 4,
                         maxLines: 6,
                         decoration: _decoration('Tell us what happened')
@@ -378,7 +384,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
       centerTitle: true,
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: _newTicket,
+      onPressed: _loading || _restoreFailed || _opening ? null : _newTicket,
       backgroundColor: const Color(0xFF202A30),
       foregroundColor: Colors.white,
       icon: const Icon(Icons.add_rounded),
@@ -572,6 +578,7 @@ class _Conversation extends StatefulWidget {
 
 class _ConversationState extends State<_Conversation> {
   final input = TextEditingController();
+  final _history = ScrollController();
   bool _saving = false;
   Future<void> saveMessage() async {
     if (_saving || input.text.trim().isEmpty) {
@@ -588,6 +595,11 @@ class _ConversationState extends State<_Conversation> {
     });
     try {
       await widget.onChanged();
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _history.hasClients) _history.jumpTo(0);
+        });
+      }
       if (mounted && input.text == rawText) {
         input.clear();
       }
@@ -608,6 +620,7 @@ class _ConversationState extends State<_Conversation> {
   @override
   void dispose() {
     input.dispose();
+    _history.dispose();
     super.dispose();
   }
 
@@ -625,37 +638,37 @@ class _ConversationState extends State<_Conversation> {
     body: Column(
       children: [
         Expanded(
-          child: ListView(
+          child: ListView.builder(
+            controller: _history,
+            reverse: true,
             padding: const EdgeInsets.all(16),
-            children: widget.ticket.messages
-                .map(
-                  (m) => Align(
-                    alignment: m.support
-                        ? Alignment.centerLeft
-                        : Alignment.centerRight,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      constraints: const BoxConstraints(maxWidth: 300),
-                      decoration: BoxDecoration(
-                        color: m.support
-                            ? Colors.white
-                            : const Color(0xFF202A30),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Text(
-                        m.text,
-                        style: TextStyle(
-                          color: m.support
-                              ? const Color(0xFF283138)
-                              : Colors.white,
-                          height: 1.35,
-                        ),
-                      ),
+            itemCount: widget.ticket.messages.length,
+            itemBuilder: (_, index) {
+              final m = widget
+                  .ticket
+                  .messages[widget.ticket.messages.length - 1 - index];
+              return Align(
+                alignment: m.support
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  constraints: const BoxConstraints(maxWidth: 300),
+                  decoration: BoxDecoration(
+                    color: m.support ? Colors.white : const Color(0xFF202A30),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Text(
+                    m.text,
+                    style: TextStyle(
+                      color: m.support ? const Color(0xFF283138) : Colors.white,
+                      height: 1.35,
                     ),
                   ),
-                )
-                .toList(),
+                ),
+              );
+            },
           ),
         ),
         Container(
