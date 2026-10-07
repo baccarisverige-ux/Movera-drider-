@@ -24,8 +24,9 @@ class LocalQuarantine {
         final existing = jsonDecode(prefs.getString(key) ?? 'null');
         if (existing is Map &&
             existing['source'] == source &&
-            existing['raw'] == raw)
+            existing['raw'] == raw) {
           return key;
+        }
       } on FormatException {
         /* An older invalid quarantine is not a match. */
       }

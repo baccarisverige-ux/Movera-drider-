@@ -51,8 +51,9 @@ class LocalSupportRepository {
               'subject',
               'message',
               'category',
-            ].every((key) => draft[key] == null || draft[key] is String)))
+            ].every((key) => draft[key] == null || draft[key] is String))) {
       return false;
+    }
     final tickets = data['tickets'];
     if (tickets == null) return true;
     if (tickets is! List) return false;
@@ -63,8 +64,9 @@ class LocalSupportRepository {
             'preview',
             'status',
           ].every((key) => row[key] == null || row[key] is String) ||
-          (row['unread'] != null && row['unread'] is! bool))
+          (row['unread'] != null && row['unread'] is! bool)) {
         return false;
+      }
       final messages = row['messages'];
       if (messages != null &&
           (messages is! List ||
@@ -75,8 +77,9 @@ class LocalSupportRepository {
                       (key) => message[key] == null || message[key] is String,
                     ) ||
                     (message['support'] != null && message['support'] is! bool),
-              )))
+              ))) {
         return false;
+      }
     }
     return true;
   }
@@ -102,8 +105,9 @@ class LocalSupportRepository {
     data[field] = value;
     if (!_valid(data)) throw const FormatException('Invalid support data');
     LocalWriteSession.check(_generation);
-    if (!await prefs.setString(key, jsonEncode(data)))
+    if (!await prefs.setString(key, jsonEncode(data))) {
       throw StateError('Local draft could not be saved');
+    }
   });
 
   Future<T> _enqueue<T>(Future<T> Function() write) {
