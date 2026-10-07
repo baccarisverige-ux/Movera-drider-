@@ -154,8 +154,16 @@ void main() {
       await capture('motion-${frame.toString().padLeft(3, '0')}');
     }
     await capture('06-timer');
-    await tester.pump(const Duration(seconds: 7));
-    await tester.pump(const Duration(seconds: 1));
+    for (
+      var tick = 0;
+      tick < 50 &&
+          find.byKey(const ValueKey('island-waiting-name')).evaluate().isEmpty;
+      tick++
+    ) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('Waiting for Angelica'), findsOneWidget);
     await capture('07-rider-message');
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(

@@ -180,8 +180,15 @@ void main() {
     await capture('05-arrival-pickup');
     await open(ride(stage: ActiveRideStage.waitingForRider));
     await capture('06-waiting-timer');
-    await tester.pump(const Duration(seconds: 7));
-    await tester.pump(const Duration(seconds: 1));
+    for (
+      var tick = 0;
+      tick < 50 &&
+          find.byKey(const ValueKey('island-waiting-name')).evaluate().isEmpty;
+      tick++
+    ) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    await tester.pump(const Duration(milliseconds: 700));
     await capture('07-waiting-rider');
     await open(ride(stage: ActiveRideStage.onTrip));
     await capture('08-trip-started');
@@ -197,8 +204,15 @@ void main() {
     await capture('10-arriving-stop');
     await open(ride(stage: ActiveRideStage.onTrip, stop: true, stopWait: true));
     await capture('10b-stop-timer');
-    await tester.pump(const Duration(seconds: 7));
-    await tester.pump(const Duration(seconds: 1));
+    for (
+      var tick = 0;
+      tick < 50 &&
+          find.byKey(const ValueKey('island-waiting-name')).evaluate().isEmpty;
+      tick++
+    ) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    await tester.pump(const Duration(milliseconds: 700));
     await capture('10c-stop-message');
     await open(ride(stage: ActiveRideStage.onTrip, near: true));
     await capture('11-arrival-destination');
