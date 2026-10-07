@@ -2,6 +2,8 @@ import 'package:movera/core/contracts/trip_status.dart';
 
 import 'dart:convert';
 
+import 'package:movera/core/storage/local_write_session.dart';
+
 import 'package:movera/core/logging/driver_log.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/storage/local_quarantine.dart';
@@ -28,6 +30,7 @@ class PrefsActiveRideRepository
   static const terminalRetention = Duration(days: 90);
 
   final Future<SharedPreferences> Function() _load;
+  final int _generation = LocalWriteSession.generation;
 
   // SharedPreferences operations are asynchronous. Keep them in invocation
   // order so a previous ride's cleanup cannot remove a newer ride's snapshot.
@@ -36,7 +39,9 @@ class PrefsActiveRideRepository
   /// Completes after every storage operation queued so far has finished.
   static Future<void> settle() async {
     final pending = _pending;
-    if (pending != null) { await pending; }
+    if (pending != null) {
+      await pending;
+    }
   }
 
   Future<T> _enqueue<T>(Future<T> Function() operation) {
@@ -63,6 +68,7 @@ class PrefsActiveRideRepository
   Future<PersistedActiveRide?> read() => _enqueue(() async {
     // A failing storage plugin is transient: let it propagate for Retry.
     final prefs = await _load();
+    LocalWriteSession.check(_generation);
     final raw = prefs.getString(key);
     if (raw == null || raw.isEmpty) {
       return null;
@@ -102,6 +108,7 @@ class PrefsActiveRideRepository
   @override
   Future<void> quarantineUnreadable() => _enqueue(() async {
     final prefs = await _load();
+    LocalWriteSession.check(_generation);
     final raw = prefs.getString(key);
     if (raw == null || raw.isEmpty) {
       return;
@@ -125,6 +132,7 @@ class PrefsActiveRideRepository
   @override
   Future<void> save(PersistedActiveRide ride) => _enqueue(() async {
     final prefs = await _load();
+    LocalWriteSession.check(_generation);
     final terminal = prefs.getStringList(terminalKey) ?? <String>[];
     if (terminal.any((item) => _terminalTripId(item) == ride.tripId)) {
       throw StateError('Cannot revive a terminal trip');
@@ -153,6 +161,7 @@ class PrefsActiveRideRepository
   Future<void> handoff(String expectedTripId, PersistedActiveRide next) =>
       _enqueue(() async {
         final prefs = await _load();
+        LocalWriteSession.check(_generation);
         final raw = prefs.getString(key);
         if (raw != null) {
           final current = jsonDecode(raw);
@@ -189,6 +198,7 @@ class PrefsActiveRideRepository
       throw ArgumentError('Terminal status required');
     }
     final prefs = await _load();
+    LocalWriteSession.check(_generation);
     final ids = prefs.getStringList(terminalKey) ?? <String>[];
     final at = (occurredAt ?? DateTime.now()).toUtc();
     final existing = ids.where((item) => _terminalTripId(item) == tripId);
@@ -269,6 +279,7 @@ class PrefsActiveRideRepository
   @override
   Future<void> clearForTrip(String tripId) => _enqueue(() async {
     final prefs = await _load();
+    LocalWriteSession.check(_generation);
     final raw = prefs.getString(key);
     if (raw == null) {
       return;
@@ -285,6 +296,7 @@ class PrefsActiveRideRepository
   @override
   Future<void> clear() => _enqueue(() async {
     final prefs = await _load();
+    LocalWriteSession.check(_generation);
     if (!await prefs.remove(key)) {
       throw StateError('Active ride could not be cleared');
     }
