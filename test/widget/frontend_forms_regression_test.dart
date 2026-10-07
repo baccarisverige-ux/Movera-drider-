@@ -103,10 +103,13 @@ void main() {
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
-    await tester.pumpWidget(app(const SoundAndVoice()));
-    await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('Voice navigation'), findsOneWidget);
-    expect(find.bySemanticsLabel('Read rider messages'), findsOneWidget);
+    try {
+      await tester.pumpWidget(app(const SoundAndVoice()));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Voice navigation'), findsOneWidget);
+      expect(find.bySemanticsLabel('Read rider messages'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
   });
 }
