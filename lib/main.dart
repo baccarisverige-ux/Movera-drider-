@@ -59,7 +59,7 @@ class _MoveraAppState extends State<MoveraApp> {
   late final RoadRouteService _routing;
   late final DispatchRepository _dispatch;
   late final DriverHomeConfigRepository _homeConfig;
-  late final ActiveRideRepository _activeRide;
+  late ActiveRideRepository _activeRide;
 
   @override
   void initState() {
@@ -130,6 +130,7 @@ class _MoveraAppState extends State<MoveraApp> {
     await CompletionJournal.settle();
     await SettingsRepository.settle();
     await clearLocalUserData();
+    _activeRide = PrefsActiveRideRepository();
     _waybills.reset();
     final dispatch = _dispatch;
     if (dispatch is DemoDispatchRepository) {
