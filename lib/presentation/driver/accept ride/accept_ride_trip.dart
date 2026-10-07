@@ -589,7 +589,7 @@ extension _AcceptRideTrip on _AcceptRideState {
 
           _routeDurationSeconds = route.durationSeconds;
         }
-        _routeLoading = _navigation.status != null;
+        _routeLoading = _navigation.routeState == RouteLoadState.loading;
         _locationStatus = _navigation.status;
       });
     }

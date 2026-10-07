@@ -170,14 +170,14 @@ class DriverCameraPolicy {
   }
 
   bool _samePolyline(RoadRoute? next, RoadRoute? previous) {
-    if (identical(next, previous)) {
+    if (next == null && previous == null) {
       return true;
     }
     if (next == null || previous == null) {
       return false;
     }
     final a = next.points;
-    final b = previous.points;
+    final b = _geometry?.points ?? previous.points;
     if (a.length != b.length) {
       return false;
     }
