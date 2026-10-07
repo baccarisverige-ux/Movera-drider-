@@ -106,11 +106,11 @@ Future<void> clearLocalUserData({
     final prefs = await (load ?? SharedPreferences.getInstance)();
     const exact = <String>[
       PrefsActiveRideRepository.key,
-      PrefsActiveRideRepository.terminalKey,
       CompletionJournal.key,
       PrefsTripHistoryRepository.key,
       LocalSupportRepository.key,
       SettingsRepository.key,
+      PrefsActiveRideRepository.terminalKey,
     ];
     for (final key in exact) {
       if (!await prefs.remove(key)) {
