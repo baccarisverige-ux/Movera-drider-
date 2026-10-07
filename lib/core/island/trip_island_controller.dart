@@ -39,7 +39,8 @@ class TripIslandController extends ChangeNotifier {
     _cycle();
   }
   TripIslandInput _input;
-  Timer? _idle, _waitingCycle;
+  Timer? _idle, _waitingCycle, _noticeTimer;
+  TripIslandFace? _notice;
   bool defaultFace = false, waitingMessageFace = false;
   int _pointers = 0;
   bool _disposed = false;
@@ -49,12 +50,37 @@ class TripIslandController extends ChangeNotifier {
     final changedWait =
         wasWaiting != (input.waitingSeconds != null) ||
         _input.waitingAtStop != input.waitingAtStop;
+    final previous = _input;
+    final previousFault = previous.navigationStatus ?? previous.banner?.status;
+    final fault = input.navigationStatus ?? input.banner?.status;
     _input = input;
+    if (wasWaiting && input.waitingSeconds == null) {
+      _showNotice(previous.waitingAtStop ? input.status : 'Trip started');
+    } else if (previousFault != null && fault == null) {
+      _showNotice(
+        previousFault.contains('Location') ? 'GPS restored' : 'Route updated',
+      );
+    } else if (wasWaiting &&
+        input.waitingSeconds != null &&
+        previous.waitingAtStop == input.waitingAtStop &&
+        previous.waitingMessage != input.waitingMessage) {
+      _showNotice(input.waitingMessage);
+    }
     if (changedWait) {
       waitingMessageFace = false;
       _cycle();
     }
     notifyListeners();
+  }
+
+  void _showNotice(String title) {
+    _noticeTimer?.cancel();
+    _notice = TripIslandFace(TripIslandKind.status, title, '', 'notice-$title');
+    _noticeTimer = Timer(const Duration(seconds: 2), () {
+      if (_disposed) return;
+      _notice = null;
+      notifyListeners();
+    });
   }
 
   void hold() {
@@ -96,6 +122,13 @@ class TripIslandController extends ChangeNotifier {
     if (fault != null && fault.isNotEmpty) {
       return TripIslandFace(TripIslandKind.status, fault, '', 'status-$fault');
     }
+    final b = i.banner;
+    final maneuver =
+        b != null &&
+        b.symbol != NavigationBannerSymbol.arrive &&
+        b.symbol != NavigationBannerSymbol.straight;
+    if (_notice != null && (i.waitingSeconds != null || !maneuver))
+      return _notice!;
     if (i.waitingSeconds != null) {
       if (waitingMessageFace) {
         return TripIslandFace(
@@ -119,12 +152,7 @@ class TripIslandController extends ChangeNotifier {
         'waiting-timer-${i.waitingAtStop}-${i.paidWait}',
       );
     }
-    final b = i.banner;
     // A real maneuver beats proximity copy until the final arrival instruction.
-    final maneuver =
-        b != null &&
-        b.symbol != NavigationBannerSymbol.arrive &&
-        b.symbol != NavigationBannerSymbol.straight;
     if (i.arrival != null && !maneuver) {
       return TripIslandFace(
         TripIslandKind.arrival,
@@ -157,6 +185,7 @@ class TripIslandController extends ChangeNotifier {
     _disposed = true;
     _idle?.cancel();
     _waitingCycle?.cancel();
+    _noticeTimer?.cancel();
     super.dispose();
   }
 }
