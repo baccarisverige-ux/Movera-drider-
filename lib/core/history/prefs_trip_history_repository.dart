@@ -4,6 +4,9 @@ import 'package:movera/core/logging/driver_log.dart';
 
 import 'dart:convert';
 
+import 'package:movera/core/storage/local_quarantine.dart';
+import 'package:movera/core/storage/local_write_session.dart';
+
 import 'package:movera/core/history/trip_history.dart';
 import 'package:movera/core/waybill/waybill.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,15 +20,21 @@ class PrefsTripHistoryRepository {
   static const key = 'movera_driver_completed_trips';
   final Future<SharedPreferences> Function() _load;
   static Future<void>? _pending;
-
-  Future<List<TripHistoryRecord>> list() async {
+  final int _generation = LocalWriteSession.generation;
+  static Future<void> settle() async {
     await _pending;
+  }
+
+  Future<List<TripHistoryRecord>> list() => _enqueue(() async {
+    LocalWriteSession.check(_generation);
     final prefs = await _load();
     final raw = prefs.getString(key);
     if (raw == null) {
       return const <TripHistoryRecord>[];
     }
-    return _decode(raw)
+    final decoded = _decode(raw);
+    await _preserveInvalid(prefs, raw, decoded);
+    return decoded.rows
         .map(
           (data) => TripHistoryRecord(
             tripId: data['tripId'] as String,
@@ -51,32 +60,33 @@ class PrefsTripHistoryRepository {
           ),
         )
         .toList(growable: false);
-  }
+  });
 
   static const maxReceipts = 500;
-  List<Map<String, dynamic>> _decode(String? raw) {
+  _HistoryDecode _decode(String? raw) {
     if (raw == null) {
-      return [];
+      return const _HistoryDecode([], invalid: true);
     }
     dynamic decoded;
     try {
       decoded = jsonDecode(raw);
     } catch (error) {
       DriverLog.warn('History JSON malformed: $error');
-      return [];
+      return const _HistoryDecode([], invalid: true);
     }
     if (decoded is Map) {
       if (decoded['schemaVersion'] != 1) {
-        throw StateError('Unsupported history schema');
+        return const _HistoryDecode([], invalid: true, unsupported: true);
       }
       decoded = decoded['rows'];
     }
     if (decoded is! List) {
       DriverLog.warn('History rows are malformed');
-      return [];
+      return const _HistoryDecode([], invalid: true);
     }
     final ids = <String>{};
     final rows = <Map<String, dynamic>>[];
+    bool invalid = false;
     for (final row in decoded) {
       if (row is! Map ||
           ![
@@ -89,9 +99,23 @@ class PrefsTripHistoryRepository {
             'category',
           ].every((key) => row[key] is String) ||
           (row['tripId'] as String).isEmpty ||
+          ![
+            'distance',
+            'duration',
+            'tip',
+            'paymentMethod',
+            'cancellationActor',
+            'cancellationReasonCode',
+          ].every((key) => row[key] == null || row[key] is String) ||
+          (row['fareMinorUnits'] != null && row['fareMinorUnits'] is! int) ||
+          (row['status'] != null &&
+              !TripStatus.values.any(
+                (status) => status.name == row['status'],
+              )) ||
           (row['completedAt'] != null &&
               (row['completedAt'] is! String ||
                   DateTime.tryParse(row['completedAt'] as String) == null))) {
+        invalid = true;
         DriverLog.warn('Skipping malformed history row');
         continue;
       }
@@ -108,7 +132,22 @@ class PrefsTripHistoryRepository {
                     DateTime(1970),
               ),
     );
-    return rows.take(maxReceipts).toList();
+    return _HistoryDecode(rows.take(maxReceipts).toList(), invalid: invalid);
+  }
+
+  Future<void> _preserveInvalid(
+    SharedPreferences prefs,
+    String raw,
+    _HistoryDecode decoded,
+  ) async {
+    if (!decoded.invalid) return;
+    LocalWriteSession.check(_generation);
+    await LocalQuarantine.storeOnce(
+      prefs,
+      source: 'history',
+      raw: raw,
+      reason: 'Malformed or unsupported history data',
+    );
   }
 
   Future<void> archive(
@@ -123,11 +162,18 @@ class PrefsTripHistoryRepository {
     String? cancellationReasonCode,
     bool authoritative = false,
   }) {
-    final previous = _pending;
     Future<void> write() async {
       final prefs = await _load();
       final raw = prefs.getString(key);
-      final rows = _decode(raw);
+      LocalWriteSession.check(_generation);
+      final decoded = _decode(raw);
+      if (raw != null) {
+        await _preserveInvalid(prefs, raw, decoded);
+      }
+      if (decoded.unsupported) {
+        throw StateError('Unsupported history schema; original preserved');
+      }
+      final rows = List<Map<String, dynamic>>.of(decoded.rows);
       if (rows.whereType<Map>().any((row) => row['tripId'] == record.tripId)) {
         if (!authoritative) return;
         rows.removeWhere((row) => row['tripId'] == record.tripId);
@@ -156,6 +202,7 @@ class PrefsTripHistoryRepository {
           'paymentMethod': paymentMethod!.trim(),
         'completedAt': at.toIso8601String(),
       });
+      LocalWriteSession.check(_generation);
       final success = await prefs.setString(
         key,
         jsonEncode({
@@ -168,14 +215,31 @@ class PrefsTripHistoryRepository {
       }
     }
 
-    final result = previous == null ? write() : previous.then((_) => write());
-    final tail = result.catchError((Object _) {});
+    return _enqueue(write);
+  }
+
+  Future<T> _enqueue<T>(Future<T> Function() action) {
+    final previous = _pending;
+    final result = previous == null ? action() : previous.then((_) => action());
+    final tail = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
     _pending = tail;
     tail.then((_) {
-      if (identical(_pending, tail)) {
-        _pending = null;
-      }
+      if (identical(_pending, tail)) _pending = null;
     });
     return result;
   }
+}
+
+class _HistoryDecode {
+  const _HistoryDecode(
+    this.rows, {
+    this.invalid = false,
+    this.unsupported = false,
+  });
+  final List<Map<String, dynamic>> rows;
+  final bool invalid;
+  final bool unsupported;
 }

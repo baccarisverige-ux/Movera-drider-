@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:movera/core/storage/local_write_session.dart';
+
 import 'package:movera/core/logging/driver_log.dart';
 import 'package:movera/core/storage/local_quarantine.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,22 +12,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// cannot erase unrelated sections. The legacy aggregate key remains readable
 /// for existing installs.
 class SettingsRepository {
+  SettingsRepository({Future<SharedPreferences> Function()? load})
+    : _load = load ?? SharedPreferences.getInstance;
+  final Future<SharedPreferences> Function() _load;
   static const key = 'movera_driver_settings';
   static const sectionPrefix = 'movera_driver_settings_section_';
   static const _sectionPrefix = sectionPrefix;
   static Future<void>? _pending;
+  final int _generation = LocalWriteSession.generation;
 
   /// Completes after every storage operation queued so far has finished.
   static Future<void> settle() async {
     final pending = _pending;
-    if (pending != null) { await pending; }
+    if (pending != null) {
+      await pending;
+    }
   }
 
   String _sectionKey(String section) => '$_sectionPrefix$section';
 
-  Future<Map<String, dynamic>> read(String section) async {
-    await _pending;
-    final prefs = await SharedPreferences.getInstance();
+  Future<Map<String, dynamic>> read(String section) => _enqueue(() async {
+    final prefs = await _load();
+    LocalWriteSession.check(_generation);
 
     final isolated = prefs.getString(_sectionKey(section));
     if (isolated != null) {
@@ -59,7 +67,7 @@ class SettingsRepository {
       await _quarantine(prefs, key, legacy, error);
       return <String, dynamic>{};
     }
-  }
+  });
 
   Future<void> _quarantine(
     SharedPreferences prefs,
@@ -68,21 +76,26 @@ class SettingsRepository {
     Object error,
   ) async {
     try {
-      await LocalQuarantine.store(
+      LocalWriteSession.check(_generation);
+      await LocalQuarantine.storeOnce(
         prefs,
         source: 'settings',
         raw: raw,
         reason: '$storageKey: $error',
       );
-      await prefs.remove(storageKey);
+      if (!await prefs.remove(storageKey)) {
+        throw StateError('Settings recovery failed');
+      }
     } catch (quarantineError) {
       DriverLog.warn('Settings quarantine failed: $quarantineError');
+      rethrow;
     }
   }
 
   Future<void> save(String section, Map<String, dynamic> values) {
     Future<void> write() async {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _load();
+      LocalWriteSession.check(_generation);
       final payload = jsonEncode(<String, dynamic>{
         'schemaVersion': 1,
         'values': values,
@@ -92,12 +105,21 @@ class SettingsRepository {
       }
     }
 
+    return _enqueue(write);
+  }
+
+  Future<T> _enqueue<T>(Future<T> Function() action) {
     final previous = _pending;
-    final result = previous == null ? write() : previous.then((_) => write());
-    final tail = result.catchError((Object _) {});
+    final result = previous == null ? action() : previous.then((_) => action());
+    final tail = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
     _pending = tail;
     tail.then((_) {
-      if (identical(_pending, tail)) { _pending = null; }
+      if (identical(_pending, tail)) {
+        _pending = null;
+      }
     });
     return result;
   }
