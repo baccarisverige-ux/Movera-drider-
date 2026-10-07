@@ -4,6 +4,9 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/core/privacy/local_data.dart';
+import 'package:movera/core/ride/prefs_active_ride_repository.dart';
+import 'package:movera/core/ride/active_ride_repository.dart';
+import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/settings/settings_repository.dart';
 import 'package:movera/core/storage/local_quarantine.dart';
 import 'package:movera/core/support/local_support_repository.dart';
@@ -195,4 +198,30 @@ void main() {
     await cleanup;
     expect(LocalQuarantine.keys(prefs), isEmpty);
   });
+  test(
+    '007 old active-trip and completion owners cannot revive logout data',
+    () async {
+      final active = PrefsActiveRideRepository();
+      final journal = CompletionJournal(active: active);
+      await clearLocalUserData();
+      await expectLater(
+        active.save(
+          const PersistedActiveRide(
+            tripId: 'old',
+            stage: ActiveRideStage.onTrip,
+          ),
+        ),
+        throwsStateError,
+      );
+      await expectLater(journal.finish(receipt()), throwsStateError);
+      final fresh = PrefsActiveRideRepository();
+      await fresh.save(
+        const PersistedActiveRide(
+          tripId: 'new',
+          stage: ActiveRideStage.headingToPickup,
+        ),
+      );
+      expect((await fresh.read())?.tripId, 'new');
+    },
+  );
 }
