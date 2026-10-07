@@ -1,22 +1,29 @@
 import 'dart:io';
+
+import 'package:movera/presentation/driver/accept%20ride/island_waiting_motion.dart';
+
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:movera/presentation/driver/accept%20ride/trip_island.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/adaptive_trip_island.dart';
 
 Widget surface({
   int? seconds,
+  bool waitingAtStop = false,
   VoidCallback? route,
   String waitingMessage = 'Waiting for Angelica',
   double width = 320,
   double textScale = 1,
   String? fontFamily,
   String? arrival,
+  NavigationBanner? banner,
+  double progress = .4,
 }) => MaterialApp(
   theme: ThemeData(fontFamily: fontFamily),
   builder: (context, child) => MediaQuery(
@@ -31,20 +38,23 @@ Widget surface({
         width: width,
         height: 220,
         child: AdaptiveTripIsland(
-          banner: const NavigationBanner(
-            primary: 'Roundabout, exit 3',
-            distanceLabel: '150 m',
-            symbol: NavigationBannerSymbol.roundabout,
-            roadName: 'Sveavägen',
-          ),
+          banner:
+              banner ??
+              const NavigationBanner(
+                primary: 'Roundabout, exit 3',
+                distanceLabel: '150 m',
+                symbol: NavigationBannerSymbol.roundabout,
+                roadName: 'Sveavägen',
+              ),
           status: 'To pickup',
           address: 'Sveavägen 20',
           detail: 'Picking up Angelica',
           eta: '2 min',
           distance: '1.4 km',
           arrival: arrival,
-          progress: .4,
+          progress: progress,
           waitingSeconds: seconds,
+          waitingAtStop: waitingAtStop,
           waitingMessage: waitingMessage,
           lastTripLabel: '120 kr',
           onRadar: () {},
@@ -82,6 +92,11 @@ void main() {
     }
     Future<void> capture(String name) async {
       await tester.pump();
+      final size = tester.getSize(
+        find.byKey(const ValueKey('island-morph-shell')),
+      );
+      expect(size.height, closeTo(TripIslandGeometry.height, 0.000001));
+      expect(size.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
       final boundary = tester.renderObject<RenderRepaintBoundary>(
         find.byKey(const ValueKey('island-visual-proof')),
       );
@@ -95,20 +110,179 @@ void main() {
       });
     }
 
-    await tester.pumpWidget(surface(fontFamily: font));
-    await capture('guidance');
+    final stages = <String, NavigationBanner>{
+      '01-pickup': const NavigationBanner(
+        primary: 'Toward pickup · 450 m',
+        distanceLabel: '',
+        symbol: NavigationBannerSymbol.arrive,
+      ),
+      '02-straight': const NavigationBanner(
+        primary: 'Continue ahead · 800 m',
+        distanceLabel: '',
+        symbol: NavigationBannerSymbol.straight,
+      ),
+      '03-right': const NavigationBanner(
+        primary: 'Turn right · 180 m',
+        distanceLabel: '',
+        roadName: 'Sveavägen',
+        symbol: NavigationBannerSymbol.right,
+      ),
+      '04-roundabout': const NavigationBanner(
+        primary: 'Take 2nd exit',
+        distanceLabel: 'Roundabout · 50 m',
+        exitNumber: '2',
+        exitAngleDegrees: 90,
+        symbol: NavigationBannerSymbol.roundabout,
+      ),
+      '08-trip-started': const NavigationBanner(
+        primary: 'Taking Angelica to destination',
+        distanceLabel: '',
+        symbol: NavigationBannerSymbol.arrive,
+      ),
+      '09-dropoff': const NavigationBanner(
+        primary: 'Keep left · 300 m',
+        distanceLabel: '',
+        roadName: 'E4 toward Stockholm',
+        symbol: NavigationBannerSymbol.slightLeft,
+      ),
+      '10-stop': const NavigationBanner(
+        primary: 'Arriving at stop · 100 m',
+        distanceLabel: '',
+        symbol: NavigationBannerSymbol.arrive,
+      ),
+    };
+    for (final entry in stages.entries) {
+      await tester.pumpWidget(surface(fontFamily: font, banner: entry.value));
+      await tester.pump(const Duration(seconds: 1));
+      await capture(entry.key);
+    }
     await tester.pumpWidget(
-      surface(fontFamily: font, arrival: 'Arriving soon'),
+      surface(
+        fontFamily: font,
+        arrival: 'Pickup',
+        banner: const NavigationBanner(
+          primary: 'Pickup',
+          distanceLabel: '',
+          symbol: NavigationBannerSymbol.arrive,
+        ),
+      ),
     );
     await tester.pump(const Duration(seconds: 1));
-    await capture('arrival');
-    await tester.pumpWidget(surface(seconds: 125, fontFamily: font));
+    await capture('05-arrival-pickup');
+    await tester.pumpWidget(surface(seconds: 155, fontFamily: font));
+    for (var frame = 0; frame < 30; frame++) {
+      await tester.pump(const Duration(milliseconds: 33));
+      await capture('motion-${frame.toString().padLeft(3, '0')}');
+    }
+    await capture('06-timer');
+    await tester.pumpWidget(surface(seconds: 156, fontFamily: font));
+    await tester.pump();
+    for (var frame = 0; frame < 30; frame++) {
+      await tester.pump(const Duration(milliseconds: 33));
+      await capture('waiting-motion-${frame.toString().padLeft(3, '0')}');
+    }
+    for (
+      var tick = 0;
+      tick < 50 &&
+          find.byKey(const ValueKey('island-waiting-name')).evaluate().isEmpty;
+      tick++
+    ) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('Waiting for Angelica'), findsOneWidget);
+    await capture('07-rider-message');
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(
+      surface(
+        seconds: 155,
+        fontFamily: font,
+        waitingMessage: 'Waiting at stop 2',
+        waitingAtStop: true,
+      ),
+    );
+    await capture('10b-stop-timer');
+    await tester.pump(const Duration(seconds: 8));
     await tester.pump(const Duration(seconds: 1));
-    await capture('timer');
-    await tester.pump(const Duration(seconds: 7));
+    await capture('10c-stop-message');
+    await tester.pumpWidget(
+      surface(
+        fontFamily: font,
+        arrival: 'Destination',
+        banner: const NavigationBanner(
+          primary: 'Destination',
+          distanceLabel: '',
+          symbol: NavigationBannerSymbol.arrive,
+        ),
+      ),
+    );
     await tester.pump(const Duration(seconds: 1));
-    await capture('rider-message');
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 800));
+    await capture('11-arrival-destination');
+    await tester.tap(find.text('Arriving soon'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(find.byKey(const ValueKey('trip-default-island')), findsOneWidget);
+    await capture('00-default');
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets(
+    'Short content stays default width and text is at the capsule center',
+    (tester) async {
+      await tester.pumpWidget(
+        surface(
+          banner: const NavigationBanner(
+            primary: 'Ready',
+            distanceLabel: '',
+            symbol: NavigationBannerSymbol.straight,
+          ),
+        ),
+      );
+      final shell = find.byKey(const ValueKey('island-morph-shell'));
+      expect(tester.getSize(shell).width, TripIslandGeometry.width);
+      expect(
+        tester.getCenter(find.text('Ready')).dx,
+        closeTo(tester.getCenter(shell).dx, .001),
+      );
+      await tester.pumpWidget(
+        surface(
+          banner: const NavigationBanner(
+            primary: 'Take the next right turn',
+            distanceLabel: '180 m',
+            symbol: NavigationBannerSymbol.right,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        tester.getSize(shell).width,
+        lessThanOrEqualTo(TripIslandGeometry.width * 1.15),
+      );
+      expect(tester.getSize(shell).height, TripIslandGeometry.height);
+      expect(
+        tester.getCenter(find.text('Take the next right turn')).dx,
+        closeTo(tester.getCenter(shell).dx, .001),
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets('Normal islands stay compact at phone width', (tester) async {
+    await tester.pumpWidget(surface(width: 375));
+    final driving = tester.getSize(
+      find.byKey(const ValueKey('island-morph-shell')),
+    );
+    expect(driving.height, TripIslandGeometry.height);
+    expect(driving.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
+    await tester.pumpWidget(surface(width: 375, seconds: 155));
+    await tester.pump(const Duration(seconds: 1));
+    final waiting = tester.getSize(
+      find.byKey(const ValueKey('island-morph-shell')),
+    );
+    expect(waiting.height, TripIslandGeometry.height);
+    expect(waiting.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
+    expect(waiting.width, closeTo(TripIslandGeometry.width, .001));
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(
@@ -198,15 +372,30 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(surface(seconds: 125));
-    expect(find.text('02:05'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is IslandRollingClock && w.text == '02:05',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Waiting for Angelica'), findsNothing);
     await tester.pump(const Duration(seconds: 8));
     await tester.pump(const Duration(milliseconds: 900));
     expect(find.text('Waiting for Angelica'), findsOneWidget);
-    expect(find.text('02:05'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is IslandRollingClock && w.text == '02:05',
+      ),
+      findsNothing,
+    );
     await tester.pump(const Duration(milliseconds: 1100));
     await tester.pump(const Duration(milliseconds: 900));
-    expect(find.text('02:05'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is IslandRollingClock && w.text == '02:05',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Waiting for Angelica'), findsNothing);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 10));

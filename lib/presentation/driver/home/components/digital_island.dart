@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -456,7 +455,7 @@ class DigitalMessageFace extends StatefulWidget {
       textScaler: MediaQuery.textScalerOf(context),
       maxLines: 1,
     )..layout();
-    return _lamp + _gap + painter.width + (tappable ? _arrow + 4 : 0);
+    return 2 * (_lamp + _gap) + painter.width;
   }
 
   @override
@@ -570,107 +569,25 @@ class _DigitalMessageFaceState extends State<DigitalMessageFace>
           Flexible(
             child: _written(_TickerLine(text: widget.title, style: messageStyle)),
           ),
-          if (widget.tappable) ...[
-            const SizedBox(width: 4),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: DigitalMessageFace._arrow,
-              color: Color(0xFF9AA4AA),
-            ),
-          ],
+          SizedBox(width: DigitalMessageFace._lamp + DigitalMessageFace._gap,
+            child: widget.tappable ? const Align(alignment: Alignment.centerRight,
+              child: Icon(Icons.chevron_right_rounded, size: DigitalMessageFace._arrow,
+                color: Color(0xFF9AA4AA))) : null),
         ],
       ),
     );
   }
 }
 
-/// One line of a message. If it is longer than the island at its widest,
-/// it scrolls slowly sideways once, like a ticker, so all of it is read.
-class _TickerLine extends StatefulWidget {
+/// Long copy remains accessible without moving the message away from center.
+class _TickerLine extends StatelessWidget {
   const _TickerLine({required this.text, required this.style});
-
   final String text;
   final TextStyle style;
-
   @override
-  State<_TickerLine> createState() => _TickerLineState();
-}
-
-class _TickerLineState extends State<_TickerLine>
-    with SingleTickerProviderStateMixin {
-  static const double _speed = 42; // px per second
-  static const Duration _wait = Duration(milliseconds: 900);
-
-  late final AnimationController _scroll = AnimationController(vsync: this);
-  double _overflow = 0;
-  bool _scheduled = false;
-  Timer? _waitTimer;
-
-  @override
-  void dispose() {
-    _waitTimer?.cancel();
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  void _start(double overflow) {
-    if (_scheduled || overflow <= 0) { return; }
-    _scheduled = true;
-    _overflow = overflow;
-    if (MediaQuery.disableAnimationsOf(context)) { return; }
-    _scroll.duration = Duration(milliseconds: (overflow / _speed * 1000).round());
-    _waitTimer = Timer(_wait, () {
-      if (mounted) { _scroll.forward(); }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final painter = TextPainter(
-          text: TextSpan(
-            text: widget.text,
-            style: DefaultTextStyle.of(context).style.merge(widget.style),
-          ),
-          textDirection: TextDirection.ltr,
-          textScaler: MediaQuery.textScalerOf(context),
-          maxLines: 1,
-        )..layout();
-        final overflow = painter.width - constraints.maxWidth;
-        if (overflow <= 0) {
-          return Text(widget.text, maxLines: 1, style: widget.style);
-        }
-        _start(overflow + 6);
-        return ClipRect(
-          child: SizedBox(
-            height: painter.height,
-            child: AnimatedBuilder(
-              animation: _scroll,
-              builder: (context, child) => Transform.translate(
-                offset: Offset(
-                  -_overflow * Curves.easeInOut.transform(_scroll.value),
-                  0,
-                ),
-                child: child,
-              ),
-              child: OverflowBox(
-                alignment: Alignment.centerLeft,
-                minWidth: 0,
-                maxWidth: double.infinity,
-                child: Text(
-                  widget.text,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: widget.style,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => Tooltip(message: text,
+    child: Text(text, textAlign: TextAlign.center, maxLines: 1,
+      overflow: TextOverflow.ellipsis, style: style));
 }
 
 /// Island pieces shared by Home and the trip screen, so both islands look

@@ -1341,7 +1341,8 @@ void main() {
     await _advanceAnimation(tester, const Duration(milliseconds: 900));
     final long = tester.getSize(island);
 
-    expect(long.width, greaterThan(short.width + 40));
+    expect(long.width, greaterThan(short.width));
+    expect(long.width, lessThanOrEqualTo(normal.width * 1.15 + 0.001));
     expect(tester.getRect(island).width, lessThanOrEqualTo(390 - 32 + 1));
     // Only the length changes; the height is always the same.
     expect(short.height, normal.height);
