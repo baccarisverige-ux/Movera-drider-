@@ -178,7 +178,7 @@ void main() {
 
     await _tapArrived(tester);
     await _slide(tester);
-    expect(find.textContaining('Dropping off'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('active-ride-panel-onTrip')), findsOneWidget);
 
     // The island keeps trip options reachable even while Radar covers the sheet.
     await _elapse(tester, const Duration(milliseconds: 700));
