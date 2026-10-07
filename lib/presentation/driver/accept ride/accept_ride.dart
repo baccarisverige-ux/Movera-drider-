@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
 import 'package:movera/core/location/location_freshness.dart';
 import 'package:movera/core/ride/completion_journal.dart';
@@ -1203,7 +1204,7 @@ class _AcceptRideState extends State<AcceptRide>
                         onRadar: _AcceptRideTrip(this)._toggleOnTripRadar,
                         onMenu: () => _rideScaffoldKey.currentState?.openDrawer(),
                         onSearch: _openDestinationPicker,
-                        onHistory: () => Navigator.push(context,
+                        onHistory: () => pushSingle(context,
                           MaterialPageRoute<void>(builder: (_) => const DriverRideHistory())),
                         onRoute: _AcceptRidePanel(this)._showTripOptions,
                         onSafety: () => showSafetyToolKitSheet(context),

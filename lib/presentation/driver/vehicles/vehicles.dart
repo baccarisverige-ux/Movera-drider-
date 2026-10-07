@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:movera/presentation/driver/add%20vehicle/add_vehicle.dart';
@@ -46,7 +47,7 @@ class _DriverVehiclesState extends State<DriverVehicles> {
         actions: [
           IconButton(tooltip: 'Add vehicle', 
             onPressed: () async {
-              await Navigator.push(
+              await pushSingle(
                 context,
                 MaterialPageRoute<void>(builder: (_) => const AddVehicle()),
               );
@@ -105,7 +106,7 @@ class _DriverVehiclesState extends State<DriverVehicles> {
                   height: 46,
                   child: FilledButton(
                     onPressed: () async {
-                      await Navigator.push(
+                      await pushSingle(
                         context,
                         MaterialPageRoute<void>(
                           builder: (_) => VehicleDocuments(

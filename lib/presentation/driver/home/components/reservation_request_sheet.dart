@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/core/admin/driver_home_admin_content.dart';
@@ -80,7 +81,7 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
   }
 
   void _openRouteMap() {
-    Navigator.of(context).push(
+    pushSingle(context,
       MaterialPageRoute<void>(
         builder: (_) => ReservationRouteMapPage(
           request: request,

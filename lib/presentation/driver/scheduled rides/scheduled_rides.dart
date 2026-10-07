@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 
 class ScheduledRidesScreen extends StatefulWidget {
@@ -84,7 +85,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
 
 
   Future<void> _openRideDetails(_ScheduledRide ride) async {
-    final action = await Navigator.of(context).push<_ScheduledRideAction>(
+    final action = await pushSingle<_ScheduledRideAction>(context,
       MaterialPageRoute(
         builder: (_) => _ScheduledRideDetailsScreen(ride: ride),
       ),

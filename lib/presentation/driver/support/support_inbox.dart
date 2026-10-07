@@ -1,3 +1,5 @@
+import 'package:movera/widgets/single_route_entry.dart';
+
 import 'dart:async';
 
 import 'package:movera/core/support/local_support_repository.dart';
@@ -15,6 +17,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   late final _repository = widget.repository ?? LocalSupportRepository();
   bool _restoreFailed = false;
   bool _loading = true;
+  bool _opening = false;
   @override
   void initState() {
     super.initState();
@@ -84,6 +87,16 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   }
 
   Future<void> _newTicket() async {
+    if (_opening || _loading || _restoreFailed) return;
+    _opening = true;
+    try {
+      await _createTicket();
+    } finally {
+      _opening = false;
+    }
+  }
+
+  Future<void> _createTicket() async {
     if (_loading) {
       return;
     }
@@ -332,7 +345,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
       return;
     }
     setState(() => ticket.unread = false);
-    Navigator.push(
+    pushSingle(
       context,
       MaterialPageRoute(
         builder: (_) => _Conversation(ticket: ticket, onChanged: _saveTickets),

@@ -496,7 +496,7 @@ extension _HomeOfferRadar on _DriverHomeState {
       _radarOfferTwoTimer?.cancel();
       _radarOfferThreeTimer?.cancel();
 
-      Navigator.push(
+      pushSingle(
         context,
         ActiveRideTransition(
           AcceptRide(
@@ -544,7 +544,7 @@ extension _HomeOfferRadar on _DriverHomeState {
       _radarOfferTwoTimer?.cancel();
       _radarOfferThreeTimer?.cancel();
 
-      Navigator.push(
+      pushSingle(
         context,
         ActiveRideTransition(
           AcceptRide(

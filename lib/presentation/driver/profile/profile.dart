@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/privacy/local_data.dart';
 import 'package:movera/core/vehicle/local_vehicle_store.dart';
@@ -46,7 +47,7 @@ class DriverProfile extends StatelessWidget {
         actions: [
           IconButton(tooltip: 'Settings', 
             onPressed: () {
-              Navigator.push(context, RightToLeftTransition(const Settings()));
+              pushSingle(context, RightToLeftTransition(const Settings()));
             },
             icon: const Icon(Icons.tune_rounded, color: _ink, size: 22),
           ),
@@ -189,7 +190,7 @@ class DriverProfile extends StatelessWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
-        onTap: () => Navigator.push(context, RightToLeftTransition(page)),
+        onTap: () => pushSingle(context, RightToLeftTransition(page)),
         borderRadius: BorderRadius.circular(18),
         child: Container(
           padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
@@ -245,7 +246,7 @@ class DriverProfile extends StatelessWidget {
           for (final item in items)
             InkWell(
               onTap: () =>
-                  Navigator.push(context, RightToLeftTransition(item.page)),
+                  pushSingle(context, RightToLeftTransition(item.page)),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
                 child: Row(

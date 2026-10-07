@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:movera/constants/appassets.dart';
@@ -34,9 +35,7 @@ class DriverSideMenu extends StatelessWidget {
   // Uses a non-[PageRoute] so [HeroController] cannot park the page offstage
   // (which would make Back / [Navigator.pop] a no-op in widget tests).
   void _open(BuildContext context, Widget page) {
-    Navigator.of(context, rootNavigator: true).push(
-      _DriverMenuRoute(page),
-    );
+    pushSingle(context, _DriverMenuRoute(page), rootNavigator: true);
   }
 
   @override

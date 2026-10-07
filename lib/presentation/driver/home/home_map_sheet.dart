@@ -1240,7 +1240,7 @@ extension _HomeMapSheet on _DriverHomeState {
     void _openRideHistoryFromIsland() {
       _islandIdleTimer?.cancel();
       _rebuild(() => _islandFace = _IslandFace.hidden);
-      Navigator.push(
+      pushSingle(
         context,
         MaterialPageRoute<void>(builder: (_) => const DriverRideHistory()),
       );
@@ -1974,7 +1974,7 @@ extension _HomeMapSheet on _DriverHomeState {
     }
     /// The event cards, one under the other, on their own page.
     void _openDriverEvents(List<DriverEventConfig> events) {
-      Navigator.push(
+      pushSingle(
         context,
         MaterialPageRoute<void>(
           builder: (pageContext) => Scaffold(

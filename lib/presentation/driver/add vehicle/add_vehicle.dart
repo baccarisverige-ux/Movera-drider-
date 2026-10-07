@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -222,7 +223,7 @@ class _AddVehicleState extends State<AddVehicle> {
                         try {
                           await LocalVehicleStore().upsert({'id':_vehicleId,'make':_make.text.trim(),'model':_model.text.trim(),'year':_year!,'plate':_plate.text.trim()});
                           if(!context.mounted) { return; }
-                        await Navigator.push(
+                        await pushSingle(
                           context,
                           MaterialPageRoute<void>(
                             builder: (_) => VehicleDocuments(
@@ -360,7 +361,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
     required bool registration,
   }) async {
     if(_busy || _draft==null) { return; }
-    final saved = await Navigator.push<Uint8List>(
+    final saved = await pushSingle<Uint8List>(
       context,
       MaterialPageRoute(
         builder: (_) => _VehiclePhotoPage(title: title, checks: checks),

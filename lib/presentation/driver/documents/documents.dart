@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'document_preview.dart';
 import 'package:movera/widgets/navigation_transition.dart';
@@ -182,7 +183,7 @@ class DriverDocuments extends StatelessWidget {
         for (var i = 0; i < items.length; i++) ...[
           InkWell(
             onTap: () {
-              Navigator.push(
+              pushSingle(
                 context,
                 RightToLeftTransition(DocumentPreview(title: items[i].title)),
               );

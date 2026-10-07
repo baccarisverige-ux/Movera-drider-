@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/presentation/driver/pin%20verification/pin_verification.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
@@ -50,7 +51,7 @@ class _SettingsState extends State<Settings> {
             _row(
               icon: Icons.volume_up_outlined,
               title: 'Sound & voice',
-              onTap: () => Navigator.push(
+              onTap: () => pushSingle(
                 context,
                 RightToLeftTransition(const SoundAndVoice()),
               ),
@@ -71,7 +72,7 @@ class _SettingsState extends State<Settings> {
             _row(
               icon: Icons.accessibility_new_rounded,
               title: 'Accessibility',
-              onTap: () => Navigator.push(
+              onTap: () => pushSingle(
                 context,
                 RightToLeftTransition(const Accessibility()),
               ),
@@ -79,7 +80,7 @@ class _SettingsState extends State<Settings> {
             _row(
               icon: Icons.pin_outlined,
               title: 'Pin verification',
-              onTap: () => Navigator.push(
+              onTap: () => pushSingle(
                 context,
                 RightToLeftTransition(const PinVerification()),
               ),
@@ -87,7 +88,7 @@ class _SettingsState extends State<Settings> {
             _row(
               icon: Icons.contact_phone_outlined,
               title: 'Emergency contacts',
-              onTap: () => Navigator.push(
+              onTap: () => pushSingle(
                 context,
                 RightToLeftTransition(const EmergencyContactsScreen()),
               ),

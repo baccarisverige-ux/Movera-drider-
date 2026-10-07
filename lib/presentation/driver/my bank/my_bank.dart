@@ -1,3 +1,4 @@
+import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/presentation/driver/my%20bank/add%20new%20account/add_new_account.dart';
@@ -37,7 +38,7 @@ class MyBank extends StatelessWidget {
           IconButton(
             tooltip: 'Add a local preview draft',
             onPressed: () {
-              Navigator.push(context, TopToBottomTransition(const AddNewAccount()));
+              pushSingle(context, TopToBottomTransition(const AddNewAccount()));
             },
             icon: Icon(Icons.add_rounded, size: ResSize.h * 25),
           ),
