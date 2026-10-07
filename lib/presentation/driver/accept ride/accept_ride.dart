@@ -22,6 +22,7 @@ import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/navigation/live_vehicle_animator.dart';
 import 'package:movera/core/navigation/navigation_controller.dart';
 import 'package:movera/core/routing/route_instruction.dart';
+import 'package:movera/widgets/driver_route_style.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/realtime/driver_realtime.dart';
@@ -737,8 +738,8 @@ class _AcceptRideState extends State<AcceptRide>
       Polyline(
         polylineId: const PolylineId('active-road-route'),
         points: geometry.remaining(along).map((p) => p.toLatLng()).toList(),
-        width: 4,
-        color: Colors.black,
+        width: DriverRouteStyle.width,
+        color: DriverRouteStyle.color,
         geodesic: false,
         startCap: Cap.roundCap,
         endCap: Cap.roundCap,

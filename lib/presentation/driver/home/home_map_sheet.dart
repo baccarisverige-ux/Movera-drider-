@@ -250,8 +250,8 @@ extension _HomeMapSheet on _DriverHomeState {
             Polyline(
               polylineId: const PolylineId('direct_offer_road_route'),
               points: roadPoints,
-              color: AppColor.primary,
-              width: 5,
+              color: DriverRouteStyle.color,
+              width: DriverRouteStyle.width,
               geodesic: false,
               startCap: Cap.roundCap,
               endCap: Cap.roundCap,
@@ -340,8 +340,8 @@ extension _HomeMapSheet on _DriverHomeState {
             Polyline(
               polylineId: const PolylineId('destination_mode_road_route'),
               points: route.latLngPoints,
-              color: AppColor.primary,
-              width: 5,
+              color: DriverRouteStyle.color,
+              width: DriverRouteStyle.width,
               geodesic: false,
               startCap: Cap.roundCap,
               endCap: Cap.roundCap,
