@@ -173,6 +173,12 @@ void main() {
       await capture('motion-${frame.toString().padLeft(3, '0')}');
     }
     await capture('06-timer');
+    await tester.pumpWidget(surface(seconds: 156, fontFamily: font));
+    await tester.pump();
+    for (var frame = 0; frame < 30; frame++) {
+      await tester.pump(const Duration(milliseconds: 33));
+      await capture('waiting-motion-${frame.toString().padLeft(3, '0')}');
+    }
     for (
       var tick = 0;
       tick < 50 &&
@@ -218,6 +224,46 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets(
+    'Short content stays default width and text is at the capsule center',
+    (tester) async {
+      await tester.pumpWidget(
+        surface(
+          banner: const NavigationBanner(
+            primary: 'Ready',
+            distanceLabel: '',
+            symbol: NavigationBannerSymbol.straight,
+          ),
+        ),
+      );
+      final shell = find.byKey(const ValueKey('island-morph-shell'));
+      expect(tester.getSize(shell).width, TripIslandGeometry.width);
+      expect(
+        tester.getCenter(find.text('Ready')).dx,
+        closeTo(tester.getCenter(shell).dx, .001),
+      );
+      await tester.pumpWidget(
+        surface(
+          banner: const NavigationBanner(
+            primary: 'Take the next right turn',
+            distanceLabel: '180 m',
+            symbol: NavigationBannerSymbol.right,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        tester.getSize(shell).width,
+        lessThanOrEqualTo(TripIslandGeometry.width * 1.15),
+      );
+      expect(tester.getSize(shell).height, TripIslandGeometry.height);
+      expect(
+        tester.getCenter(find.text('Take the next right turn')).dx,
+        closeTo(tester.getCenter(shell).dx, .001),
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('Normal islands stay compact at phone width', (tester) async {
     await tester.pumpWidget(surface(width: 375));
     final driving = tester.getSize(

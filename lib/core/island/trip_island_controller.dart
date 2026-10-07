@@ -127,8 +127,9 @@ class TripIslandController extends ChangeNotifier {
         b != null &&
         b.symbol != NavigationBannerSymbol.arrive &&
         b.symbol != NavigationBannerSymbol.straight;
-    if (_notice != null && (i.waitingSeconds != null || !maneuver))
+    if (_notice != null && (i.waitingSeconds != null || !maneuver)) {
       return _notice!;
+    }
     if (i.waitingSeconds != null) {
       if (waitingMessageFace) {
         return TripIslandFace(
