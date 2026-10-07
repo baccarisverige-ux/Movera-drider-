@@ -55,8 +55,11 @@ class _IslandMorphState extends State<IslandMorph>
     }
     if (widget.size == _to && widget.face == oldWidget.face) return;
     final visible = _visible;
-    final oldDelta = _to - _from;
-    final nextDelta = widget.size - visible;
+    final oldDelta = Size(_to.width - _from.width, _to.height - _from.height);
+    final nextDelta = Size(
+      widget.size.width - visible.width,
+      widget.size.height - visible.height,
+    );
     final length =
         nextDelta.width * nextDelta.width + nextDelta.height * nextDelta.height;
     // Project the current geometric velocity onto the new target. Preserve

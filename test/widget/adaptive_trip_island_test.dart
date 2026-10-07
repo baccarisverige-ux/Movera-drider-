@@ -4,10 +4,21 @@ import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/adaptive_trip_island.dart';
 
-Widget surface({int? seconds, VoidCallback? route}) => MaterialApp(
+Widget surface({
+  int? seconds,
+  VoidCallback? route,
+  String waitingMessage = 'Waiting for Angelica',
+  double width = 320,
+  double textScale = 1,
+}) => MaterialApp(
+  builder: (context, child) => MediaQuery(
+    data: MediaQuery.of(context)
+        .copyWith(textScaler: TextScaler.linear(textScale)),
+    child: child!,
+  ),
   home: Scaffold(
     body: SizedBox(
-      width: 320,
+      width: width,
       child: AdaptiveTripIsland(
         banner: const NavigationBanner(
           primary: 'Roundabout, exit 3',
@@ -22,7 +33,7 @@ Widget surface({int? seconds, VoidCallback? route}) => MaterialApp(
         distance: '1.4 km',
         progress: .4,
         waitingSeconds: seconds,
-        waitingMessage: 'Waiting for Angelica',
+        waitingMessage: waitingMessage,
         lastTripLabel: '120 kr',
         onRadar: () {},
         onMenu: () {},
@@ -37,6 +48,51 @@ Widget surface({int? seconds, VoidCallback? route}) => MaterialApp(
 );
 
 void main() {
+  testWidgets(
+    'Waiting digit ticks keep geometry stable and stop message is distinct',
+    (tester) async {
+      await tester.pumpWidget(
+        surface(seconds: 9, waitingMessage: 'Waiting at stop 2'),
+      );
+      final size = tester.getSize(
+        find.byKey(const ValueKey('island-morph-shell')),
+      );
+      await tester.pumpWidget(
+        surface(seconds: 10, waitingMessage: 'Waiting at stop 2'),
+      );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('island-morph-shell'))),
+        size,
+      );
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Waiting at stop 2'), findsOneWidget);
+      expect(find.text('Waiting for Angelica'), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('Long waiting names and larger text fit narrow screens', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      surface(
+        seconds: 125,
+        width: 280,
+        textScale: 1.6,
+        waitingMessage: 'Waiting for Angelica Alexandra',
+      ),
+    );
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pump(const Duration(seconds: 1));
+    expect(
+      tester.getSize(find.byKey(const ValueKey('island-morph-shell'))).width,
+      lessThanOrEqualTo(256),
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'Island presents one maneuver and relocated route; touch restores after idle',
     (tester) async {
