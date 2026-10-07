@@ -213,7 +213,8 @@ class GoogleDriverCameraPort implements DriverCameraPort {
     } finally {
       if (generation == _generation) {
         _producingFrames = false;
-        _followOwned = false;
+        // Retain logical follow ownership while idle: delayed SDK anchor echoes
+        // must not become the interpolation origin for the next GPS fix.
         _looping = false;
       }
       if (!session.isCompleted) {
