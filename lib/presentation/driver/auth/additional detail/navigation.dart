@@ -176,18 +176,18 @@ class ProgressWidget extends StatefulWidget {
 
 class _ProgressWidgetState extends State<ProgressWidget>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _progress = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 280),
-    value: _value,
-  );
+  late final AnimationController _progress;
   double get _value => widget.totalPages <= 0
       ? 0
       : ((widget.currentPageIndex + 1) / widget.totalPages).clamp(0.0, 1.0);
   @override
   void initState() {
     super.initState();
-    _progress;
+    _progress = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+      value: _value,
+    );
   }
 
   @override
