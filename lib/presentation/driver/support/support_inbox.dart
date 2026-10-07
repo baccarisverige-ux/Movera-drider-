@@ -683,14 +683,19 @@ class _ConversationState extends State<_Conversation> {
                 ),
               ),
               const SizedBox(width: 9),
-              IconButton.filled(
-                tooltip: 'Send',
-                key: const ValueKey('local-reply-save'),
-                onPressed: _saving ? null : saveMessage,
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF202A30),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: input,
+                builder: (_, value, __) => IconButton.filled(
+                  tooltip: 'Save local reply',
+                  key: const ValueKey('local-reply-save'),
+                  onPressed: _saving || value.text.trim().isEmpty
+                      ? null
+                      : saveMessage,
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFF202A30),
+                  ),
+                  icon: const Icon(Icons.arrow_upward_rounded),
                 ),
-                icon: const Icon(Icons.arrow_upward_rounded),
               ),
             ],
           ),
