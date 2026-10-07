@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/trip_island.dart';
+import 'package:movera/presentation/driver/accept%20ride/island_morph.dart';
 
 /// Trip information has one surface. Touch temporarily reveals the original
 /// island; inactivity returns to the live face without changing trip state.
@@ -125,343 +127,332 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
     super.dispose();
   }
 
+  static const _blue = Color(0xFF3785F6);
+  static const _lavender = Color(0xFFD4B9EA);
+  static const _muted = Color(0xFFC7C8CE);
+
   @override
-  Widget build(BuildContext context) {
-    final reduced = MediaQuery.disableAnimationsOf(context);
-    final duration = reduced
-        ? Duration.zero
-        : const Duration(milliseconds: 360);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        12,
-        MediaQuery.paddingOf(context).top + 8,
-        12,
-        0,
-      ),
-      child: Listener(
-        onPointerDown: (_) {
-          _pointers++;
-          _idle?.cancel();
-        },
-        onPointerUp: (_) => _release(),
-        onPointerCancel: (_) => _release(),
-        child: _sizeTransition(
-          duration,
-          reduced,
-          AnimatedSwitcher(
-            duration: duration,
-            layoutBuilder: (current, previous) => Stack(
-              alignment: Alignment.topCenter,
-              children: [
-                ...previous.map(
-                  (child) => Positioned.fill(
-                    child: IgnorePointer(
-                      child: OverflowBox(
-                        alignment: Alignment.topCenter,
-                        minHeight: 0,
-                        maxHeight: double.infinity,
-                        child: child,
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      12,
+      MediaQuery.paddingOf(context).top + 8,
+      12,
+      0,
+    ),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        final waiting = widget.waitingSeconds != null;
+        final live = widget.banner;
+        final title = waiting
+            ? (_waitingMessage
+                  ? widget.waitingMessage
+                  : _clock(widget.waitingSeconds!))
+            : widget.arrival ?? live?.primary ?? widget.status;
+        final subtitle = waiting
+            ? (_waitingMessage
+                  ? ''
+                  : widget.paidWait
+                  ? 'Paid waiting'
+                  : 'Waiting time')
+            : widget.arrival != null
+            ? widget.address
+            : [
+                if (live?.distanceLabel.isNotEmpty ?? false)
+                  live!.distanceLabel,
+                if (live?.roadName?.isNotEmpty ?? false) live!.roadName!,
+              ].join(' · ');
+        final scale = MediaQuery.textScalerOf(context);
+        final heading = DefaultTextStyle.of(context).style.merge(
+          TextStyle(
+            color: Colors.white,
+            fontSize: waiting && !_waitingMessage ? 30 : 19,
+            fontWeight: FontWeight.w600,
+            height: 1.15,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        );
+        // Size follows measured text. Timer ticks reserve a fixed digit width.
+        final measuredTitle = waiting && !_waitingMessage
+            ? '${'8' * math.max(2, (widget.waitingSeconds! ~/ 60).toString().length)}:88'
+            : title;
+        double measure(String text, TextStyle style) {
+          final painter = TextPainter(
+            text: TextSpan(text: text, style: style),
+            textDirection: Directionality.of(context),
+            textScaler: scale,
+          )..layout();
+          return painter.width;
+        }
+
+        final minWidth = math.min(available, waiting ? 210.0 : 286.0);
+        // Secondary distance updates do not resize the capsule every GPS tick.
+        final contentInset = widget.arrival != null && !waiting ? 132.0 : 104.0;
+        final desired = measure(measuredTitle, heading) + contentInset + 4;
+        final width = desired.clamp(minWidth, available).toDouble();
+        final textWidth = math.max(1.0, width - contentInset);
+        final painter = TextPainter(
+          text: TextSpan(text: title, style: heading),
+          textDirection: Directionality.of(context),
+          textScaler: scale,
+          maxLines: 2,
+        )..layout(maxWidth: textWidth);
+        final subtitleHeight = subtitle.isEmpty
+            ? 0.0
+            : 6.0 + (scale.scale(13) * 1.2).ceilToDouble();
+        final height = math.max(
+          waiting ? 70.0 : 142.0,
+          34.0 +
+              math.max(44.0, painter.height.ceilToDouble() + subtitleHeight) +
+              (waiting ? 0.0 : 62.0),
+        );
+        final size = _defaultFace
+            ? Size(math.min(available, 244 * .8), 50.4 * .8)
+            : Size(width, height.toDouble());
+        final face = _defaultFace
+            ? 'default'
+            : waiting
+            ? (_waitingMessage ? 'waiting-message' : 'waiting-timer')
+            : widget.arrival != null
+            ? 'arrival'
+            : 'guidance-${live?.symbol.name ?? 'overview'}-$title';
+        return Align(
+          alignment: Alignment.topCenter,
+          heightFactor: 1,
+          child: Listener(
+            onPointerDown: (_) {
+              _pointers++;
+              _idle?.cancel();
+            },
+            onPointerUp: (_) => _release(),
+            onPointerCancel: (_) => _release(),
+            child: IslandMorph(
+              size: size,
+              face: face,
+              reducedMotion: MediaQuery.disableAnimationsOf(context),
+              child: _defaultFace
+                  ? TripIsland(
+                      key: const ValueKey('trip-default-island'),
+                      lastTripLabel: widget.lastTripLabel,
+                      onMenu: widget.onMenu,
+                      onSearch: widget.onSearch,
+                      onHistory: widget.onHistory,
+                    )
+                  : Padding(
+                      key: ValueKey(
+                        waiting
+                            ? 'trip-waiting-island'
+                            : 'trip-guidance-island',
                       ),
-                    ),
-                  ),
-                ),
-                ?current,
-              ],
-            ),
-            child: _defaultFace
-                ? TripIsland(
-                    key: const ValueKey('trip-default-island'),
-                    lastTripLabel: widget.lastTripLabel,
-                    onMenu: widget.onMenu,
-                    onSearch: widget.onSearch,
-                    onHistory: widget.onHistory,
-                  )
-                : Material(
-                    key: ValueKey(
-                      widget.waitingSeconds == null
-                          ? 'trip-guidance-island'
-                          : 'trip-waiting-island',
-                    ),
-                    color: const Color(0xFF050505),
-                    borderRadius: BorderRadius.circular(32),
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          widget.waitingSeconds == null
-                              ? _guidance()
-                              : _waiting(duration),
-                          const SizedBox(height: 8),
-                          _routeRow(),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                _cue(waiting, live),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: waiting && !_waitingMessage
+                                      ? InkWell(
+                                          key: const ValueKey(
+                                            'island-waiting-timer',
+                                          ),
+                                          onTap: widget.onWait,
+                                          child: _message(
+                                            title,
+                                            subtitle,
+                                            heading,
+                                          ),
+                                        )
+                                      : KeyedSubtree(
+                                          key: waiting
+                                              ? const ValueKey(
+                                                  'island-waiting-name',
+                                                )
+                                              : null,
+                                          child: _message(
+                                            title,
+                                            subtitle,
+                                            heading,
+                                          ),
+                                        ),
+                                ),
+                                if (widget.arrival != null && !waiting) ...[
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.location_on_rounded,
+                                    color: Color(0xFFF05B60),
+                                    size: 28,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (!waiting) ...[
+                            const SizedBox(height: 8),
+                            _routeProgress(),
+                          ],
                         ],
                       ),
                     ),
-                  ),
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _sizeTransition(Duration duration, bool reduced, Widget child) =>
-      reduced
-      ? child
-      : AnimatedSize(
-          duration: duration,
-          curve: Curves.easeInOutCubic,
-          alignment: Alignment.topCenter,
-          child: child,
         );
+      },
+    ),
+  );
 
-  Widget _guidance() {
-    final live = widget.banner;
-    final symbol = widget.arrival != null
-        ? NavigationBannerSymbol.arrive
-        : live?.symbol;
+  Widget _message(String title, String subtitle, TextStyle heading) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: heading),
+      if (subtitle.isNotEmpty) ...[
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: _muted, fontSize: 13, height: 1.2),
+        ),
+      ],
+    ],
+  );
+
+  Widget _cue(bool waiting, NavigationBanner? live) {
+    if (waiting) {
+      return const Icon(Icons.history_rounded, color: _lavender, size: 40);
+    }
+    final arrival = widget.arrival != null;
     final exit =
         live?.exitNumber ??
         RegExp(
           r'exit\s+(\d+)',
           caseSensitive: false,
         ).firstMatch(live?.primary ?? '')?.group(1);
-    return Row(
-      children: [
-        Semantics(
-          label:
-              '${symbol?.name ?? 'Direction'}${exit == null ? '' : ', exit $exit'}',
-          child: Container(
-            width: 54,
-            height: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFF132D27),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size(34, 37),
-                  painter: NavigationCuePainter(
-                    symbol: symbol,
-                    icon: Icons.near_me_outlined,
-                    color: const Color(0xFF54D8AC),
-                    exitNumber: exit,
-                    exitAngleDegrees: live?.exitAngleDegrees,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.arrival ?? live?.primary ?? widget.status,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w700,
-                  height: 1.15,
-                ),
+    return Semantics(
+      label: arrival
+          ? 'Arrival'
+          : '${live?.symbol.name ?? 'To destination'}${exit == null ? '' : ', exit $exit'}',
+      child: arrival
+          ? const Icon(
+              Icons.directions_walk_rounded,
+              color: Colors.white,
+              size: 44,
+            )
+          : live == null
+          ? const Icon(
+              Icons.person_outline_rounded,
+              color: Colors.white,
+              size: 42,
+            )
+          : CustomPaint(
+              size: const Size(44, 44),
+              painter: NavigationCuePainter(
+                symbol: live.symbol,
+                icon: Icons.navigation_rounded,
+                color: _blue,
+                exitNumber: exit,
+                exitAngleDegrees: live.exitAngleDegrees,
+                fontFamily: DefaultTextStyle.of(context).style.fontFamily,
               ),
-              const SizedBox(height: 4),
-              Text(
-                [
-                  if (live != null && live.distanceLabel.isNotEmpty)
-                    live.distanceLabel,
-                  if (widget.arrived)
-                    'Arrived'
-                  else if (live?.roadName?.isNotEmpty ?? false)
-                    live!.roadName!
-                  else
-                    widget.detail,
-                ].where((text) => text.isNotEmpty).join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFFC3CAC7), fontSize: 12),
-              ),
-              if (widget.status.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 3),
-                  child: Text(
-                    widget.status,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF54D8AC),
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
+            ),
     );
   }
 
-  Widget _waiting(Duration duration) => SizedBox(
-    height: 64,
-    child: Center(
-      child: AnimatedSwitcher(
-        duration: duration,
-        child: _waitingMessage
-            ? Text(
-                widget.waitingMessage,
-                key: const ValueKey('island-waiting-name'),
-                maxLines: 2,
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              )
-            : InkWell(
-                key: const ValueKey('island-waiting-timer'),
-                onTap: widget.onWait,
-                borderRadius: BorderRadius.circular(32),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF132D27),
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.timer_outlined,
-                        color: Color(0xFF54D8AC),
-                        size: 24,
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _clock(widget.waitingSeconds!),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 25,
-                              height: 1.1,
-                              fontWeight: FontWeight.w700,
+  Widget _routeProgress() => Row(
+    children: [
+      _button(
+        'Trip route and options',
+        Icons.alt_route_rounded,
+        widget.onRoute,
+      ),
+      Expanded(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Semantics(
+              label: 'Route progress',
+              value: '${(widget.progress.clamp(0, 1) * 100).round()} percent',
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(end: widget.progress.clamp(0, 1)),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 350),
+                builder: (context, progress, _) => SizedBox(
+                  height: 17,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 2,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              minHeight: 5,
+                              color: _blue,
+                              backgroundColor: const Color(0xFF40434A),
                             ),
                           ),
-                          Text(
-                            widget.paidWait ? 'Paid waiting' : 'Waiting time',
-                            style: const TextStyle(
-                              color: Color(0xFF54D8AC),
-                              fontSize: 10,
-                              height: 1.2,
-                            ),
+                        ),
+                        Positioned(
+                          left: (constraints.maxWidth - 18) * progress,
+                          bottom: 0,
+                          child: const Icon(
+                            Icons.navigation_rounded,
+                            color: _blue,
+                            size: 18,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-      ),
-    ),
-  );
-
-  Widget _routeRow() => Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      if (widget.waitingSeconds == null && widget.address.isNotEmpty)
-        Row(
-          children: [
-            const Icon(
-              Icons.location_on_outlined,
-              color: Color(0xFF54D8AC),
-              size: 16,
             ),
-            const SizedBox(width: 6),
-            Expanded(
+            const SizedBox(height: 3),
+            FittedBox(
+              fit: BoxFit.scaleDown,
               child: Text(
-                widget.address,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFFC3CAC7), fontSize: 12),
+                [
+                  widget.eta,
+                  if (widget.distance?.isNotEmpty ?? false) widget.distance!,
+                ].join(' · '),
+                style: const TextStyle(color: _muted, fontSize: 11),
               ),
             ),
           ],
         ),
-      if (widget.waitingSeconds == null)
-        Padding(
-          padding: const EdgeInsets.only(top: 7),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.navigation_rounded,
-                color: Color(0xFF559EF0),
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: widget.progress.clamp(0, 1),
-                    minHeight: 3,
-                    color: const Color(0xFF559EF0),
-                    backgroundColor: const Color(0xFF38403D),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                [
-                  widget.eta,
-                  if (widget.distance != null) widget.distance!,
-                ].join(' · '),
-                style: const TextStyle(color: Colors.white, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      Row(
-        children: [
-          _button(
-            'Trip route and options',
-            Icons.alt_route_rounded,
-            widget.onRoute,
-          ),
-          _button('Safety toolkit', Icons.shield_outlined, widget.onSafety),
-          Tooltip(
-            message: widget.paidByCash
-                ? 'Cash: collect in the car'
-                : 'Paid by card',
-            child: Icon(
-              widget.paidByCash
-                  ? Icons.payments_rounded
-                  : Icons.credit_card_rounded,
-              size: 18,
-              color: const Color(0xFFC3CAC7),
-            ),
-          ),
-          const Spacer(),
-          if (widget.radarVisible)
-            _button(
-              widget.radarOn ? 'Turn radar off' : 'Turn radar on',
-              Icons.radar_rounded,
-              widget.onRadar,
-              active: widget.radarOn,
-            ),
-        ],
       ),
+      _button('Safety toolkit', Icons.shield_outlined, widget.onSafety),
+      Tooltip(
+        message: widget.paidByCash
+            ? 'Cash: collect in the car'
+            : 'Paid by card',
+        child: Icon(
+          widget.paidByCash
+              ? Icons.payments_rounded
+              : Icons.credit_card_rounded,
+          color: _muted,
+          size: 16,
+        ),
+      ),
+      if (widget.radarVisible)
+        _button(
+          widget.radarOn ? 'Turn radar off' : 'Turn radar on',
+          Icons.radar_rounded,
+          widget.onRadar,
+          active: widget.radarOn,
+        ),
     ],
   );
 
@@ -475,11 +466,8 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
     onPressed: onTap,
     visualDensity: VisualDensity.compact,
     constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-    icon: Icon(
-      icon,
-      size: 20,
-      color: active ? const Color(0xFF54D8AC) : Colors.white,
-    ),
+    padding: const EdgeInsets.all(8),
+    icon: Icon(icon, size: 18, color: active ? _blue : _muted),
   );
 
   static String _clock(int seconds) =>

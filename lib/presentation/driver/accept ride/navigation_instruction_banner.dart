@@ -576,11 +576,12 @@ class _ArrivalRoadPainter extends CustomPainter {
 
 /// Thin navigation cue. Drawn, not a stock flag or turn glyph.
 class NavigationCuePainter extends CustomPainter {
-  NavigationCuePainter({required this.symbol, required this.icon, this.color = Colors.white, this.exitNumber, this.exitAngleDegrees});
+  NavigationCuePainter({required this.symbol, required this.icon, this.color = Colors.white, this.exitNumber, this.exitAngleDegrees, this.fontFamily});
 
   final Color color;
   final String? exitNumber;
   final double? exitAngleDegrees;
+  final String? fontFamily;
 
   final NavigationBannerSymbol? symbol;
   final IconData icon;
@@ -719,7 +720,7 @@ class NavigationCuePainter extends CustomPainter {
       }
       if (exitNumber != null) {
         final text = TextPainter(text: TextSpan(text: exitNumber,
-          style: TextStyle(color: color, fontSize: 4.6 * s, fontWeight: FontWeight.w800)),
+          style: TextStyle(color: color, fontSize: 4.6 * s, fontWeight: FontWeight.w800, fontFamily: fontFamily)),
           textDirection: TextDirection.ltr)..layout(maxWidth: 7 * s);
         text.paint(canvas, p(11, 10.5) - Offset(text.width / 2, text.height / 2));
       }
@@ -756,7 +757,7 @@ class NavigationCuePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant NavigationCuePainter oldDelegate) =>
-      oldDelegate.symbol != symbol || oldDelegate.icon != icon || oldDelegate.color != color || oldDelegate.exitNumber != exitNumber || oldDelegate.exitAngleDegrees != exitAngleDegrees;
+      oldDelegate.symbol != symbol || oldDelegate.icon != icon || oldDelegate.color != color || oldDelegate.exitNumber != exitNumber || oldDelegate.exitAngleDegrees != exitAngleDegrees || oldDelegate.fontFamily != fontFamily;
 }
 
 class _NextStopLine extends StatefulWidget {

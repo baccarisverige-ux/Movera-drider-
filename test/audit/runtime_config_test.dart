@@ -66,7 +66,7 @@ void main() {
     );
     await _mount(tester);
     await _tapArrived(tester);
-    expect(find.text('Heading to pickup'), findsWidgets);
+    expect(find.byKey(const ValueKey<String>('active-ride-arrived-button')), findsOneWidget);
     expect(find.text('Move within 100 m of the pickup to arrive.'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
