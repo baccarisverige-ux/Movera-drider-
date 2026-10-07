@@ -187,7 +187,9 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await capture('11-arrival-destination');
     await tester.tap(find.text('Arriving soon'));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
+    expect(find.byKey(const ValueKey('trip-default-island')), findsOneWidget);
     await capture('00-default');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
