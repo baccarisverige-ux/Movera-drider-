@@ -186,10 +186,10 @@ class DriverCameraPolicy {
     }
     bool same(GeoPoint p, GeoPoint q) =>
         p.latitude == q.latitude && p.longitude == q.longitude;
-    final mid = a.length ~/ 2;
-    return same(a.first, b.first) &&
-        same(a[mid], b[mid]) &&
-        same(a.last, b.last);
+    for (var i = 0; i < a.length; i++) {
+      if (!same(a[i], b[i])) return false;
+    }
+    return true;
   }
 
   bool _needsPreview(RouteManeuverType type) => switch (type) {
