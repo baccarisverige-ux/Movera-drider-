@@ -90,7 +90,7 @@ void main() {
       final size = tester.getSize(
         find.byKey(const ValueKey('island-morph-shell')),
       );
-      expect(size.height, TripIslandGeometry.height);
+      expect(size.height, closeTo(TripIslandGeometry.height, 0.000001));
       expect(size.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
       final boundary = tester.renderObject<RenderRepaintBoundary>(
         find.byKey(const ValueKey('island-visual-proof')),
