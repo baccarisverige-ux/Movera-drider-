@@ -20,7 +20,7 @@ void main() {
     });
 
     final before = LocalSupportRepository();
-    expect(await before.read(), isEmpty);
+    await expectLater(before.read(), throwsA(isA<SupportDataUnreadable>()));
 
     await clearLocalUserData();
     final prefs = await SharedPreferences.getInstance();

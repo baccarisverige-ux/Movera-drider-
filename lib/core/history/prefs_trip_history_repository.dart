@@ -173,7 +173,7 @@ class PrefsTripHistoryRepository {
       if (decoded.unsupported) {
         throw StateError('Unsupported history schema; original preserved');
       }
-      final rows = decoded.rows;
+      final rows = List<Map<String, dynamic>>.of(decoded.rows);
       if (rows.whereType<Map>().any((row) => row['tripId'] == record.tripId)) {
         if (!authoritative) return;
         rows.removeWhere((row) => row['tripId'] == record.tripId);
