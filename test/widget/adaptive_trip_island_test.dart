@@ -63,6 +63,9 @@ void main() {
     tester,
   ) async {
     String? font;
+    final icons = FontLoader('MaterialIcons')
+      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    await icons.load();
     final root = Platform.environment['FLUTTER_ROOT'];
     if (root != null) {
       final file = File(

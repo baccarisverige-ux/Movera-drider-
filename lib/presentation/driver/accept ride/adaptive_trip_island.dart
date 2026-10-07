@@ -350,6 +350,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                 color: _blue,
                 exitNumber: exit,
                 exitAngleDegrees: live.exitAngleDegrees,
+                fontFamily: DefaultTextStyle.of(context).style.fontFamily,
               ),
             ),
     );
