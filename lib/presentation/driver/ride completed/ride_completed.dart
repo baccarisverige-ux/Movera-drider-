@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:movera/presentation/driver/accept%20ride/island_morph.dart';
+import 'package:movera/presentation/driver/accept%20ride/trip_island.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
@@ -93,7 +94,10 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                   children: [
                     const Center(
                       child: IslandMorph(
-                        size: Size(230, 48),
+                        size: Size(
+                          TripIslandGeometry.width,
+                          TripIslandGeometry.height,
+                        ),
                         face: 'trip-completed',
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,

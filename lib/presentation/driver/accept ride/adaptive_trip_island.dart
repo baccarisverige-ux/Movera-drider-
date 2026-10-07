@@ -171,9 +171,9 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
         final heading = DefaultTextStyle.of(context).style.merge(
           TextStyle(
             color: Colors.white,
-            fontSize: waiting && !_waitingMessage ? 24 : 15,
+            fontSize: waiting ? (_waitingMessage ? 14 : 20) : 12.5,
             fontWeight: FontWeight.w600,
-            height: 1.15,
+            height: 1.05,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         );
@@ -190,31 +190,18 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
           return painter.width;
         }
 
-        final maximumWidth = math.min(available, 360.0);
-        final minWidth = math.min(maximumWidth, waiting ? 164.0 : 264.0);
-        // Secondary distance updates do not resize the capsule every GPS tick.
-        final contentInset = widget.arrival != null && !waiting ? 112.0 : 84.0;
+        final maximumWidth = math.min(
+          available,
+          TripIslandGeometry.maximumWidth,
+        );
+        final minWidth = math.min(maximumWidth, TripIslandGeometry.width);
+        final contentInset = widget.arrival != null && !waiting ? 82.0 : 58.0;
         final desired = measure(measuredTitle, heading) + contentInset + 4;
         final width = desired.clamp(minWidth, maximumWidth).toDouble();
-        final textWidth = math.max(1.0, width - contentInset);
-        final painter = TextPainter(
-          text: TextSpan(text: title, style: heading),
-          textDirection: Directionality.of(context),
-          textScaler: scale,
-          maxLines: 2,
-        )..layout(maxWidth: textWidth);
-        final subtitleHeight = subtitle.isEmpty
-            ? 0.0
-            : 2.0 + (scale.scale(waiting ? 10 : 11) * 1.2).ceilToDouble();
-        final height = math.max(
-          waiting ? 48.0 : 64.0,
-          16.0 +
-              math.max(32.0, painter.height.ceilToDouble() + subtitleHeight) +
-              (waiting ? 0.0 : 16.0),
+        final size = Size(
+          _defaultFace ? math.min(available, TripIslandGeometry.width) : width,
+          TripIslandGeometry.height,
         );
-        final size = _defaultFace
-            ? Size(math.min(available, 244 * .8), 50.4 * .8)
-            : Size(width, height.toDouble());
         final face = _defaultFace
             ? 'default'
             : waiting
@@ -253,8 +240,8 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                               : 'trip-guidance-island',
                         ),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                          horizontal: 12,
+                          vertical: 3,
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -271,15 +258,15 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                                         onTap: widget.onRoute,
                                         borderRadius: BorderRadius.circular(22),
                                         child: SizedBox(
-                                          width: 40,
-                                          height: 32,
+                                          width: 28,
+                                          height: 26,
                                           child: Center(
                                             child: _cue(false, live),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 6),
                                   Expanded(
                                     child: waiting && !_waitingMessage
                                         ? InkWell(
@@ -307,18 +294,18 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                                           ),
                                   ),
                                   if (widget.arrival != null && !waiting) ...[
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 4),
                                     const Icon(
                                       Icons.location_on_rounded,
                                       color: Color(0xFFF05B60),
-                                      size: 24,
+                                      size: 20,
                                     ),
                                   ],
                                 ],
                               ),
                             ),
                             if (!waiting) ...[
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 1),
                               _routeProgress(),
                             ],
                           ],
@@ -332,30 +319,57 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
     ),
   );
 
-  Widget _message(String title, String subtitle, TextStyle heading) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: heading),
-      if (subtitle.isNotEmpty) ...[
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: _muted,
-            fontSize: widget.waitingSeconds != null ? 10 : 11,
-            height: 1.2,
-          ),
-        ),
-      ],
-    ],
-  );
+  Widget _message(String title, String subtitle, TextStyle heading) =>
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final scaler = MediaQuery.textScalerOf(context);
+          final showSubtitle = subtitle.isNotEmpty && scaler.scale(1) <= 1.1;
+          final titleHeight = constraints.maxHeight - (showSubtitle ? 10.5 : 0);
+          // Geometry remains the default height, including large text settings.
+          // Full copy remains available to screen readers and the tooltip.
+          final fontSize = math.min(
+            heading.fontSize!,
+            titleHeight / (scaler.scale(1) * 1.05),
+          );
+          return Semantics(
+            label: [title, if (subtitle.isNotEmpty) subtitle].join(', '),
+            excludeSemantics: true,
+            child: Tooltip(
+              message: [title, if (subtitle.isNotEmpty) subtitle].join(' · '),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: heading.copyWith(fontSize: fontSize),
+                  ),
+                  if (showSubtitle) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 9,
+                        height: 1.05,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
+      );
 
   Widget _cue(bool waiting, NavigationBanner? live) {
     if (waiting) {
-      return const Icon(Icons.timer_outlined, color: _lavender, size: 28);
+      return const Icon(Icons.timer_outlined, color: _lavender, size: 22);
     }
     final arrival = widget.arrival != null;
     final exit =
@@ -372,16 +386,16 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
           ? const Icon(
               Icons.directions_walk_rounded,
               color: Colors.white,
-              size: 32,
+              size: 24,
             )
           : live == null
           ? const Icon(
               Icons.person_outline_rounded,
               color: Colors.white,
-              size: 32,
+              size: 24,
             )
           : CustomPaint(
-              size: const Size(32, 32),
+              size: const Size(24, 24),
               painter: NavigationCuePainter(
                 symbol: live.symbol,
                 icon: Icons.navigation_rounded,
@@ -449,12 +463,13 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
   Widget _routeProgress() => Row(
     children: [
       SizedBox(
-        width: 32,
+        width: 26,
         child: Text(
           '${(widget.progress.clamp(0, 1) * 100).round()}%',
           style: const TextStyle(
             color: _muted,
-            fontSize: 10,
+            fontSize: 7,
+            height: 1,
             fontFeatures: [FontFeature.tabularFigures()],
           ),
         ),
@@ -469,7 +484,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                 ? Duration.zero
                 : const Duration(milliseconds: 350),
             builder: (context, progress, _) => SizedBox(
-              height: 14,
+              height: 8,
               child: LayoutBuilder(
                 builder: (context, constraints) => Stack(
                   children: [
@@ -481,19 +496,19 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                         borderRadius: BorderRadius.circular(3),
                         child: LinearProgressIndicator(
                           value: progress,
-                          minHeight: 3,
+                          minHeight: 2,
                           color: _blue,
                           backgroundColor: const Color(0xFF40434A),
                         ),
                       ),
                     ),
                     Positioned(
-                      left: (constraints.maxWidth - 14) * progress,
+                      left: (constraints.maxWidth - 8) * progress,
                       bottom: 0,
                       child: const Icon(
                         Icons.arrow_upward_rounded,
                         color: _blue,
-                        size: 14,
+                        size: 8,
                       ),
                     ),
                   ],

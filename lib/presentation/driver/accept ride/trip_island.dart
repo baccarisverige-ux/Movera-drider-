@@ -6,6 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:movera/presentation/driver/home/components/digital_island.dart';
 import 'package:movera/presentation/driver/home/components/island_messages.dart';
 
+/// Shared dimensions of the default island as displayed on the driver map.
+abstract final class TripIslandGeometry {
+  static const scale = .8;
+  static const width = DigitalIslandParts.width * scale;
+  static const height = DigitalIslandParts.height * scale;
+  static const maximumWidth = width * 1.23;
+}
+
 /// The Home island on the trip screen: menu, the money screen and search,
 /// the same black island as on Home. It opens on the trip's step, e.g.
 /// "To pickup"; a tap closes that message and the island works as usual.
@@ -66,55 +74,65 @@ class _TripIslandState extends State<TripIsland> {
       setState(() => _closed = message);
       return;
     }
-    setState(() => _face = _Face.values[(_face.index + 1) % _Face.values.length]);
+    setState(
+      () => _face = _Face.values[(_face.index + 1) % _Face.values.length],
+    );
     _idle?.cancel();
     if (_face != _Face.hidden) {
       // Left alone for 5 s, the money hides again.
       _idle = Timer(const Duration(seconds: 5), () {
-        if (mounted) { setState(() => _face = _Face.hidden); }
+        if (mounted) {
+          setState(() => _face = _Face.hidden);
+        }
       });
     }
   }
 
   Widget _faceView() => switch (_face) {
-        _Face.hidden => DigitalIslandParts.hiddenFace(),
-        _Face.lastTrip => DigitalIslandParts.amountFace(
-            'island-last-trip', 'LAST TRIP', widget.lastTripLabel),
-        _Face.today => DigitalIslandParts.amountFace(
-            'island-today', 'TODAY', DigitalIslandParts.sampleToday),
-        _Face.history => DigitalIslandParts.historyFace(),
-      };
+    _Face.hidden => DigitalIslandParts.hiddenFace(),
+    _Face.lastTrip => DigitalIslandParts.amountFace(
+      'island-last-trip',
+      'LAST TRIP',
+      widget.lastTripLabel,
+    ),
+    _Face.today => DigitalIslandParts.amountFace(
+      'island-today',
+      'TODAY',
+      DigitalIslandParts.sampleToday,
+    ),
+    _Face.history => DigitalIslandParts.historyFace(),
+  };
 
   @override
   Widget build(BuildContext context) {
     const height = DigitalIslandParts.height;
-    const scale = 0.8;
+    const scale = TripIslandGeometry.scale;
     final message = _message;
     final maxWidth = MediaQuery.sizeOf(context).width / scale - 32;
     final width = message != null
         ? (DigitalMessageFace.widthFor(context, message) + 14 + 14 + 2 + 36)
-            .clamp(math.min(DigitalIslandParts.width, maxWidth), maxWidth)
-            .toDouble()
+              .clamp(math.min(DigitalIslandParts.width, maxWidth), maxWidth)
+              .toDouble()
         : math.min(maxWidth, DigitalIslandParts.width);
     Widget side(Widget button) => AnimatedContainer(
-          duration: const Duration(milliseconds: 320),
-          curve: Curves.easeOutCubic,
-          width: message == null ? 54 : 14,
-          child: ClipRect(
-            child: OverflowBox(
-              minWidth: 54,
-              maxWidth: 54,
-              child: IgnorePointer(
-                ignoring: message != null,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
-                  opacity: message == null ? 1 : 0,
-                  child: button,
-                ),
-              ),
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      width: message == null ? 54 : 14,
+      child: ClipRect(
+        child: OverflowBox(
+          minWidth: 54,
+          maxWidth: 54,
+          child: IgnorePointer(
+            ignoring: message != null,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: message == null ? 1 : 0,
+              child: button,
             ),
           ),
-        );
+        ),
+      ),
+    );
     final (color, icon) = DigitalIslandParts.toneLook(IslandTone.info);
     final island = DigitalIslandShell(
       width: width,
@@ -125,17 +143,19 @@ class _TripIslandState extends State<TripIsland> {
       curve: Curves.easeOutBack,
       child: Row(
         children: [
-          side(Tooltip(
-            message: 'Menu',
-            child: InkWell(
-              onTap: widget.onMenu,
-              child: SizedBox(
-                width: 54,
-                height: height,
-                child: DigitalIslandParts.menuIcon(),
+          side(
+            Tooltip(
+              message: 'Menu',
+              child: InkWell(
+                onTap: widget.onMenu,
+                child: SizedBox(
+                  width: 54,
+                  height: height,
+                  child: DigitalIslandParts.menuIcon(),
+                ),
               ),
             ),
-          )),
+          ),
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -171,18 +191,20 @@ class _TripIslandState extends State<TripIsland> {
               ),
             ),
           ),
-          side(Tooltip(
-            message: 'Search destination',
-            child: InkWell(
-              key: const ValueKey<String>('trip-island-search'),
-              onTap: widget.onSearch,
-              child: const SizedBox(
-                width: 54,
-                height: height,
-                child: DigitalIslandParts.searchIcon,
+          side(
+            Tooltip(
+              message: 'Search destination',
+              child: InkWell(
+                key: const ValueKey<String>('trip-island-search'),
+                onTap: widget.onSearch,
+                child: const SizedBox(
+                  width: 54,
+                  height: height,
+                  child: DigitalIslandParts.searchIcon,
+                ),
               ),
             ),
-          )),
+          ),
         ],
       ),
     );

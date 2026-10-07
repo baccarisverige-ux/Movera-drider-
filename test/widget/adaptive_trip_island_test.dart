@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:movera/presentation/driver/accept%20ride/trip_island.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/adaptive_trip_island.dart';
@@ -86,6 +87,11 @@ void main() {
     }
     Future<void> capture(String name) async {
       await tester.pump();
+      final size = tester.getSize(
+        find.byKey(const ValueKey('island-morph-shell')),
+      );
+      expect(size.height, TripIslandGeometry.height);
+      expect(size.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
       final boundary = tester.renderObject<RenderRepaintBoundary>(
         find.byKey(const ValueKey('island-visual-proof')),
       );
@@ -180,6 +186,9 @@ void main() {
     await tester.pumpWidget(surface(fontFamily: font, arrival: 'Destination'));
     await tester.pump(const Duration(seconds: 1));
     await capture('11-arrival-destination');
+    await tester.tap(find.text('Arriving soon'));
+    await tester.pump(const Duration(milliseconds: 800));
+    await capture('00-default');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
@@ -188,16 +197,16 @@ void main() {
     final driving = tester.getSize(
       find.byKey(const ValueKey('island-morph-shell')),
     );
-    expect(driving.height, lessThanOrEqualTo(88));
-    expect(driving.width, lessThanOrEqualTo(351));
+    expect(driving.height, TripIslandGeometry.height);
+    expect(driving.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
     await tester.pumpWidget(surface(width: 375, seconds: 155));
     await tester.pump(const Duration(seconds: 1));
     final waiting = tester.getSize(
       find.byKey(const ValueKey('island-morph-shell')),
     );
-    expect(waiting.height, lessThanOrEqualTo(62));
-    expect(waiting.width, lessThanOrEqualTo(244));
-    expect(waiting.width, lessThan(driving.width));
+    expect(waiting.height, TripIslandGeometry.height);
+    expect(waiting.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
+    expect(waiting.width, lessThanOrEqualTo(driving.width));
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(
