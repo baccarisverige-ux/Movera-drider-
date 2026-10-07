@@ -790,17 +790,15 @@ extension _AcceptRidePanel on _AcceptRideState {
                   if (compact)
                     TripBottomBar(
                       key: const ValueKey<String>('active-ride-compact-dock'),
-                      etaLabel: _countingWait ? _waitBarEta : _sheetEtaText,
-                      etaColor: _countingWait ? _waitBarColor : null,
+                      etaLabel: _sheetEtaText,
                       distanceLabel: _countingWait ? null : _routeDistanceText,
-                      statusLabel: _countingWait
-                          ? _waitBarStatus
-                          : _soonStatus ?? _tripBarStatus,
-                      statusColor: _soonStatus != null ? _AcceptRideState._green : null,
+                      statusLabel: _sheetStatus,
+                      stopCount: widget.stopAddresses.length,
+                      nextPointIndex: _sheetNextPointIndex,
+                      legFraction: _legFraction ?? 0,
                       waiting: _countingWait,
                       onPreferences: _openRidePreferences,
                       onDetails: _showRideMiddle,
-                      onStatusTap: _countingWait ? _openWaitingTime : null,
 
                     )
                   else ...[
@@ -818,19 +816,17 @@ extension _AcceptRidePanel on _AcceptRideState {
                     ),
                     TripBottomBar(
                       key: const ValueKey<String>('active-ride-expanded-header'),
-                      etaLabel: _countingWait ? _waitBarEta : _sheetEtaText,
-                      etaColor: _countingWait ? _waitBarColor : null,
+                      etaLabel: _sheetEtaText,
                       distanceLabel: _countingWait ? null : _routeDistanceText,
-                      statusLabel: _countingWait
-                          ? _waitBarStatus
-                          : _soonStatus ?? _tripBarStatus,
-                      statusColor: _soonStatus != null ? _AcceptRideState._green : null,
+                      statusLabel: _sheetStatus,
+                      stopCount: widget.stopAddresses.length,
+                      nextPointIndex: _sheetNextPointIndex,
+                      legFraction: _legFraction ?? 0,
                       waiting: _countingWait,
                       onPreferences: _openRidePreferences,
                       onDetails: full
                           ? _showRideMiddle
                           : _showRideFull,
-                      onStatusTap: _countingWait ? _openWaitingTime : null,
                       expanded: full,
                     ),
                     const Divider(height: 1, thickness: 1, color: Color(0xFFECEEEF)),

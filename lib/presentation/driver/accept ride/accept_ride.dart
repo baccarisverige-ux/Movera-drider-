@@ -777,29 +777,45 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
-  /// Heads-up shown under the time once the next point is close, e.g.
-  /// "Pickup coming up · 200 m"; null otherwise.
-  String? get _soonStatus {
-    if (_stage == ActiveRideStage.waitingForRider || _paidStopWait) {
-      return null;
+  /// Sheet copy is independent of the island's rotating waiting clock.
+  String get _sheetStatus {
+    if (_countingWait) {
+      return _paidStopWait
+          ? 'Waiting for ${widget.riderName} at stop ${_stopCursor + 1}'
+          : 'Waiting for ${widget.riderName}';
     }
-    final distance = _approachDistanceMeters;
-    if (distance == null ||
-        distance > _arrivalApproachThresholdMeters ||
-        _arrivalApproachArrived) {
-      return null;
+    final fault = _locationStatus ?? _navigation.snapshot.status;
+    if (fault != null) {
+      return fault;
     }
-    String street(String address) => address.split(',').first.trim();
-    final meters = math.max(10, (distance / 10).round() * 10);
-    return switch (_approachKind) {
-      ArrivalPointKind.pickup =>
-        'Pickup in $meters m · look for ${widget.riderName}',
-      ArrivalPointKind.stop =>
-        'Stop ${_stopCursor + 1} in $meters m · ${street(widget.stopAddresses[_stopCursor])}',
-      ArrivalPointKind.destination =>
-        'Drop-off in $meters m · ${street(widget.dropoffAddress)}',
+    final banner = _navigation.snapshot.banner;
+    if (banner != null &&
+        banner.symbol != NavigationBannerSymbol.arrive &&
+        banner.symbol != NavigationBannerSymbol.straight) {
+      return banner.primary;
+    }
+    if (_showArrivalApproach) {
+      return switch (_approachKind) {
+        ArrivalPointKind.pickup => 'Arriving at pickup',
+        ArrivalPointKind.stop => 'Arriving at stop ${_stopCursor + 1}',
+        ArrivalPointKind.destination => 'Arriving soon',
+      };
+    }
+    if (banner != null && banner.primary.startsWith('Continue')) {
+      return banner.primary;
+    }
+    return switch (_stage) {
+      ActiveRideStage.headingToPickup => 'Toward pickup',
+      ActiveRideStage.waitingForRider => 'Waiting for ${widget.riderName}',
+      ActiveRideStage.onTrip =>
+        _stopCursor < widget.stopAddresses.length
+            ? 'Toward stop ${_stopCursor + 1}'
+            : 'Toward destination',
     };
   }
+
+  int get _sheetNextPointIndex =>
+      _stage == ActiveRideStage.onTrip ? _stopCursor + 1 : 0;
 
   /// Share of the way to the next point already driven; null while
   /// waiting or before a road route exists.
@@ -909,22 +925,8 @@ class _AcceptRideState extends State<AcceptRide>
   static const int _includedWaitSeconds = 120;
   static const int _noShowWaitSeconds = 300;
 
-  static String _clock(int totalSeconds) {
-    final minutes = totalSeconds ~/ 60;
-    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
-
   bool get _inIncludedWait =>
       !_paidStopWait && _waitSeconds < _includedWaitSeconds;
-
-  /// Trip bar time while waiting: the included minutes count down, then the
-  /// paid wait counts up (a paid stop wait is paid from the first second).
-  String get _waitBarEta {
-    if (_inIncludedWait) { return _clock(_includedWaitSeconds - _waitSeconds); }
-    final paid = _paidStopWait ? _waitSeconds : _waitSeconds - _includedWaitSeconds;
-    return '+${_clock(paid)}';
-  }
 
   String get _waitBarStatus {
     if (_paidStopWait) { return 'Paid wait at stop ${_stopCursor + 1}'; }
