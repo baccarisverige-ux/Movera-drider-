@@ -176,4 +176,23 @@ void main() {
     await expectLater(old.save('contacts', {'rows': []}), throwsStateError);
     await SettingsRepository().save('contacts', {'rows': []});
   });
+  test('007 pending settings recovery is fenced before cleanup', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final entered = Completer<void>();
+    final release = Completer<SharedPreferences>();
+    final repo = SettingsRepository(
+      load: () {
+        entered.complete();
+        return release.future;
+      },
+    );
+    final read = repo.read('contacts');
+    final rejected = expectLater(read, throwsStateError);
+    await entered.future;
+    final cleanup = clearLocalUserData();
+    release.complete(prefs);
+    await rejected;
+    await cleanup;
+    expect(LocalQuarantine.keys(prefs), isEmpty);
+  });
 }
