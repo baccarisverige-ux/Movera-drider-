@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:movera/core/storage/local_write_session.dart';
+
 import 'package:movera/core/logging/driver_log.dart';
 import 'package:movera/core/storage/local_quarantine.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,11 +16,14 @@ class SettingsRepository {
   static const sectionPrefix = 'movera_driver_settings_section_';
   static const _sectionPrefix = sectionPrefix;
   static Future<void>? _pending;
+  final int _generation = LocalWriteSession.generation;
 
   /// Completes after every storage operation queued so far has finished.
   static Future<void> settle() async {
     final pending = _pending;
-    if (pending != null) { await pending; }
+    if (pending != null) {
+      await pending;
+    }
   }
 
   String _sectionKey(String section) => '$_sectionPrefix$section';
@@ -26,6 +31,7 @@ class SettingsRepository {
   Future<Map<String, dynamic>> read(String section) async {
     await _pending;
     final prefs = await SharedPreferences.getInstance();
+    LocalWriteSession.check(_generation);
 
     final isolated = prefs.getString(_sectionKey(section));
     if (isolated != null) {
@@ -68,6 +74,7 @@ class SettingsRepository {
     Object error,
   ) async {
     try {
+      LocalWriteSession.check(_generation);
       await LocalQuarantine.store(
         prefs,
         source: 'settings',
@@ -83,6 +90,7 @@ class SettingsRepository {
   Future<void> save(String section, Map<String, dynamic> values) {
     Future<void> write() async {
       final prefs = await SharedPreferences.getInstance();
+      LocalWriteSession.check(_generation);
       final payload = jsonEncode(<String, dynamic>{
         'schemaVersion': 1,
         'values': values,
@@ -97,7 +105,9 @@ class SettingsRepository {
     final tail = result.catchError((Object _) {});
     _pending = tail;
     tail.then((_) {
-      if (identical(_pending, tail)) { _pending = null; }
+      if (identical(_pending, tail)) {
+        _pending = null;
+      }
     });
     return result;
   }

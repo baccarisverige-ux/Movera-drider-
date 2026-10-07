@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:movera/core/support/local_support_repository.dart';
 import 'package:flutter/material.dart';
 
@@ -15,47 +16,136 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   bool _restoreFailed = false;
   bool _loading = true;
   @override
-  void initState() { super.initState(); _restore(); }
+  void initState() {
+    super.initState();
+    _restore();
+  }
+
   Future<void> _restore() async {
     try {
-    final data=await _repository.read();
-    if(!mounted) { return; }
-    setState(() {
-      tickets.clear();
-      _restoreFailed = false;
-      for(final row in (data['tickets'] as List? ?? [])) {
-        if(row is Map) { final ticket=_Ticket.fromJson(Map<String,dynamic>.from(row)); if(ticket!=null) { tickets.add(ticket); } }
+      final data = await _repository.read();
+      if (!mounted) {
+        return;
       }
-      _loading=false;
-    });
+      setState(() {
+        tickets.clear();
+        _restoreFailed = false;
+        for (final row in (data['tickets'] as List? ?? [])) {
+          if (row is Map) {
+            final ticket = _Ticket.fromJson(Map<String, dynamic>.from(row));
+            if (ticket != null) {
+              tickets.add(ticket);
+            }
+          }
+        }
+        _loading = false;
+      });
     } catch (_) {
-      if (mounted) { setState(() { _restoreFailed = true; _loading = false; }); }
+      if (mounted) {
+        setState(() {
+          _restoreFailed = true;
+          _loading = false;
+        });
+      }
     }
   }
+
+  Future<void> _recover() async {
+    try {
+      await _repository.recover();
+      await _restore();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not recover local support. Retry.'),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _saveTickets() async {
-    try { await _repository.update('tickets',tickets.map((t)=>t.toJson()).toList()); }
-    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local conversation. Retry.'))); } rethrow; }
+    try {
+      await _repository.update(
+        'tickets',
+        tickets.map((t) => t.toJson()).toList(),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save local conversation. Retry.'),
+          ),
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<void> _newTicket() async {
-    if(_loading) { return; }
-    Map<String,dynamic> data;
-    try { data=await _repository.read(); } catch (_) {
-      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Could not load the local draft.'), action: SnackBarAction(label:'Retry',onPressed:_newTicket))); }
+    if (_loading) {
       return;
     }
-    if(!mounted) { return; }
-    final draft=data['draft'] is Map ? data['draft'] as Map : <String,dynamic>{};
-    final subject = TextEditingController(text: draft['subject'] as String? ?? '');
-    final message = TextEditingController(text: draft['message'] as String? ?? '');
-    const categories=['Trip & rider','Wallet & payments','Scheduled rides','Account & documents','Technical issue','Something else'];
-    String category=categories.contains(draft['category']) ? draft['category'] as String : 'Trip & rider';
-    Future<void> saveDraft() async {
-      try { await _repository.update('draft',{'subject':subject.text,'message':message.text,'category':category}); }
-      catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local draft.'))); } }
+    Map<String, dynamic> data;
+    try {
+      data = await _repository.read();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Could not load the local draft.'),
+            action: SnackBarAction(label: 'Retry', onPressed: _newTicket),
+          ),
+        );
+      }
+      return;
     }
-    subject.addListener(() { unawaited(saveDraft()); });
-    message.addListener(() { unawaited(saveDraft()); });
+    if (!mounted) {
+      return;
+    }
+    final draft = data['draft'] is Map
+        ? data['draft'] as Map
+        : <String, dynamic>{};
+    final subject = TextEditingController(
+      text: draft['subject'] as String? ?? '',
+    );
+    final message = TextEditingController(
+      text: draft['message'] as String? ?? '',
+    );
+    const categories = [
+      'Trip & rider',
+      'Wallet & payments',
+      'Scheduled rides',
+      'Account & documents',
+      'Technical issue',
+      'Something else',
+    ];
+    String category = categories.contains(draft['category'])
+        ? draft['category'] as String
+        : 'Trip & rider';
+    Future<void> saveDraft() async {
+      try {
+        await _repository.update('draft', {
+          'subject': subject.text,
+          'message': message.text,
+          'category': category,
+        });
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not save local draft.')),
+          );
+        }
+      }
+    }
+
+    subject.addListener(() {
+      unawaited(saveDraft());
+    });
+    message.addListener(() {
+      unawaited(saveDraft());
+    });
     final created = await showModalBottomSheet<_Ticket>(
       context: context,
       isScrollControlled: true,
@@ -63,47 +153,133 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
       builder: (sheetContext) => _DraftFormLifetime(
         controllers: [subject, message],
         child: StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-          child: SingleChildScrollView(child: Container(
-            padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF8F9FA),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          builder: (context, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
             ),
-            child: SafeArea(
-              top: false,
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFD2D8DC), borderRadius: BorderRadius.circular(8)))),
-                const SizedBox(height: 20),
-                const Text('Local ticket draft', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF20282E))),
-                const SizedBox(height: 18),
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  initialValue: category,
-                  decoration: _decoration('Category'),
-                  items: ['Trip & rider', 'Wallet & payments', 'Scheduled rides', 'Account & documents', 'Technical issue', 'Something else']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e, maxLines: 1, overflow: TextOverflow.ellipsis))).toList(),
-                  onChanged: (v) { if (v != null) { setSheetState(() => category = v); unawaited(saveDraft()); } },
+            child: SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF8F9FA),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 ),
-                const SizedBox(height: 12),
-                TextField(controller: subject, decoration: _decoration('Subject')),
-                const SizedBox(height: 12),
-                TextField(controller: message, minLines: 4, maxLines: 6, decoration: _decoration('Tell us what happened')),
-                const SizedBox(height: 18),
-                SizedBox(width: double.infinity, child: FilledButton(
-                  style: FilledButton.styleFrom(minimumSize: const Size(0, 54), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), backgroundColor: const Color(0xFF202A30), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
-                  onPressed: () {
-                    if (subject.text.trim().isEmpty || message.text.trim().isEmpty) { return; }
-                    Navigator.pop(sheetContext, _Ticket(subject.text.trim(), message.text.trim(), 'LOCAL DRAFT', false));
-                  },
-                  child: const Text('Save draft in demo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                )),
-              ]),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD2D8DC),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Local ticket draft',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF20282E),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        initialValue: category,
+                        decoration: _decoration('Category'),
+                        items:
+                            [
+                                  'Trip & rider',
+                                  'Wallet & payments',
+                                  'Scheduled rides',
+                                  'Account & documents',
+                                  'Technical issue',
+                                  'Something else',
+                                ]
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(
+                                      e,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            setSheetState(() => category = v);
+                            unawaited(saveDraft());
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: subject,
+                        decoration: _decoration('Subject'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: message,
+                        minLines: 4,
+                        maxLines: 6,
+                        decoration: _decoration('Tell us what happened'),
+                      ),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 54),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            backgroundColor: const Color(0xFF202A30),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                          ),
+                          onPressed: () {
+                            if (subject.text.trim().isEmpty ||
+                                message.text.trim().isEmpty) {
+                              return;
+                            }
+                            Navigator.pop(
+                              sheetContext,
+                              _Ticket(
+                                subject.text.trim(),
+                                message.text.trim(),
+                                'LOCAL DRAFT',
+                                false,
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Save draft in demo',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          )),
+          ),
         ),
-      )),
+      ),
     );
     await saveDraft();
     if (created != null && mounted) {
@@ -118,15 +294,18 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
       }
 
       try {
-        await _repository.update(
-          'draft',
-          {'subject':'','message':'','category':'Trip & rider'},
-        );
+        await _repository.update('draft', {
+          'subject': '',
+          'message': '',
+          'category': 'Trip & rider',
+        });
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Ticket saved locally, but the composer draft could not be cleared.'),
+              content: Text(
+                'Ticket saved locally, but the composer draft could not be cleared.',
+              ),
             ),
           );
         }
@@ -135,139 +314,423 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   }
 
   InputDecoration _decoration(String label) => InputDecoration(
-    labelText: label, filled: true, fillColor: Colors.white,
-    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE1E5E7))),
-    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF2FBE7B), width: 1.4)),
+    labelText: label,
+    filled: true,
+    fillColor: Colors.white,
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFFE1E5E7)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFF2FBE7B), width: 1.4),
+    ),
   );
 
   void _open(_Ticket ticket) {
-    if(_loading) { return; }
+    if (_loading) {
+      return;
+    }
     setState(() => ticket.unread = false);
-    Navigator.push(context, MaterialPageRoute(builder: (_) => _Conversation(ticket: ticket, onChanged: _saveTickets)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _Conversation(ticket: ticket, onChanged: _saveTickets),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF2F4F5),
     appBar: AppBar(
-      backgroundColor: const Color(0xFFF2F4F5), surfaceTintColor: Colors.transparent,
-      title: const Text('Support demo', style: TextStyle(fontWeight: FontWeight.w800)), centerTitle: true,
+      backgroundColor: const Color(0xFFF2F4F5),
+      surfaceTintColor: Colors.transparent,
+      title: const Text(
+        'Support demo',
+        style: TextStyle(fontWeight: FontWeight.w800),
+      ),
+      centerTitle: true,
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: _newTicket, backgroundColor: const Color(0xFF202A30), foregroundColor: Colors.white,
-      icon: const Icon(Icons.add_rounded), label: const Text('Draft local ticket', style: TextStyle(fontWeight: FontWeight.w700)),
-    ),
-    body: ListView(padding: const EdgeInsets.fromLTRB(16, 14, 16, 100), children: [
-      Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(color: const Color(0xFF202A30), borderRadius: BorderRadius.circular(24)),
-        child: const Row(children: [
-          _SupportIcon(), SizedBox(width: 14),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Local support preview', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-            SizedBox(height: 3), Text('Local drafts on this device — no support service.', style: TextStyle(color: Color(0xFFBFC8CD), fontSize: 12)),
-          ])),
-          CircleAvatar(radius: 5, backgroundColor: Color(0xFF2FBE7B)),
-        ]),
+      onPressed: _newTicket,
+      backgroundColor: const Color(0xFF202A30),
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.add_rounded),
+      label: const Text(
+        'Draft local ticket',
+        style: TextStyle(fontWeight: FontWeight.w700),
       ),
-      const SizedBox(height: 20),
-      if (_restoreFailed) TextButton(onPressed:_restore, child:const Text('Could not load local support — Retry')),
-      const Text('Your conversations', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF20282E))),
-      const SizedBox(height: 12),
-      ...tickets.map((t) => Padding(padding: const EdgeInsets.only(bottom: 10), child: _TicketCard(ticket: t, onTap: () => _open(t)))),
-    ]),
+    ),
+    body: ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFF202A30),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const Row(
+            children: [
+              _SupportIcon(),
+              SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Local support preview',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Local drafts on this device — no support service.',
+                      style: TextStyle(color: Color(0xFFBFC8CD), fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              CircleAvatar(radius: 5, backgroundColor: Color(0xFF2FBE7B)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (_restoreFailed) ...[
+          TextButton(
+            onPressed: _restore,
+            child: const Text('Could not load local support — Retry'),
+          ),
+          TextButton(
+            onPressed: _recover,
+            child: const Text(
+              'Recover local support (preserve unreadable data)',
+            ),
+          ),
+        ],
+        const Text(
+          'Your conversations',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF20282E),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...tickets.map(
+          (t) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _TicketCard(ticket: t, onTap: () => _open(t)),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
 class _TicketCard extends StatelessWidget {
-  final _Ticket ticket; final VoidCallback onTap;
+  final _Ticket ticket;
+  final VoidCallback onTap;
   const _TicketCard({required this.ticket, required this.onTap});
   @override
   Widget build(BuildContext context) {
     final open = ticket.status == 'OPEN';
-    return Material(color: Colors.white, borderRadius: BorderRadius.circular(21), child: InkWell(
-      onTap: onTap, borderRadius: BorderRadius.circular(21),
-      child: Padding(padding: const EdgeInsets.all(16), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(height: 44, width: 44, decoration: BoxDecoration(color: open ? const Color(0xFFE7F6EF) : const Color(0xFFF0F2F3), borderRadius: BorderRadius.circular(14)), child: Icon(open ? Icons.support_agent_rounded : Icons.task_alt_rounded, color: open ? const Color(0xFF16895B) : const Color(0xFF758087))),
-        const SizedBox(width: 13),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [Expanded(child: Text(ticket.subject, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800))), if (ticket.unread) const CircleAvatar(radius: 4, backgroundColor: Color(0xFF2FBE7B))]),
-          const SizedBox(height: 5), Text(ticket.preview, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF6F7B82), fontSize: 12, height: 1.35)),
-          const SizedBox(height: 10), Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4), decoration: BoxDecoration(color: open ? const Color(0xFFE7F6EF) : const Color(0xFFF0F2F3), borderRadius: BorderRadius.circular(20)), child: Text(ticket.status, style: TextStyle(color: open ? const Color(0xFF16895B) : const Color(0xFF758087), fontSize: 9, fontWeight: FontWeight.w800))),
-        ])),
-        const Icon(Icons.chevron_right_rounded, color: Color(0xFFABB3B8)),
-      ])),
-    ));
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(21),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(21),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 44,
+                width: 44,
+                decoration: BoxDecoration(
+                  color: open
+                      ? const Color(0xFFE7F6EF)
+                      : const Color(0xFFF0F2F3),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  open ? Icons.support_agent_rounded : Icons.task_alt_rounded,
+                  color: open
+                      ? const Color(0xFF16895B)
+                      : const Color(0xFF758087),
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            ticket.subject,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        if (ticket.unread)
+                          const CircleAvatar(
+                            radius: 4,
+                            backgroundColor: Color(0xFF2FBE7B),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      ticket.preview,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF6F7B82),
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: open
+                            ? const Color(0xFFE7F6EF)
+                            : const Color(0xFFF0F2F3),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        ticket.status,
+                        style: TextStyle(
+                          color: open
+                              ? const Color(0xFF16895B)
+                              : const Color(0xFF758087),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFABB3B8)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
 class _Conversation extends StatefulWidget {
-  final _Ticket ticket; final Future<void> Function() onChanged; const _Conversation({required this.ticket, required this.onChanged});
-  @override State<_Conversation> createState() => _ConversationState();
+  final _Ticket ticket;
+  final Future<void> Function() onChanged;
+  const _Conversation({required this.ticket, required this.onChanged});
+  @override
+  State<_Conversation> createState() => _ConversationState();
 }
 
 class _ConversationState extends State<_Conversation> {
   final input = TextEditingController();
   bool _saving = false;
   Future<void> saveMessage() async {
-    if(_saving || input.text.trim().isEmpty) { return; }
-    final rawText=input.text;
-    final text=rawText.trim();
-    final message=_Message(text,false);
+    if (_saving || input.text.trim().isEmpty) {
+      return;
+    }
+    final rawText = input.text;
+    final text = rawText.trim();
+    final message = _Message(text, false);
     _saving = true;
     final previousPreview = widget.ticket.preview;
     setState(() {
       widget.ticket.messages.add(message);
-      widget.ticket.preview=text;
+      widget.ticket.preview = text;
     });
     try {
       await widget.onChanged();
-      if(mounted && input.text == rawText) { input.clear(); }
-    } catch(_) {
+      if (mounted && input.text == rawText) {
+        input.clear();
+      }
+    } catch (_) {
       widget.ticket.messages.remove(message);
       widget.ticket.preview = previousPreview;
-      if(mounted) { setState(() {}); }
+      if (mounted) {
+        setState(() {});
+      }
     } finally {
       _saving = false;
-      if (mounted) { setState(() {}); }
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
-  @override void dispose() { input.dispose(); super.dispose(); }
-  @override Widget build(BuildContext context) => Scaffold(
+
+  @override
+  void dispose() {
+    input.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF2F4F5),
-    appBar: AppBar(backgroundColor: const Color(0xFFF2F4F5), surfaceTintColor: Colors.transparent, title: Text('Local draft: ${widget.ticket.subject}', style: const TextStyle(fontWeight: FontWeight.w800))),
-    body: Column(children: [
-      Expanded(child: ListView(padding: const EdgeInsets.all(16), children: widget.ticket.messages.map((m) => Align(
-        alignment: m.support ? Alignment.centerLeft : Alignment.centerRight,
-        child: Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14), constraints: const BoxConstraints(maxWidth: 300), decoration: BoxDecoration(color: m.support ? Colors.white : const Color(0xFF202A30), borderRadius: BorderRadius.circular(18)), child: Text(m.text, style: TextStyle(color: m.support ? const Color(0xFF283138) : Colors.white, height: 1.35))),
-      )).toList())),
-      Container(color: Colors.white, padding: EdgeInsets.fromLTRB(14, 10, 14, MediaQuery.paddingOf(context).bottom + 10), child: Row(children: [
-        Expanded(child: TextField(controller: input, decoration: InputDecoration(hintText: 'Write a local draft', filled: true, fillColor: const Color(0xFFF2F4F5), border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none)))),
-        const SizedBox(width: 9), IconButton.filled(tooltip: 'Send', key:const ValueKey('local-reply-save'),onPressed: _saving ? null : saveMessage, style: IconButton.styleFrom(backgroundColor: const Color(0xFF202A30)), icon: const Icon(Icons.arrow_upward_rounded)),
-      ])),
-    ]),
+    appBar: AppBar(
+      backgroundColor: const Color(0xFFF2F4F5),
+      surfaceTintColor: Colors.transparent,
+      title: Text(
+        'Local draft: ${widget.ticket.subject}',
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    ),
+    body: Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: widget.ticket.messages
+                .map(
+                  (m) => Align(
+                    alignment: m.support
+                        ? Alignment.centerLeft
+                        : Alignment.centerRight,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      constraints: const BoxConstraints(maxWidth: 300),
+                      decoration: BoxDecoration(
+                        color: m.support
+                            ? Colors.white
+                            : const Color(0xFF202A30),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        m.text,
+                        style: TextStyle(
+                          color: m.support
+                              ? const Color(0xFF283138)
+                              : Colors.white,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+        Container(
+          color: Colors.white,
+          padding: EdgeInsets.fromLTRB(
+            14,
+            10,
+            14,
+            MediaQuery.paddingOf(context).bottom + 10,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: input,
+                  decoration: InputDecoration(
+                    hintText: 'Write a local draft',
+                    filled: true,
+                    fillColor: const Color(0xFFF2F4F5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(22),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 9),
+              IconButton.filled(
+                tooltip: 'Send',
+                key: const ValueKey('local-reply-save'),
+                onPressed: _saving ? null : saveMessage,
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF202A30),
+                ),
+                icon: const Icon(Icons.arrow_upward_rounded),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 }
 
 class _SupportIcon extends StatelessWidget {
   const _SupportIcon();
-  @override Widget build(BuildContext context) => Container(height: 46, width: 46, decoration: BoxDecoration(color: const Color(0xFF2FBE7B), borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.support_agent_rounded, color: Colors.white));
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 46,
+    width: 46,
+    decoration: BoxDecoration(
+      color: const Color(0xFF2FBE7B),
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: const Icon(Icons.support_agent_rounded, color: Colors.white),
+  );
 }
 
 class _Ticket {
-  final String subject; String preview; final String status; bool unread; final List<_Message> messages;
-  _Ticket(this.subject, this.preview, this.status, this.unread) : messages = [_Message(preview, false)];
-  Map<String,dynamic> toJson()=>{'subject':subject,'preview':preview,'status':status,'unread':unread,'messages':messages.map((m)=>{'text':m.text,'support':false}).toList()};
-  static _Ticket? fromJson(Map<String,dynamic> json) {
-    if(json['subject'] is! String || json['preview'] is! String) { return null; }
-    final ticket=_Ticket(json['subject'] as String,json['preview'] as String,'LOCAL DRAFT',false);
+  final String subject;
+  String preview;
+  final String status;
+  bool unread;
+  final List<_Message> messages;
+  _Ticket(this.subject, this.preview, this.status, this.unread)
+    : messages = [_Message(preview, false)];
+  Map<String, dynamic> toJson() => {
+    'subject': subject,
+    'preview': preview,
+    'status': status,
+    'unread': unread,
+    'messages': messages
+        .map((m) => {'text': m.text, 'support': false})
+        .toList(),
+  };
+  static _Ticket? fromJson(Map<String, dynamic> json) {
+    if (json['subject'] is! String || json['preview'] is! String) {
+      return null;
+    }
+    final ticket = _Ticket(
+      json['subject'] as String,
+      json['preview'] as String,
+      'LOCAL DRAFT',
+      false,
+    );
     ticket.messages.clear();
-    for(final row in (json['messages'] as List? ?? [])) { if(row is Map && row['text'] is String) { ticket.messages.add(_Message(row['text'] as String,false)); } }
+    for (final row in (json['messages'] as List? ?? [])) {
+      if (row is Map && row['text'] is String) {
+        ticket.messages.add(_Message(row['text'] as String, false));
+      }
+    }
     return ticket;
   }
 }
 
-class _Message { final String text; final bool support; _Message(this.text, this.support); }
+class _Message {
+  final String text;
+  final bool support;
+  _Message(this.text, this.support);
+}
 
 /// Controllers live as long as the fields, including the sheet exit animation.
 class _DraftFormLifetime extends StatefulWidget {
@@ -277,12 +740,16 @@ class _DraftFormLifetime extends StatefulWidget {
   @override
   State<_DraftFormLifetime> createState() => _DraftFormLifetimeState();
 }
+
 class _DraftFormLifetimeState extends State<_DraftFormLifetime> {
   @override
   void dispose() {
-    for (final controller in widget.controllers) { controller.dispose(); }
+    for (final controller in widget.controllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) => widget.child;
 }

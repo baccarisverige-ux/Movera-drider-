@@ -13,6 +13,26 @@ class LocalQuarantine {
   static const prefix = 'movera_driver_quarantine_';
   static const maxEntries = 10;
 
+  static Future<String> storeOnce(
+    SharedPreferences prefs, {
+    required String source,
+    required String raw,
+    required String reason,
+  }) async {
+    for (final key in keys(prefs)) {
+      try {
+        final existing = jsonDecode(prefs.getString(key) ?? 'null');
+        if (existing is Map &&
+            existing['source'] == source &&
+            existing['raw'] == raw)
+          return key;
+      } on FormatException {
+        /* An older invalid quarantine is not a match. */
+      }
+    }
+    return store(prefs, source: source, raw: raw, reason: reason);
+  }
+
   static Future<String> store(
     SharedPreferences prefs, {
     required String source,
@@ -32,7 +52,8 @@ class LocalQuarantine {
       throw StateError('Quarantine write failed');
     }
     DriverLog.warn('Quarantined $source record as $key: $reason');
-    final existing = keys(prefs)..sort((a, b) => _stamp(a).compareTo(_stamp(b)));
+    final existing = keys(prefs)
+      ..sort((a, b) => _stamp(a).compareTo(_stamp(b)));
     for (final old in existing.take(
       existing.length > maxEntries ? existing.length - maxEntries : 0,
     )) {
@@ -44,8 +65,6 @@ class LocalQuarantine {
   static int _stamp(String key) =>
       int.tryParse(key.substring(key.lastIndexOf('_') + 1)) ?? 0;
 
-  static List<String> keys(SharedPreferences prefs) => prefs
-      .getKeys()
-      .where((key) => key.startsWith(prefix))
-      .toList();
+  static List<String> keys(SharedPreferences prefs) =>
+      prefs.getKeys().where((key) => key.startsWith(prefix)).toList();
 }

@@ -4,6 +4,7 @@ import 'package:movera/core/ride/prefs_active_ride_repository.dart';
 import 'package:movera/core/settings/settings_repository.dart';
 import 'package:movera/core/storage/local_quarantine.dart';
 import 'package:movera/core/support/local_support_repository.dart';
+import 'package:movera/core/storage/local_write_session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Class of a local key. This store is recoverable demo state, not secure storage.
@@ -75,7 +76,8 @@ const localDataInventory = <LocalDataRecord>[
   LocalDataRecord(
     key: '${SettingsRepository.sectionPrefix}*',
     dataClass: LocalDataClass.personal,
-    purpose: 'Section settings such as trusted-contact phones and vehicle drafts.',
+    purpose:
+        'Section settings such as trusted-contact phones and vehicle drafts.',
     retention: 'Until logout.',
   ),
   LocalDataRecord(
@@ -94,25 +96,41 @@ const localDataInventory = <LocalDataRecord>[
 Future<void> clearLocalUserData({
   Future<SharedPreferences> Function()? load,
 }) async {
-  final prefs = await (load ?? SharedPreferences.getInstance)();
-  const exact = <String>[
-    PrefsActiveRideRepository.key,
-    PrefsActiveRideRepository.terminalKey,
-    CompletionJournal.key,
-    PrefsTripHistoryRepository.key,
-    LocalSupportRepository.key,
-    SettingsRepository.key,
-  ];
-  for (final key in exact) {
-    await prefs.remove(key);
-  }
-  final sectionKeys = prefs
-      .getKeys()
-      .where((key) =>
-          key.startsWith(SettingsRepository.sectionPrefix) ||
-          key.startsWith(LocalQuarantine.prefix))
-      .toList(growable: false);
-  for (final key in sectionKeys) {
-    await prefs.remove(key);
+  LocalWriteSession.beginCleanup();
+  try {
+    await PrefsActiveRideRepository.settle();
+    await CompletionJournal.settle();
+    await SettingsRepository.settle();
+    await PrefsTripHistoryRepository.settle();
+    await LocalSupportRepository.settle();
+    final prefs = await (load ?? SharedPreferences.getInstance)();
+    const exact = <String>[
+      PrefsActiveRideRepository.key,
+      PrefsActiveRideRepository.terminalKey,
+      CompletionJournal.key,
+      PrefsTripHistoryRepository.key,
+      LocalSupportRepository.key,
+      SettingsRepository.key,
+    ];
+    for (final key in exact) {
+      if (!await prefs.remove(key)) {
+        throw StateError('Could not clear local data: $key');
+      }
+    }
+    final sectionKeys = prefs
+        .getKeys()
+        .where(
+          (key) =>
+              key.startsWith(SettingsRepository.sectionPrefix) ||
+              key.startsWith(LocalQuarantine.prefix),
+        )
+        .toList(growable: false);
+    for (final key in sectionKeys) {
+      if (!await prefs.remove(key)) {
+        throw StateError('Could not clear local data: $key');
+      }
+    }
+  } finally {
+    LocalWriteSession.endCleanup();
   }
 }
