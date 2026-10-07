@@ -1,7 +1,7 @@
 /* Driver-only Google Maps adapter for google_maps_flutter_web 0.5.14+2.
  * That version does not expose vector rendering, padding, touch rotation/tilt
  * or bitmap marker rotation. Keep these SDK gaps out of the Dart policy.
- * Uses public Maps JS APIs; no map ID and no change to inline map colors.
+ * Uses public Maps JS APIs. Styled vector maps require a configured cloud map ID.
  */
 (() => {
   'use strict';
@@ -53,7 +53,11 @@
   }
   function install(map, div, id) {
     const state = {map, div, top: 0, bottom: 0, anchor: .5,
-      callbacks: new Set(), heading: 0, car: null, claim: false, anchorToken: 0};
+      callbacks: new Set(), rendererCallbacks: new Set(), heading: 0, car: null, claim: false, anchorToken: 0};
+    const rendererListener = map.addListener?.('renderingtype_changed', () => {
+      state.rendererCallbacks.forEach(callback => callback());
+    });
+    const supports3D = () => map.getRenderingType?.() === sdk.RenderingType.VECTOR;
     const overlay = new sdk.OverlayView();
     overlay.onAdd = () => {};
     overlay.draw = () => {};
@@ -115,8 +119,10 @@
         const tilting = Math.abs(vertical) > Math.abs(next.x - previous.x) &&
           Math.abs(twist) < 2 && Math.abs(Math.log2(ratio)) < .03;
         map.moveCamera({zoom: clamp(map.getZoom() + Math.log2(ratio), 3, 21),
-          heading: ((map.getHeading() || 0) - twist + 360) % 360,
-          tilt: clamp((map.getTilt() || 0) - (tilting ? vertical * .3 : 0), 0, 60)});
+          ...(supports3D() ? {
+            heading: ((map.getHeading() || 0) - twist + 360) % 360,
+            tilt: clamp((map.getTilt() || 0) - (tilting ? vertical * .3 : 0), 0, 60)
+          } : {})});
         if (!tilting) pan(state, next.x - previous.x, next.y - previous.y);
       } else pan(state, next.x - previous.x, next.y - previous.y);
       previous = next;
@@ -144,7 +150,7 @@
       wasConnected ||= div.isConnected;
       if (wasConnected && !div.isConnected) {
         state.car?.setMap(null); overlay.setMap(null);
-        state.callbacks.clear(); states.delete(id); observer.disconnect();
+        state.callbacks.clear(); state.rendererCallbacks.clear(); rendererListener?.remove(); states.delete(id); observer.disconnect();
       }
     });
     observer.observe(document.body, {childList: true, subtree: true});
@@ -154,9 +160,21 @@
     construct(target, args) {
       const [div, options = {}] = args;
       const match = /^plugins\.flutter\.io\/google_maps_(\d+)$/.exec(div.id);
-      const map = Reflect.construct(target, [div, match ? {...options,
-        renderingType: sdk.RenderingType.VECTOR,
-        headingInteractionEnabled: true, tiltInteractionEnabled: true} : options]);
+      const configuredId = globalThis.document?.querySelector?.('meta[name="movera-google-map-id"]')?.content?.trim();
+      let driverOptions = options;
+      if (match) {
+        if (configuredId && configuredId !== 'DRIVER_GOOGLE_MAP_ID') {
+          const {styles, ...cloudOptions} = options;
+          driverOptions = {...cloudOptions, mapId: configuredId,
+            renderingType: sdk.RenderingType.VECTOR,
+            headingInteractionEnabled: true, tiltInteractionEnabled: true};
+        } else {
+          // Explicit 2D preview preserves the approved inline palette. Styled
+          // vector navigation stays gated until its cloud style is configured.
+          driverOptions = {...options, renderingType: sdk.RenderingType.RASTER};
+        }
+      }
+      const map = Reflect.construct(target, [div, driverOptions]);
       if (match) install(map, div, Number(match[1]));
       return map;
     }
@@ -200,6 +218,13 @@
     }
   };
   globalThis.driverMapCamera = {
+    supports3D(id) {
+      return states.get(id)?.map.getRenderingType?.() === sdk.RenderingType.VECTOR;
+    },
+    listenRenderer(id, callback) {
+      const state = states.get(id); state?.rendererCallbacks.add(callback);
+      return () => state?.rendererCallbacks.delete(callback);
+    },
     configure(id, top, bottom, anchor) {
       const state = states.get(id); if (!state) return;
       Object.assign(state, {top, bottom, anchor});

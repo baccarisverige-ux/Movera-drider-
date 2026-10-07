@@ -96,6 +96,8 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
 
   GoogleMapController? _mapController;
   void Function()? _removeWebGesture;
+  void Function()? _removeWebRenderer;
+  bool _supports3D = true;
 
   @override
   void didUpdateWidget(CustomGoogleMap oldWidget) {
@@ -149,55 +151,93 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
         _gestureReported = false;
         _reportGesture();
       },
-      child: GoogleMap(
-        initialCameraPosition: widget.initialPosition ?? _defaultPosition,
-        markers: widget.markers ?? {},
-        polylines: widget.polylines ?? {},
-        circles: widget.circles ?? {},
-        polygons: widget.polygons ?? {},
-        myLocationEnabled: widget.myLocationEnabled,
-        myLocationButtonEnabled: widget.myLocationButtonEnabled,
-        zoomControlsEnabled: widget.zoomControlsEnabled,
-        mapToolbarEnabled: widget.mapToolbarEnabled,
-        compassEnabled: widget.compassEnabled,
-        trafficEnabled: widget.trafficEnabled,
-        buildingsEnabled: widget.buildingsEnabled,
-        indoorViewEnabled: widget.indoorViewEnabled,
-        scrollGesturesEnabled: widget.scrollGesturesEnabled,
-        zoomGesturesEnabled: widget.zoomGesturesEnabled,
-        rotateGesturesEnabled: widget.rotateGesturesEnabled,
-        tiltGesturesEnabled: widget.tiltGesturesEnabled,
-        mapType: widget.mapType,
-        padding: widget.padding,
-        gestureRecognizers: {
-          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
-        },
-        webGestureHandling: WebGestureHandling.greedy,
-        webCameraControlEnabled: widget.webCameraControlEnabled,
-        style: widget.customMapStyle ?? moveraReferenceMapStyle,
-        onMapCreated: (GoogleMapController controller) {
-          _mapController = controller;
-          web.configure(
-            controller.mapId,
-            widget.padding.top,
-            widget.padding.bottom,
-            widget.cameraAnchor,
-          );
-          _removeWebGesture = web.listen(controller.mapId, () {
-            if (mounted) {
-              widget.onUserGesture?.call();
-            }
-          });
-          _updateWebVehicle(controller.mapId);
-          // Call the provided onMapCreated callback
-          if (widget.onMapCreated != null) {
-            widget.onMapCreated!(controller);
-          }
-        },
-        onTap: widget.onTap,
-        onLongPress: widget.onLongPress,
-        onCameraMove: widget.onCameraMove,
-        onCameraIdle: widget.onCameraIdle,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          GoogleMap(
+            initialCameraPosition: widget.initialPosition ?? _defaultPosition,
+            markers: widget.markers ?? {},
+            polylines: widget.polylines ?? {},
+            circles: widget.circles ?? {},
+            polygons: widget.polygons ?? {},
+            myLocationEnabled: widget.myLocationEnabled,
+            myLocationButtonEnabled: widget.myLocationButtonEnabled,
+            zoomControlsEnabled: widget.zoomControlsEnabled,
+            mapToolbarEnabled: widget.mapToolbarEnabled,
+            compassEnabled: widget.compassEnabled,
+            trafficEnabled: widget.trafficEnabled,
+            buildingsEnabled: widget.buildingsEnabled,
+            indoorViewEnabled: widget.indoorViewEnabled,
+            scrollGesturesEnabled: widget.scrollGesturesEnabled,
+            zoomGesturesEnabled: widget.zoomGesturesEnabled,
+            rotateGesturesEnabled: widget.rotateGesturesEnabled,
+            tiltGesturesEnabled: widget.tiltGesturesEnabled,
+            mapType: widget.mapType,
+            padding: widget.padding,
+            gestureRecognizers: {
+              Factory<OneSequenceGestureRecognizer>(
+                () => EagerGestureRecognizer(),
+              ),
+            },
+            webGestureHandling: WebGestureHandling.greedy,
+            webCameraControlEnabled: widget.webCameraControlEnabled,
+            style: widget.customMapStyle ?? moveraReferenceMapStyle,
+            onMapCreated: (GoogleMapController controller) {
+              _mapController = controller;
+              _supports3D = web.supports3D(controller.mapId);
+              _removeWebRenderer = web.listenRenderer(controller.mapId, () {
+                if (mounted) {
+                  setState(
+                    () => _supports3D = web.supports3D(controller.mapId),
+                  );
+                }
+              });
+              if (mounted) {
+                setState(() {});
+              }
+              web.configure(
+                controller.mapId,
+                widget.padding.top,
+                widget.padding.bottom,
+                widget.cameraAnchor,
+              );
+              _removeWebGesture = web.listen(controller.mapId, () {
+                if (mounted) {
+                  widget.onUserGesture?.call();
+                }
+              });
+              _updateWebVehicle(controller.mapId);
+              // Call the provided onMapCreated callback
+              if (widget.onMapCreated != null) {
+                widget.onMapCreated!(controller);
+              }
+            },
+            onTap: widget.onTap,
+            onLongPress: widget.onLongPress,
+            onCameraMove: widget.onCameraMove,
+            onCameraIdle: widget.onCameraIdle,
+          ),
+          if (!_supports3D)
+            Positioned(
+              left: 12,
+              bottom: widget.padding.bottom + 8,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .92),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Text(
+                      '2D map · 3D unavailable',
+                      style: TextStyle(fontSize: 11, color: Colors.black87),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -208,6 +248,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
   @override
   void dispose() {
     _removeWebGesture?.call();
+    _removeWebRenderer?.call();
     // GoogleMap owns its platform controller. Avoid a second web disposal.
     _mapController = null;
     super.dispose();

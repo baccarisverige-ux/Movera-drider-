@@ -11,8 +11,12 @@ import '../../integration_test/headless_map_platform.dart';
 
 class RecordingMapPlatform extends HeadlessMapPlatform {
   final List<CameraUpdate> moves = [];
+  bool fail = false;
   @override
   Future<void> moveCamera(CameraUpdate update, {required int mapId}) async {
+    if (fail) {
+      throw StateError('SDK unavailable');
+    }
     moves.add(update);
   }
 }
@@ -77,6 +81,53 @@ void main() {
     expect(platform.moves.length, count + 1);
     reduced.dispose();
     port.dispose();
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('settled follow stops scheduling and camera error is retryable', (
+    tester,
+  ) async {
+    final original = GoogleMapsFlutterPlatform.instance;
+    final platform = RecordingMapPlatform();
+    GoogleMapsFlutterPlatform.instance = platform;
+    addTearDown(() => GoogleMapsFlutterPlatform.instance = original);
+    GoogleMapController? controller;
+    const start = CameraPosition(target: LatLng(59, 18), zoom: 16);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GoogleMap(
+          initialCameraPosition: start,
+          onMapCreated: (value) => controller = value,
+        ),
+      ),
+    );
+    await tester.pump();
+    final statuses = <String?>[];
+    final port = GoogleDriverCameraPort(
+      controller!,
+      initialPosition: start,
+      onStatus: statuses.add,
+    );
+    await port.animate(const DriverCameraPose(GeoPoint(59, 18), 16, 0, 0));
+    final count = platform.moves.length;
+    await tester.pump(const Duration(seconds: 5));
+    expect(platform.moves.length, count);
+    platform.fail = true;
+    final retryable = GoogleDriverCameraPort(
+      controller!,
+      reducedMotion: true,
+      onStatus: statuses.add,
+    );
+    await retryable.animate(
+      const DriverCameraPose(GeoPoint(59.001, 18), 16, 0, 0),
+    );
+    expect(statuses.last, contains('unavailable'));
+    platform.fail = false;
+    await retryable.animate(
+      const DriverCameraPose(GeoPoint(59.001, 18), 16, 0, 0),
+    );
+    expect(statuses.last, isNull);
+    port.dispose();
+    retryable.dispose();
     await tester.pumpWidget(const SizedBox());
   });
 }

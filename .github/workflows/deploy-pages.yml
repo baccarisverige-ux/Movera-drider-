@@ -47,12 +47,21 @@ jobs:
       - name: Configure Google Maps
         env:
           GOOGLE_MAPS_API_KEY: ${{ secrets.Maps131189 }}
+          DRIVER_MAP_ID: ${{ vars.DRIVER_MAP_ID }}
         run: |
           if [ -z "$GOOGLE_MAPS_API_KEY" ]; then
             echo "The Maps131189 repository secret is missing or empty."
             exit 1
           fi
           sed -i "s|GOOGLE_MAPS_API_KEY|$GOOGLE_MAPS_API_KEY|g" web/index.html
+          python3 - <<'PYMAP'
+          import os, pathlib, re
+          value = os.environ.get('DRIVER_MAP_ID', '')
+          if value and not re.fullmatch(r'[a-zA-Z0-9_-]+', value):
+              raise SystemExit('Invalid DRIVER_MAP_ID')
+          path = pathlib.Path('web/index.html')
+          path.write_text(path.read_text().replace('DRIVER_GOOGLE_MAP_ID', value))
+          PYMAP
 
       - name: Build Drider web
         run: flutter build web --release --base-href "/Movera-drider-/"

@@ -585,6 +585,12 @@ extension _HomeMapSheet on _DriverHomeState {
           onMapCreated: (GoogleMapController controller) {
             _mapController = controller;
             _cameraPort = GoogleDriverCameraPort(controller,
+                        onStatus: (status) {
+                          if (status != null && mounted && ModalRoute.of(context)?.isCurrent == true) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status),
+                              action: SnackBarAction(label: 'Retry', onPressed: _camera.recenter)));
+                          }
+                        },
               initialPosition: _DriverHomeState._initialPosition,
               reducedMotion: MediaQuery.disableAnimationsOf(context));
             _camera.attach(_cameraPort!);
@@ -633,6 +639,12 @@ extension _HomeMapSheet on _DriverHomeState {
               onMapCreated: (GoogleMapController controller) {
                 _mapController = controller;
                 _cameraPort = GoogleDriverCameraPort(controller,
+                        onStatus: (status) {
+                          if (status != null && mounted && ModalRoute.of(context)?.isCurrent == true) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status),
+                              action: SnackBarAction(label: 'Retry', onPressed: _camera.recenter)));
+                          }
+                        },
                   initialPosition: _DriverHomeState._initialPosition,
                   reducedMotion: MediaQuery.disableAnimationsOf(context));
                 _camera.attach(_cameraPort!);

@@ -1134,6 +1134,8 @@ class _DriverHomeState extends State<DriverHome>
   @override
   void dispose() {
     _camera.dispose();
+    final ownedRouting = _roadRouteService;
+    if (widget.routeRepository == null && ownedRouting is RoadRouteService) { ownedRouting.dispose(); }
     ScheduledRideStore.openRequests.removeListener(_onScheduledRequests);
     _locationEpoch++;
     _reservationPopupTimer?.cancel();
