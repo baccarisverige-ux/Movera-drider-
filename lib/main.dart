@@ -28,7 +28,6 @@ import 'package:movera/widgets/layout_viewport.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  validateDriverComposition(production: driverProductionRequested);
   installGlobalErrorHooks();
   runApp(const MoveraApp());
 }
