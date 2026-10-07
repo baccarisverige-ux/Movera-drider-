@@ -1431,6 +1431,13 @@ extension _AcceptRidePanel on _AcceptRideState {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (_navigation.routeState == RouteLoadState.failed)
+                  _CleanRow(
+                    key: const ValueKey<String>('retry-route-option'),
+                    title: 'Retry route',
+                    subtitle: 'Route unavailable. Your trip remains active.',
+                    onTap: () { Navigator.pop(sheetContext); unawaited(_navigation.retryRoute()); },
+                  ),
                 _CleanRow(
                   key: const ValueKey<String>('current-trip-waybill-option'),
                   title: 'Current waybill',

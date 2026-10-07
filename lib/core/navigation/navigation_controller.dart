@@ -8,6 +8,8 @@ import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/core/routing/route_repository.dart';
 
+enum RouteLoadState { idle, loading, ready, failed }
+
 class NavigationSnapshot {
   const NavigationSnapshot({
     required this.vehicle,
@@ -69,6 +71,20 @@ class NavigationController extends ChangeNotifier {
   bool _disposed = false;
   bool _routeInFlight = false;
   String? _targetLabel;
+  ActiveRideStage? _lastRouteStage;
+  RouteLoadState _routeState = RouteLoadState.idle;
+  RouteLoadState get routeState => _routeState;
+
+  Future<void> retryRoute() async {
+    final destination = _destination;
+    if (destination == null || _disposed || _routeInFlight) return;
+    await ensureRoute(
+      origin: _snapshot.vehicle,
+      destination: destination,
+      force: true,
+      targetLabel: _targetLabel,
+    );
+  }
 
   NavigationSnapshot get snapshot => _snapshot;
   RoadRoute? get route => _route;
@@ -76,13 +92,26 @@ class NavigationController extends ChangeNotifier {
   /// Share of the current route already driven, 0..1; null without one.
   double? get routeFraction {
     final route = _route;
-    if (route == null || route.distanceMeters <= 0) { return null; }
+    if (route == null || route.distanceMeters <= 0) {
+      return null;
+    }
     return ((_progressAlong ?? 0) / route.distanceMeters).clamp(0.0, 1.0);
   }
+
   bool get followCamera => !_userPausedFollow;
   String? get status => _status;
 
   void setStage(ActiveRideStage stage) {
+    if (_stage != stage) {
+      _routeRequestToken++;
+      _routeInFlight = false;
+      _rerouteDebounce?.cancel();
+      _rerouteDebounce = null;
+      _route = null;
+      _routeState = RouteLoadState.idle;
+      _instructionHint = 0;
+      _progressAlong = null;
+    }
     _stage = stage;
     if (stage == ActiveRideStage.waitingForRider) {
       _status = null;
@@ -93,7 +122,9 @@ class NavigationController extends ChangeNotifier {
   }
 
   void pauseFollow() {
-    if (_userPausedFollow) { return; }
+    if (_userPausedFollow) {
+      return;
+    }
     _userPausedFollow = true;
     _rebuildBanner();
   }
@@ -136,49 +167,89 @@ class NavigationController extends ChangeNotifier {
     bool force = false,
     String? targetLabel,
   }) async {
-    if (_disposed) { return; }
+    if (_disposed) {
+      return;
+    }
     _targetLabel = targetLabel;
-    if (_stage == ActiveRideStage.waitingForRider) { return; }
+    if (_stage == ActiveRideStage.waitingForRider) {
+      return;
+    }
 
+    final previousDestination = _destination;
+    final sameDestination =
+        previousDestination != null &&
+        previousDestination.latitude == destination.latitude &&
+        previousDestination.longitude == destination.longitude &&
+        _lastRouteStage == _stage;
     _destination = destination;
     final now = DateTime.now();
     final lastOrigin = _lastRouteOrigin;
     final lastAt = _lastRouteAt;
-    if (!force && lastOrigin != null && lastAt != null) {
+    if (!force &&
+        sameDestination &&
+        _routeState != RouteLoadState.failed &&
+        lastOrigin != null &&
+        lastAt != null) {
       final moved = lastOrigin.distanceMetersTo(origin);
       if (moved < 20 && now.difference(lastAt) < const Duration(seconds: 8)) {
         return;
       }
     }
 
+    _rerouteDebounce?.cancel();
+    _rerouteDebounce = null;
+    _lastRouteStage = _stage;
     _lastRouteOrigin = origin;
     _lastRouteAt = now;
     final token = ++_routeRequestToken;
     _routeInFlight = true;
-    _status = _route == null ? 'Route updating…' : _status;
+    _routeState = RouteLoadState.loading;
+    _route = null;
+    _instructionHint = 0;
+    _progressAlong = null;
+    _status = 'Route updating…';
+    _rebuildBanner();
 
     try {
       final route = await routeRepository.drivingRoute(
         origin: origin,
         destination: destination,
       );
-      if (_disposed || token != _routeRequestToken) { return; }
+      if (_disposed || token != _routeRequestToken) {
+        return;
+      }
+      if (route.points.length < 2 ||
+          !route.distanceMeters.isFinite ||
+          !route.durationSeconds.isFinite ||
+          route.distanceMeters < 0 ||
+          route.durationSeconds < 0) {
+        throw const FormatException('Invalid route');
+      }
+      _routeState = RouteLoadState.ready;
       _route = route;
       _instructionHint = 0;
       _progressAlong = null;
       _status = null;
       _rebuildBanner();
     } catch (_) {
-      if (_disposed || token != _routeRequestToken) { return; }
-      _status = 'Route updating…';
+      if (_disposed || token != _routeRequestToken) {
+        return;
+      }
+      _routeState = RouteLoadState.failed;
+      _route = null;
+      _status = 'Route unavailable — retry';
       _rebuildBanner();
     } finally {
-      if (token == _routeRequestToken) { _routeInFlight = false; }
+      if (token == _routeRequestToken) {
+        _routeInFlight = false;
+      }
     }
   }
 
   void _rebuildBanner() {
-    if (_disposed) { return; }
+    if (_disposed) {
+      return;
+    }
     final waiting = _stage == ActiveRideStage.waitingForRider;
     if (waiting) {
       _snapshot = NavigationSnapshot(
@@ -295,11 +366,14 @@ class NavigationController extends ChangeNotifier {
     if (_disposed ||
         destination == null ||
         _rerouteDebounce != null ||
-        _routeInFlight)
-      { return; }
+        _routeInFlight) {
+      return;
+    }
     _rerouteDebounce = Timer(const Duration(seconds: 2), () {
       _rerouteDebounce = null;
-      if (_disposed) { return; }
+      if (_disposed) {
+        return;
+      }
       unawaited(
         ensureRoute(
           origin: _snapshot.vehicle,

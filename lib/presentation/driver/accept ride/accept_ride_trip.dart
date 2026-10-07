@@ -459,14 +459,16 @@ extension _AcceptRideTrip on _AcceptRideState {
           route.points.length >= 2 &&
           !identical(_roadGeoPoints, route.points);
       final mappedRoute = route;
-      if (!pointsChanged && status == _locationStatus) { return; }
+      final routeCleared = route == null && _roadGeoPoints.isNotEmpty;
+      if (!routeCleared && !pointsChanged && status == _locationStatus) { return; }
       _rebuild(() {
         if (pointsChanged && mappedRoute != null) {
           _roadGeoPoints = mappedRoute.points;
 
           _routeDurationSeconds = mappedRoute.durationSeconds;
         }
-        _routeLoading = status != null;
+        if (routeCleared) { _roadGeoPoints = []; _routeDurationSeconds = null; }
+        _routeLoading = _navigation.routeState == RouteLoadState.loading;
         _locationStatus = status;
       });
     }
@@ -587,7 +589,7 @@ extension _AcceptRideTrip on _AcceptRideState {
 
           _routeDurationSeconds = route.durationSeconds;
         }
-        _routeLoading = _navigation.status != null;
+        _routeLoading = _navigation.routeState == RouteLoadState.loading;
         _locationStatus = _navigation.status;
       });
     }

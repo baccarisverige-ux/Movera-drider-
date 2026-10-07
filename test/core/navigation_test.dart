@@ -110,7 +110,7 @@ void main() {
     expect(after.nextInstruction?.type, RouteManeuverType.arrive);
   });
 
-  test('navigation keeps the trip and last banner when routing fails', () async {
+  test('navigation keeps the trip and shows retryable route failure', () async {
     final navigation = NavigationController(
       routeRepository: _FailingRouteRepository(),
     );
@@ -127,7 +127,8 @@ void main() {
     );
 
     expect(navigation.route, isNull);
-    expect(navigation.snapshot.status, 'Route updating…');
+    expect(navigation.snapshot.status, 'Route unavailable — retry');
+    expect(navigation.routeState, RouteLoadState.failed);
     expect(navigation.snapshot.banner, isNotNull);
   });
 
