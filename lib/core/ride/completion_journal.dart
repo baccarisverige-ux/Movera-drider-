@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 
 import 'dart:convert';
 
+import 'package:movera/core/storage/local_write_session.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
@@ -40,12 +42,16 @@ class CompletionJournal {
   final Future<SharedPreferences> Function() load;
   final void Function(String step)? afterWrite;
   static Future<void>? _pending;
+  final int _generation = LocalWriteSession.generation;
 
   /// Completes after every storage operation queued so far has finished.
   static Future<void> settle() async {
     final pending = _pending;
-    if (pending != null) { await pending; }
+    if (pending != null) {
+      await pending;
+    }
   }
+
   @visibleForTesting
   static void resetForTesting() {
     _pending = null;
@@ -54,7 +60,14 @@ class CompletionJournal {
   Future<void> _serial(Future<void> Function() action) {
     final previous = _pending;
     // Start an idle queue directly: do not retain a Future from another test zone.
-    final result = previous == null ? action() : previous.then((_) => action());
+    Future<void> currentAction() async {
+      LocalWriteSession.check(_generation);
+      await action();
+    }
+
+    final result = previous == null
+        ? currentAction()
+        : previous.then((_) => currentAction());
     final tail = result.catchError((Object _) {});
     _pending = tail;
     tail.then((_) {
@@ -106,6 +119,7 @@ class CompletionJournal {
     afterWrite?.call('journal');
     await _replay(prefs);
   });
+
   /// Applies any interrupted transaction. Never leaves a journal behind that
   /// would block later trips: undecodable or conflicting entries are moved to
   /// quarantine and reported through the returned outcome.
@@ -287,13 +301,7 @@ class _DecodedJournal {
       throw const FormatException('Invalid terminal journal');
     }
     final record = Map<String, dynamic>.from(data['record'] as Map);
-    for (final field in [
-      'fare',
-      'service',
-      'riderName',
-      'pickup',
-      'dropoff',
-    ]) {
+    for (final field in ['fare', 'service', 'riderName', 'pickup', 'dropoff']) {
       if (record[field] is! String) {
         throw FormatException('Journal record field $field missing');
       }
