@@ -28,9 +28,10 @@ jobs:
           playwright-cli --version
           playwright-cli open http://127.0.0.1:8080 --browser=chrome
           playwright-cli resize 320 568
-          playwright-cli snapshot
-          playwright-cli run-code "async page => { const enable = page.getByRole('button', {name: 'Enable accessibility'}); if (await enable.count()) await enable.click({force: true}); await page.waitForTimeout(5000); }"
-          playwright-cli snapshot
+          playwright-cli snapshot --filename=output/playwright/before-semantics.yml
+          playwright-cli run-code "async page => { const enable = page.getByRole('button', {name: 'Enable accessibility'}); if (await enable.count()) await enable.dispatchEvent('click'); await page.waitForTimeout(5000); }"
+          playwright-cli snapshot --filename=output/playwright/home.yml
+          cat output/playwright/home.yml
           playwright-cli screenshot --filename=output/playwright/candidate-home-320.png
           playwright-cli console error
           playwright-cli close
