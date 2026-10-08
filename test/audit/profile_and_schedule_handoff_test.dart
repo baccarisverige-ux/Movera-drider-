@@ -158,7 +158,11 @@ void main() {
         await tester.ensureVisible(find.text('Accepted'));
         await tester.tap(find.text('Accepted'));
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('184.00 kr'));
+        await tester.scrollUntilVisible(
+          find.text('184.00 kr'),
+          150,
+          scrollable: find.byType(Scrollable).first,
+        );
         await tester.tap(find.text('184.00 kr'));
         await tester.pumpAndSettle();
         await tester.tap(
@@ -166,7 +170,11 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
-        await tester.ensureVisible(find.text('Vehicle issue'));
+        await tester.scrollUntilVisible(
+          find.text('Vehicle issue'),
+          100,
+          scrollable: find.byType(Scrollable).last,
+        );
         await tester.tap(find.text('Vehicle issue'));
         await tester.pumpAndSettle();
         await tester.ensureVisible(find.text('Continue'));

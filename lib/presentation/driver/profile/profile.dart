@@ -35,7 +35,9 @@ class _DriverProfileState extends State<DriverProfile> {
 
   void _vehicleChanged() {
     if (mounted && !_logoutBusy) {
-      setState(() => _identity = _vehicles.primaryIdentity());
+      setState(() {
+        _identity = _vehicles.primaryIdentity();
+      });
     }
   }
 
@@ -55,7 +57,9 @@ class _DriverProfileState extends State<DriverProfile> {
     }
     await pushSingle(context, RightToLeftTransition(page));
     if (mounted && refreshVehicle) {
-      setState(() => _identity = _vehicles.primaryIdentity());
+      setState(() {
+        _identity = _vehicles.primaryIdentity();
+      });
     }
   }
 
