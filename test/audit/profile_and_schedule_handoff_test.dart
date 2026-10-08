@@ -84,7 +84,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(calls, 1);
     expect(
-      tester.widget<IconButton>(find.byTooltip('Settings')).onPressed,
+      tester
+          .widget<IconButton>(
+            find.byWidgetPredicate(
+              (w) => w is IconButton && w.tooltip == 'Settings',
+            ),
+          )
+          .onPressed,
       isNull,
     );
     final row = find.ancestor(
