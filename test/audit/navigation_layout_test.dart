@@ -58,8 +58,10 @@ void main() {
       testWidgets('${screen.key} navigation and 200% layout at $size', (
         tester,
       ) async {
-        await tester.binding.setSurfaceSize(size);
-        addTearDown(() => tester.binding.setSurfaceSize(null));
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = size;
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
         final nav = GlobalKey<NavigatorState>();
         final previous = FlutterError.onError;
         FlutterError.onError = (details) {
