@@ -59,13 +59,6 @@
       "detail": ""
     },
     {
-      "id": "staging-services",
-      "result": "PENDING",
-      "commit": "",
-      "artifact": "",
-      "detail": ""
-    },
-    {
       "id": "deployment-smoke",
       "result": "PENDING",
       "commit": "",
