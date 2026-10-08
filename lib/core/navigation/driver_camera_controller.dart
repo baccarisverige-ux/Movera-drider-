@@ -143,7 +143,13 @@ class DriverCameraPolicy {
             _needsPreview(maneuver.type) &&
             distance < 180) {
           final approach = (1 - distance / 180).clamp(0.0, 1.0);
-          zoom = math.max(zoom, 17.0 + .8 * approach);
+          // Enter turn preview progressively: previously crossing the 180 m
+          // boundary jumped the map to zoom >=17 in a single GPS update.
+          // Reach full maneuver framing by the final 90 m.
+          final targetZoom = 17.0 + .8 * approach;
+          final t = (approach * 2).clamp(0.0, 1.0);
+          final eased = t * t * (3 - 2 * t);
+          zoom += math.max(0.0, targetZoom - zoom) * eased;
           tilt = 45 - 25 * approach;
         }
         if (progress.remainingMeters < 35) {
