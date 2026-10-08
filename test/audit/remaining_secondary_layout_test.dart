@@ -11,6 +11,11 @@ import 'package:movera/presentation/driver/analytics/acceptance%20rate/acceptanc
 import 'package:movera/presentation/driver/analytics/cancelation%20rate/cancelation_rate.dart';
 import 'package:movera/presentation/driver/add%20vehicle/add_vehicle.dart';
 
+import 'package:movera/presentation/driver/profile/legal_document.dart';
+import 'package:movera/presentation/driver/pin%20verification/pin_verification.dart';
+import 'package:movera/presentation/driver/ride%20completed/ride_completed.dart';
+import 'package:movera/presentation/common/chat/chat.dart';
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
   final screens = <String, Widget>{
@@ -21,6 +26,17 @@ void main() {
     'AcceptanceRate': const AcceptanceRate(),
     'CancelationRate': const CancelationRate(),
     'AddVehicle': const AddVehicle(),
+    'Privacy': LegalDocumentScreen.privacy,
+    'Terms': LegalDocumentScreen.terms,
+    'PinVerification': const PinVerification(),
+    'VehicleDocuments': const VehicleDocuments(
+      make: 'Mercedes',
+      model: 'E220',
+      year: '2022',
+      plate: 'ABC123',
+    ),
+    'Chat': const Chat(riderDisplayName: 'Demo rider'),
+    'DriverRideCompleted': const DriverRideCompleted(),
   };
   for (final size in [
     const Size(320, 568),
