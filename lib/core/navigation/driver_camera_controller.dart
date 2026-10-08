@@ -63,14 +63,15 @@ class DriverCameraPolicy {
   bool autoZoom = true;
 
   static double zoomForSpeed(double speed) {
-    final kmh = speed * 3.6;
-    return kmh < 20
-        ? 17.5
-        : kmh < 50
-        ? 16.5
-        : kmh < 80
-        ? 15.5
-        : 14.75;
+    // Step thresholds made the map zoom a whole level when GPS speed
+    // fluctuated near 20/50/80 km/h. Interpolate between the same approved
+    // slow, urban, fast-urban and highway framing levels instead.
+    // Speeds are metres per second; preserve the original framing anchors.
+    if (!speed.isFinite || speed <= 3) return 17.5;
+    if (speed >= 30) return 14.75;
+    if (speed <= 10) return 17.5 - (speed - 3) / 7;
+    if (speed <= 20) return 16.5 - (speed - 10) / 10;
+    return 15.5 - (speed - 20) * .075;
   }
 
   static double angleDelta(double from, double to) =>
