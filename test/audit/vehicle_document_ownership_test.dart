@@ -28,6 +28,9 @@ const _draft = <String, dynamic>{
   'plate': 'ABC123',
 };
 
+Finder get _removeButton =>
+    find.widgetWithText(TextButton, 'Remove vehicle', skipOffstage: false);
+
 Future<void> _open(WidgetTester tester, _ControlledStore store) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -56,15 +59,12 @@ void main() {
   testWidgets('document removal is disabled during restore', (tester) async {
     final store = _ControlledStore();
     await _open(tester, store);
-    final button = tester.widget<TextButton>(find.byType(TextButton).last);
+    final button = tester.widget<TextButton>(_removeButton);
     expect(button.onPressed, isNull);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     store.restore.complete([Map.of(_draft)]);
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextButton>(find.byType(TextButton).last).onPressed,
-      isNotNull,
-    );
+    expect(tester.widget<TextButton>(_removeButton).onPressed, isNotNull);
     expect(tester.takeException(), isNull);
   });
 
@@ -75,10 +75,7 @@ void main() {
     await _open(tester, store);
     store.restore.completeError(StateError('storage unavailable'));
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextButton>(find.byType(TextButton).last).onPressed,
-      isNull,
-    );
+    expect(tester.widget<TextButton>(_removeButton).onPressed, isNull);
     expect(find.text('Retry'), findsOneWidget);
     expect(store.removes, 0);
     expect(tester.takeException(), isNull);
@@ -91,10 +88,7 @@ void main() {
     await _open(tester, store);
     store.restore.complete([]);
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextButton>(find.byType(TextButton).last).onPressed,
-      isNull,
-    );
+    expect(tester.widget<TextButton>(_removeButton).onPressed, isNull);
     expect(
       find.text('This local vehicle draft is no longer available.'),
       findsOneWidget,
@@ -107,16 +101,10 @@ void main() {
     await _open(tester, store);
     await tester.pumpAndSettle();
     await _tapRemove(tester);
-    final removeButtons = tester.widgetList<TextButton>(
-      find.byType(TextButton, skipOffstage: false),
-    );
-    expect(removeButtons.last.onPressed, isNull);
+    expect(tester.widget<TextButton>(_removeButton).onPressed, isNull);
     await tester.tap(find.text('Keep vehicle'));
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextButton>(find.byType(TextButton).last).onPressed,
-      isNotNull,
-    );
+    expect(tester.widget<TextButton>(_removeButton).onPressed, isNotNull);
     expect(store.removes, 0);
   });
 
@@ -131,17 +119,11 @@ void main() {
       await tester.tap(find.text('Remove vehicle').last);
       await tester.pumpAndSettle();
       expect(store.removes, 1);
-      expect(
-        tester.widget<TextButton>(find.byType(TextButton).last).onPressed,
-        isNull,
-      );
+      expect(tester.widget<TextButton>(_removeButton).onPressed, isNull);
       store.removal.completeError(StateError('write failed'));
       await tester.pumpAndSettle();
       expect(find.text('Could not remove local draft. Retry.'), findsOneWidget);
-      expect(
-        tester.widget<TextButton>(find.byType(TextButton).last).onPressed,
-        isNotNull,
-      );
+      expect(tester.widget<TextButton>(_removeButton).onPressed, isNotNull);
       await _tapRemove(tester);
       expect(find.text('Keep vehicle'), findsOneWidget);
       await tester.tap(find.text('Keep vehicle'));
@@ -162,17 +144,13 @@ void main() {
       find.text('Vehicle Registration Certificate (Front Page)'),
     );
     await tester.pumpAndSettle();
-    final backgroundRemove = find.byType(TextButton, skipOffstage: false);
-    expect(tester.widget<TextButton>(backgroundRemove.first).onPressed, isNull);
+    expect(tester.widget<TextButton>(_removeButton).onPressed, isNull);
     final navigator = tester.state<NavigatorState>(
       find.byType(Navigator).first,
     );
     navigator.pop();
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextButton>(find.byType(TextButton).last).onPressed,
-      isNotNull,
-    );
+    expect(tester.widget<TextButton>(_removeButton).onPressed, isNotNull);
     expect(store.removes, 0);
     expect(tester.takeException(), isNull);
   });
