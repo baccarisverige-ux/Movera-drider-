@@ -5,6 +5,7 @@ import 'package:movera/core/ride/completion_journal.dart';
 import 'dart:async';
 import 'package:movera/core/navigation/driver_camera_controller.dart';
 import 'package:movera/core/navigation/driver_map_zoom_change_detector.dart';
+import 'package:movera/core/navigation/map_zoom_sheet_settle.dart';
 import 'package:movera/core/navigation/route_camera_geometry.dart';
 import 'package:movera/widgets/google_driver_camera_port.dart';
 import 'dart:math' as math;
@@ -397,7 +398,13 @@ class _AcceptRideState extends State<AcceptRide>
   final DriverMapZoomChangeDetector _manualZoomDetector =
       DriverMapZoomChangeDetector(initialZoom: 15.8);
   int _mapPointers = 0;
+  final MapZoomSheetSettle _mapZoomSettle = MapZoomSheetSettle();
   double _browseReturnPos = 0;
+  void _finishBrowseSheetCollapse() {
+    if (!mounted || !_browsing || !_ridePanelController.isAttached ||
+        _browseReturnPos <= 0.001) { return; }
+    unawaited(_snapSheet.springTo(0));
+  }
   late final AnimationController _browsePulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2000),
@@ -1115,15 +1122,26 @@ class _AcceptRideState extends State<AcceptRide>
                 AbsorbPointer(
                   absorbing: _blockMapGestures,
                   child: Listener(
-                  onPointerDown: (_) {
-                    _mapPointers++;
+                  onPointerDown: (event) {
+                    _mapZoomSettle.pointerDown(event.pointer);
+                    _mapPointers = _mapZoomSettle.activePointers;
                     if (_mapPointers >= 2) { _lastMapZoom = DateTime.now(); }
                   },
                   onPointerMove: (_) {
                     if (_mapPointers >= 2) { _lastMapZoom = DateTime.now(); }
                   },
-                  onPointerUp: (_) { _mapPointers = math.max(0, _mapPointers - 1); },
-                  onPointerCancel: (_) => _mapPointers = math.max(0, _mapPointers - 1),
+                  onPointerUp: (event) {
+                    if (_mapZoomSettle.pointerEnded(event.pointer)) {
+                      _finishBrowseSheetCollapse();
+                    }
+                    _mapPointers = _mapZoomSettle.activePointers;
+                  },
+                  onPointerCancel: (event) {
+                    if (_mapZoomSettle.pointerEnded(event.pointer)) {
+                      _finishBrowseSheetCollapse();
+                    }
+                    _mapPointers = _mapZoomSettle.activePointers;
+                  },
                   onPointerSignal: (_) => _lastMapZoom = DateTime.now(),
                   child: _ThrottledVehicleMap(
                     key: const ValueKey<String>('active-ride-throttled-map'),
