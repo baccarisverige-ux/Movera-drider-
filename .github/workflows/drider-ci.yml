@@ -40,6 +40,27 @@ jobs:
           playwright-cli snapshot --filename=output/playwright/menu.yml
           cat output/playwright/menu.yml
           playwright-cli screenshot --filename=output/playwright/candidate-menu-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Profile Account, vehicle and documents', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/profile.yml
+          cat output/playwright/profile.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-profile-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: /^Vehicles/}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/vehicles.yml
+          cat output/playwright/vehicles.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-vehicles-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Back', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/profile-return.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Back', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/home-return.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Menu', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/menu-return.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Scheduled rides Reservations and accepted trips', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/scheduled.yml
+          cat output/playwright/scheduled.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Accepted', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/accepted.yml
+          cat output/playwright/accepted.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-accepted-320.png
           playwright-cli console error
           playwright-cli close
       - uses: actions/upload-artifact@v4
