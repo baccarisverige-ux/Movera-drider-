@@ -645,16 +645,16 @@ extension _AcceptRideTrip on _AcceptRideState {
       if (!MediaQuery.disableAnimationsOf(context)) {
         _browsePulse.repeat();
       }
-      Future<void> down() async {
-        if (_ridePanelController.isAttached && _browseReturnPos > 0.001) {
-          await _snapSheet.springTo(0);
-        }
+      // Do not move the rider sheet while two fingers are pinching the map:
+      // changing the overlay mid-gesture can interrupt/shift the zoom.
+      if (_mapZoomSettle.requestCollapse()) {
+        _finishBrowseSheetCollapse();
       }
-      unawaited(down());
     }
     void _exitBrowse() {
       // The recenter tap itself reaches the map, and the camera then flies
       // back: neither is the driver browsing.
+      _mapZoomSettle.cancel();
       _lastMapZoom = null;
       _navigation.resumeFollow();
       _camera.recenter();
