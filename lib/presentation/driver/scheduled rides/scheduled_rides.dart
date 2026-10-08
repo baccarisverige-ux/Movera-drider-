@@ -11,6 +11,22 @@ class ScheduledRidesScreen extends StatefulWidget {
 class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
   int _selectedTab = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    ScheduledRideStore._revision.addListener(_storeChanged);
+  }
+
+  void _storeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    ScheduledRideStore._revision.removeListener(_storeChanged);
+    super.dispose();
+  }
+
   List<_ScheduledRide> get _requests => ScheduledRideStore._requests;
   List<_ScheduledRide> get _accepted => ScheduledRideStore._accepted;
 
@@ -24,7 +40,13 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         child: Column(
           children: [
             _buildHeader(context),
-            const Padding(padding: EdgeInsets.all(12), child: Text('Preview — not binding. Decisions last until the app restarts.', style: TextStyle(fontSize: 12))),
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'Preview — not binding. Decisions last until the app restarts.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
             _buildTabs(),
             Expanded(
               child: ListView.separated(
@@ -37,14 +59,18 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
                       padding: const EdgeInsets.fromLTRB(2, 2, 2, 0),
                       child: Row(
                         children: [
-                          Expanded(child: Text(
-                            _selectedTab == 0 ? 'Available today' : 'Upcoming',
-                            style: const TextStyle(
-                              color: Color(0xFF6F7B82),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                          Expanded(
+                            child: Text(
+                              _selectedTab == 0
+                                  ? 'Available today'
+                                  : 'Upcoming',
+                              style: const TextStyle(
+                                color: Color(0xFF6F7B82),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          )),
+                          ),
                           const SizedBox(width: 8),
                           if (_selectedTab == 0 && _requests.isNotEmpty)
                             Container(
@@ -83,22 +109,24 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
     );
   }
 
-
   Future<void> _openRideDetails(_ScheduledRide ride) async {
-    final action = await pushSingle<_ScheduledRideAction>(context,
+    final action = await pushSingle<_ScheduledRideAction>(
+      context,
       MaterialPageRoute(
         builder: (_) => _ScheduledRideDetailsScreen(ride: ride),
       ),
     );
 
-    if (!mounted || action == null) { return; }
+    if (!mounted || action == null) {
+      return;
+    }
 
     if (action == _ScheduledRideAction.accepted) {
-      setState(() {
-        _requests.remove(ride);
-        _accepted.insert(0, ride.copyWith(accepted: true));
-        _selectedTab = 1;
-      });
+      // The request may have been answered on Home, or replaced by a new
+      // session while this details route was open. Only its current owner can act.
+      if (!_requests.remove(ride)) return;
+      _accepted.insert(0, ride.copyWith(accepted: true));
+      setState(() => _selectedTab = 1);
       ScheduledRideStore._changed();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -107,7 +135,8 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         ),
       );
     } else if (action == _ScheduledRideAction.cancelled) {
-      setState(() => _accepted.remove(ride));
+      if (!_accepted.remove(ride)) return;
+      ScheduledRideStore._changed();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Reservation cancelled'),
@@ -123,7 +152,8 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 15),
       child: Row(
         children: [
-          IconButton(tooltip: 'Back', 
+          IconButton(
+            tooltip: 'Back',
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.arrow_back_rounded),
             color: const Color(0xFF252E3A),
@@ -184,10 +214,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
-          children: [
-            _tabButton(0, 'Requests'),
-            _tabButton(1, 'Accepted'),
-          ],
+          children: [_tabButton(0, 'Requests'), _tabButton(1, 'Accepted')],
         ),
       ),
     );
@@ -260,26 +287,38 @@ class ScheduledRideStore {
     ),
   ];
 
-
   /// Requests the driver has not accepted or declined yet.
-  static final ValueNotifier<int> openRequests =
-      ValueNotifier<int>(_requests.length);
+  static final ValueNotifier<int> openRequests = ValueNotifier<int>(
+    _requests.length,
+  );
 
-  static void _changed() => openRequests.value = _requests.length;
+  static final ValueNotifier<int> _revision = ValueNotifier<int>(0);
+  static void _changed() {
+    openRequests.value = _requests.length;
+    _revision.value++;
+  }
 
   /// A request answered outside this screen (the Home popup).
   static void answer(String pickup, {required bool accepted}) {
     final index = _requests.indexWhere((ride) => ride.pickup == pickup);
-    if (index < 0) { return; }
+    if (index < 0) {
+      return;
+    }
     final ride = _requests.removeAt(index);
-    if (accepted) { _accepted.insert(0, ride.copyWith(accepted: true)); }
+    if (accepted) {
+      _accepted.insert(0, ride.copyWith(accepted: true));
+    }
     _changed();
   }
 
   @visibleForTesting
   static void reset() {
-    _requests..clear()..addAll(_seedRequests());
-    _accepted..clear()..addAll(_seedAccepted());
+    _requests
+      ..clear()
+      ..addAll(_seedRequests());
+    _accepted
+      ..clear()
+      ..addAll(_seedAccepted());
     _changed();
   }
 }
@@ -350,15 +389,19 @@ class _ScheduledRideCard extends StatelessWidget {
                   const SizedBox(height: 7),
                   Row(
                     children: [
-                      Flexible(child: _RideMeta(
-                        icon: Icons.directions_car_outlined,
-                        label: ride.category,
-                      )),
+                      Flexible(
+                        child: _RideMeta(
+                          icon: Icons.directions_car_outlined,
+                          label: ride.category,
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Flexible(child: _RideMeta(
-                        icon: Icons.route_outlined,
-                        label: ride.distance,
-                      )),
+                      Flexible(
+                        child: _RideMeta(
+                          icon: Icons.route_outlined,
+                          label: ride.distance,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -442,14 +485,16 @@ class _RideMeta extends StatelessWidget {
       children: [
         Icon(icon, color: const Color(0xFF89949B), size: 15),
         const SizedBox(width: 4),
-        Flexible(child: Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF89949B),
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
+        Flexible(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF89949B),
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        )),
+        ),
       ],
     );
   }
@@ -552,9 +597,7 @@ class _RoutePreviewPainter extends CustomPainter {
     );
 
     final route = Paint()
-      ..color = accepted
-          ? const Color(0xFF36464F)
-          : const Color(0xFF19865C)
+      ..color = accepted ? const Color(0xFF36464F) : const Color(0xFF19865C)
       ..strokeWidth = 3.5
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -588,11 +631,7 @@ class _RoutePreviewPainter extends CustomPainter {
       7,
       Paint()..color = Colors.white,
     );
-    canvas.drawCircle(
-      Offset(size.width * 0.82, size.height * 0.31),
-      4.5,
-      end,
-    );
+    canvas.drawCircle(Offset(size.width * 0.82, size.height * 0.31), 4.5, end);
   }
 
   @override
@@ -635,7 +674,6 @@ class _ScheduledRide {
 
 enum _ScheduledRideAction { accepted, cancelled }
 
-
 class _ScheduledRideDetailsScreen extends StatelessWidget {
   const _ScheduledRideDetailsScreen({required this.ride});
 
@@ -655,7 +693,8 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_rounded),
           color: _ink,
@@ -709,14 +748,15 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            CustomPaint(
-              painter: _RoutePreviewPainter(accepted: ride.accepted),
-            ),
+            CustomPaint(painter: _RoutePreviewPainter(accepted: ride.accepted)),
             Positioned(
               left: 14,
               top: 14,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(13),
@@ -731,11 +771,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.route_rounded,
-                      size: 16,
-                      color: _green,
-                    ),
+                    Icon(Icons.route_rounded, size: 16, color: _green),
                     SizedBox(width: 6),
                     Text(
                       'Illustrative route — sample data',
@@ -766,11 +802,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.near_me_rounded,
-                  size: 18,
-                  color: _ink,
-                ),
+                child: const Icon(Icons.near_me_rounded, size: 18, color: _ink),
               ),
             ),
             Positioned(
@@ -778,7 +810,10 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
               right: 14,
               bottom: 13,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF24333A).withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(15),
@@ -844,7 +879,10 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
               left: 14,
               bottom: 61,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(12),
@@ -969,11 +1007,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                   value: ride.category,
                 ),
               ),
-              Container(
-                height: 34,
-                width: 1,
-                color: const Color(0xFFE5E9EB),
-              ),
+              Container(height: 34, width: 1, color: const Color(0xFFE5E9EB)),
               Expanded(
                 child: _DetailMetric(
                   icon: Icons.route_rounded,
@@ -1183,7 +1217,9 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
-          top: BorderSide(color: const Color(0xFFE8EBED).withValues(alpha: 0.9)),
+          top: BorderSide(
+            color: const Color(0xFFE8EBED).withValues(alpha: 0.9),
+          ),
         ),
       ),
       child: ride.accepted
@@ -1201,10 +1237,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                 ),
                 child: const Text(
                   'Cancel reservation',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                 ),
               ),
             )
@@ -1241,7 +1274,9 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
       builder: (sheetContext) => const _CancelReasonSheet(),
     );
 
-    if (reason == null || !context.mounted) { return; }
+    if (reason == null || !context.mounted) {
+      return;
+    }
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -1312,11 +1347,7 @@ class _DetailMetric extends StatelessWidget {
 }
 
 class _PlanRow extends StatelessWidget {
-  const _PlanRow({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
+  const _PlanRow({required this.icon, required this.title, required this.body});
 
   final IconData icon;
   final String title;
@@ -1439,7 +1470,8 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
                       ],
                     ),
                   ),
-                  IconButton(tooltip: 'Close', 
+                  IconButton(
+                    tooltip: 'Close',
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
                     color: const Color(0xFF39444A),
@@ -1540,10 +1572,7 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
                   ),
                   child: const Text(
                     'Continue',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
@@ -1641,10 +1670,7 @@ class _CancelConfirmationSheet extends StatelessWidget {
                 ),
                 child: const Text(
                   'Cancel reservation',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                 ),
               ),
             ),

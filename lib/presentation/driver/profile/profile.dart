@@ -14,8 +14,35 @@ import 'package:movera/presentation/driver/support/support_inbox.dart';
 import 'package:movera/presentation/driver/vehicles/vehicles.dart';
 import 'package:movera/widgets/navigation_transition.dart';
 
-class DriverProfile extends StatelessWidget {
+class DriverProfile extends StatefulWidget {
   const DriverProfile({super.key});
+
+  @override
+  State<DriverProfile> createState() => _DriverProfileState();
+}
+
+class _DriverProfileState extends State<DriverProfile> {
+  final _vehicles = LocalVehicleStore();
+  late Future<({String vehicle, String plate})?> _identity;
+  bool _logoutBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _identity = _vehicles.primaryIdentity();
+  }
+
+  Future<void> _openPage(
+    BuildContext context,
+    Widget page, {
+    bool refreshVehicle = false,
+  }) async {
+    if (_logoutBusy || !mounted) return;
+    await pushSingle(context, RightToLeftTransition(page));
+    if (mounted && refreshVehicle) {
+      setState(() => _identity = _vehicles.primaryIdentity());
+    }
+  }
 
   static const Color _ink = Color(0xFF252E3A);
   static const Color _muted = Color(0xFF7D898F);
@@ -23,158 +50,166 @@ class DriverProfile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F7),
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back_rounded, color: _ink),
-        ),
-        titleSpacing: 0,
-        title: const Text(
-          'Profile',
-          style: TextStyle(
-            color: _ink,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+    return PopScope(
+      canPop: !_logoutBusy,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F6F7),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            tooltip: 'Back',
+            onPressed: _logoutBusy
+                ? null
+                : () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back_rounded, color: _ink),
           ),
-        ),
-        actions: [
-          IconButton(tooltip: 'Settings', 
-            onPressed: () {
-              pushSingle(context, RightToLeftTransition(const Settings()));
-            },
-            icon: const Icon(Icons.tune_rounded, color: _ink, size: 22),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _line),
+          titleSpacing: 0,
+          title: const Text(
+            'Profile',
+            style: TextStyle(
+              color: _ink,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
             ),
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  radius: 28,
-                  backgroundImage: AssetImage(AppAssets.profileImg),
-                  backgroundColor: Color(0xFFECECEC),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Sample driver profile',
-                        style: TextStyle(
-                          color: _ink,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
+          ),
+          actions: [
+            IconButton(
+              tooltip: 'Settings',
+              onPressed: _logoutBusy
+                  ? null
+                  : () => _openPage(context, const Settings()),
+              icon: const Icon(Icons.tune_rounded, color: _ink, size: 22),
+            ),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _line),
+              ),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 28,
+                    backgroundImage: AssetImage(AppAssets.profileImg),
+                    backgroundColor: Color(0xFFECECEC),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sample driver profile',
+                          style: TextStyle(
+                            color: _ink,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Demo — no verified account',
+                          style: TextStyle(
+                            color: _muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<({String vehicle, String plate})?>(
+              future: _identity,
+              builder: (context, snapshot) => _link(
+                context,
+                icon: Icons.directions_car_outlined,
+                title: 'Vehicles',
+                detail: snapshot.data?.vehicle ?? 'Vehicle data unavailable',
+                page: const DriverVehicles(),
+                refreshVehicle: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _group(context, [
+              _item(Icons.insights_outlined, 'Analytics', const Analytics()),
+              _item(Icons.account_balance_outlined, 'My bank', const MyBank()),
+              _item(
+                Icons.description_outlined,
+                'Documents',
+                const DriverDocuments(),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            _group(context, [
+              _item(
+                Icons.privacy_tip_outlined,
+                'Privacy policy',
+                LegalDocumentScreen.privacy,
+              ),
+              _item(
+                Icons.article_outlined,
+                'Terms of service',
+                LegalDocumentScreen.terms,
+              ),
+              _item(
+                Icons.help_outline_rounded,
+                'Help center',
+                const SupportInboxScreen(),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                onTap: _logoutBusy ? null : () => _confirmLogout(context),
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: _line),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.logout_rounded,
+                        color: Color(0xFFB84F3D),
+                        size: 18,
                       ),
-                      SizedBox(height: 2),
+                      SizedBox(width: 10),
                       Text(
-                        'Demo — no verified account',
+                        'Log out',
                         style: TextStyle(
-                          color: _muted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFB84F3D),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          FutureBuilder<({String vehicle, String plate})?>(
-            future: LocalVehicleStore().primaryIdentity(),
-            builder: (context, snapshot) => _link(
-              context,
-              icon: Icons.directions_car_outlined,
-              title: 'Vehicles',
-              detail: snapshot.data?.vehicle ?? 'Vehicle data unavailable',
-              page: DriverVehicles(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _group(context, [
-            _item(Icons.insights_outlined, 'Analytics', const Analytics()),
-            _item(Icons.account_balance_outlined, 'My bank', const MyBank()),
-            _item(
-              Icons.description_outlined,
-              'Documents',
-              const DriverDocuments(),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          _group(context, [
-            _item(
-              Icons.privacy_tip_outlined,
-              'Privacy policy',
-              LegalDocumentScreen.privacy,
-            ),
-            _item(
-              Icons.article_outlined,
-              'Terms of service',
-              LegalDocumentScreen.terms,
-            ),
-            _item(
-              Icons.help_outline_rounded,
-              'Help center',
-              const SupportInboxScreen(),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              onTap: () => _confirmLogout(context),
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: _line),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.logout_rounded,
-                      color: Color(0xFFB84F3D),
-                      size: 18,
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      'Log out',
-                      style: TextStyle(
-                        color: Color(0xFFB84F3D),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -185,12 +220,15 @@ class DriverProfile extends StatelessWidget {
     required String title,
     required String detail,
     required Widget page,
+    bool refreshVehicle = false,
   }) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
-        onTap: () => pushSingle(context, RightToLeftTransition(page)),
+        onTap: _logoutBusy
+            ? null
+            : () => _openPage(context, page, refreshVehicle: refreshVehicle),
         borderRadius: BorderRadius.circular(18),
         child: Container(
           padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
@@ -245,8 +283,7 @@ class DriverProfile extends StatelessWidget {
         children: [
           for (final item in items)
             InkWell(
-              onTap: () =>
-                  pushSingle(context, RightToLeftTransition(item.page)),
+              onTap: _logoutBusy ? null : () => _openPage(context, item.page),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
                 child: Row(
@@ -282,6 +319,17 @@ class DriverProfile extends StatelessWidget {
   }
 
   Future<void> _confirmLogout(BuildContext context) async {
+    if (_logoutBusy || !mounted || ModalRoute.of(context)?.isCurrent == false)
+      return;
+    setState(() => _logoutBusy = true);
+    try {
+      await _performLogout(context);
+    } finally {
+      if (mounted) setState(() => _logoutBusy = false);
+    }
+  }
+
+  Future<void> _performLogout(BuildContext context) async {
     final leave = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -318,9 +366,13 @@ class DriverProfile extends StatelessWidget {
         }
       } catch (_) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Could not clear local data. You are still signed in. Please retry.'),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Could not clear local data. You are still signed in. Please retry.',
+              ),
+            ),
+          );
         }
         return;
       }
