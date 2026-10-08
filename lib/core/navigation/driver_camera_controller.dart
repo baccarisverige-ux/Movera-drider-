@@ -152,9 +152,15 @@ class DriverCameraPolicy {
           zoom += math.max(0.0, targetZoom - zoom) * eased;
           tilt = 45 - 25 * approach;
         }
-        if (progress.remainingMeters < 35) {
-          tilt = 0;
-          zoom = 17.5;
+        // The former 35 m arrival threshold snapped a fast-road camera
+        // from highway zoom straight to a close-up view. Start easing well
+        // before arrival, finishing flat and near at the actual endpoint.
+        if (progress.remainingMeters < 140) {
+          final fraction = (1 - progress.remainingMeters / 140)
+              .clamp(0.0, 1.0);
+          final ease = fraction * fraction * (3 - 2 * fraction);
+          zoom += math.max(0.0, 17.5 - zoom) * ease;
+          tilt *= 1 - ease;
         }
       }
     }
