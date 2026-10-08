@@ -13,6 +13,10 @@ external void _configure(
   JSNumber bottom,
   JSNumber anchor,
 );
+@JS('driverMapCamera.gestures')
+external void _gestures(JSNumber mapId, JSBoolean enabled);
+void gestures(int mapId, bool enabled) => _gestures(mapId.toJS, enabled.toJS);
+
 @JS('driverMapCamera.listen')
 external JSFunction _listen(JSNumber mapId, JSFunction callback);
 void applyAnchor(int mapId) => _anchor(mapId.toJS);
