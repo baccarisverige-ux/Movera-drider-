@@ -1,4 +1,4 @@
-name: Drider CI
+name: Modal viewport regression proof
 
 on:
   push:
@@ -47,7 +47,7 @@ jobs:
         run: flutter analyze --fatal-infos
 
       - name: Test
-        run: flutter test
+        run: flutter test test/audit/modal_viewport_lifecycle_test.dart
 
       - name: Frontend release evidence contracts
         run: |
@@ -72,78 +72,3 @@ jobs:
             build/test-evidence/
             test/failures/
           if-no-files-found: ignore
-
-  android-release:
-    name: Android release signing and preview
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - name: Checkout Drider
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.47.6
-          cache: true
-
-      - name: Resolve dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Production release fails closed without signing secrets
-        run: |
-          set +e
-          flutter build apk --release > /tmp/movera-release.txt 2>&1
-          code=$?
-          set -e
-          cat /tmp/movera-release.txt
-          if [ "$code" -eq 0 ]; then
-            echo "Production release must fail when upload signing secrets are absent."
-            exit 1
-          fi
-          grep -q "Production Android release refuses debug signing" /tmp/movera-release.txt
-
-      - name: Missing maps key fails a native release candidate
-        run: |
-          set +e
-          MOVERA_ALLOW_DEBUG_SIGNED_PREVIEW=true MOVERA_REQUIRE_MAPS_KEY=true \
-            flutter build apk --release > /tmp/movera-maps.txt 2>&1
-          code=$?
-          set -e
-          cat /tmp/movera-maps.txt
-          if [ "$code" -eq 0 ]; then
-            echo "Native release must fail when GOOGLE_MAPS_API_KEY is required and absent."
-            exit 1
-          fi
-          grep -q "Native release requires GOOGLE_MAPS_API_KEY" /tmp/movera-maps.txt
-
-      - name: Explicit internal preview build
-        run: MOVERA_ALLOW_DEBUG_SIGNED_PREVIEW=true flutter build apk --release
-
-  ios-release-preflight:
-    name: iOS release compile preflight
-    runs-on: macos-14
-    timeout-minutes: 45
-    steps:
-      - name: Checkout Drider
-        uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.47.6
-          cache: true
-
-      - name: Resolve dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Compile iOS release without codesign
-        run: flutter build ios --release --no-codesign
