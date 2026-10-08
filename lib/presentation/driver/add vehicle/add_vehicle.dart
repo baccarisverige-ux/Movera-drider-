@@ -1,13 +1,17 @@
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/core/vehicle/vehicle_year_policy.dart';
 import 'package:flutter/material.dart';
+
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AddVehicle extends StatefulWidget {
-  const AddVehicle({super.key});
+  const AddVehicle({super.key, this.store});
+
+  final LocalVehicleStore? store;
 
   @override
   State<AddVehicle> createState() => _AddVehicleState();
@@ -23,7 +27,9 @@ class _AddVehicleState extends State<AddVehicle> {
   final TextEditingController _plate = TextEditingController();
   String? _year;
   bool _saving = false;
-  late final String _vehicleId = 'local-${DateTime.now().microsecondsSinceEpoch}';
+  late final _store = widget.store ?? LocalVehicleStore();
+  late final String _vehicleId =
+      'local-${DateTime.now().microsecondsSinceEpoch}';
 
   @override
   void initState() {
@@ -34,7 +40,9 @@ class _AddVehicleState extends State<AddVehicle> {
   }
 
   void _refresh() {
-    if (mounted) { setState(() {}); }
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -51,6 +59,51 @@ class _AddVehicleState extends State<AddVehicle> {
       _year != null &&
       _plate.text.trim().isNotEmpty;
 
+  Future<void> _save() async {
+    if (!mounted || _saving || !_ready) {
+      return;
+    }
+    final submitted = <String, dynamic>{
+      'id': _vehicleId,
+      'make': _make.text.trim(),
+      'model': _model.text.trim(),
+      'year': _year!,
+      'plate': _plate.text.trim(),
+    };
+    setState(() => _saving = true);
+    try {
+      await _store.upsert(submitted);
+      if (!mounted) {
+        return;
+      }
+      await pushSingle(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => VehicleDocuments(
+            vehicleId: submitted['id'] as String,
+            make: submitted['make'] as String,
+            model: submitted['model'] as String,
+            year: submitted['year'] as String,
+            plate: submitted['plate'] as String,
+            store: _store,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save local vehicle draft. Retry.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
   Future<void> _pickYear() async {
     final picked = await showModalBottomSheet<String>(
       context: context,
@@ -59,7 +112,10 @@ class _AddVehicleState extends State<AddVehicle> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        final years = VehicleYearPolicy.choices(now: DateTime.now(), selected: _year);
+        final years = VehicleYearPolicy.choices(
+          now: DateTime.now(),
+          selected: _year,
+        );
         return ListView(
           children: [
             const SizedBox(height: 12),
@@ -82,7 +138,9 @@ class _AddVehicleState extends State<AddVehicle> {
         );
       },
     );
-    if (picked == null || !mounted) { return; }
+    if (picked == null || !mounted) {
+      return;
+    }
     setState(() => _year = picked);
   }
 
@@ -98,7 +156,8 @@ class _AddVehicleState extends State<AddVehicle> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
@@ -218,29 +277,7 @@ class _AddVehicleState extends State<AddVehicle> {
               width: double.infinity,
               height: 52,
               child: FilledButton(
-                onPressed: _ready && !_saving
-                    ? () async {
-                        setState(()=>_saving=true);
-                        try {
-                          await LocalVehicleStore().upsert({'id':_vehicleId,'make':_make.text.trim(),'model':_model.text.trim(),'year':_year!,'plate':_plate.text.trim()});
-                          if(!context.mounted) { return; }
-                        await pushSingle(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (_) => VehicleDocuments(
-                              vehicleId: _vehicleId,
-                              make: _make.text.trim(),
-                              model: _model.text.trim(),
-                              year: _year!,
-                              plate: _plate.text.trim(),
-                            ),
-                          ),
-                        );
-                        } catch(_) {
-                          if(context.mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save local vehicle draft. Retry.'))); }
-                        } finally { if(mounted) { setState(()=>_saving=false); } }
-                      }
-                    : null,
+                onPressed: _ready && !_saving ? _save : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: _ink,
                   disabledBackgroundColor: const Color(0xFFE8EAEC),
@@ -319,6 +356,7 @@ class VehicleDocuments extends StatefulWidget {
     required this.model,
     required this.year,
     required this.plate,
+    this.store,
   });
 
   final String? vehicleId;
@@ -326,6 +364,7 @@ class VehicleDocuments extends StatefulWidget {
   final String model;
   final String year;
   final String plate;
+  final LocalVehicleStore? store;
 
   @override
   State<VehicleDocuments> createState() => _VehicleDocumentsState();
@@ -335,22 +374,51 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _line = Color(0xFFE6E8EA);
 
-  final _store=LocalVehicleStore();
-  Map<String,dynamic>? _draft;
-  bool _busy=false;
+  late final _store = widget.store ?? LocalVehicleStore();
+  Map<String, dynamic>? _draft;
+  bool _busy = false;
+  bool _loading = true;
+  bool _restoring = false;
+  bool _restoreFailed = false;
+  bool get _canEdit => !_loading && !_restoreFailed && !_busy && _draft != null;
   @override
-  void initState() { super.initState(); _restore(); }
-  Future<void> _restore() async {
-    try {
-      final rows=await _store.list();
-      final matching=rows.where((row)=>row['id']==widget.vehicleId);
-      if(mounted) { setState(() {
-        _draft=matching.isEmpty ? null : matching.first;
-        _registrationDone=_draft?['registrationPhoto'] is String;
-        _insuranceDone=_draft?['insurancePhoto'] is String;
-      }); }
-    } catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:const Text('Could not load local vehicle documents.'),action:SnackBarAction(label:'Retry',onPressed:_restore))); } }
+  void initState() {
+    super.initState();
+    _restore();
   }
+
+  Future<void> _restore() async {
+    if (_restoring || _busy || !mounted) {
+      return;
+    }
+    _restoring = true;
+    setState(() {
+      _loading = true;
+      _restoreFailed = false;
+    });
+    try {
+      final rows = await _store.list();
+      final matching = rows.where((row) => row['id'] == widget.vehicleId);
+      if (mounted) {
+        setState(() {
+          _draft = matching.isEmpty ? null : matching.first;
+          _registrationDone = _draft?['registrationPhoto'] is String;
+          _insuranceDone = _draft?['insurancePhoto'] is String;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _restoreFailed = true;
+        });
+      }
+    } finally {
+      _restoring = false;
+    }
+  }
+
   bool _registrationDone = false;
   bool _insuranceDone = false;
 
@@ -361,20 +429,65 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
     required List<String> checks,
     required bool registration,
   }) async {
-    if(_busy || _draft==null) { return; }
+    if (!_canEdit) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await _openPhotoOwned(
+        title: title,
+        checks: checks,
+        registration: registration,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _openPhotoOwned({
+    required String title,
+    required List<String> checks,
+    required bool registration,
+  }) async {
     final saved = await pushSingle<Uint8List>(
       context,
       MaterialPageRoute(
         builder: (_) => _VehiclePhotoPage(title: title, checks: checks),
       ),
     );
-    if (saved == null || !mounted) { return; }
-    setState(()=>_busy=true);
-    final updated={..._draft!, (registration ? 'registrationPhoto' : 'insurancePhoto'):base64Encode(saved)};
-    try { await _store.upsert(updated); if(!mounted) { return; } _draft=updated; }
-    on VehiclePhotoBudgetExceeded catch(error) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(error.message))); } return; }
-    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Photo could not be saved locally. Retry.'))); }return; }
-    finally { if(mounted) { setState(()=>_busy=false); } }
+    if (saved == null || !mounted) {
+      return;
+    }
+    final updated = {
+      ..._draft!,
+      (registration ? 'registrationPhoto' : 'insurancePhoto'): base64Encode(
+        saved,
+      ),
+    };
+    try {
+      await _store.upsert(updated);
+      if (!mounted) {
+        return;
+      }
+      _draft = updated;
+    } on VehiclePhotoBudgetExceeded catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+      return;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Photo could not be saved locally. Retry.'),
+          ),
+        );
+      }
+      return;
+    }
     setState(() {
       if (registration) {
         _registrationDone = true;
@@ -385,6 +498,20 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
   }
 
   Future<void> _confirmRemove() async {
+    if (!_canEdit || widget.vehicleId == null) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await _removeOwned();
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _removeOwned() async {
     final remove = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.white,
@@ -457,9 +584,21 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
       },
     );
     if (remove == true && mounted && widget.vehicleId != null) {
-      try { await _store.remove(widget.vehicleId!); }
-      catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not remove local draft. Retry.'))); }return; }
-      if(!mounted) { return; }
+      try {
+        await _store.remove(widget.vehicleId!);
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not remove local draft. Retry.'),
+            ),
+          );
+        }
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
       Navigator.of(context).pop();
     }
   }
@@ -472,7 +611,8 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
@@ -500,44 +640,76 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
             ),
           ),
           const SizedBox(height: 22),
+          if (_loading) const Center(child: CircularProgressIndicator()),
+          if (_restoreFailed) ...[
+            const Text('Could not load local vehicle documents.'),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton(
+                onPressed: _restore,
+                child: const Text('Retry'),
+              ),
+            ),
+          ],
+          if (!_loading && !_restoreFailed && _draft == null)
+            const Text('This local vehicle draft is no longer available.'),
           _docRow(
             title: 'Vehicle Registration Certificate (Front Page)',
-            note: _registrationDone ? 'Saved locally — not verified' : 'Recommended next step',
+            note: _registrationDone
+                ? 'Saved locally — not verified'
+                : 'Recommended next step',
             noteColor: _registrationDone
                 ? const Color(0xFF1F7A4D)
                 : const Color(0xFF3D5A80),
-            onTap: () => _openPhoto(
-              title:
-                  'Take a photo of your Vehicle Registration Certificate (Front Page)',
-              checks: const [
-                'The document should be blue, black and white.',
-                'All four corners are visible.',
-              ],
-              registration: true,
-            ),
+            onTap: !_canEdit
+                ? null
+                : () => _openPhoto(
+                    title: 'Take a photo of your Vehicle Registration Certificate (Front Page)',
+                    checks: const [
+                      'The document should be blue, black and white.',
+                      'All four corners are visible.',
+                    ],
+                    registration: true,
+                  ),
           ),
           const Divider(height: 1, color: _line),
           _docRow(
             title: 'Insurance Letter',
             note: _insuranceDone ? 'Saved locally — not verified' : null,
             noteColor: const Color(0xFF1F7A4D),
-            onTap: () => _openPhoto(
-              title: 'Take a photo of your Insurance Letter',
-              checks: const [
-                'The document shows the car’s registration number and that it is registered as a taxi.',
-                'The start and end dates of the insurance are visible.',
-              ],
-              registration: false,
-            ),
+            onTap: !_canEdit
+                ? null
+                : () => _openPhoto(
+                    title: 'Take a photo of your Insurance Letter',
+                    checks: const [
+                      'The document shows the car’s registration number and that it is registered as a taxi.',
+                      'The start and end dates of the insurance are visible.',
+                    ],
+                    registration: false,
+                  ),
           ),
-          for(final key in ['registrationPhoto','insurancePhoto'])
-            if(_draft?[key] is String) Padding(padding:const EdgeInsets.symmetric(vertical:8), child:Image.memory(base64Decode(_draft![key] as String),height:160,fit:BoxFit.contain)),
+          for (final key in ['registrationPhoto', 'insurancePhoto'])
+            if (_draft?[key] is String)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Image.memory(
+                  base64Decode(_draft![key] as String),
+                  height: 160,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text(
+                      'Saved photo cannot be displayed. Retake this document photo.',
+                    ),
+                  ),
+                ),
+              ),
           const SizedBox(height: 22),
           SizedBox(
             width: double.infinity,
             height: 50,
             child: TextButton(
-              onPressed: _confirmRemove,
+              onPressed: _canEdit ? _confirmRemove : null,
               style: TextButton.styleFrom(
                 backgroundColor: const Color(0xFFF4F6F7),
                 foregroundColor: const Color(0xFFC4473A),
@@ -558,7 +730,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
 
   Widget _docRow({
     required String title,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
     String? note,
     Color? noteColor,
   }) {
@@ -612,19 +784,35 @@ class _VehiclePhotoPage extends StatelessWidget {
 
   Future<void> _take(BuildContext context) async {
     try {
-      final file = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality:60, maxWidth:1024);
-      if (!context.mounted) { return; }
-      if(file!=null) {
-        final bytes=await file.readAsBytes();
-        if(!context.mounted) { return; }
-        if(bytes.length>LocalVehicleStore.maxPhotoBytes) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photo is too large to keep on this device. Retake it closer and with less detail.')));
+      final file = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 60,
+        maxWidth: 1024,
+      );
+      if (!context.mounted) {
+        return;
+      }
+      if (file != null) {
+        final bytes = await file.readAsBytes();
+        if (!context.mounted) {
           return;
         }
-        Navigator.pop(context,bytes);
+        if (bytes.length > LocalVehicleStore.maxPhotoBytes) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Photo is too large to keep on this device. Retake it closer and with less detail.',
+              ),
+            ),
+          );
+          return;
+        }
+        Navigator.pop(context, bytes);
       }
     } catch (_) {
-      if (!context.mounted) { return; }
+      if (!context.mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Camera is not available in this preview.'),
@@ -642,7 +830,8 @@ class _VehiclePhotoPage extends StatelessWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
