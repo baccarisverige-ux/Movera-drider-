@@ -9,7 +9,9 @@ import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AddVehicle extends StatefulWidget {
-  const AddVehicle({super.key});
+  const AddVehicle({super.key, this.store});
+
+  final LocalVehicleStore? store;
 
   @override
   State<AddVehicle> createState() => _AddVehicleState();
@@ -25,6 +27,7 @@ class _AddVehicleState extends State<AddVehicle> {
   final TextEditingController _plate = TextEditingController();
   String? _year;
   bool _saving = false;
+  late final _store = widget.store ?? LocalVehicleStore();
   late final String _vehicleId =
       'local-${DateTime.now().microsecondsSinceEpoch}';
 
@@ -233,7 +236,7 @@ class _AddVehicleState extends State<AddVehicle> {
                     ? () async {
                         setState(() => _saving = true);
                         try {
-                          await LocalVehicleStore().upsert({
+                          await _store.upsert({
                             'id': _vehicleId,
                             'make': _make.text.trim(),
                             'model': _model.text.trim(),
