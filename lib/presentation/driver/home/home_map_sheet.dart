@@ -191,6 +191,9 @@ extension _HomeMapSheet on _DriverHomeState {
       LatLng dropoff,
     ) async {
       if (!mounted) { return; }
+      final generation = _mapPreviews.begin();
+      bool isCurrent() => mounted && _mapPreviews.owns(generation) &&
+          _isDirectOfferRoutePreview;
 
       _rebuild(() {
         _isDirectOfferRoutePreview = true;
@@ -223,15 +226,20 @@ extension _HomeMapSheet on _DriverHomeState {
             origin: GeoPointMaps.fromLatLng(_driverPosition),
             destination: GeoPointMaps.fromLatLng(pickup),
           );
+          if (!isCurrent()) return;
           roadPoints.addAll(approach.latLngPoints);
-        } catch (_) {}
+        } catch (_) {
+          if (!isCurrent()) return;
+        }
       }
 
+      if (!isCurrent()) return;
       try {
         final trip = await _roadRouteService.drivingRoute(
           origin: GeoPointMaps.fromLatLng(pickup),
           destination: GeoPointMaps.fromLatLng(dropoff),
         );
+        if (!isCurrent()) return;
         if (roadPoints.isNotEmpty &&
             trip.latLngPoints.isNotEmpty &&
             roadPoints.last == trip.latLngPoints.first) {
@@ -239,9 +247,11 @@ extension _HomeMapSheet on _DriverHomeState {
         } else {
           roadPoints.addAll(trip.latLngPoints);
         }
-      } catch (_) {}
+      } catch (_) {
+        if (!isCurrent()) return;
+      }
 
-      if (!mounted) { return; }
+      if (!isCurrent()) return;
 
       final media = MediaQuery.of(context);
       final insets = MapOverlayInsets.forHome(
@@ -266,6 +276,7 @@ extension _HomeMapSheet on _DriverHomeState {
         });
       }
 
+      if (!isCurrent()) return;
       await _fitPoints(
         roadPoints.isNotEmpty ? roadPoints : <LatLng>[pickup, dropoff],
         padding: insets.boundsPadding,
@@ -297,6 +308,7 @@ extension _HomeMapSheet on _DriverHomeState {
       DriverDestinationResult result,
     ) async {
       final destination = result.position;
+      _mapPreviews.cancel(); // An old offer cannot reclaim the destination map.
       _rebuild(() {
         _destinationModeActive = true;
         _destinationAddress = result.address;
@@ -362,18 +374,22 @@ extension _HomeMapSheet on _DriverHomeState {
     Future<void> _fitDestinationRoute() async {
       final destination = _destinationPosition;
       if (destination == null || _mapController == null) { return; }
+      final generation = _mapPreviews.begin();
 
       final routePoints = _destinationRoutePolylines.isEmpty
           ? <LatLng>[_driverPosition, destination]
           : _destinationRoutePolylines.first.points;
 
       await Future<void>.delayed(const Duration(milliseconds: 80));
-      if (!mounted || _mapController == null) { return; }
+      if (!mounted || !_destinationModeActive ||
+          _destinationPosition != destination || _mapController == null ||
+          !_mapPreviews.owns(generation)) { return; }
 
       await _fitPoints(routePoints, padding: 74);
     }
     void _endDestinationMode() {
       if (!_destinationModeActive) { return; }
+      _mapPreviews.cancel();
       _rebuild(() {
         _destinationModeActive = false;
         _destinationAddress = null;
@@ -1282,6 +1298,7 @@ extension _HomeMapSheet on _DriverHomeState {
         return;
       }
 
+      _mapPreviews.cancel();
       _rebuild(() {
         showRideRequests = false;
         _isDirectOfferRoutePreview = false;
