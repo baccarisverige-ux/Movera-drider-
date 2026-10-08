@@ -94,6 +94,7 @@ class AcceptRide extends StatefulWidget {
     this.realtime,
     this.initialStage = ActiveRideStage.headingToPickup,
     this.initialWaitSeconds = 0,
+    this.waitNow,
     this.restoredSnapshot,
     this.destinationModeActive = false,
     this.destinationAddress,
@@ -101,6 +102,8 @@ class AcceptRide extends StatefulWidget {
   });
 
   final String offerId;
+  /// Clock for elapsed waiting time; injectable for lifecycle verification.
+  final DateTime Function()? waitNow;
   final String riderName;
   final double riderRating;
   final int riderTrips;
