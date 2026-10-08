@@ -38,9 +38,11 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // In a short landscape window, the header must scroll too; otherwise
-            // large text consumes the entire viewport before the cards can render.
-            final compact =\n                constraints.maxHeight <\n                500 * MediaQuery.textScalerOf(context).scale(13) / 13;
+            // Scale the available-height budget with text size so the header
+            // scrolls before it crowds the cards into an unusably short strip.
+            final compact =
+                constraints.maxHeight <
+                500 * MediaQuery.textScalerOf(context).scale(13) / 13;
             final list = ListView.separated(
               shrinkWrap: compact,
               physics: compact ? const NeverScrollableScrollPhysics() : null,
@@ -750,7 +752,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: SizedBox(
-        height: 176,
+        height: 176 * MediaQuery.textScalerOf(context).scale(11) / 11,
         width: double.infinity,
         child: Stack(
           fit: StackFit.expand,
@@ -758,6 +760,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
             CustomPaint(painter: _RoutePreviewPainter(accepted: ride.accepted)),
             Positioned(
               left: 14,
+              right: 66,
               top: 14,
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -780,12 +783,14 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.route_rounded, size: 16, color: _green),
                     SizedBox(width: 6),
-                    Text(
-                      'Illustrative route — sample data',
-                      style: TextStyle(
-                        color: _ink,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
+                    Expanded(
+                      child: Text(
+                        'Illustrative route — sample data',
+                        style: TextStyle(
+                          color: _ink,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -1274,6 +1279,9 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
   }
 
   Future<void> _showCancelReasons(BuildContext context) async {
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent == false) {
+      return;
+    }
     final reason = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
