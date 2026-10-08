@@ -89,6 +89,7 @@
     let previous, travel = 0, startedAt = 0, maxTouches = 0, lastTap = -Infinity;
     let lastTapPoint = null;
     let touchReleased = false;
+    let touchOnControl = false;
     let pointerOrigin = null;
     let pointerReleased = false;
     let controlPointerReleased = false;
@@ -109,6 +110,7 @@
       if (!enabled) {
         previous = null; pointerOrigin = null;
         touchReleased = false; pointerReleased = false;
+        touchOnControl = false; controlPointerReleased = false;
         lastTap = -Infinity; lastTapPoint = null;
       }
     };
@@ -161,6 +163,14 @@
     // Mouse/keyboard gestures stay with Google Maps.
     div.addEventListener('touchstart', event => {
       if (!state.gesturesEnabled) return;
+      // Let browser synthesize click for Maps' native +/- controls.
+      // Capturing/preventing their touchstart can make zoom unresponsive.
+      if (nativeCameraControl(event.target)) {
+        touchOnControl = true;
+        previous = null;
+        return;
+      }
+      if (touchOnControl) return;
       event.preventDefault(); event.stopImmediatePropagation();
       if (!previous) {
         startedAt = performance.now(); maxTouches = 0;
@@ -171,7 +181,7 @@
       previous = {...touchPose(event.touches), count: event.touches.length};
     }, {capture: true, passive: false});
     div.addEventListener('touchmove', event => {
-      if (!state.gesturesEnabled) return;
+      if (!state.gesturesEnabled || touchOnControl) return;
       event.preventDefault(); event.stopImmediatePropagation();
       const next = {...touchPose(event.touches), count: event.touches.length};
       if (!previous || previous.count !== next.count) { previous = next; return; }
@@ -201,6 +211,10 @@
       previous = next;
     }, {capture: true, passive: false});
     const end = event => {
+      if (touchOnControl) {
+        if (!event.touches.length) touchOnControl = false;
+        return;
+      }
       if (!state.gesturesEnabled) { previous = null; return; }
       event.preventDefault(); event.stopImmediatePropagation();
       if (event.touches.length) { previous = {...touchPose(event.touches), count: event.touches.length}; return; }
