@@ -18,9 +18,6 @@ Future<T?> showMoveraModalSheet<T>({
   // Size to the content, up to [heightFactor] of the screen.
   bool fitContent = false,
 }) {
-  final surface = LayoutViewport.surfaceSize(context);
-  final height = surface.height * heightFactor;
-
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
@@ -28,32 +25,48 @@ Future<T?> showMoveraModalSheet<T>({
     barrierColor: barrierColor,
     transitionDuration: Duration.zero,
     pageBuilder: (sheetContext, animation, secondaryAnimation) {
-      return MediaQuery(
-        data: MediaQuery.of(sheetContext).copyWith(
-          size: Size(surface.width, height),
-        ),
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: PointerInterceptor(
-            child: ColoredBox(
-              color: backgroundColor,
-              child: fitContent
-                  ? ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: surface.width,
-                        maxWidth: surface.width,
-                        maxHeight: height,
-                      ),
-                      child: builder(sheetContext),
-                    )
-                  : SizedBox(
-                      width: surface.width,
-                      height: height,
-                      child: builder(sheetContext),
-                    ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final media = MediaQuery.of(context);
+          final width = constraints.maxWidth;
+          final keyboard = media.viewInsets.bottom.clamp(
+            0.0,
+            constraints.maxHeight,
+          );
+          final availableHeight = constraints.maxHeight - keyboard;
+          final height = availableHeight * heightFactor;
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboard),
+            child: MediaQuery(
+              data: media.copyWith(
+                size: Size(width, height),
+                viewInsets: EdgeInsets.zero,
+              ),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: PointerInterceptor(
+                  child: ColoredBox(
+                    color: backgroundColor,
+                    child: fitContent
+                        ? ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: width,
+                              maxWidth: width,
+                              maxHeight: height,
+                            ),
+                            child: Builder(builder: builder),
+                          )
+                        : SizedBox(
+                            width: width,
+                            height: height,
+                            child: Builder(builder: builder),
+                          ),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       );
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {
@@ -87,8 +100,8 @@ class MoveraModalSheet extends StatelessWidget {
             : surface.width;
         final height =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0
-                ? constraints.maxHeight
-                : surface.height * heightFactor;
+            ? constraints.maxHeight
+            : surface.height * heightFactor;
 
         return Material(
           color: color,
@@ -101,9 +114,7 @@ class MoveraModalSheet extends StatelessWidget {
             width: width,
             height: height,
             child: MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                size: Size(width, height),
-              ),
+              data: MediaQuery.of(context).copyWith(size: Size(width, height)),
               child: child,
             ),
           ),
