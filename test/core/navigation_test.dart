@@ -132,6 +132,44 @@ void main() {
     expect(navigation.snapshot.banner, isNotNull);
   });
 
+  test('fresh stationary GPS clears a previous location warning', () {
+    final navigation = NavigationController(
+      routeRepository: _FailingRouteRepository(),
+    );
+    addTearDown(navigation.dispose);
+    final fix = DriverLocation(
+      point: const GeoPoint(59.3279, 18.0615),
+      measuredAt: DateTime.now(),
+      accuracyMeters: 5,
+    );
+    navigation.setVehicle(fix);
+    navigation.keepLastKnown();
+    expect(navigation.snapshot.status, 'Location updating…');
+    navigation.setVehicle(fix); // Same position/heading as before failure.
+    expect(navigation.snapshot.status, isNull);
+    expect(navigation.snapshot.banner?.status, isNull);
+  });
+
+  test('stale GPS cannot clear location warning', () {
+    final navigation = NavigationController(
+      routeRepository: _FailingRouteRepository(),
+    );
+    addTearDown(navigation.dispose);
+    final point = const GeoPoint(59.3279, 18.0615);
+    navigation.setVehicle(DriverLocation(
+      point: point,
+      measuredAt: DateTime.now(),
+      accuracyMeters: 5,
+    ));
+    navigation.keepLastKnown();
+    navigation.setVehicle(DriverLocation(
+      point: point,
+      measuredAt: DateTime.now().subtract(const Duration(minutes: 2)),
+      accuracyMeters: 5,
+    ));
+    expect(navigation.snapshot.status, 'Location updating…');
+  });
+
   test('waiting stage replaces turn-by-turn copy', () {
     final navigation = NavigationController(
       routeRepository: _FailingRouteRepository(),
