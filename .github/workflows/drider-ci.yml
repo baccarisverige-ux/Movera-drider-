@@ -1,4 +1,4 @@
-name: Frontend browser candidate probe
+name: Frontend browser configured-origin verification
 on:
   push:
     branches: ['audit/phase-final-browser-sweep-20261008']
@@ -12,8 +12,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: driver-verification-347e6d876dd862326b1b36e01fbd6aec23caed3c
-          run-id: 37770005646
+          name: driver-verification-d902dd8f1232668a77d8d63ad5df410b70f7682b
+          run-id: 37772402683
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: candidate
       - name: Install Playwright CLI
@@ -26,7 +26,9 @@ jobs:
           movera_server_pid=$!
           trap 'kill "$movera_server_pid" || true' EXIT
           playwright-cli --version
-          playwright-cli open http://127.0.0.1:8080 --browser=chrome
+          printf '%s' '{"browser":{"contextOptions":{"serviceWorkers":"block"}}}' > output/playwright/config.json
+          playwright-cli open about:blank --browser=chrome --config=output/playwright/config.json
+          playwright-cli run-code "async page => { await page.route('https://baccarisverige-ux.github.io/Movera-drider-/main.dart.js', route => route.fulfill({path: 'candidate/build/web/main.dart.js', contentType: 'application/javascript'})); await page.route('https://baccarisverige-ux.github.io/Movera-drider-/flutter_bootstrap.js', route => route.fulfill({path: 'candidate/build/web/flutter_bootstrap.js', contentType: 'application/javascript'})); await page.route('https://baccarisverige-ux.github.io/Movera-drider-/driver_map_camera.js', route => route.fulfill({path: 'candidate/build/web/driver_map_camera.js', contentType: 'application/javascript'})); await page.goto('https://baccarisverige-ux.github.io/Movera-drider-/'); }"
           playwright-cli resize 320 568
           playwright-cli snapshot --filename=output/playwright/before-semantics.yml
           playwright-cli run-code "async page => { const enable = page.getByRole('button', {name: 'Enable accessibility'}); if (await enable.count()) await enable.dispatchEvent('click'); await page.waitForTimeout(5000); }"
