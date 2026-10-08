@@ -51,11 +51,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
           ),
           content: const Text(
             'Use 112 only when you or someone else needs immediate help.',
-            style: TextStyle(
-              color: _muted,
-              fontSize: 13,
-              height: 1.4,
-            ),
+            style: TextStyle(color: _muted, fontSize: 13, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -75,11 +71,17 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
     );
 
     if (call == true && mounted) {
-      final result = await handoffEmergencyDial(() => launchUrl(Uri.parse('tel:112')));
-      if (!mounted) { return; }
-      _showMessage(result == EmergencyDialResult.opened
-        ? 'Emergency dialer opened — confirm the call on your device.'
-        : 'Could not open the dialer. Dial 112 manually.');
+      final result = await handoffEmergencyDial(
+        () => launchUrl(Uri.parse('tel:112')),
+      );
+      if (!mounted) {
+        return;
+      }
+      _showMessage(
+        result == EmergencyDialResult.opened
+            ? 'Emergency dialer opened — confirm the call on your device.'
+            : 'Could not open the dialer. Dial 112 manually.',
+      );
     }
   }
 
@@ -105,9 +107,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
                 decoration: const BoxDecoration(
                   color: _canvas,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(30),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -148,7 +148,8 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
                             ],
                           ),
                         ),
-                        IconButton(tooltip: 'Close', 
+                        IconButton(
+                          tooltip: 'Close',
                           onPressed: () => Navigator.pop(sheetContext),
                           icon: const Icon(Icons.close_rounded),
                           color: _muted,
@@ -247,185 +248,187 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
 
     return SafeArea(
       top: false,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(20, 10, 20, 20 + bottomInset),
-        decoration: const BoxDecoration(
-          color: _canvas,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 38,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD6DDE0),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded),
-                  color: _ink,
-                  tooltip: 'Close',
-                ),
-                const Expanded(
-                  child: Text(
-                    'Safety',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _ink,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 48),
-              ],
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              'Safety tools',
-              style: TextStyle(
-                color: _ink,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Quick tools designed to protect you during every ride.',
-              style: TextStyle(
-                color: _muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _SafetyToolButton(
-                    icon: Icons.call_outlined,
-                    label: 'Contact 112',
-                    onTap: _confirmEmergencyCall,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: _SafetyToolButton(
-                    icon: Icons.mic_outlined,
-                    label: 'Record audio',
-                    onTap: _toggleRecording,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: _SafetyToolButton(
-                    icon: Icons.ios_share_outlined,
-                    label: 'Share trip',
-                    onTap: _shareTrip,
-                  ),
-                ),
-              ],
-            ),
-            if (_status != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE7F4EE),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.check_circle_outline_rounded,
-                      color: _green,
-                      size: 17,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _status!,
-                        style: const TextStyle(
-                          color: Color(0xFF496158),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 14),
-            Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(19),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: _openPreferences,
+      child: SingleChildScrollView(
+        child: Container(
+          padding: EdgeInsets.fromLTRB(20, 10, 20, 20 + bottomInset),
+          decoration: const BoxDecoration(
+            color: _canvas,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  width: 38,
+                  height: 4,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(19),
-                    border: Border.all(color: _line),
+                    color: const Color(0xFFD6DDE0),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                    color: _ink,
+                    tooltip: 'Close',
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Safety',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+              const SizedBox(height: 2),
+              const Text(
+                'Safety tools',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Quick tools designed to protect you during every ride.',
+                style: TextStyle(
+                  color: _muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SafetyToolButton(
+                      icon: Icons.call_outlined,
+                      label: 'Contact 112',
+                      onTap: _confirmEmergencyCall,
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: _SafetyToolButton(
+                      icon: Icons.mic_outlined,
+                      label: 'Record audio',
+                      onTap: _toggleRecording,
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: _SafetyToolButton(
+                      icon: Icons.ios_share_outlined,
+                      label: 'Share trip',
+                      onTap: _shareTrip,
+                    ),
+                  ),
+                ],
+              ),
+              if (_status != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE7F4EE),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
                     children: [
-                      Icon(
-                        Icons.shield_outlined,
-                        size: 22,
-                        color: Color(0xFF4D5A61),
+                      const Icon(
+                        Icons.check_circle_outline_rounded,
+                        color: _green,
+                        size: 17,
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Safety preferences',
-                              style: TextStyle(
-                                color: _ink,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            SizedBox(height: 3),
-                            Text(
-                              'Unavailable in this demo',
-                              style: TextStyle(
-                                color: _muted,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          _status!,
+                          style: const TextStyle(
+                            color: Color(0xFF496158),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: Color(0xFF98A3A8),
                       ),
                     ],
                   ),
                 ),
+              ],
+              const SizedBox(height: 14),
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(19),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: _openPreferences,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(19),
+                      border: Border.all(color: _line),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.shield_outlined,
+                          size: 22,
+                          color: Color(0xFF4D5A61),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Safety preferences',
+                                style: TextStyle(
+                                  color: _ink,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 3),
+                              Text(
+                                'Unavailable in this demo',
+                                style: TextStyle(
+                                  color: _muted,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: Color(0xFF98A3A8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -456,7 +459,7 @@ class _SafetyToolButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          height: 94,
+          constraints: const BoxConstraints(minHeight: 94),
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 15),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
@@ -465,6 +468,7 @@ class _SafetyToolButton extends StatelessWidget {
             ),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
@@ -476,7 +480,6 @@ class _SafetyToolButton extends StatelessWidget {
               Text(
                 label,
                 textAlign: TextAlign.center,
-                maxLines: 2,
                 style: TextStyle(
                   color: active ? green : ink,
                   fontSize: 10,

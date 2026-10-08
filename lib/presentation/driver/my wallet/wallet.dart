@@ -35,10 +35,7 @@ class WalletScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     _payoutInfoStrip(),
                     const SizedBox(height: 28),
-                    _sectionHeader(
-                      title: 'Recent payouts',
-                      action: 'See all',
-                    ),
+                    _sectionHeader(title: 'Recent payouts', action: 'See all'),
                     const SizedBox(height: 12),
                     _recentPayouts(),
                     const SizedBox(height: 22),
@@ -104,10 +101,7 @@ class WalletScreen extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF3FAF7),
-            Color(0xFFE6F3ED),
-          ],
+          colors: [Color(0xFFF3FAF7), Color(0xFFE6F3ED)],
         ),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: const Color(0xFFD8E9E1)),
@@ -122,7 +116,10 @@ class WalletScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -134,6 +131,7 @@ class WalletScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(
                       width: 7,
@@ -146,18 +144,19 @@ class WalletScreen extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: 7),
-                    Text(
-                      'Preview only',
-                      style: TextStyle(
-                        color: _green,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
+                    Flexible(
+                      child: Text(
+                        'Preview only',
+                        style: TextStyle(
+                          color: _green,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Spacer(),
               Container(
                 width: 34,
                 height: 34,
@@ -216,11 +215,7 @@ class WalletScreen extends StatelessWidget {
               color: _mintStrong,
               borderRadius: BorderRadius.circular(13),
             ),
-            child: const Icon(
-              Icons.autorenew_rounded,
-              color: _green,
-              size: 20,
-            ),
+            child: const Icon(Icons.autorenew_rounded, color: _green, size: 20),
           ),
           const SizedBox(width: 11),
           const Expanded(
@@ -248,10 +243,7 @@ class WalletScreen extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 7,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
               color: _mint,
               borderRadius: BorderRadius.circular(12),
@@ -270,41 +262,39 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  Widget _sectionHeader({
-    required String title,
-    required String action,
-  }) {
+  Widget _sectionHeader({required String title, required String action}) {
     return Builder(
       builder: (context) {
         return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: _text,
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.3,
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: _text,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                ),
+              ),
             ),
-          ),
-        ),
-        TextButton(
-          onPressed: () {
-            pushSingle(context,
-              MaterialPageRoute<void>(builder: (_) => const MyBank()),
-            );
-          },
-          child: Text(
-            action,
-            style: const TextStyle(
-              color: _greenMid,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+            TextButton(
+              onPressed: () {
+                pushSingle(
+                  context,
+                  MaterialPageRoute<void>(builder: (_) => const MyBank()),
+                );
+              },
+              child: Text(
+                action,
+                style: const TextStyle(
+                  color: _greenMid,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
         );
       },
     );
@@ -321,7 +311,11 @@ class WalletScreen extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(16, 18, 16, 18),
         child: Text(
           'No payouts yet. Local preview cannot invent earnings.',
-          style: TextStyle(color: _muted, fontSize: 13, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: _muted,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -334,66 +328,67 @@ class WalletScreen extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: () {
-              pushSingle(context,
+              pushSingle(
+                context,
                 MaterialPageRoute<void>(builder: (_) => const MyBank()),
               );
             },
             borderRadius: BorderRadius.circular(22),
             child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
-      decoration: BoxDecoration(
-        color: _white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _line),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: _blueSoft,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.account_balance_outlined,
-              color: Color(0xFF496C86),
-              size: 21,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Payout account',
-                  style: TextStyle(
-                    color: _text,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+              decoration: BoxDecoration(
+                color: _white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: _line),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: _blueSoft,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_outlined,
+                      color: Color(0xFF496C86),
+                      size: 21,
+                    ),
                   ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'No payout account connected',
-                  style: TextStyle(
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Payout account',
+                          style: TextStyle(
+                            color: _text,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          'No payout account connected',
+                          style: TextStyle(
+                            color: _muted,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.info_outline_rounded,
                     color: _muted,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w500,
+                    size: 20,
                   ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.info_outline_rounded,
-            color: _muted,
-            size: 20,
-          ),
-        ],
-      ),
+                ],
+              ),
             ),
           ),
         );
@@ -401,4 +396,3 @@ class WalletScreen extends StatelessWidget {
     );
   }
 }
-
