@@ -50,7 +50,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       final remove = find.widgetWithText(TextButton, 'Remove vehicle');
-      await tester.ensureVisible(remove);
+      await tester.scrollUntilVisible(
+        remove,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(remove);
       await tester.pumpAndSettle();
