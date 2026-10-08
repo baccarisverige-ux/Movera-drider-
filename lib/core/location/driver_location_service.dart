@@ -37,13 +37,23 @@ class DriverLocationService implements DriverLocationRepository {
     } catch (error, stack) {
       DriverLog.warn('Current GPS failed, trying last known: $error');
       final last = await Geolocator.getLastKnownPosition();
-      if (last != null) {
-        return _toDriverLocation(last);
+      final fallback = vetCachedFix(
+        last == null ? null : _toDriverLocation(last),
+        DateTime.now(),
+      );
+      if (fallback != null) {
+        return fallback;
       }
-      DriverLog.error('No GPS fix available', error, stack);
+      DriverLog.error('No recent accurate GPS fix available', error, stack);
       rethrow;
     }
   }
+
+  /// Do not navigate from a stale or inaccurate cached fix when live GPS
+  /// times out. Callers handle the original GPS error as unavailable location.
+  @visibleForTesting
+  static DriverLocation? vetCachedFix(DriverLocation? fix, DateTime now) =>
+      fix != null && fix.isUsableAt(now) ? fix : null;
 
   LocationSettings _streamSettings(int distanceFilterMeters) {
     final navigation = distanceFilterMeters == 0;
