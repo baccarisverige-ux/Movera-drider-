@@ -291,6 +291,9 @@ class _DriverHomeState extends State<DriverHome>
   Set<Polyline> _destinationRoutePolylines = {};
   bool _isDirectOfferRoutePreview = false;
   final MapPreviewGeneration _mapPreviews = MapPreviewGeneration();
+  // Separate ownership for frequently refreshed GPS-to-destination roads.
+  // An old routing response must never replace a route from a newer fix.
+  final MapPreviewGeneration _destinationRoadRequests = MapPreviewGeneration();
 
   static const LatLng _fallbackDriverPosition = LatLng(59.3293, 18.0686);
   LatLng _driverPosition = _fallbackDriverPosition;
