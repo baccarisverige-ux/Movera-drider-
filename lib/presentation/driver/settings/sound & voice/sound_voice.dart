@@ -22,22 +22,64 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
   bool _settingsTouched = false;
   Future<void> _restoreSettings() async {
     try {
-    final data=await _settings.read('sound'); if(!mounted || _settingsTouched) { return; }
-    setState(() { if(data['generalVolume'] is num) { generalVolume=(data['generalVolume'] as num).toDouble().clamp(0.0,1.0); }if(data['alwaysPlayRequests'] is bool) { alwaysPlayRequests=data['alwaysPlayRequests'] as bool; }if(data['voiceNavigation'] is bool) { voiceNavigation=data['voiceNavigation'] as bool; }if(data['readRiderMessages'] is bool) { readRiderMessages=data['readRiderMessages'] as bool; } });
-      } catch (_) {
-      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Could not load saved preferences.'),
-        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings))); }
+      final data = await _settings.read('sound');
+      if (!mounted || _settingsTouched) {
+        return;
+      }
+      setState(() {
+        if (data['generalVolume'] is num) {
+          generalVolume = (data['generalVolume'] as num).toDouble().clamp(
+            0.0,
+            1.0,
+          );
+        }
+        if (data['alwaysPlayRequests'] is bool) {
+          alwaysPlayRequests = data['alwaysPlayRequests'] as bool;
+        }
+        if (data['voiceNavigation'] is bool) {
+          voiceNavigation = data['voiceNavigation'] as bool;
+        }
+        if (data['readRiderMessages'] is bool) {
+          readRiderMessages = data['readRiderMessages'] as bool;
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Could not load saved preferences.'),
+            action: SnackBarAction(label: 'Retry', onPressed: _restoreSettings),
+          ),
+        );
+      }
     }
   }
+
   Future<bool> _persistSettings() async {
-    _settingsTouched=true;
-    try { await _settings.save('sound',{'generalVolume':generalVolume,'alwaysPlayRequests':alwaysPlayRequests,'voiceNavigation':voiceNavigation,'readRiderMessages':readRiderMessages}); return true; }
-    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); } return false; }
+    _settingsTouched = true;
+    try {
+      await _settings.save('sound', {
+        'generalVolume': generalVolume,
+        'alwaysPlayRequests': alwaysPlayRequests,
+        'voiceNavigation': voiceNavigation,
+        'readRiderMessages': readRiderMessages,
+      });
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save preferences. Retry.')),
+        );
+      }
+      return false;
+    }
   }
 
   @override
-  void initState() { super.initState(); _restoreSettings(); }
+  void initState() {
+    super.initState();
+    _restoreSettings();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +90,8 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
@@ -66,7 +109,9 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
-          const Text('Local demo preferences — saved on this device; effects are previews.'),
+          const Text(
+            'Local demo preferences — saved on this device; effects are previews.',
+          ),
           _card(
             children: [
               const Text(
@@ -77,16 +122,27 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              Slider(
-                value: generalVolume,
-                activeColor: _ink,
-                onChanged: (value) { setState(() => generalVolume = value); _persistSettings(); },
+              Semantics(
+                label: 'General volume',
+                child: Slider(
+                  value: generalVolume,
+                  activeColor: _ink,
+                  semanticFormatterCallback: (value) =>
+                      '${(value * 100).round()}%',
+                  onChanged: (value) {
+                    setState(() => generalVolume = value);
+                    _persistSettings();
+                  },
+                ),
               ),
               _switchRow(
                 'Always play trip requests',
                 'Plays even when the phone is silent',
                 alwaysPlayRequests,
-                (value) { setState(() => alwaysPlayRequests = value); _persistSettings(); },
+                (value) {
+                  setState(() => alwaysPlayRequests = value);
+                  _persistSettings();
+                },
               ),
             ],
           ),
@@ -106,13 +162,19 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
                 'Voice navigation',
                 'Spoken turns while you drive',
                 voiceNavigation,
-                (value) { setState(() => voiceNavigation = value); _persistSettings(); },
+                (value) {
+                  setState(() => voiceNavigation = value);
+                  _persistSettings();
+                },
               ),
               _switchRow(
                 'Read rider messages',
                 'Reads new chat messages aloud',
                 readRiderMessages,
-                (value) { setState(() => readRiderMessages = value); _persistSettings(); },
+                (value) {
+                  setState(() => readRiderMessages = value);
+                  _persistSettings();
+                },
               ),
               const SizedBox(height: 8),
               _test('Test alerts', _onTestAlerts),
@@ -174,12 +236,17 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
               ],
             ),
           ),
-          Semantics(label: title, toggled: value, onTap: () => onChanged(!value),
-            child: ExcludeSemantics(child: Switch.adaptive(
-              value: value,
-              activeTrackColor: _ink,
-              onChanged: onChanged,
-            )),
+          Semantics(
+            label: title,
+            toggled: value,
+            onTap: () => onChanged(!value),
+            child: ExcludeSemantics(
+              child: Switch.adaptive(
+                value: value,
+                activeTrackColor: _ink,
+                onChanged: onChanged,
+              ),
+            ),
           ),
         ],
       ),
@@ -194,7 +261,9 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
         style: OutlinedButton.styleFrom(
           foregroundColor: _ink,
           side: const BorderSide(color: _line),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
@@ -202,14 +271,14 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
   }
 
   void _onTestAlerts() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Playing alert sound (mock)')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Playing alert sound (mock)')));
   }
 
   void _onTestVoice() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Playing voice sound (mock)')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Playing voice sound (mock)')));
   }
 }

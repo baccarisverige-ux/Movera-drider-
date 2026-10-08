@@ -66,126 +66,103 @@ class _ChatState extends State<Chat> {
     });
   }
 
+  Widget _localNotice() => Container(
+    margin: EdgeInsets.symmetric(horizontal: screenHorizPadding, vertical: 10),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    decoration: BoxDecoration(
+      color: const Color(0xffF6F6F6),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: const Row(
+      children: [
+        Icon(Icons.info_outline_rounded, size: 18),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Local demo chat · messages are not sent to the rider.',
+            style: TextStyle(fontSize: 12.5, height: 1.3),
+          ),
+        ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffFAFAFA),
+      backgroundColor: const Color(0xffFAFAFA),
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(ResSize.h * 75),
+        preferredSize: Size.fromHeight(
+          (ResSize.h * 75).clamp(kToolbarHeight, double.infinity),
+        ),
         child: ChatAppBar(riderDisplayName: widget.riderDisplayName),
       ),
-      body: SizedBox(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            12.height,
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xffF6F6F6),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline_rounded, size: 18),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Local demo chat · messages are not sent to the rider.',
-                      style: TextStyle(fontSize: 12.5, height: 1.3),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scroll,
+              reverse: true,
+              itemCount: _messages.length + 1,
+              itemBuilder: (_, index) => index == _messages.length
+                  ? _localNotice()
+                  : SenderMessage(
+                      text: _messages[_messages.length - 1 - index],
                     ),
-                  ),
-                ],
-              ),
             ),
-            10.height,
-            Expanded(
-              child: ListView.builder(
-                controller: _scroll,
-                reverse: true,
-                itemCount: _messages.length,
-                itemBuilder: (_, index) => SenderMessage(
-                  text: _messages[_messages.length - 1 - index],
+          ),
+          ColoredBox(
+            color: AppColor.white,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenHorizPadding,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: customTextfield(
+                        borderColor: Colors.transparent,
+                        borderWidth: 0,
+                        textColor: AppColor.black,
+                        controller: _messageController,
+                        fontSize: 14,
+                        hint: 'send message...',
+                        fillColor: const Color(0xffF6F6F6),
+                        borderRadius: 32,
+                        hintTextColor: const Color(0xff969696),
+                        contentHorizPadding: 14,
+                        contentVertPadding: 12,
+                        textInputAction: TextInputAction.send,
+                        onFieldSubmitted: (_) => _sendMessage(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: const BoxDecoration(
+                        color: Color(0xffF6F6F6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        tooltip: 'Save message locally',
+                        onPressed: showSendIcon ? _sendMessage : null,
+                        padding: const EdgeInsets.all(12),
+                        icon: Image.asset(
+                          AppAssets.send,
+                          excludeFromSemantics: true,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            Container(
-              height: ResSize.h * 100,
-              width: double.infinity,
-              color: AppColor.white,
-              padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    height: ResSize.h * 48,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: customTextfield(
-                            borderColor: Colors.transparent,
-                            borderWidth: 0,
-                            textColor: AppColor.black,
-                            controller: _messageController,
-                            fontSize: 14,
-                            hint: "send message...",
-                            fillColor: Color(0xffF6F6F6),
-                            borderRadius: 32,
-                            hintTextColor: Color(0xff969696),
-                            contentHorizPadding: 14,
-                            contentVertPadding: 14,
-                            // suffixWidget: InkWell(
-                            //   onTap: showSendIcon
-                            //       ? _sendMessage
-                            //       : null, // Only work when showSendIcon is true
-                            //   child: Container(
-                            //     margin: EdgeInsets.only(right: ResSize.w * 8),
-                            //     height: ResSize.h * 35,
-                            //     width: ResSize.w * 42,
-                            //     decoration: BoxDecoration(
-                            //       borderRadius: BorderRadius.circular(8),
-                            //       color: AppColor.primary,
-                            //     ),
-                            //     child: Center(
-                            //       child: Padding(
-                            //         padding: const EdgeInsets.all(12.0),
-                            //         child: Image.asset(
-                            //           AppAssets.send,
-                            //           color: Colors.white,
-                            //         ),
-                            //       ),
-                            //     ),
-                            //   ),
-                            // ),
-                          ),
-                        ),
-                        10.width,
-                        Container(
-                          height: ResSize.h * 48,
-                          width: ResSize.w * 48,
-                          decoration: BoxDecoration(
-                            color: Color(0xffF6F6F6),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: InkWell(
-                              onTap: showSendIcon ? _sendMessage : null,
-                              child: Padding(
-                                padding: EdgeInsets.all(ResSize.w * 12),
-                                child: Image.asset(AppAssets.send),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

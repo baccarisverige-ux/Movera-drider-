@@ -3,15 +3,11 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
 import 'package:movera/core/safety/rider_contact.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
 import 'package:movera/widgets/responsive_size.dart';
 import 'package:movera/widgets/sizedbox_extention.dart';
 
 class ChatAppBar extends StatelessWidget {
-  const ChatAppBar({
-    super.key,
-    required this.riderDisplayName,
-  });
+  const ChatAppBar({super.key, required this.riderDisplayName});
 
   final String riderDisplayName;
 
@@ -29,7 +25,8 @@ class ChatAppBar extends StatelessWidget {
       leading: Row(
         children: [
           8.width,
-          IconButton(tooltip: 'Back', 
+          IconButton(
+            tooltip: 'Back',
             onPressed: () {
               Navigator.pop(context);
             },
@@ -40,11 +37,15 @@ class ChatAppBar extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: TextWidget(
-              text: riderDisplayName,
-              color: AppColor.title,
-              fontSize: 16,
-              fontWeight: fwBold,
+            child: Text(
+              riderDisplayName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColor.title,
+                fontSize: 16,
+                fontWeight: fwBold,
+              ),
             ),
           ),
         ],
