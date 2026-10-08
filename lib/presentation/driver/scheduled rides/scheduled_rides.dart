@@ -934,37 +934,43 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: ride.accepted
-                                ? const Color(0xFFE9F4EF)
-                                : const Color(0xFFF0F2F3),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                ride.accepted
-                                    ? Icons.check_circle_rounded
-                                    : Icons.schedule_rounded,
-                                size: 15,
-                                color: ride.accepted ? _green : _muted,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                ride.accepted ? 'Demo accepted' : 'Available',
-                                style: TextStyle(
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ride.accepted
+                                  ? const Color(0xFFE9F4EF)
+                                  : const Color(0xFFF0F2F3),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  ride.accepted
+                                      ? Icons.check_circle_rounded
+                                      : Icons.schedule_rounded,
+                                  size: 15,
                                   color: ride.accepted ? _green : _muted,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 5),
+                                Flexible(
+                                  child: Text(
+                                    ride.accepted
+                                        ? 'Demo accepted'
+                                        : 'Available',
+                                    style: TextStyle(
+                                      color: ride.accepted ? _green : _muted,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -1237,10 +1243,10 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
       child: ride.accepted
           ? SizedBox(
               width: double.infinity,
-              height: 54,
               child: OutlinedButton(
                 onPressed: () => _showCancelReasons(context),
                 style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(54),
                   foregroundColor: _red,
                   side: const BorderSide(color: Color(0xFFE7C6C9)),
                   shape: RoundedRectangleBorder(
@@ -1255,11 +1261,11 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
             )
           : SizedBox(
               width: double.infinity,
-              height: 54,
               child: FilledButton(
                 onPressed: () =>
                     Navigator.pop(context, _ScheduledRideAction.accepted),
                 style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(54),
                   backgroundColor: _ink,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
