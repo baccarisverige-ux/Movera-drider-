@@ -58,7 +58,9 @@ void main() {
     }), throwsStateError);
     expect(queue.isRunning, isFalse);
     var recovered = false;
-    await queue.request(() async => recovered = true);
+    await queue.request(() async {
+      recovered = true;
+    });
     expect(recovered, isTrue);
   });
 }
