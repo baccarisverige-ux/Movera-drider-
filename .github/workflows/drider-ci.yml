@@ -52,9 +52,8 @@ jobs:
           playwright-cli snapshot --filename=output/playwright/profile-return.yml
           cat output/playwright/profile-return.yml
           playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Back', exact: true}).or(page.getByRole('button').filter({hasText: 'Back'})).first().click(); await page.waitForTimeout(700); }"
-          playwright-cli snapshot --filename=output/playwright/home-return.yml
-          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Menu', exact: true}).click(); await page.waitForTimeout(700); }"
           playwright-cli snapshot --filename=output/playwright/menu-return.yml
+          cat output/playwright/menu-return.yml
           playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Scheduled rides Reservations and accepted trips', exact: true}).click(); await page.waitForTimeout(700); }"
           playwright-cli snapshot --filename=output/playwright/scheduled.yml
           cat output/playwright/scheduled.yml
