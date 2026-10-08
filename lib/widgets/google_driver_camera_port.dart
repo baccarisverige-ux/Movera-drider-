@@ -133,10 +133,16 @@ class GoogleDriverCameraPort implements DriverCameraPort {
   Future<void> _move(
     CameraPosition logical, {
     required bool trackVehicle,
+    required int generation,
   }) async {
+    if (_disposed || generation != _generation) return;
     _logical = logical;
     web.claim(controller.mapId);
     await controller.moveCamera(CameraUpdate.newCameraPosition(logical));
+    // A physical pan, app suspension, replaced map, or disposal can interrupt
+    // this command while the Maps SDK still awaits acknowledgement. Never
+    // publish an old camera frame or clear a newer error after that point.
+    if (_disposed || generation != _generation) return;
     onStatus?.call(null);
     if (trackVehicle) {
       onFrame?.call(logical);
@@ -179,7 +185,8 @@ class GoogleDriverCameraPort implements DriverCameraPort {
         return;
       }
       if (reducedMotion || _logical == null) {
-        await _move(_at(initial, initial.target), trackVehicle: true);
+        await _move(_at(initial, initial.target),
+          trackVehicle: true, generation: generation);
         return;
       }
       var dt = 16000;
@@ -193,7 +200,8 @@ class GoogleDriverCameraPort implements DriverCameraPort {
         final settled = _settled(from, destination);
         if (!settled) {
           final next = _approach(from, destination, dt, goal.duration);
-          await _move(next, trackVehicle: _trackCar(next, goal));
+          await _move(next,
+            trackVehicle: _trackCar(next, goal), generation: generation);
         }
         if (_disposed || generation != _generation || settled) {
           break;
@@ -256,6 +264,7 @@ class GoogleDriverCameraPort implements DriverCameraPort {
           tilt: position.tilt,
         ),
         trackVehicle: false,
+        generation: generation,
       );
     }
     if (_disposed || generation != _generation) {
