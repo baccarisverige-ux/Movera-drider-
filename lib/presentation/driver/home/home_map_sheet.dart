@@ -68,7 +68,11 @@ extension _HomeMapSheet on _DriverHomeState {
       );
     }
     void _applyDriverLocation(DriverLocation location) {
-      if (!mounted || !_liveVisible || !location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs() > 90 || location.point.longitude.abs() > 180) { return; }
+      if (!mounted || !_liveVisible) { return; }
+      if (!location.isDisplayableAt(DateTime.now())) {
+        _rebuild(() => _hasLiveDriverLocation = false);
+        return;
+      }
 
       final next = location.point.toLatLng();
       _cameraLocation = location;
