@@ -1,11 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:movera/widgets/custom_google_map.dart';
 
 import '../../integration_test/headless_map_platform.dart';
 
 void main() {
+  testWidgets('web and native zoom buttons are hidden; pinch remains enabled',
+      (tester) async {
+    final original = GoogleMapsFlutterPlatform.instance;
+    GoogleMapsFlutterPlatform.instance = HeadlessMapPlatform();
+    addTearDown(() => GoogleMapsFlutterPlatform.instance = original);
+
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: CustomGoogleMap(myLocationEnabled: false),
+      ),
+    ));
+    await tester.pump();
+
+    final wrapper = tester.widget<CustomGoogleMap>(
+      find.byType(CustomGoogleMap),
+    );
+    final sdk = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    expect(wrapper.webCameraControlEnabled, isFalse,
+        reason: 'No plus/minus buttons on the web map');
+    expect(sdk.webCameraControlEnabled, isFalse,
+        reason: 'Flutter forwards the hidden-control flag to Google Maps web');
+    expect(sdk.zoomControlsEnabled, isFalse,
+        reason: 'No native plus/minus zoom buttons');
+    expect(sdk.zoomGesturesEnabled, isTrue,
+        reason: 'Pinch-to-zoom must remain available');
+    expect(sdk.scrollGesturesEnabled, isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
+
   testWidgets('gesture-locked map ignores pan and pinch then restores input',
       (tester) async {
     final original = GoogleMapsFlutterPlatform.instance;
