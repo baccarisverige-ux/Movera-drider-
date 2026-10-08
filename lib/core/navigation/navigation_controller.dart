@@ -135,8 +135,17 @@ class NavigationController extends ChangeNotifier {
   }
 
   void setVehicle(DriverLocation location) {
+    // A valid fix may arrive at exactly the same coordinates as the last
+    // point, especially after a brief stream interruption. Clear only the
+    // transient GPS warning; a failed road route still needs explicit retry.
+    final restoredGps = _status == 'Location updating…' &&
+        location.isUsableAt(DateTime.now());
+    if (restoredGps) {
+      _status = null;
+    }
     final moved = _snapshot.vehicle.distanceMetersTo(location.point);
-    if (moved < 0.4 &&
+    if (!restoredGps &&
+        moved < 0.4 &&
         (location.headingDegrees - _snapshot.headingDegrees).abs() < 1) {
       return;
     }
