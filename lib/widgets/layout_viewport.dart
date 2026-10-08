@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -32,32 +30,15 @@ class LayoutViewport extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final media = MediaQuery.of(context);
-        final renderSurface = surfaceSize(context);
-
-        var width = renderSurface.width;
-        var height = renderSurface.height;
-
-        if (constraints.maxWidth.isFinite && constraints.maxWidth > 0) {
-          width = math.min(width, constraints.maxWidth);
-        }
-        if (constraints.maxHeight.isFinite && constraints.maxHeight > 0) {
-          height = math.min(height, constraints.maxHeight);
-        }
-
-        // When the incoming box is the test surface (setSurfaceSize) but
-        // MediaQuery still reports the FlutterView, prefer the box.
-        if (constraints.maxWidth.isFinite &&
-            constraints.maxHeight.isFinite &&
-            constraints.maxWidth > 0 &&
-            constraints.maxHeight > 0 &&
-            (constraints.maxWidth < media.size.width - 0.5 ||
-                constraints.maxHeight > media.size.height + 0.5 ||
-                constraints.maxWidth < renderSurface.width - 0.5)) {
-          width = constraints.maxWidth;
-          height = constraints.maxHeight;
-        }
-
-        final surface = Size(width, height);
+        // RenderView.size still describes the previous frame during a resize.
+        // Current layout constraints follow rotation immediately and also
+        // respect setSurfaceSize when widget-test view metrics differ.
+        final surface = Size(
+          constraints.hasBoundedWidth ? constraints.maxWidth : media.size.width,
+          constraints.hasBoundedHeight
+              ? constraints.maxHeight
+              : media.size.height,
+        );
 
         return MediaQuery(
           data: media.copyWith(size: surface),
