@@ -43,16 +43,18 @@ extension _HomeMapSheet on _DriverHomeState {
           await _animateToDriverLocation();
         }
       } catch (_) {
-        if (!mounted) { return; }
+        if (!mounted || !_liveVisible || epoch != _locationEpoch) { return; }
         _rebuild(() => _hasLiveDriverLocation = false);
       }
     }
     void _listenToDriverLocation() {
+      final epoch = _locationEpoch;
       _driverLocationSubscription?.cancel();
       _driverLocationSubscription = _driverLocationService
           .watchPosition(distanceFilterMeters: 8)
           .listen(
         (location) {
+          if (!mounted || !_liveVisible || epoch != _locationEpoch) { return; }
           _applyDriverLocation(location);
           if (!_didCenterOnLiveLocation) {
             _didCenterOnLiveLocation = true;
@@ -60,7 +62,7 @@ extension _HomeMapSheet on _DriverHomeState {
           }
         },
         onError: (_) {
-          if (!mounted) { return; }
+          if (!mounted || !_liveVisible || epoch != _locationEpoch) { return; }
           _rebuild(() => _hasLiveDriverLocation = false);
         },
       );

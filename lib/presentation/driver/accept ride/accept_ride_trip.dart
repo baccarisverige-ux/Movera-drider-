@@ -491,9 +491,8 @@ extension _AcceptRideTrip on _AcceptRideState {
         if (!mounted) { return; }
 
         if (_liveUpdatesPaused || epoch != _locationEpoch) { return; }
-        await _applyDriverPosition(position, forceRoute: true);
-        if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) { return; }
-
+        // Subscribe before routing: fresh GPS must remain usable even when
+        // the first road-route request is slow or never resolves.
         _positionSubscription?.cancel();
         _positionSubscription = _locationService
             .watchPosition(distanceFilterMeters: 0)
@@ -503,7 +502,7 @@ extension _AcceptRideTrip on _AcceptRideState {
             _applyDriverPosition(position);
           },
           onError: (Object error) {
-            if (!mounted) { return; }
+            if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) { return; }
             _navigation.keepLastKnown(status: 'Location updating…');
             _rebuild(() {
               _hasLiveLocation = false;
@@ -511,8 +510,9 @@ extension _AcceptRideTrip on _AcceptRideState {
             });
           },
         );
+        await _applyDriverPosition(position, forceRoute: true);
       } catch (_) {
-        if (!mounted) { return; }
+        if (!mounted || _liveUpdatesPaused || epoch != _locationEpoch) { return; }
         _navigation.keepLastKnown(status: 'Location updating…');
         _rebuild(() {
           _hasLiveLocation = false;
