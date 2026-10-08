@@ -132,6 +132,10 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
   @override
   Widget build(BuildContext context) {
     return Listener(
+      // Platform map views may expose no Flutter hit-test child (notably
+      // headless tests and some web platform-view frames). Still observe
+      // genuine input over the full map surface without blocking the map.
+      behavior: HitTestBehavior.opaque,
       onPointerDown: (event) {
         if (_pointerOrigins.isEmpty) {
           _gestureReported = false;
