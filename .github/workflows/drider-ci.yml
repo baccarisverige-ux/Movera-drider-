@@ -33,6 +33,13 @@ jobs:
           playwright-cli snapshot --filename=output/playwright/home.yml
           cat output/playwright/home.yml
           playwright-cli screenshot --filename=output/playwright/candidate-home-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Deny', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/home-ready.yml
+          cat output/playwright/home-ready.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Menu', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/menu.yml
+          cat output/playwright/menu.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-menu-320.png
           playwright-cli console error
           playwright-cli close
       - uses: actions/upload-artifact@v4
