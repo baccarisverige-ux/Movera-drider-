@@ -208,6 +208,7 @@ void main() {
     now = now.add(const Duration(seconds: 95));
     await tester.pump(const Duration(seconds: 1));
     expect(_wait(tester), 95);
+    await _middle(tester);
     await tester.ensureVisible(action);
     await tester.drag(action, const Offset(320, 0));
     await _frames(tester);
