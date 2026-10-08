@@ -140,14 +140,16 @@ class MyQueuePosition extends StatelessWidget {
                             spacing: 12,
                             runSpacing: 8,
                             children: [
-                              Row(
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 4,
+                                runSpacing: 4,
                                 children: [
                                   Icon(
                                     Icons.star_outline_rounded,
                                     size: ResSize.h * 28,
                                     color: AppColor.title,
                                   ),
-                                  4.width,
                                   TextWidget(
                                     text: "Sample Rank",
                                     color: AppColor.title,
@@ -156,14 +158,16 @@ class MyQueuePosition extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              Row(
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 4,
+                                runSpacing: 4,
                                 children: [
                                   Image.asset(
                                     AppAssets.taxiAhead,
                                     height: ResSize.h * 20,
                                     color: AppColor.title,
                                   ),
-                                  4.width,
                                   TextWidget(
                                     text: "Sample Rank",
                                     color: AppColor.title,
