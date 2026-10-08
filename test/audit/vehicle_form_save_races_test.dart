@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:movera/presentation/driver/add vehicle/add_vehicle.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _DelayedStore extends LocalVehicleStore {
   final writes = <Map<String, dynamic>>[];
@@ -27,8 +28,11 @@ Future<void> _fill(WidgetTester tester, _DelayedStore store) async {
   await tester.pump();
   await tester.enterText(find.byType(TextField).at(1), 'E220');
   await tester.pump();
-  await tester.ensureVisible(find.text('Select...'));
-  await tester.tap(find.text('Select...'));
+  final yearSelector = find.byWidgetPredicate(
+    (widget) => widget is InkWell && widget.child is InputDecorator,
+  );
+  await tester.ensureVisible(yearSelector);
+  await tester.tap(yearSelector);
   await tester.pumpAndSettle();
   await tester.tap(find.text(DateTime.now().year.toString()));
   await tester.pumpAndSettle();
@@ -41,6 +45,7 @@ FilledButton _continue(WidgetTester tester) =>
     tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Continue'));
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets('document handoff uses the exact submitted snapshot', (
     tester,
   ) async {
