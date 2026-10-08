@@ -312,7 +312,12 @@ extension _HomeOfferRadar on _DriverHomeState {
       unawaited(_claimHomeRadarOffer(offer));
     }
     Future<void> _claimHomeRadarOffer(_HomeDirectOffer offer) async {
-      final result = await _dispatch.claimOffer(offer.id);
+      ClaimResult result;
+      try {
+        result = await _dispatch.claimOffer(offer.id);
+      } catch (_) {
+        result = const ClaimResult.networkError();
+      }
       if (!mounted || _homeRadarMatchingOfferId != offer.id) { return; }
       switch (result.outcome) {
         case ClaimOutcome.success:
@@ -373,15 +378,23 @@ extension _HomeOfferRadar on _DriverHomeState {
       _homeRadarNoticeTimer?.cancel();
 
       _rebuild(() {
-        _homeRadarMatchingOfferId = null;
-        _homeRadarMatchStates.remove(offer.id);
+        // Keep ownership until the active ride opens. Other offers and the
+        // dispatch removal of our own claimed offer cannot steal this handoff.
+        _homeRadarMatchingOfferId = offer.id;
+        _homeRadarMatchStates[offer.id] = _HomeRadarMatchState.resolving;
+        _claimedHomeOffer = offer;
       });
       IslandMessages.show(HomeIslandNotices.matched);
-
+      _openClaimedHomeOffer();
+    }
+    void _openClaimedHomeOffer() {
+      final offer = _claimedHomeOffer;
+      if (!mounted || !_liveVisible || offer == null) { return; }
+      _homeRadarNoticeTimer?.cancel();
       _homeRadarNoticeTimer = Timer(
         const Duration(milliseconds: 850),
         () {
-          if (!mounted) { return; }
+          if (!mounted || !_liveVisible || _claimedHomeOffer?.id != offer.id) { return; }
           _acceptRadarHomeOffer(offer);
         },
       );
@@ -393,10 +406,10 @@ extension _HomeOfferRadar on _DriverHomeState {
       // The row itself says what happened; the island adds a line when
       // this driver was the one matching.
       final wasMatching = _homeRadarMatchingOfferId == offer.id;
-      _homeRadarNoticeTimer?.cancel();
+      if (wasMatching) { _homeRadarNoticeTimer?.cancel(); }
       _rebuild(() {
         _homeRadarGoneReasons[offer.id] = reason;
-        _homeRadarMatchingOfferId = null;
+        if (wasMatching) { _homeRadarMatchingOfferId = null; }
         _homeRadarMatchStates[offer.id] =
             _HomeRadarMatchState.claimedElsewhere;
       });
@@ -468,7 +481,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         },
       );
     }
-    void _cancelAllOfferTimers() {
+    void _cancelAllOfferTimers({bool preserveClaim = false}) {
       _outsideOfferTimeoutTimer?.cancel();
       _outsideOfferTimeoutTimer = null;
       _reservationOfferTimer?.cancel();
@@ -478,8 +491,11 @@ extension _HomeOfferRadar on _DriverHomeState {
       _homeRadarExternalClaimTimer?.cancel();
       _homeRadarExternalClaimCleanupTimer?.cancel();
       _homeRadarLostMatchTimer?.cancel();
-      _homeRadarMatchingOfferId = null;
-      _homeRadarMatchStates.clear();
+      if (!preserveClaim) {
+        _homeRadarMatchingOfferId = null;
+        _claimedHomeOffer = null;
+        _homeRadarMatchStates.clear();
+      }
       for (final timer in _radarOfferTimeoutTimers.values) {
         timer.cancel();
       }
@@ -1346,10 +1362,15 @@ extension _HomeOfferRadar on _DriverHomeState {
     }
     void _scheduleVisibleOffers() {
       if(!mounted || !_liveVisible || !_driverSession.availableForOffers) return;
-      _cancelAllOfferTimers();
+      _cancelAllOfferTimers(preserveClaim: true);
       _directOfferTimer?.cancel();_offerSimulationTimer?.cancel();
       _radarOfferTwoTimer?.cancel();_radarOfferThreeTimer?.cancel();_expandedDirectOfferTimer?.cancel();
           _watchDispatchRadar();
+          if (_claimedHomeOffer != null) {
+            _openClaimedHomeOffer();
+            return;
+          }
+          if (_homeRadarMatchingOfferId != null) { return; }
 
           // Frontend demo only. Outside-Radar offers remain exclusive and
           // never enter the Trip Radar list.

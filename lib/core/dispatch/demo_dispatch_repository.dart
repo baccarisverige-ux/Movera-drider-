@@ -35,6 +35,8 @@ class DemoDispatchRepository implements DispatchRepository {
   List<RideOffer> _offers = List<RideOffer>.from(_immediateOffers);
   List<RideOffer> _queued = List<RideOffer>.from(_laterOffers);
   bool _demoStarted = false;
+  int _generation = 0;
+  bool _disposed = false;
   Timer? _newOfferTimer;
   Timer? _externalClaimTimer;
 
@@ -148,7 +150,12 @@ class DemoDispatchRepository implements DispatchRepository {
 
   @override
   Future<ClaimResult> claimOffer(String offerId) async {
+    if (_disposed) { return const ClaimResult.unavailable(); }
+    final generation = _generation;
     await Future<void>.delayed(_claimDelay);
+    if (_disposed || generation != _generation) {
+      return const ClaimResult.unavailable();
+    }
     RideOffer? offer;
     for (final item in _offers) {
       if (item.id == offerId) {
@@ -202,6 +209,8 @@ class DemoDispatchRepository implements DispatchRepository {
 
   /// Returns the demo to its first-launch offer set, for logout/re-entry.
   void reset() {
+    if (_disposed) { return; }
+    _generation++;
     _newOfferTimer?.cancel();
     _externalClaimTimer?.cancel();
     _offers = List<RideOffer>.from(_immediateOffers);
@@ -211,6 +220,9 @@ class DemoDispatchRepository implements DispatchRepository {
   }
 
   void dispose() {
+    if (_disposed) { return; }
+    _disposed = true;
+    _generation++;
     _newOfferTimer?.cancel();
     _externalClaimTimer?.cancel();
     _nearby.close();
