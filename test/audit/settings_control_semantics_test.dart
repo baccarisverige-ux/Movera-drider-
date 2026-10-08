@@ -52,7 +52,7 @@ void main() {
       addTearDown(handle.dispose);
       await tester.pumpWidget(const MaterialApp(home: SoundAndVoice()));
       await tester.pumpAndSettle();
-      final node = tester.getSemantics(find.byType(Slider));
+      final node = tester.getSemantics(find.bySemanticsLabel('General volume'));
       expect(node.getSemanticsData().label, 'General volume');
       expect(node.getSemanticsData().value, '35%');
       tester.binding.performSemanticsAction(

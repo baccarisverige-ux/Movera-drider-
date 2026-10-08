@@ -140,20 +140,29 @@ class _ChatState extends State<Chat> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: const BoxDecoration(
-                        color: Color(0xffF6F6F6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        tooltip: 'Save message locally',
-                        onPressed: showSendIcon ? _sendMessage : null,
-                        padding: const EdgeInsets.all(12),
-                        icon: Image.asset(
-                          AppAssets.send,
-                          excludeFromSemantics: true,
+                    Semantics(
+                      container: true,
+                      label: 'Save message locally',
+                      button: true,
+                      enabled: showSendIcon,
+                      onTap: showSendIcon ? _sendMessage : null,
+                      child: ExcludeSemantics(
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: const BoxDecoration(
+                            color: Color(0xffF6F6F6),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            tooltip: 'Save message locally',
+                            onPressed: showSendIcon ? _sendMessage : null,
+                            padding: const EdgeInsets.all(12),
+                            icon: Image.asset(
+                              AppAssets.send,
+                              excludeFromSemantics: true,
+                            ),
+                          ),
                         ),
                       ),
                     ),
