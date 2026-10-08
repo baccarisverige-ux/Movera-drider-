@@ -198,8 +198,9 @@ void main() {
     );
     await tester.pumpWidget(const SizedBox.shrink());
     for (final request in routes.requests) {
-      if (!request.isCompleted)
+      if (!request.isCompleted) {
         request.completeError(StateError('Route disposed'));
+      }
     }
     await _frames(tester, 2);
     expect(tester.takeException(), isNull);
