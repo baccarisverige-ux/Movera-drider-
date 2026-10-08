@@ -510,13 +510,14 @@ extension _HomeMapSheet on _DriverHomeState {
       _sheetTrace.up(_sheetPointerVelocity);
       _trackSheetPointer(event);
       _sheetPointerActive = false;
+      // Resting at middle or fully open cannot suppress gestures on the
+      // *exposed* area above the sheet. Its own overlay handles touch blocking.
+      _setMapGesturesBlocked(false);
       if (!_panelController.isAttached) { return; }
       // A drag settles at once toward where the finger went, with the same
       // spring as a tap; no late correction afterwards.
       if (_sheetPointerTravel > 6) {
         unawaited(_snapHomeSheet(velocity: _sheetPointerVelocity));
-      } else if (_panelController.panelPosition <= 0.001) {
-        _setMapGesturesBlocked(false);
       }
     }
     /// Safety net only: if something outside a drag leaves the sheet
