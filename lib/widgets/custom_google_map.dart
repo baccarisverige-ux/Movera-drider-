@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:math' as math;
 
 import '../styles/reference_map_style.dart';
+import '../core/navigation/map_double_tap_policy.dart';
 import 'driver_map_web_bridge_stub.dart'
     if (dart.library.js_interop) 'driver_map_web_bridge.dart'
     as web;
@@ -158,10 +159,12 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
           final at = _lastTapAt;
           final point = _lastTapPosition;
           _doubleTapCandidate = widget.zoomGesturesEnabled &&
-              at != null && point != null &&
-              event.timeStamp >= at &&
-              event.timeStamp - at <= const Duration(milliseconds: 300) &&
-              (event.position - point).distance <= 32;
+              MapDoubleTapPolicy.isSecondTap(
+                previousAt: at,
+                previousPosition: point,
+                currentAt: event.timeStamp,
+                currentPosition: event.position,
+              );
         }
         _pointerOrigins[event.pointer] = event.position;
         // A marker tap stays in Follow. A second simultaneous pointer
