@@ -621,11 +621,16 @@ extension _AcceptRideTrip on _AcceptRideState {
     }
     void _onCameraMove(CameraPosition position) {
       _cameraPort?.onMove(position);
-      // Camera callbacks are not gesture evidence. SDK animation callbacks can
-      // arrive after animateCamera completes; only physical input pauses follow.
-      if (_camera.mode != DriverCameraMode.browsing) { return; }
+      // A native +/- control zoom has no Flutter pinch/wheel pointer signal.
+      // Observe SDK zoom *deltas*, but only after physical input has already
+      // transferred the camera to manual Browse. Pan-only moves stay quiet.
+      final browsing = _camera.mode == DriverCameraMode.browsing;
+      final zoomChanged = _manualZoomDetector.observe(
+        position.zoom, browsing: browsing,
+      );
+      if (!browsing) { return; }
       final zoom = _lastMapZoom;
-      if (_mapPointers >= 2 || (zoom != null &&
+      if (zoomChanged || _mapPointers >= 2 || (zoom != null &&
           DateTime.now().difference(zoom) < const Duration(milliseconds: 700))) {
         _enterBrowse();
       }
