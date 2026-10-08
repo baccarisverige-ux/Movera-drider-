@@ -260,6 +260,36 @@ Future<void> runCameraContractTests() async {
     immediate: true,
   );
   check(arrival.tilt == 0, 'Arrival flattens');
+  DriverCameraPose approachDestination(double meters) {
+    final arrivingCamera = DriverCameraPolicy();
+    return arrivingCamera.resolve(
+      location: fix(
+        GeoPoint(end.latitude, end.longitude - meters / 56800),
+        speed: 30,
+      ),
+      route: curvedRoute,
+      navigating: true,
+      immediate: true,
+    );
+  }
+  check(
+    (approachDestination(138).zoom - approachDestination(142).zoom).abs() < .05,
+    'Arrival framing must not jump at the 140 metre ease-in threshold',
+  );
+  check(
+    (approachDestination(33).zoom - approachDestination(37).zoom).abs() < .2,
+    'The previous 35 metre threshold must not trigger a zoom snap',
+  );
+  check(
+    approachDestination(45).zoom > approachDestination(120).zoom,
+    'High-speed arrival smoothly tightens the view toward the endpoint',
+  );
+  check(
+    approachDestination(0).tilt == 0 &&
+        approachDestination(0).zoom >= 17.5,
+    'Final arrival remains close and flat',
+  );
+
   final fast = DriverCameraPolicy();
   fast.resolve(
     location: fix(origin, speed: 30),
