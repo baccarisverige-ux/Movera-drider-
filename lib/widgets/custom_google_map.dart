@@ -85,6 +85,15 @@ class CustomGoogleMap extends StatefulWidget {
 class _CustomGoogleMapState extends State<CustomGoogleMap> {
   final Map<int, Offset> _pointerOrigins = {};
   bool _gestureReported = false;
+  Duration? _lastTapAt;
+  Offset? _lastTapPosition;
+  bool _doubleTapCandidate = false;
+
+  void _forgetTap() {
+    _lastTapAt = null;
+    _lastTapPosition = null;
+    _doubleTapCandidate = false;
+  }
 
   bool get _cameraGesturesEnabled =>
       widget.scrollGesturesEnabled ||
@@ -146,23 +155,52 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
       onPointerDown: (event) {
         if (_pointerOrigins.isEmpty) {
           _gestureReported = false;
+          final at = _lastTapAt;
+          final point = _lastTapPosition;
+          _doubleTapCandidate = widget.zoomGesturesEnabled &&
+              at != null && point != null &&
+              event.timeStamp >= at &&
+              event.timeStamp - at <= const Duration(milliseconds: 300) &&
+              (event.position - point).distance <= 32;
         }
         _pointerOrigins[event.pointer] = event.position;
-        // A tap may select a marker or dismiss an overlay without panning.
-        // Only a second active pointer (pinch/rotate) or real movement should
-        // take follow-camera ownership away from the driver.
+        // A marker tap stays in Follow. A second simultaneous pointer
+        // signals pinch/rotate, even if neither finger has moved yet.
         if (_pointerOrigins.length > 1) {
+          _forgetTap();
           _reportGesture();
         }
       },
       onPointerMove: (event) {
         final origin = _pointerOrigins[event.pointer];
         if (origin != null && (event.position - origin).distance >= 6) {
+          _forgetTap();
           _reportGesture();
         }
       },
-      onPointerUp: (event) => _pointerOrigins.remove(event.pointer),
-      onPointerCancel: (event) => _pointerOrigins.remove(event.pointer),
+      onPointerUp: (event) {
+        final origin = _pointerOrigins.remove(event.pointer);
+        if (origin == null || _pointerOrigins.isNotEmpty) return;
+        if (_gestureReported || (event.position - origin).distance >= 6) {
+          _forgetTap();
+          return;
+        }
+        if (_doubleTapCandidate) {
+          // Native Maps can zoom on two stationary taps. Unlike a pan or
+          // pinch, this has no pointer-move signal; yield Follow ownership
+          // before its zoom animation is undone by the next GPS frame.
+          _forgetTap();
+          _reportGesture();
+        } else {
+          _lastTapAt = event.timeStamp;
+          _lastTapPosition = event.position;
+          _doubleTapCandidate = false;
+        }
+      },
+      onPointerCancel: (event) {
+        _pointerOrigins.remove(event.pointer);
+        _forgetTap();
+      },
       onPointerSignal: (_) {
         _gestureReported = false;
         _reportGesture();
