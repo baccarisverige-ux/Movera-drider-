@@ -37,7 +37,9 @@ class _DriverProfileState extends State<DriverProfile> {
     Widget page, {
     bool refreshVehicle = false,
   }) async {
-    if (_logoutBusy || !mounted) return;
+    if (_logoutBusy || !mounted) {
+      return;
+    }
     await pushSingle(context, RightToLeftTransition(page));
     if (mounted && refreshVehicle) {
       setState(() => _identity = _vehicles.primaryIdentity());
@@ -319,8 +321,9 @@ class _DriverProfileState extends State<DriverProfile> {
   }
 
   Future<void> _confirmLogout(BuildContext context) async {
-    if (_logoutBusy || !mounted || ModalRoute.of(context)?.isCurrent == false)
+    if (_logoutBusy || !mounted || ModalRoute.of(context)?.isCurrent == false) {
       return;
+    }
     setState(() => _logoutBusy = true);
     try {
       await _performLogout(context);
