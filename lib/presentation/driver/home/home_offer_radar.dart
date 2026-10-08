@@ -100,6 +100,7 @@ extension _HomeOfferRadar on _DriverHomeState {
     void _clearDirectOfferRoute() {
       if (!mounted) { return; }
       _rebuild(() {
+        _mapPreviews.cancel();
         _isDirectOfferRoutePreview = false;
         _directOfferRouteMarkers = {};
         _directOfferRoutePolylines = {};
@@ -545,7 +546,8 @@ extension _HomeOfferRadar on _DriverHomeState {
           _radarHomeOffers.clear();
           _pendingRadarHomeOffers.clear();
           _hasRideOffers = false;
-          _isDirectOfferRoutePreview = false;
+          _mapPreviews.cancel();
+        _isDirectOfferRoutePreview = false;
           _directOfferRouteMarkers = {};
           _directOfferRoutePolylines = {};
         });
@@ -593,7 +595,8 @@ extension _HomeOfferRadar on _DriverHomeState {
           _radarHomeOffers.clear();
           _pendingRadarHomeOffers.clear();
           _hasRideOffers = false;
-          _isDirectOfferRoutePreview = false;
+          _mapPreviews.cancel();
+        _isDirectOfferRoutePreview = false;
           _directOfferRouteMarkers = {};
           _directOfferRoutePolylines = {};
         });
