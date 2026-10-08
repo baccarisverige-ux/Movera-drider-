@@ -31,6 +31,50 @@ void main() {
     expect(displayedPreviews, ['B / pickup / dropoff']);
   });
 
+  test('newer GPS route keeps priority over late success and failure',
+      () async {
+    final routeRequests = MapPreviewGeneration();
+    String? currentRoad;
+
+    Future<void> resolve(Completer<String> response) async {
+      final generation = routeRequests.begin();
+      try {
+        final road = await response.future;
+        if (routeRequests.owns(generation)) currentRoad = road;
+      } catch (_) {
+        if (routeRequests.owns(generation)) currentRoad = null;
+      }
+    }
+
+    final slowOldFix = Completer<String>();
+    final fastNewFix = Completer<String>();
+    final oldPending = resolve(slowOldFix);
+    final newPending = resolve(fastNewFix);
+    fastNewFix.complete('new GPS road');
+    await newPending;
+    slowOldFix.complete('obsolete GPS road');
+    await oldPending;
+    expect(currentRoad, 'new GPS road');
+
+    final oldFailure = Completer<String>();
+    final newSuccess = Completer<String>();
+    final failurePending = resolve(oldFailure);
+    final successPending = resolve(newSuccess);
+    newSuccess.complete('newer valid route');
+    await successPending;
+    oldFailure.completeError(StateError('old routing attempt failed'));
+    await failurePending;
+    expect(currentRoad, 'newer valid route');
+
+    final pendingAfterExit = Completer<String>();
+    final exitPending = resolve(pendingAfterExit);
+    routeRequests.cancel();
+    currentRoad = null; // Destination mode was closed.
+    pendingAfterExit.complete('route from closed destination');
+    await exitPending;
+    expect(currentRoad, isNull);
+  });
+
   test('dismiss and destination replacement revoke older camera ownership',
       () async {
     final requests = MapPreviewGeneration();
