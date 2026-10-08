@@ -26,6 +26,20 @@ void main() {
       ride.dispose();
     }
   });
+  test('terminal outcome cannot be rewritten by late or duplicate projection', () async {
+    final ride = ActiveRideController(tripId: 'terminal-locked');
+    addTearDown(ride.dispose);
+    expect(await ride.applyProjection(TripStatus.inTrip), isTrue);
+    expect(await ride.applyProjection(TripStatus.cancelledByRider), isTrue);
+    expect(ride.terminalStatus, TripStatus.cancelledByRider);
+    expect(await ride.applyProjection(TripStatus.cancelledByRider), isFalse);
+    expect(await ride.applyProjection(TripStatus.completed), isFalse);
+    expect(await ride.applyProjection(TripStatus.noShow), isFalse);
+    expect(await ride.applyProjection(TripStatus.inTrip), isFalse);
+    expect(ride.terminalStatus, TripStatus.cancelledByRider);
+    expect(ride.tripStatus, TripStatus.cancelledByRider);
+  });
+
   test('delayed restore cannot overwrite an explicit availability change', () async {
     final repo = _DelayedSession();
     final session = DriverSessionController(repository: repo);
