@@ -131,6 +131,44 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('late route-fit acknowledgement cannot clear camera error', (
+    tester,
+  ) async {
+    final original = GoogleMapsFlutterPlatform.instance;
+    final platform = _DelayedCameraAckPlatform();
+    GoogleMapsFlutterPlatform.instance = platform;
+    addTearDown(() => GoogleMapsFlutterPlatform.instance = original);
+    GoogleMapController? controller;
+    await tester.pumpWidget(MaterialApp(
+      home: GoogleMap(
+        initialCameraPosition: const CameraPosition(
+          target: LatLng(59, 18),
+          zoom: 16,
+        ),
+        onMapCreated: (value) => controller = value,
+      ),
+    ));
+    await tester.pump();
+    expect(controller, isNotNull);
+    final statuses = <String?>[];
+    final port = GoogleDriverCameraPort(
+      controller!,
+      onStatus: statuses.add,
+    );
+    const points = [GeoPoint(59.32, 18.04), GeoPoint(59.36, 18.10)];
+    final pending = port.overview(points, 80);
+    await tester.pump();
+    expect(platform.moves, hasLength(1));
+    port.interrupt(); // A later manual pan or dismissed route owns the map.
+    platform.ack.complete();
+    await tester.pump();
+    await pending;
+    expect(statuses, isEmpty,
+        reason: 'Old route-fit success must not clear newer camera status');
+    port.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('late SDK move cannot update marker after manual camera pan', (
     tester,
   ) async {
