@@ -312,7 +312,12 @@ extension _HomeOfferRadar on _DriverHomeState {
       unawaited(_claimHomeRadarOffer(offer));
     }
     Future<void> _claimHomeRadarOffer(_HomeDirectOffer offer) async {
-      final result = await _dispatch.claimOffer(offer.id);
+      ClaimResult result;
+      try {
+        result = await _dispatch.claimOffer(offer.id);
+      } catch (_) {
+        result = const ClaimResult.networkError();
+      }
       if (!mounted || _homeRadarMatchingOfferId != offer.id) { return; }
       switch (result.outcome) {
         case ClaimOutcome.success:

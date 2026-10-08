@@ -6,6 +6,7 @@ part of 'accept_ride.dart';
 
 extension _AcceptRideTrip on _AcceptRideState {
     PersistedActiveRide _buildSnapshot(ActiveRideStage stage) {
+      _syncWaitClock();
       final offer = _nextTripRadarOffer;
       final securedOffer =
           _onTripRadarState == _OnTripRadarState.secured ? offer : null;
@@ -74,11 +75,11 @@ extension _AcceptRideTrip on _AcceptRideState {
       );
     }
     void _resumeStageSideEffects() {
-      switch (widget.initialStage) {
+      if (_countingWait) { _startWaitTimer(); }
+      switch (_stage) {
         case ActiveRideStage.headingToPickup:
           return;
         case ActiveRideStage.waitingForRider:
-          _startWaitTimer();
           unawaited(_focusWaitingPickup());
         case ActiveRideStage.onTrip:
           if (_onTripRadarState != _OnTripRadarState.secured) {
@@ -90,6 +91,8 @@ extension _AcceptRideTrip on _AcceptRideState {
     void _pauseLiveUpdates() {
       _camera.suspend();
       if (_liveUpdatesPaused) { return; }
+      _syncWaitClock();
+      _waitTimer?.cancel();
       _liveUpdatesPaused = true;
       _locationEpoch++;
       _hasLiveLocation = false;
@@ -105,6 +108,11 @@ extension _AcceptRideTrip on _AcceptRideState {
     void _resumeLiveUpdates() {
       if (!_liveUpdatesPaused) { return; }
       _liveUpdatesPaused = false;
+      if (_countingWait) {
+        _syncWaitClock();
+        _startWaitTimer();
+        _rebuild(() {});
+      }
       _camera.resume();
       if (!MediaQuery.disableAnimationsOf(context) && !_radarPulseController.isAnimating) {
         _radarPulseController.repeat(reverse: true);
@@ -418,6 +426,7 @@ extension _AcceptRideTrip on _AcceptRideState {
           _stopCursor < widget.stopAddresses.length) {
         _paidStopWait = true;
         _waitSeconds = 0;
+        _waitAnchorAt = null;
         _startWaitTimer();
         await _rideLifecycle.persistNow();
         if (mounted) { _rebuild(() {}); }
@@ -438,6 +447,7 @@ extension _AcceptRideTrip on _AcceptRideState {
       }
 
       _waitSeconds = 0;
+      _waitAnchorAt = null;
       _routeLoading = false;
       _startWaitTimer();
       await _rideLifecycle.persistNow();
@@ -1055,10 +1065,21 @@ extension _AcceptRideTrip on _AcceptRideState {
     }
     void _startWaitTimer() {
       _waitTimer?.cancel();
+      _syncWaitClock();
+      _waitAnchorAt = widget.waitNow?.call() ?? DateTime.now();
+      _waitAnchorSeconds = _waitSeconds;
+      if (_liveUpdatesPaused) { return; }
       _waitTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted || !_countingWait) { return; }
-        _rebuild(() => _waitSeconds++);
+        _rebuild(_syncWaitClock);
       });
+    }
+    void _syncWaitClock() {
+      final anchor = _waitAnchorAt;
+      if (!_countingWait || anchor == null) { return; }
+      final now = widget.waitNow?.call() ?? DateTime.now();
+      final elapsed = math.max(0, now.difference(anchor).inSeconds);
+      _waitSeconds = math.max(_waitSeconds, _waitAnchorSeconds + elapsed);
     }
     String _stopWord(int number) {
       return switch (number) {

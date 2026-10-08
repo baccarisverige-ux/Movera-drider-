@@ -450,6 +450,8 @@ class _AcceptRideState extends State<AcceptRide>
   DateTime? _lastSnapshotAt;
   bool _liveUpdatesPaused = false;
   int _waitSeconds = 0;
+  DateTime? _waitAnchorAt;
+  int _waitAnchorSeconds = 0;
   int _stopCursor = 0;
   bool _paidStopWait = false;
   DateTime? _onTripStartedAt;

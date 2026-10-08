@@ -221,7 +221,12 @@ class _RideRequestsState extends State<RideRequests> {
   }
 
   Future<void> _claimTrip(_RadarTrip trip) async {
-    final result = await _dispatch.claimOffer(trip.id);
+    ClaimResult result;
+    try {
+      result = await _dispatch.claimOffer(trip.id);
+    } catch (_) {
+      result = const ClaimResult.networkError();
+    }
     if (!mounted || _matchingOfferId != trip.id) { return; }
 
     switch (result.outcome) {
@@ -239,6 +244,9 @@ class _RideRequestsState extends State<RideRequests> {
           _offerStates.remove(trip.id);
           _matchNotice = null;
         });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not match trip. Try again.'),
+        ));
     }
   }
 
