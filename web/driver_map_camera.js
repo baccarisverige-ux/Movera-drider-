@@ -91,6 +91,13 @@
     let pointerOrigin = null;
     let pointerReleased = false;
     let controlPointerReleased = false;
+    let controlTouchActive = false;
+    // The map captures custom pan/pinch events, but Google's +/- controls are
+    // real DOM buttons inside its map container. Never swallow their touches.
+    const stopLockedControl = event => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
     // Google Maps' own +/- camera buttons produce SDK zoom events, not a
     // drag/wheel. Their native control clicks must still switch Movera from
     // GPS-follow to manually owned zoom, or the next fix undoes the change.
@@ -108,6 +115,7 @@
       if (!enabled) {
         previous = null; pointerOrigin = null;
         touchReleased = false; pointerReleased = false;
+        controlTouchActive = false;
       }
     };
     const release = () => {
@@ -124,22 +132,27 @@
     // events from touch here; the custom touch path below owns their geometry.
     div.addEventListener('pointerdown', event => {
       controlPointerReleased = false;
-      if (!state.gesturesEnabled) return;
       if (nativeCameraControl(event.target)) {
+        if (!state.gesturesEnabled) { stopLockedControl(event); return; }
         release();
         controlPointerReleased = true;
         pointerOrigin = null;
         return;
       }
-      if (event.pointerType === 'touch') return;
+      if (!state.gesturesEnabled || event.pointerType === 'touch') return;
       pointerOrigin = {x: event.clientX, y: event.clientY};
       pointerReleased = false;
     }, {capture: true});
     // Keyboard activation has no pointerdown. Do not double-report pointer
     // clicks and do not treat ordinary marker/map taps as camera zoom.
     div.addEventListener('click', event => {
-      if (state.gesturesEnabled && nativeCameraControl(event.target) &&
-          !controlPointerReleased) release();
+      if (nativeCameraControl(event.target)) {
+        if (!state.gesturesEnabled) {
+          stopLockedControl(event);
+        } else if (!controlPointerReleased) {
+          release(); // Keyboard activation has no pointer-down event.
+        }
+      }
       controlPointerReleased = false;
     }, {capture: true});
     div.addEventListener('pointermove', event => {
@@ -158,7 +171,17 @@
     // Own touch geometry so zoom + rotate can happen in the same gesture.
     // Mouse/keyboard gestures stay with Google Maps.
     div.addEventListener('touchstart', event => {
+      if (nativeCameraControl(event.target)) {
+        if (!state.gesturesEnabled) { stopLockedControl(event); return; }
+        controlTouchActive = true;
+        previous = null;
+        // iOS touch events can fire without pointerdown. Notify once, but
+        // leave the actual touch/click untouched for the Maps button.
+        if (!controlPointerReleased) { release(); controlPointerReleased = true; }
+        return;
+      }
       if (!state.gesturesEnabled) return;
+      controlTouchActive = false;
       event.preventDefault(); event.stopImmediatePropagation();
       if (!previous) {
         startedAt = performance.now(); maxTouches = 0;
@@ -169,6 +192,10 @@
       previous = {...touchPose(event.touches), count: event.touches.length};
     }, {capture: true, passive: false});
     div.addEventListener('touchmove', event => {
+      if (controlTouchActive) {
+        if (!state.gesturesEnabled) stopLockedControl(event);
+        return;
+      }
       if (!state.gesturesEnabled) return;
       event.preventDefault(); event.stopImmediatePropagation();
       const next = {...touchPose(event.touches), count: event.touches.length};
@@ -199,6 +226,11 @@
       previous = next;
     }, {capture: true, passive: false});
     const end = event => {
+      if (controlTouchActive) {
+        if (!state.gesturesEnabled) stopLockedControl(event);
+        if (!event.touches.length) controlTouchActive = false;
+        return; // Native Maps +/- control owns its click.
+      }
       if (!state.gesturesEnabled) { previous = null; return; }
       event.preventDefault(); event.stopImmediatePropagation();
       if (event.touches.length) { previous = {...touchPose(event.touches), count: event.touches.length}; return; }
