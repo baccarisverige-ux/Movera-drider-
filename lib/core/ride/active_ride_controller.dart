@@ -39,7 +39,7 @@ class ActiveRideController extends ChangeNotifier {
   TripStatus get tripStatus => _terminalStatus ?? _stage.tripStatus;
 
   Future<bool> transitionTo(ActiveRideStage next) async {
-    if (terminal || saving) {
+    if (_disposed || terminal || saving) {
       return false;
     }
     if (next == _stage) {
@@ -105,7 +105,7 @@ class ActiveRideController extends ChangeNotifier {
   }
 
   Future<bool> complete({bool clearSnapshot = true}) async {
-    if (terminal || saving || _stage != ActiveRideStage.onTrip) {
+    if (_disposed || terminal || saving || _stage != ActiveRideStage.onTrip) {
       return false;
     }
     if (clearSnapshot && !await _write(() => _finish(TripStatus.completed))) {
@@ -122,7 +122,7 @@ class ActiveRideController extends ChangeNotifier {
     TripStatus status = TripStatus.cancelledByDriver,
     bool clearSnapshot = true,
   }) async {
-    if (terminal || saving || !_isCancellationTerminal(status)) {
+    if (_disposed || terminal || saving || !_isCancellationTerminal(status)) {
       return false;
     }
     if (clearSnapshot && !await _write(() => _finish(status))) {
@@ -157,23 +157,25 @@ class ActiveRideController extends ChangeNotifier {
   bool recoveryRequired = false;
   bool _disposed = false;
   bool _writing = false;
+  int _revision = 0;
   Object? persistenceError;
   bool get saving => _writing;
   PersistedActiveRide _snapshot(ActiveRideStage stage) =>
       snapshotBuilder?.call(stage) ??
       PersistedActiveRide(tripId: tripId ?? 'demo', stage: stage);
   Future<bool> _write(Future<void> Function() operation) async {
-    if (_writing) {
+    if (_disposed || _writing) {
       return false;
     }
     _writing = true;
+    _revision++;
     persistenceError = null;
     if (!_disposed) {
       notifyListeners();
     }
     try {
       await operation();
-      return true;
+      return !_disposed;
     } catch (error) {
       persistenceError = error;
       return false;
@@ -187,6 +189,7 @@ class ActiveRideController extends ChangeNotifier {
 
   /// Errors are observable; fire-and-forget lifecycle saves never throw.
   Future<bool> persistNow() async {
+    if (_disposed) { return false; }
     if (terminal || tripId == null) {
       return true;
     }
@@ -196,11 +199,23 @@ class ActiveRideController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _revision++;
     super.dispose();
   }
 
   Future<void> restore() async {
-    final stored = await _repository.read();
+    if (_disposed || terminal || saving) { return; }
+    final revision = ++_revision;
+    PersistedActiveRide? stored;
+    try {
+      stored = await _repository.read();
+    } catch (error) {
+      if (_disposed || terminal || saving || revision != _revision) { return; }
+      persistenceError = error;
+      notifyListeners();
+      return;
+    }
+    if (_disposed || terminal || saving || revision != _revision) { return; }
     if (stored == null) {
       return;
     }
@@ -208,6 +223,7 @@ class ActiveRideController extends ChangeNotifier {
       return;
     }
     recoveryRequired = !stored.isFresh;
+    persistenceError = null;
     if (recoveryRequired) {
       if (!_disposed) {
         notifyListeners();
