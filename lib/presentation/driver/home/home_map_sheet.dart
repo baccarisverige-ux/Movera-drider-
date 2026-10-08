@@ -310,6 +310,8 @@ extension _HomeMapSheet on _DriverHomeState {
     ) async {
       final destination = result.position;
       _mapPreviews.cancel(); // An old offer cannot reclaim the destination map.
+      _destinationRoadRequests.cancel();
+      _cameraRoute = null;
       _rebuild(() {
         _destinationModeActive = true;
         _destinationAddress = result.address;
@@ -335,10 +337,15 @@ extension _HomeMapSheet on _DriverHomeState {
         _goOnline();
       }
     }
-    Future<void> _refreshDestinationRoadRoute() async {
+    Future<void> _refreshDestinationRoadRoute() =>
+        _destinationRoadRefresh.request(_fetchLatestDestinationRoadRoute);
+
+    Future<void> _fetchLatestDestinationRoadRoute() async {
+      final generation = _destinationRoadRequests.begin();
       final destination = _destinationPosition;
       if (destination == null || !_hasLiveDriverLocation) {
-        if (mounted) {
+        if (mounted && _destinationRoadRequests.owns(generation)) {
+          _cameraRoute = null;
           _rebuild(() => _destinationRoutePolylines = <Polyline>{});
         }
         return;
@@ -349,7 +356,9 @@ extension _HomeMapSheet on _DriverHomeState {
           origin: GeoPointMaps.fromLatLng(_driverPosition),
           destination: GeoPointMaps.fromLatLng(destination),
         );
-        if (!mounted || _destinationPosition != destination) { return; }
+        if (!mounted || !_destinationModeActive ||
+            _destinationPosition != destination ||
+            !_destinationRoadRequests.owns(generation)) { return; }
 
         _cameraRoute = route;
         unawaited(_animateToDriverLocation());
@@ -368,7 +377,10 @@ extension _HomeMapSheet on _DriverHomeState {
           };
         });
       } catch (_) {
-        if (!mounted || _destinationPosition != destination) { return; }
+        if (!mounted || !_destinationModeActive ||
+            _destinationPosition != destination ||
+            !_destinationRoadRequests.owns(generation)) { return; }
+        _cameraRoute = null;
         _rebuild(() => _destinationRoutePolylines = <Polyline>{});
       }
     }
@@ -391,6 +403,9 @@ extension _HomeMapSheet on _DriverHomeState {
     void _endDestinationMode() {
       if (!_destinationModeActive) { return; }
       _mapPreviews.cancel();
+      _destinationRoadRequests.cancel();
+      _destinationRoadRefresh.cancelPending();
+      _cameraRoute = null;
       _camera.endPreview();
       _rebuild(() {
         _destinationModeActive = false;

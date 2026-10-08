@@ -5,6 +5,7 @@ import 'package:movera/core/contracts/trip_status.dart';
 import 'dart:async';
 import 'package:movera/core/navigation/driver_camera_controller.dart';
 import 'package:movera/core/navigation/map_preview_generation.dart';
+import 'package:movera/core/navigation/coalescing_map_route_refresh.dart';
 import 'package:movera/widgets/google_driver_camera_port.dart';
 import 'package:movera/widgets/driver_route_style.dart';
 import 'package:movera/core/session/driver_route_observer.dart';
@@ -291,6 +292,10 @@ class _DriverHomeState extends State<DriverHome>
   Set<Polyline> _destinationRoutePolylines = {};
   bool _isDirectOfferRoutePreview = false;
   final MapPreviewGeneration _mapPreviews = MapPreviewGeneration();
+  // Separate ownership for frequently refreshed GPS-to-destination roads.
+  // An old routing response must never replace a route from a newer fix.
+  final MapPreviewGeneration _destinationRoadRequests = MapPreviewGeneration();
+  final CoalescingMapRouteRefresh _destinationRoadRefresh = CoalescingMapRouteRefresh();
 
   static const LatLng _fallbackDriverPosition = LatLng(59.3293, 18.0686);
   LatLng _driverPosition = _fallbackDriverPosition;
