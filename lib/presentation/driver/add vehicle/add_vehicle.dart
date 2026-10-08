@@ -696,6 +696,12 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
                   base64Decode(_draft![key] as String),
                   height: 160,
                   fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text(
+                      'Saved photo cannot be displayed. Retake this document photo.',
+                    ),
+                  ),
                 ),
               ),
           const SizedBox(height: 22),

@@ -20,22 +20,53 @@ class _AccessibilityState extends State<Accessibility> {
   bool _settingsTouched = false;
   Future<void> _restoreSettings() async {
     try {
-    final data=await _settings.read('accessibility'); if(!mounted || _settingsTouched) { return; }
-    setState(() { if(data['flash'] is bool) { _flash=data['flash'] as bool; }if(data['vibration'] is bool) { _vibration=data['vibration'] as bool; } });
-      } catch (_) {
-      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Could not load saved preferences.'),
-        action: SnackBarAction(label:'Retry',onPressed:_restoreSettings))); }
+      final data = await _settings.read('accessibility');
+      if (!mounted || _settingsTouched) {
+        return;
+      }
+      setState(() {
+        if (data['flash'] is bool) {
+          _flash = data['flash'] as bool;
+        }
+        if (data['vibration'] is bool) {
+          _vibration = data['vibration'] as bool;
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Could not load saved preferences.'),
+            action: SnackBarAction(label: 'Retry', onPressed: _restoreSettings),
+          ),
+        );
+      }
     }
   }
+
   Future<bool> _persistSettings() async {
-    _settingsTouched=true;
-    try { await _settings.save('accessibility',{'flash':_flash,'vibration':_vibration}); return true; }
-    catch(_) { if(mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save preferences. Retry.'))); } return false; }
+    _settingsTouched = true;
+    try {
+      await _settings.save('accessibility', {
+        'flash': _flash,
+        'vibration': _vibration,
+      });
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save preferences. Retry.')),
+        );
+      }
+      return false;
+    }
   }
 
   @override
-  void initState() { super.initState(); _restoreSettings(); }
+  void initState() {
+    super.initState();
+    _restoreSettings();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +77,8 @@ class _AccessibilityState extends State<Accessibility> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
@@ -64,11 +96,16 @@ class _AccessibilityState extends State<Accessibility> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
-          const Text('Local demo preferences — saved on this device; effects are previews.'),
+          const Text(
+            'Local demo preferences — saved on this device; effects are previews.',
+          ),
           _tile(
             title: 'Hearing',
             detail: 'Tell riders if you are deaf or hard of hearing.',
-            trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFB0B8BC)),
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFFB0B8BC),
+            ),
             onTap: () {
               showDialog<void>(
                 context: context,
@@ -99,20 +136,46 @@ class _AccessibilityState extends State<Accessibility> {
           _tile(
             title: 'Flash for requests',
             detail: 'The screen flashes when a request arrives.',
-            trailing: Switch.adaptive(
-              value: _flash,
-              activeTrackColor: _ink,
-              onChanged: (value) { setState(() => _flash = value); _persistSettings(); },
+            trailing: Semantics(
+              label: 'Flash for requests',
+              toggled: _flash,
+              onTap: () {
+                setState(() => _flash = !_flash);
+                _persistSettings();
+              },
+              child: ExcludeSemantics(
+                child: Switch.adaptive(
+                  value: _flash,
+                  activeTrackColor: _ink,
+                  onChanged: (value) {
+                    setState(() => _flash = value);
+                    _persistSettings();
+                  },
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 10),
           _tile(
             title: 'Vibration for requests',
             detail: 'The phone vibrates when a request arrives.',
-            trailing: Switch.adaptive(
-              value: _vibration,
-              activeTrackColor: _ink,
-              onChanged: (value) { setState(() => _vibration = value); _persistSettings(); },
+            trailing: Semantics(
+              label: 'Vibration for requests',
+              toggled: _vibration,
+              onTap: () {
+                setState(() => _vibration = !_vibration);
+                _persistSettings();
+              },
+              child: ExcludeSemantics(
+                child: Switch.adaptive(
+                  value: _vibration,
+                  activeTrackColor: _ink,
+                  onChanged: (value) {
+                    setState(() => _vibration = value);
+                    _persistSettings();
+                  },
+                ),
+              ),
             ),
           ),
         ],
