@@ -1422,6 +1422,7 @@ class _ThrottledVehicleMapState extends State<_ThrottledVehicleMap> {
         myLocationEnabled: false,
         myLocationButtonEnabled: false,
         zoomControlsEnabled: false,
+              webCameraControlEnabled: false,
         mapToolbarEnabled: false,
         compassEnabled: false,
         trafficEnabled: true,
