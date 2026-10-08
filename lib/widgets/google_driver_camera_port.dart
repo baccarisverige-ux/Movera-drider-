@@ -280,6 +280,10 @@ class GoogleDriverCameraPort implements DriverCameraPort {
           padding,
         ),
       );
+      // The driver may have panned, dismissed Preview or left the route while
+      // Google Maps was acknowledging the bounds fit. Such a stale response
+      // cannot clear a newer camera error or assume ownership again.
+      if (_disposed || generation != _generation) return;
       onStatus?.call(null);
     } catch (_) {
       if (_disposed || generation != _generation) {
