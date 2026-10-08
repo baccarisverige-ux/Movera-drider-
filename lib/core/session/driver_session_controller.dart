@@ -51,6 +51,9 @@ class DriverSessionController extends ChangeNotifier {
       return;
     }
     if (_activeTripId == tripId) return;
+    // A return-to-Home hint from the previous ride must never be consumed
+    // while a new ride is occupying this session.
+    _resumeHomeAfterTrip = false;
     _revision++;
     if (_activeTripId == null) {
       _statusBeforeTrip = _status == DriverOnlineStatus.onTrip
