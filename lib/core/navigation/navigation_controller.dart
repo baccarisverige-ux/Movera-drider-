@@ -135,6 +135,18 @@ class NavigationController extends ChangeNotifier {
   }
 
   void setVehicle(DriverLocation location) {
+    final point = location.point;
+    if (!point.latitude.isFinite || !point.longitude.isFinite ||
+        point.latitude.abs() > 90 || point.longitude.abs() > 180) {
+      return;
+    }
+    // Real GPS measurements carry freshness/accuracy evidence. Reject
+    // unusable ones before altering the route, progress or recovery banner.
+    // Keep metadata-free demo/test positions working as before.
+    if ((location.measuredAt != null || location.accuracyMeters != null) &&
+        !location.isUsableAt(DateTime.now())) {
+      return;
+    }
     // A valid fix may arrive at exactly the same coordinates as the last
     // point, especially after a brief stream interruption. Clear only the
     // transient GPS warning; a failed road route still needs explicit retry.
