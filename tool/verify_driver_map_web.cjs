@@ -6,8 +6,14 @@ let clock = 1000;
 class Element {
   constructor(id = '') { this.id = id; this.style = {}; this.handlers = {}; this.clientHeight = 800; this.isConnected = true; }
   addEventListener(name, callback) { this.handlers[name] = callback; }
-  fire(name, touches = [], props = {}) { this.handlers[name]?.({type: name, touches,
-    ...props, preventDefault() {}, stopImmediatePropagation() {}}); }
+  fire(name, touches = [], props = {}) {
+    const event = {type: name, touches, ...props,
+      defaultPrevented: false, propagationStopped: false,
+      preventDefault() { this.defaultPrevented = true; },
+      stopImmediatePropagation() { this.propagationStopped = true; }};
+    this.handlers[name]?.(event);
+    return event;
+  }
   appendChild() {} remove() {}
 }
 class MapMock {
@@ -238,6 +244,36 @@ assert.ok(images[0].style.transform.includes('rotate(0deg)'), 'Heading-up car po
 map.moveCamera({heading:30}); api.vehicle(7,90);
 assert.ok(images[0].style.transform.includes('rotate(60deg)'), 'Free rotation preserves real car course');
 marker.setMap(null);
+// Native Maps +/- touches must not be cancelled by the map-wide custom
+// gesture interpreter. Mobile browsers need an intact touch-to-click chain.
+const beforeNativeTouch = gestures;
+div.fire('pointerdown', [], {...mouse(100,100),
+  pointerType: 'touch', target: cameraControl});
+const plusTouch = div.fire('touchstart', [touch(100,100)],
+  {target: cameraControl});
+const plusEnd = div.fire('touchend', [], {target: cameraControl});
+assert.equal(plusTouch.defaultPrevented, false,
+  'Native zoom-in touchstart must be uncancelled for browser click');
+assert.equal(plusEnd.defaultPrevented, false,
+  'Native zoom-in touchend must be uncancelled for browser click');
+div.fire('click', [], {target: cameraControl});
+assert.equal(gestures, beforeNativeTouch + 1,
+  'Touch and click on native zoom-in release follow exactly once');
+const minusTouch = div.fire('touchstart', [touch(110,100)],
+  {target: labelledTarget});
+const minusEnd = div.fire('touchend', [], {target: labelledTarget});
+assert.equal(minusTouch.defaultPrevented, false,
+  'Native zoom-out button must receive uncancelled touchstart');
+assert.equal(minusEnd.defaultPrevented, false,
+  'Native zoom-out button must receive uncancelled touchend');
+div.fire('click', [], {target: labelledTarget});
+assert.equal(gestures, beforeNativeTouch + 2,
+  'Touch and click on native zoom-out release follow once');
+const ordinaryTouch = div.fire('touchstart', [touch(200,200)],
+  {target: mapSurface});
+assert.equal(ordinaryTouch.defaultPrevented, true,
+  'Pinch and pan remain owned by the custom map gesture adapter');
+div.fire('touchend', [], {target: mapSurface});
 remove(); const count = gestures; div.fire('pointerdown', [], mouse(100,100));
 div.fire('pointermove', [], mouse(120,100));
 assert.equal(gestures,count,'Disposed Flutter listener released');
