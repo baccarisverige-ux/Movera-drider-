@@ -729,7 +729,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                 children: [
                   _buildHero(),
                   const SizedBox(height: 14),
-                  _buildRouteMap(),
+                  _buildRouteMap(context),
                   const SizedBox(height: 14),
                   _buildRouteCard(),
                   const SizedBox(height: 14),
@@ -748,7 +748,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRouteMap() {
+  Widget _buildRouteMap(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: SizedBox(
