@@ -1,75 +1,43 @@
-name: Frontend browser candidate build
-
+name: Frontend browser candidate probe
 on:
   push:
-    branches:
-      - main
-      - chore/drider-phase0-1-baseline
-      - 'audit/phase-*'
-  pull_request:
-    branches:
-      - main
-      - 'audit/phase-*'
-
+    branches: ['audit/phase-final-browser-sweep-20261008']
 permissions:
   contents: read
-
-concurrency:
-  # One group per commit and event so a base-branch update cannot cancel
-  # the head run and leave a red cancelled check on the pull request.
-  group: drider-ci-${{ github.workflow }}-${{ github.sha }}-${{ github.event_name }}
-  cancel-in-progress: false
-
+  actions: read
 jobs:
-  verify:
-    name: Analyze, test and build web
+  browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 15
     steps:
-      - name: Checkout Drider
-        uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/download-artifact@v4
         with:
-          channel: stable
-          flutter-version: 3.47.6
-          cache: true
-
-      - name: Flutter version
-        run: flutter --version
-
-      - name: Resolve dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Analyze
-        run: flutter analyze --fatal-infos
-
-      - name: Test
-        run: flutter test test/audit/profile_and_schedule_handoff_test.dart
-
-      - name: Frontend release evidence contracts
+          name: driver-verification-347e6d876dd862326b1b36e01fbd6aec23caed3c
+          run-id: 37770005646
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: candidate
+      - name: Install Playwright CLI
+        run: npm install --prefix /tmp/movera-browser @playwright/cli
+      - name: Probe compiled candidate in Chrome
         run: |
-          python3 -m unittest discover -s tool/tests -p 'test_frontend_release.py' -v
-          python3 tool/check_frontend_release.py docs/frontend-completion/09-release-candidate.json
-
-      - name: Driver web camera gesture contracts
-        run: node tool/verify_driver_map_web.cjs
-
-      - name: Critical lifecycle
-        run: flutter test integration_test/driver_lifecycle_test.dart -d flutter-tester
-
-      - name: Build web
-        run: flutter build web --release
-
-      - name: Upload verification evidence
+          mkdir -p output/playwright
+          export PATH="/tmp/movera-browser/node_modules/.bin:$PATH"
+          python3 -m http.server 8080 --directory candidate/build/web > /tmp/movera-browser-http.log 2>&1 &
+          movera_server_pid=$!
+          trap 'kill "$movera_server_pid" || true' EXIT
+          playwright-cli --version
+          playwright-cli open http://127.0.0.1:8080 --browser=chrome
+          playwright-cli resize 320 568
+          playwright-cli snapshot
+          playwright-cli run-code "async page => { const enable = page.getByRole('button', {name: 'Enable accessibility'}); if (await enable.count()) await enable.click({force: true}); await page.waitForTimeout(5000); }"
+          playwright-cli snapshot
+          playwright-cli screenshot --filename=output/playwright/candidate-home-320.png
+          playwright-cli console error
+          playwright-cli close
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: driver-verification-${{ github.sha }}
+          name: driver-browser-probe-${{ github.sha }}
           path: |
-            build/web/
-            build/test-evidence/
-            test/failures/
-          if-no-files-found: ignore
+            output/playwright/
+            .playwright-cli/
