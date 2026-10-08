@@ -45,6 +45,10 @@ extension _HomeMapSheet on _DriverHomeState {
       } catch (_) {
         if (!mounted || !_liveVisible || epoch != _locationEpoch) { return; }
         _rebuild(() => _hasLiveDriverLocation = false);
+        // A transient one-shot GPS failure must not leave Home without a
+        // location subscription until the next app resume or recenter tap.
+        // Continuous updates can recover when permissions/provider return.
+        _listenToDriverLocation();
       }
     }
     void _listenToDriverLocation() {
