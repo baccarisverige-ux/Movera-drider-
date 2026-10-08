@@ -132,6 +132,70 @@ void main() {
     expect(navigation.snapshot.banner, isNotNull);
   });
 
+  test('measured stale and inaccurate GPS never moves navigation vehicle', () {
+    final navigation = NavigationController(
+      routeRepository: _FailingRouteRepository(),
+    );
+    addTearDown(navigation.dispose);
+    final now = DateTime.now();
+    const good = GeoPoint(59.3279, 18.0615);
+    const wrong = GeoPoint(59.50, 18.3);
+    navigation.setVehicle(DriverLocation(
+      point: good,
+      measuredAt: now,
+      accuracyMeters: 5,
+    ));
+    expect(navigation.snapshot.vehicle, good);
+
+    navigation.keepLastKnown();
+    final invalidLocations = [
+      DriverLocation(
+        point: wrong,
+        measuredAt: now.subtract(const Duration(minutes: 4)),
+        accuracyMeters: 5,
+      ),
+      DriverLocation(point: wrong, measuredAt: now, accuracyMeters: 90),
+      DriverLocation(
+        point: wrong,
+        measuredAt: now.add(const Duration(minutes: 1)),
+        accuracyMeters: 5,
+      ),
+      DriverLocation(point: wrong, measuredAt: now),
+      DriverLocation(
+        point: const GeoPoint(double.nan, 18),
+        measuredAt: now,
+        accuracyMeters: 5,
+      ),
+    ];
+    for (final invalid in invalidLocations) {
+      navigation.setVehicle(invalid);
+      expect(navigation.snapshot.vehicle, good);
+      expect(navigation.status, 'Location updating…');
+    }
+
+    navigation.setVehicle(DriverLocation(
+      point: wrong,
+      measuredAt: DateTime.now(),
+      accuracyMeters: 5,
+    ));
+    expect(navigation.snapshot.vehicle, wrong);
+    expect(navigation.status, isNull);
+  });
+
+  test('legacy demo vehicle without measurement metadata still renders', () {
+    final navigation = NavigationController(
+      routeRepository: _FailingRouteRepository(),
+    );
+    addTearDown(navigation.dispose);
+    const demo = GeoPoint(59.33, 18.06);
+    navigation.setVehicle(const DriverLocation(point: demo));
+    expect(navigation.snapshot.vehicle, demo);
+    navigation.setVehicle(const DriverLocation(
+      point: GeoPoint(91, 18),
+    ));
+    expect(navigation.snapshot.vehicle, demo);
+  });
+
   test('fresh stationary GPS clears a previous location warning', () {
     final navigation = NavigationController(
       routeRepository: _FailingRouteRepository(),
