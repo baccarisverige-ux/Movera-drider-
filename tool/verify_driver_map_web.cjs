@@ -6,8 +6,13 @@ let clock = 1000;
 class Element {
   constructor(id = '') { this.id = id; this.style = {}; this.handlers = {}; this.clientHeight = 800; this.isConnected = true; }
   addEventListener(name, callback) { this.handlers[name] = callback; }
-  fire(name, touches = [], props = {}) { this.handlers[name]?.({type: name, touches,
-    ...props, preventDefault() {}, stopImmediatePropagation() {}}); }
+  fire(name, touches = [], props = {}) {
+    const result = {prevented: false, stopped: false};
+    this.handlers[name]?.({type: name, touches, ...props,
+      preventDefault() { result.prevented = true; },
+      stopImmediatePropagation() { result.stopped = true; }});
+    return result;
+  }
   appendChild() {} remove() {}
 }
 class MapMock {
@@ -203,6 +208,45 @@ assert.ok(images[0].style.transform.includes('rotate(0deg)'), 'Heading-up car po
 map.moveCamera({heading:30}); api.vehicle(7,90);
 assert.ok(images[0].style.transform.includes('rotate(60deg)'), 'Free rotation preserves real car course');
 marker.setMap(null);
+// Mobile Maps +/- controls live within the map DIV; the custom touch
+// recognizer must not swallow their touchstart/end or follow-up click.
+api.gestures(7, true);
+const beforeControl = gestures;
+div.fire('pointerdown', [], {...mouse(100,100), target: cameraControl});
+assert.equal(gestures, beforeControl + 1, 'Touch control claims camera once');
+const controlStart = div.fire('touchstart', [touch(100,100)], {target: cameraControl});
+assert.equal(controlStart.prevented, false, 'Zoom control touchstart reaches Google Maps');
+assert.equal(controlStart.stopped, false, 'Zoom control touchstart is not captured');
+assert.equal(gestures, beforeControl + 1, 'Pointer/touch hybrid must not double-release');
+const controlMove = div.fire('touchmove', [touch(120,100)], {target: cameraControl});
+assert.equal(controlMove.prevented, false, 'Zoom control is not dragged as map');
+const controlEnd = div.fire('touchend', [], {target: cameraControl});
+assert.equal(controlEnd.prevented, false, 'Zoom control touchend reaches SDK');
+const controlClick = div.fire('click', [], {target: cameraControl});
+assert.equal(controlClick.prevented, false, 'Native zoom click is not swallowed');
+assert.equal(gestures, beforeControl + 1, 'Touch release and click report just once');
+// Safari fallback without pointer events must still relinquish follow exactly once.
+const safariBefore = gestures;
+div.fire('touchstart', [touch(100,100)], {target: labelledTarget});
+div.fire('touchend', [], {target: labelledTarget});
+div.fire('click', [], {target: labelledTarget});
+assert.equal(gestures, safariBefore + 1, 'Touch-only control click releases follow once');
+// A locked active-trip sheet must block Google's actual zoom control clicks,
+// not merely disable the custom pan/pinch adapter.
+api.gestures(7, false);
+const lockedControlBefore = gestures;
+const blockedDown = div.fire('pointerdown', [], {...mouse(100,100), target: cameraControl});
+const blockedTouch = div.fire('touchstart', [touch(100,100)], {target: cameraControl});
+const blockedClick = div.fire('click', [], {target: cameraControl});
+assert.ok(blockedDown.prevented && blockedDown.stopped, 'Locked pointer control is intercepted');
+assert.ok(blockedTouch.prevented && blockedTouch.stopped, 'Locked touch control is intercepted');
+assert.ok(blockedClick.prevented && blockedClick.stopped, 'Locked control click is intercepted');
+assert.equal(gestures, lockedControlBefore, 'Locked controls cannot claim camera');
+api.gestures(7, true);
+const beforeOrdinaryTouch = gestures;
+div.fire('touchstart', [touch(100,100)]);
+div.fire('touchend');
+assert.equal(gestures, beforeOrdinaryTouch, 'Regular taps still do not claim camera');
 remove(); const count = gestures; div.fire('pointerdown', [], mouse(100,100));
 div.fire('pointermove', [], mouse(120,100));
 assert.equal(gestures,count,'Disposed Flutter listener released');
