@@ -151,11 +151,17 @@
       if (!touchReleased) { previous = next; return; }
       if (next.count > 1) {
         const twist = delta(previous.angle, next.angle);
-        const ratio = previous.span > 0 ? next.span / previous.span : 1;
+        // Overlapping touch coordinates can briefly report a zero span,
+        // making log2(0) infinite and snapping the entire map to minimum
+        // zoom. Bound the zoom delta per event so sparse touch frames cannot
+        // leap several levels either.
+        const ratio = previous.span >= 5 && next.span >= 5
+          ? next.span / previous.span : 1;
+        const zoomDelta = clamp(Math.log2(ratio), -0.4, 0.4);
         const vertical = next.y - previous.y;
         const tilting = Math.abs(vertical) > Math.abs(next.x - previous.x) &&
-          Math.abs(twist) < 2 && Math.abs(Math.log2(ratio)) < .03;
-        map.moveCamera({zoom: clamp(map.getZoom() + Math.log2(ratio), 3, 21),
+          Math.abs(twist) < 2 && Math.abs(zoomDelta) < .03;
+        map.moveCamera({zoom: clamp(map.getZoom() + zoomDelta, 3, 21),
           ...(supports3D() ? {
             heading: ((map.getHeading() || 0) - twist + 360) % 360,
             tilt: clamp((map.getTilt() || 0) - (tilting ? vertical * .3 : 0), 0, 60)
