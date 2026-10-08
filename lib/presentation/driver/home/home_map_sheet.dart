@@ -337,7 +337,10 @@ extension _HomeMapSheet on _DriverHomeState {
         _goOnline();
       }
     }
-    Future<void> _refreshDestinationRoadRoute() async {
+    Future<void> _refreshDestinationRoadRoute() =>
+        _destinationRoadRefresh.request(_fetchLatestDestinationRoadRoute);
+
+    Future<void> _fetchLatestDestinationRoadRoute() async {
       final generation = _destinationRoadRequests.begin();
       final destination = _destinationPosition;
       if (destination == null || !_hasLiveDriverLocation) {
@@ -401,6 +404,7 @@ extension _HomeMapSheet on _DriverHomeState {
       if (!_destinationModeActive) { return; }
       _mapPreviews.cancel();
       _destinationRoadRequests.cancel();
+      _destinationRoadRefresh.cancelPending();
       _cameraRoute = null;
       _camera.endPreview();
       _rebuild(() {
