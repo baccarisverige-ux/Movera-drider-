@@ -311,6 +311,7 @@ extension _HomeMapSheet on _DriverHomeState {
       final destination = result.position;
       _mapPreviews.cancel(); // An old offer cannot reclaim the destination map.
       _destinationRoadRequests.cancel();
+      _cameraRoute = null;
       _rebuild(() {
         _destinationModeActive = true;
         _destinationAddress = result.address;
@@ -341,6 +342,7 @@ extension _HomeMapSheet on _DriverHomeState {
       final destination = _destinationPosition;
       if (destination == null || !_hasLiveDriverLocation) {
         if (mounted && _destinationRoadRequests.owns(generation)) {
+          _cameraRoute = null;
           _rebuild(() => _destinationRoutePolylines = <Polyline>{});
         }
         return;
@@ -375,6 +377,7 @@ extension _HomeMapSheet on _DriverHomeState {
         if (!mounted || !_destinationModeActive ||
             _destinationPosition != destination ||
             !_destinationRoadRequests.owns(generation)) { return; }
+        _cameraRoute = null;
         _rebuild(() => _destinationRoutePolylines = <Polyline>{});
       }
     }
@@ -398,6 +401,7 @@ extension _HomeMapSheet on _DriverHomeState {
       if (!_destinationModeActive) { return; }
       _mapPreviews.cancel();
       _destinationRoadRequests.cancel();
+      _cameraRoute = null;
       _camera.endPreview();
       _rebuild(() {
         _destinationModeActive = false;
