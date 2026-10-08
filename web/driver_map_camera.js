@@ -89,6 +89,9 @@
     let previous, travel = 0, startedAt = 0, maxTouches = 0, lastTap = -Infinity;
     let lastTapPoint = null;
     let touchReleased = false;
+    // A short but real pinch is not a two-finger tap. Its fractional zoom
+    // must not be followed by an accidental full-level zoom-out on release.
+    let multiTouchMoved = false;
     let touchOnControl = false;
     let pointerOrigin = null;
     let pointerReleased = false;
@@ -110,6 +113,7 @@
       if (!enabled) {
         previous = null; pointerOrigin = null;
         touchReleased = false; pointerReleased = false;
+        multiTouchMoved = false;
         touchOnControl = false; controlPointerReleased = false;
         lastTap = -Infinity; lastTapPoint = null;
       }
@@ -174,7 +178,7 @@
       event.preventDefault(); event.stopImmediatePropagation();
       if (!previous) {
         startedAt = performance.now(); maxTouches = 0;
-        travel = 0; touchReleased = false;
+        travel = 0; touchReleased = false; multiTouchMoved = false;
       }
       maxTouches = Math.max(maxTouches, event.touches.length);
       if (event.touches.length > 1) releaseTouch();
@@ -185,8 +189,13 @@
       event.preventDefault(); event.stopImmediatePropagation();
       const next = {...touchPose(event.touches), count: event.touches.length};
       if (!previous || previous.count !== next.count) { previous = next; return; }
-      travel += Math.hypot(next.x - previous.x, next.y - previous.y) +
+      const travelStep = Math.hypot(next.x - previous.x, next.y - previous.y) +
           Math.abs(next.span - previous.span);
+      travel += travelStep;
+      if (next.count > 1 && (travel > 2 ||
+          Math.abs(delta(previous.angle, next.angle)) > 1.5)) {
+        multiTouchMoved = true;
+      }
       if (next.count > 1 || travel >= 6) releaseTouch();
       if (!touchReleased) { previous = next; return; }
       if (next.count > 1) {
@@ -222,9 +231,14 @@
           performance.now() - startedAt < 300 &&
           travel < 8) {
         if (maxTouches > 1) {
-          releaseTouch();
+          // Two stationary fingers are an intentional zoom-out tap. A subtle
+          // pinch or two-finger pan already moved the camera fractionally;
+          // do not undo it with another full zoom step on finger release.
+          if (!multiTouchMoved) {
+            releaseTouch();
+            map.moveCamera({zoom: clamp(map.getZoom() - 1, 3, 21)});
+          }
           lastTap = -Infinity; lastTapPoint = null;
-          map.moveCamera({zoom: clamp(map.getZoom() - 1, 3, 21)});
         } else {
           const now = performance.now();
           // Two independent taps anywhere on the map are not a double-tap
@@ -248,6 +262,7 @@
       }
       previous = null;
       touchReleased = false;
+      multiTouchMoved = false;
     };
     div.addEventListener('touchend', end, {capture: true, passive: false});
     div.addEventListener('touchcancel', end, {capture: true, passive: false});
