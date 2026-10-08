@@ -83,6 +83,44 @@ void main() {
     port.dispose();
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets('failed SDK bounds fit propagates for camera mode recovery', (
+    tester,
+  ) async {
+    final original = GoogleMapsFlutterPlatform.instance;
+    final platform = RecordingMapPlatform();
+    GoogleMapsFlutterPlatform.instance = platform;
+    addTearDown(() => GoogleMapsFlutterPlatform.instance = original);
+    GoogleMapController? controller;
+    await tester.pumpWidget(MaterialApp(
+      home: GoogleMap(
+        initialCameraPosition: const CameraPosition(
+          target: LatLng(59, 18),
+          zoom: 16,
+        ),
+        onMapCreated: (value) => controller = value,
+      ),
+    ));
+    await tester.pump();
+    expect(controller, isNotNull);
+    final statuses = <String?>[];
+    // No initial logical camera: preview goes directly to fit bounds.
+    final port = GoogleDriverCameraPort(
+      controller!,
+      onStatus: statuses.add,
+    );
+    const bounds = [GeoPoint(59.32, 18.04), GeoPoint(59.36, 18.10)];
+    platform.fail = true;
+    await expectLater(port.overview(bounds, 80), throwsStateError);
+    expect(statuses.last, contains('unavailable'));
+
+    platform.fail = false;
+    await port.overview(bounds, 80);
+    expect(statuses.last, isNull);
+    expect(platform.moves, isNotEmpty);
+    port.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('settled follow stops scheduling and camera error is retryable', (
     tester,
   ) async {
