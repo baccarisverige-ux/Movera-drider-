@@ -122,18 +122,16 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              Semantics(
+              Slider(
                 label: 'General volume',
-                child: Slider(
-                  value: generalVolume,
-                  activeColor: _ink,
-                  semanticFormatterCallback: (value) =>
-                      '${(value * 100).round()}%',
-                  onChanged: (value) {
-                    setState(() => generalVolume = value);
-                    _persistSettings();
-                  },
-                ),
+                value: generalVolume,
+                activeColor: _ink,
+                semanticFormatterCallback: (value) =>
+                    '${(value * 100).round()}%',
+                onChanged: (value) {
+                  setState(() => generalVolume = value);
+                  _persistSettings();
+                },
               ),
               _switchRow(
                 'Always play trip requests',

@@ -137,6 +137,7 @@ class _AccessibilityState extends State<Accessibility> {
             title: 'Flash for requests',
             detail: 'The screen flashes when a request arrives.',
             trailing: Semantics(
+              container: true,
               label: 'Flash for requests',
               toggled: _flash,
               onTap: () {
@@ -160,6 +161,7 @@ class _AccessibilityState extends State<Accessibility> {
             title: 'Vibration for requests',
             detail: 'The phone vibrates when a request arrives.',
             trailing: Semantics(
+              container: true,
               label: 'Vibration for requests',
               toggled: _vibration,
               onTap: () {

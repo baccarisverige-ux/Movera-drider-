@@ -56,7 +56,9 @@ void main() {
     );
     await tester.enterText(find.byType(TextFormField), 'On my way');
     await tester.pump();
-    final node = tester.getSemantics(send);
+    final node = tester.getSemantics(
+      find.bySemanticsLabel('Save message locally'),
+    );
     expect(node.getSemanticsData().label, contains('Save message locally'));
     tester.binding.performSemanticsAction(
       SemanticsActionEvent(
