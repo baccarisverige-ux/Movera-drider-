@@ -208,6 +208,12 @@ void main() {
     now = now.add(const Duration(seconds: 95));
     await tester.pump(const Duration(seconds: 1));
     expect(_wait(tester), 95);
+    // The simulated next-trip offer owns the sheet until explicitly denied.
+    final deny = find.byKey(const ValueKey<String>('on-trip-radar-deny'));
+    expect(deny, findsOneWidget);
+    await tester.tap(deny);
+    await _frames(tester);
+    expect(_wait(tester), 95);
     await _middle(tester);
     await tester.ensureVisible(action);
     await tester.drag(action, const Offset(320, 0));
