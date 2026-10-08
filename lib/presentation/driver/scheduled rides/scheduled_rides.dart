@@ -1175,7 +1175,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
           const _PlanRow(
             icon: Icons.event_busy_outlined,
             title: 'Plans changed?',
-            body: 'Cancel as early as possible. Late cancellations can affect scheduled-ride access.',
+            body: 'This is a local preview. Cancelling removes the sample reservation until the app restarts.',
           ),
         ],
       ),
@@ -1674,7 +1674,7 @@ class _CancelConfirmationSheet extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Cancelling close to pickup can affect your scheduled-ride access. This action cannot be undone in this demo flow.',
+                'This removes the sample reservation from this session. It does not cancel a real booking or change account access.',
                 style: TextStyle(
                   color: Color(0xFF7D888E),
                   fontSize: 12,
