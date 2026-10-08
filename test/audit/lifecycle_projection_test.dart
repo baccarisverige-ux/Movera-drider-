@@ -26,6 +26,23 @@ void main() {
       ride.dispose();
     }
   });
+  test('duplicate terminal projection is ignored, authoritative correction is kept', () async {
+    final ride = ActiveRideController(tripId: 'terminal-correction');
+    addTearDown(ride.dispose);
+    expect(await ride.applyProjection(TripStatus.inTrip), isTrue);
+    expect(await ride.applyProjection(TripStatus.completed), isTrue);
+    expect(ride.terminalStatus, TripStatus.completed);
+    expect(await ride.applyProjection(TripStatus.completed), isFalse);
+    // A server-authoritative rider cancellation may correct tentative local
+    // completion without resurrecting the active ride.
+    expect(await ride.applyProjection(TripStatus.cancelledByRider), isTrue);
+    expect(ride.terminalStatus, TripStatus.cancelledByRider);
+    expect(await ride.applyProjection(TripStatus.cancelledByRider), isFalse);
+    expect(await ride.applyProjection(TripStatus.inTrip), isFalse);
+    expect(ride.terminalStatus, TripStatus.cancelledByRider);
+    expect(ride.tripStatus, TripStatus.cancelledByRider);
+  });
+
   test('delayed restore cannot overwrite an explicit availability change', () async {
     final repo = _DelayedSession();
     final session = DriverSessionController(repository: repo);
