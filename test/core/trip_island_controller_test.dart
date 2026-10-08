@@ -69,6 +69,51 @@ void main() {
     expect(c.face.subtitle, 'Waiting at stop');
     c.dispose();
   });
+  testWidgets('stale release callback does not open island after a new touch', (
+    tester,
+  ) async {
+    final c = TripIslandController(input());
+    addTearDown(c.dispose);
+    c.release(); // Spurious pointer-up must never reveal the default face.
+    await tester.pump();
+    expect(c.defaultFace, isFalse);
+
+    c.hold();
+    c.release();
+    c.hold(); // New pointer-down arrives before release microtask runs.
+    await tester.pump();
+    expect(c.defaultFace, isFalse);
+
+    c.release();
+    await tester.pump();
+    expect(c.defaultFace, isTrue);
+    await tester.pump(const Duration(seconds: 1));
+    c.hold(); // Cancels the old idle timer.
+    await tester.pump(const Duration(seconds: 2));
+    expect(c.defaultFace, isTrue);
+    c.release();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    expect(c.defaultFace, isFalse);
+  });
+
+  testWidgets('dispose prevents pending touch callback and late updates', (
+    tester,
+  ) async {
+    final c = TripIslandController(input(waiting: 0));
+    c.hold();
+    c.release();
+    c.dispose();
+    await tester.pump();
+    expect(c.defaultFace, isFalse);
+    c.update(input(waiting: 1));
+    c.hold();
+    c.release();
+    await tester.pump(const Duration(seconds: 10));
+    expect(c.defaultFace, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'GPS/clock ticks preserve waiting cycle; touch expires after two idle seconds',
     (tester) async {
