@@ -23,6 +23,11 @@ class DriverRealtimeSequenceGate {
   final Set<String> _terminalTrips = <String>{};
 
   DriverRealtimeDisposition evaluate(DriverRealtimeEvent event) {
+    // Reject invalid envelopes before mutating the per-trip sequence or
+    // terminal cache. One bad cancellation must not close a real trip.
+    if (event.sequence < 1 || event.tripId.trim().isEmpty) {
+      return DriverRealtimeDisposition.staleOrDuplicate;
+    }
     final last = _lastSequenceByTrip[event.tripId];
     if (last != null && event.sequence <= last) {
       return DriverRealtimeDisposition.staleOrDuplicate;
