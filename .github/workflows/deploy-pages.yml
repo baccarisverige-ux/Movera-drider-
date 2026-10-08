@@ -63,6 +63,24 @@ jobs:
           path.write_text(path.read_text().replace('DRIVER_GOOGLE_MAP_ID', value))
           PYMAP
 
+      - name: Version map zoom/gesture adapter for browser cache
+        env:
+          DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          sha = os.environ.get('DEPLOY_SHA', '')
+          if not re.fullmatch(r'[a-f0-9]{40}', sha):
+              raise SystemExit('Invalid deployment commit SHA')
+          index = pathlib.Path('web/index.html')
+          content = index.read_text()
+          source = 'src="driver_map_camera.js"'
+          if content.count(source) != 1:
+              raise SystemExit('Expected exactly one Google Maps adapter script')
+          index.write_text(content.replace(source,
+              f'src="driver_map_camera.js?v={sha}"'))
+          PY
+
       - name: Build Drider web
         run: flutter build web --release --base-href "/Movera-drider-/"
 
