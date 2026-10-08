@@ -382,13 +382,19 @@ extension _HomeOfferRadar on _DriverHomeState {
         // dispatch removal of our own claimed offer cannot steal this handoff.
         _homeRadarMatchingOfferId = offer.id;
         _homeRadarMatchStates[offer.id] = _HomeRadarMatchState.resolving;
+        _claimedHomeOffer = offer;
       });
       IslandMessages.show(HomeIslandNotices.matched);
-
+      _openClaimedHomeOffer();
+    }
+    void _openClaimedHomeOffer() {
+      final offer = _claimedHomeOffer;
+      if (!mounted || !_liveVisible || offer == null) { return; }
+      _homeRadarNoticeTimer?.cancel();
       _homeRadarNoticeTimer = Timer(
         const Duration(milliseconds: 850),
         () {
-          if (!mounted) { return; }
+          if (!mounted || !_liveVisible || _claimedHomeOffer?.id != offer.id) { return; }
           _acceptRadarHomeOffer(offer);
         },
       );
@@ -475,7 +481,7 @@ extension _HomeOfferRadar on _DriverHomeState {
         },
       );
     }
-    void _cancelAllOfferTimers() {
+    void _cancelAllOfferTimers({bool preserveClaim = false}) {
       _outsideOfferTimeoutTimer?.cancel();
       _outsideOfferTimeoutTimer = null;
       _reservationOfferTimer?.cancel();
@@ -485,8 +491,11 @@ extension _HomeOfferRadar on _DriverHomeState {
       _homeRadarExternalClaimTimer?.cancel();
       _homeRadarExternalClaimCleanupTimer?.cancel();
       _homeRadarLostMatchTimer?.cancel();
-      _homeRadarMatchingOfferId = null;
-      _homeRadarMatchStates.clear();
+      if (!preserveClaim) {
+        _homeRadarMatchingOfferId = null;
+        _claimedHomeOffer = null;
+        _homeRadarMatchStates.clear();
+      }
       for (final timer in _radarOfferTimeoutTimers.values) {
         timer.cancel();
       }
@@ -1353,10 +1362,15 @@ extension _HomeOfferRadar on _DriverHomeState {
     }
     void _scheduleVisibleOffers() {
       if(!mounted || !_liveVisible || !_driverSession.availableForOffers) return;
-      _cancelAllOfferTimers();
+      _cancelAllOfferTimers(preserveClaim: true);
       _directOfferTimer?.cancel();_offerSimulationTimer?.cancel();
       _radarOfferTwoTimer?.cancel();_radarOfferThreeTimer?.cancel();_expandedDirectOfferTimer?.cancel();
           _watchDispatchRadar();
+          if (_claimedHomeOffer != null) {
+            _openClaimedHomeOffer();
+            return;
+          }
+          if (_homeRadarMatchingOfferId != null) { return; }
 
           // Frontend demo only. Outside-Radar offers remain exclusive and
           // never enter the Trip Radar list.

@@ -137,7 +137,7 @@ class _DriverHomeState extends State<DriverHome>
     _driverLocationSubscription?.cancel();
     _driverLocationSubscription = null;
     _radarSubscription?.cancel();_radarSubscription=null;
-    _HomeOfferRadar(this)._cancelAllOfferTimers();
+    _HomeOfferRadar(this)._cancelAllOfferTimers(preserveClaim: true);
     _offerSimulationTimer?.cancel(); _directOfferTimer?.cancel();
     _expandedDirectOfferTimer?.cancel(); _radarOfferTwoTimer?.cancel(); _radarOfferThreeTimer?.cancel();
     _goOnlinePulseController.stop(); _radarSweepController.stop();
@@ -200,6 +200,7 @@ class _DriverHomeState extends State<DriverHome>
   final Map<String, _HomeRadarMatchState> _homeRadarMatchStates =
       <String, _HomeRadarMatchState>{};
   String? _homeRadarMatchingOfferId;
+  _HomeDirectOffer? _claimedHomeOffer;
   late final DriverLocationRepository _driverLocationService;
   late final RouteRepository _roadRouteService;
   late final WaybillRepository _waybills;
