@@ -32,8 +32,19 @@ void main() {
         'year': '2024',
         'plate': 'NEW 123',
       });
+      expect(await store.primaryIdentity(), (
+        vehicle: 'Volvo XC60',
+        plate: 'NEW 123',
+      ));
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
+      for (
+        var i = 0;
+        i < 30 && find.text('Volvo XC60').evaluate().isEmpty;
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 25));
+      }
       expect(find.text('Volvo XC60'), findsOneWidget);
       expect(find.text('Mercedes-Benz E 220'), findsNothing);
     },

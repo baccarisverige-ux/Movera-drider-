@@ -33,77 +33,84 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
   @override
   Widget build(BuildContext context) {
     final rides = _selectedTab == 0 ? _requests : _accepted;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5F6),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                'Preview — not binding. Decisions last until the app restarts.',
-                style: TextStyle(fontSize: 12),
-              ),
-            ),
-            _buildTabs(),
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-                itemCount: rides.length + 1,
-                separatorBuilder: (_, __) => const SizedBox(height: 14),
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.fromLTRB(2, 2, 2, 0),
-                      child: Row(
-                        children: [
-                          Expanded(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // In a short landscape window, the header must scroll too; otherwise
+            // large text consumes the entire viewport before the cards can render.
+            final compact = constraints.maxHeight < 500;
+            final list = ListView.separated(
+              shrinkWrap: compact,
+              physics: compact ? const NeverScrollableScrollPhysics() : null,
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+              itemCount: rides.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(height: 14),
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(2, 2, 2, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _selectedTab == 0 ? 'Available today' : 'Upcoming',
+                            style: const TextStyle(
+                              color: Color(0xFF6F7B82),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (_selectedTab == 0 && _requests.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE4F5ED),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: Text(
-                              _selectedTab == 0
-                                  ? 'Available today'
-                                  : 'Upcoming',
-                              style: const TextStyle(
-                                color: Color(0xFF6F7B82),
-                                fontSize: 13,
+                              '${_requests.length} new',
+                              style: TextStyle(
+                                color: Color(0xFF16885B),
+                                fontSize: 10,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          if (_selectedTab == 0 && _requests.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE4F5ED),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${_requests.length} new',
-                                style: TextStyle(
-                                  color: Color(0xFF16885B),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  }
-                  final ride = rides[index - 1];
-                  return _ScheduledRideCard(
-                    ride: ride,
-                    onTap: () => _openRideDetails(ride),
+                      ],
+                    ),
                   );
-                },
-              ),
-            ),
-          ],
+                }
+                final ride = rides[index - 1];
+                return _ScheduledRideCard(
+                  ride: ride,
+                  onTap: () => _openRideDetails(ride),
+                );
+              },
+            );
+            final content = Column(
+              mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+              children: [
+                _buildHeader(context),
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text(
+                    'Preview — not binding. Decisions last until the app restarts.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+                _buildTabs(),
+                if (compact) list else Expanded(child: list),
+              ],
+            );
+            return compact ? SingleChildScrollView(child: content) : content;
+          },
         ),
       ),
     );
