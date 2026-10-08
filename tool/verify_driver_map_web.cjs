@@ -4,7 +4,8 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 let clock = 1000;
 class Element {
-  constructor(id = '') { this.id = id; this.style = {}; this.handlers = {}; this.clientHeight = 800; this.isConnected = true; }
+  constructor(id = '') { this.id = id; this.style = {}; this.handlers = {}; this.clientHeight = 800; this.clientWidth = 400; this.left = 0; this.top = 0; this.isConnected = true; }
+  getBoundingClientRect() { return {left: this.left, top: this.top}; }
   addEventListener(name, callback) { this.handlers[name] = callback; }
   fire(name, touches = [], props = {}) {
     const event = {type: name, touches, ...props,
@@ -179,12 +180,53 @@ div.fire('touchend');
 assert.ok(map.getZoom() < beforeMicroShrink &&
   map.getZoom() > beforeMicroShrink - 0.2,
   'Small pinch-out remains fractional instead of doubling zoom-out');
+// Pinch zoom must retain the geographic point below the fingers, even when
+// the Maps div does not begin at the origin of the browser viewport.
+map.moveCamera({zoom: 16, center: {x:0, y:0}});
+div.left = 50; div.top = 75;
+clock += 400;
+div.fire('touchstart', [touch(170,325), touch(230,325)]);
+div.fire('touchmove', [touch(140,325), touch(260,325)]);
+const focalScale = 2 ** (map.getZoom() - 16);
+assert.ok(Math.abs(map.camera.center.x + (focalScale - 1) * 50) < 0.001,
+  'Pinch compensates X around the fingers, accounting for map screen offset');
+assert.ok(Math.abs(map.camera.center.y + (focalScale - 1) * 150) < 0.001,
+  'Pinch compensates Y around the fingers instead of jumping at map center');
+div.fire('touchend');
+// Ending fingers separately cannot shift two-finger zoom to the position of
+// whichever finger happens to be lifted last. Keep the gesture midpoint.
+map.moveCamera({zoom: 16, center: {x:0, y:0}});
+clock += 400;
+div.fire('touchstart', [touch(150,325), touch(250,325)]);
+div.fire('touchend', [touch(150,325)]);
+div.fire('touchend');
+assert.equal(map.getZoom(), 15);
+assert.ok(Math.abs(map.camera.center.x - 25) < 0.001,
+  'Two-finger zoom-out uses original midpoint, not final left finger');
+assert.ok(Math.abs(map.camera.center.y - 75) < 0.001,
+  'Two-finger tap maintains midpoint even when the touches end separately');
+div.left = 0; div.top = 0;
+map.moveCamera({zoom: 16, center: {x:0, y:0}});
+clock += 400;
+div.fire('touchstart', [touch(100,200), touch(200,200)]);
+div.fire('touchmove', [touch(100,200), touch(300,200)]);
+const combinedScale = 2 ** (map.getZoom() - 16);
+assert.ok(Math.abs(map.camera.center.x +
+    (50 + (combinedScale - 1) * 50)) < 0.001,
+  'Simultaneous pan plus zoom uses previous pinch center, then translates');
+assert.ok(Math.abs(map.camera.center.y +
+    (combinedScale - 1) * 200) < 0.001,
+  'Combined pinch and pan retains Y anchor without drift');
+div.fire('touchend');
+map.moveCamera({center: {x:0, y:0}});
 const beforeDoubleTap = map.getZoom();
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 clock += 150;
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 assert.equal(map.getZoom(), beforeDoubleTap + 1,
   'Double tap zooms in exactly one level from current fractional zoom');
+assert.ok(map.camera.center.x < 0 && map.camera.center.y < 0,
+  'Double-tap on upper-left map point zooms around tap, not screen center');
 // Fast taps at different positions should select different map items, not zoom.
 clock += 400;
 const separateZoom = map.getZoom();

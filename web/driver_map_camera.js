@@ -87,7 +87,7 @@
       });
     };
     let previous, travel = 0, startedAt = 0, maxTouches = 0, lastTap = -Infinity;
-    let lastTapPoint = null;
+    let lastTapPoint = null, lastTwoFingerPoint = null;
     let touchReleased = false;
     // A short but real pinch is not a two-finger tap. Its fractional zoom
     // must not be followed by an accidental full-level zoom-out on release.
@@ -126,6 +126,28 @@
     };
     const releaseTouch = () => {
       if (!touchReleased) { touchReleased = true; release(); }
+    };
+    // moveCamera({zoom}) scales about the map center. Real pinch/double-tap
+    // gestures instead scale about the point between the user's fingers.
+    // Compensate in screen pixels so the tapped road stays under the fingers.
+    // Client coordinates must be converted to this map's local rectangle.
+    const zoomAt = (amount, x, y, camera = {}, gestureX = 0, gestureY = 0) => {
+      const current = Number(map.getZoom());
+      if (!Number.isFinite(current)) return;
+      const next = clamp(current + amount, 3, 21);
+      map.moveCamera({...camera, zoom: next});
+      let panX = gestureX, panY = gestureY;
+      const width = div.clientWidth, height = div.clientHeight;
+      if (width > 0 && height > 0 && Number.isFinite(x) &&
+          Number.isFinite(y) && next !== current) {
+        const rect = div.getBoundingClientRect?.() || {left: 0, top: 0};
+        const scale = 2 ** (next - current);
+        const localX = clamp(x - rect.left, 0, width);
+        const localY = clamp(y - rect.top, 0, height);
+        panX += (1 - scale) * (localX - width / 2);
+        panY += (1 - scale) * (localY - height / 2);
+      }
+      if (panX || panY) pan(state, panX, panY);
     };
     div.style.touchAction = 'none';
     // A tap (including marker selection) is not a map pan. Ignore pointer
@@ -179,15 +201,20 @@
       if (!previous) {
         startedAt = performance.now(); maxTouches = 0;
         travel = 0; touchReleased = false; multiTouchMoved = false;
+        lastTwoFingerPoint = null;
       }
       maxTouches = Math.max(maxTouches, event.touches.length);
       if (event.touches.length > 1) releaseTouch();
       previous = {...touchPose(event.touches), count: event.touches.length};
+      if (previous.count > 1) {
+        lastTwoFingerPoint = {x: previous.x, y: previous.y};
+      }
     }, {capture: true, passive: false});
     div.addEventListener('touchmove', event => {
       if (!state.gesturesEnabled || touchOnControl) return;
       event.preventDefault(); event.stopImmediatePropagation();
       const next = {...touchPose(event.touches), count: event.touches.length};
+      if (next.count > 1) lastTwoFingerPoint = {x: next.x, y: next.y};
       if (!previous || previous.count !== next.count) { previous = next; return; }
       const travelStep = Math.hypot(next.x - previous.x, next.y - previous.y) +
           Math.abs(next.span - previous.span);
@@ -210,12 +237,15 @@
         const vertical = next.y - previous.y;
         const tilting = Math.abs(vertical) > Math.abs(next.x - previous.x) &&
           Math.abs(twist) < 2 && Math.abs(zoomDelta) < .03;
-        map.moveCamera({zoom: clamp(map.getZoom() + zoomDelta, 3, 21),
-          ...(supports3D() ? {
+        // Zoom about the *previous* focal point; the midpoint translation
+        // below then carries that road point to the fingers' new position.
+        zoomAt(zoomDelta, previous.x, previous.y,
+          supports3D() ? {
             heading: ((map.getHeading() || 0) - twist + 360) % 360,
             tilt: clamp((map.getTilt() || 0) - (tilting ? vertical * .3 : 0), 0, 60)
-          } : {})});
-        if (!tilting) pan(state, next.x - previous.x, next.y - previous.y);
+          } : {},
+          tilting ? 0 : next.x - previous.x,
+          tilting ? 0 : next.y - previous.y);
       } else pan(state, next.x - previous.x, next.y - previous.y);
       previous = next;
     }, {capture: true, passive: false});
@@ -226,7 +256,15 @@
       }
       if (!state.gesturesEnabled) { previous = null; return; }
       event.preventDefault(); event.stopImmediatePropagation();
-      if (event.touches.length) { previous = {...touchPose(event.touches), count: event.touches.length}; return; }
+      if (event.touches.length) {
+        // A two-finger tap ends one finger at a time. Preserve its midpoint;
+        // the final remaining finger is NOT the zoom-out focal point.
+        if (previous?.count > 1) {
+          lastTwoFingerPoint = {x: previous.x, y: previous.y};
+        }
+        previous = {...touchPose(event.touches), count: event.touches.length};
+        return;
+      }
       if (event.type !== 'touchcancel' && previous &&
           performance.now() - startedAt < 300 &&
           travel < 8) {
@@ -236,7 +274,8 @@
           // do not undo it with another full zoom step on finger release.
           if (!multiTouchMoved) {
             releaseTouch();
-            map.moveCamera({zoom: clamp(map.getZoom() - 1, 3, 21)});
+            const focus = lastTwoFingerPoint || previous;
+            zoomAt(-1, focus.x, focus.y);
           }
           lastTap = -Infinity; lastTapPoint = null;
         } else {
@@ -248,7 +287,7 @@
               previous.y - lastTapPoint.y) <= 32;
           if (now - lastTap < 300 && nearby) {
             releaseTouch();
-            map.moveCamera({zoom: clamp(map.getZoom() + 1, 3, 21)});
+            zoomAt(1, previous.x, previous.y);
             lastTap = -Infinity; lastTapPoint = null;
           } else {
             lastTap = now;
@@ -263,6 +302,7 @@
       previous = null;
       touchReleased = false;
       multiTouchMoved = false;
+      lastTwoFingerPoint = null;
     };
     div.addEventListener('touchend', end, {capture: true, passive: false});
     div.addEventListener('touchcancel', end, {capture: true, passive: false});
