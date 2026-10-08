@@ -63,14 +63,15 @@ class DriverCameraPolicy {
   bool autoZoom = true;
 
   static double zoomForSpeed(double speed) {
-    final kmh = speed * 3.6;
-    return kmh < 20
-        ? 17.5
-        : kmh < 50
-        ? 16.5
-        : kmh < 80
-        ? 15.5
-        : 14.75;
+    // Step thresholds made the map zoom a whole level when GPS speed
+    // fluctuated near 20/50/80 km/h. Interpolate between the same approved
+    // slow, urban, fast-urban and highway framing levels instead.
+    // Speeds are metres per second; preserve the original framing anchors.
+    if (!speed.isFinite || speed <= 3) return 17.5;
+    if (speed >= 30) return 14.75;
+    if (speed <= 10) return 17.5 - (speed - 3) / 7;
+    if (speed <= 20) return 16.5 - (speed - 10) / 10;
+    return 15.5 - (speed - 20) * .075;
   }
 
   static double angleDelta(double from, double to) =>
@@ -142,7 +143,13 @@ class DriverCameraPolicy {
             _needsPreview(maneuver.type) &&
             distance < 180) {
           final approach = (1 - distance / 180).clamp(0.0, 1.0);
-          zoom = math.max(zoom, 17.0 + .8 * approach);
+          // Enter turn preview progressively: previously crossing the 180 m
+          // boundary jumped the map to zoom >=17 in a single GPS update.
+          // Reach full maneuver framing by the final 90 m.
+          final targetZoom = 17.0 + .8 * approach;
+          final t = (approach * 2).clamp(0.0, 1.0);
+          final eased = t * t * (3 - 2 * t);
+          zoom += math.max(0.0, targetZoom - zoom) * eased;
           tilt = 45 - 25 * approach;
         }
         if (progress.remainingMeters < 35) {
