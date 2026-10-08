@@ -1,6 +1,6 @@
 # Phase 9 — Final candidate and release evidence
 
-Status: pending all applicable preceding phases. The new release checker validates evidence metadata; it does not execute device or backend tests.
+Status: pending all applicable preceding phases. The new release checker validates evidence metadata; it does not execute device tests. Backend integration is outside this frontend-only release gate.
 
 ## Candidate manifest
 
@@ -14,7 +14,7 @@ Run `python3 tool/check_frontend_release.py path/to/candidate.json`. Without `--
 - [ ] Finish the screen-state and original audit finding matrices.
 - [ ] Run analysis, unit/widget tests, headless lifecycle, map contracts and web/Android/iOS builds on the candidate.
 - [ ] Attach browser, real-SDK, physical-device, visual, accessibility, lifecycle and performance evidence for the same candidate.
-- [ ] Complete staging integration evidence before production sign-off.
+- [ ] Verify demo/local-storage outcomes honestly; do not describe them as backend-delivered operations. Backend integration has a separate future readiness gate.
 - [ ] Merge one reviewed phase at a time with exact-head CI; retarget/synchronize dependent work and inspect remaining diffs.
 - [ ] Verify final main CI and deployment commit; smoke-test the deployed candidate, including cache/update behavior.
 - [ ] Record rollback to a known deployed commit and verify recovery steps without deleting user work.
