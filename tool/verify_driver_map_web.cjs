@@ -193,6 +193,18 @@ assert.ok(Math.abs(map.camera.center.x + (focalScale - 1) * 50) < 0.001,
 assert.ok(Math.abs(map.camera.center.y + (focalScale - 1) * 150) < 0.001,
   'Pinch compensates Y around the fingers instead of jumping at map center');
 div.fire('touchend');
+// Ending fingers separately cannot shift two-finger zoom to the position of
+// whichever finger happens to be lifted last. Keep the gesture midpoint.
+map.moveCamera({zoom: 16, center: {x:0, y:0}});
+clock += 400;
+div.fire('touchstart', [touch(150,325), touch(250,325)]);
+div.fire('touchend', [touch(150,325)]);
+div.fire('touchend');
+assert.equal(map.getZoom(), 15);
+assert.ok(Math.abs(map.camera.center.x - 25) < 0.001,
+  'Two-finger zoom-out uses original midpoint, not final left finger');
+assert.ok(Math.abs(map.camera.center.y - 75) < 0.001,
+  'Two-finger tap maintains midpoint even when the touches end separately');
 div.left = 0; div.top = 0;
 map.moveCamera({center: {x:0, y:0}});
 const beforeDoubleTap = map.getZoom();
