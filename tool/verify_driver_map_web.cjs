@@ -6,8 +6,8 @@ let clock = 1000;
 class Element {
   constructor(id = '') { this.id = id; this.style = {}; this.handlers = {}; this.clientHeight = 800; this.isConnected = true; }
   addEventListener(name, callback) { this.handlers[name] = callback; }
-  fire(name, touches = []) { this.handlers[name]?.({type: name, touches,
-    preventDefault() {}, stopImmediatePropagation() {}}); }
+  fire(name, touches = [], props = {}) { this.handlers[name]?.({type: name, touches,
+    ...props, preventDefault() {}, stopImmediatePropagation() {}}); }
   appendChild() {} remove() {}
 }
 class MapMock {
@@ -74,11 +74,27 @@ removeRenderer(); map.renderer = 'VECTOR'; map.listeners.renderingtype_changed()
 assert.equal(changed, 1, 'Renderer listener is released');
 let gestures = 0;
 const remove = api.listen(7, () => gestures++);
-div.fire('pointerdown'); assert.equal(gestures, 1, 'Release on first touch');
+const mouse = (x, y) => ({pointerType: 'mouse', clientX: x, clientY: y});
+div.fire('pointerdown', [], mouse(100,100));
+assert.equal(gestures, 0, 'Mouse tap must not release follow');
+div.fire('pointermove', [], mouse(103,100));
+assert.equal(gestures, 0, 'Mouse jitter must not release follow');
+div.fire('pointermove', [], mouse(113,100));
+assert.equal(gestures, 1, 'Real mouse drag releases follow');
+div.fire('pointermove', [], mouse(130,100));
+assert.equal(gestures, 1, 'One drag releases once');
+div.fire('pointerup', [], mouse(130,100));
 const touch = (x, y) => ({clientX: x, clientY: y});
 div.fire('touchstart', [touch(100,100)]);
+div.fire('touchend');
+assert.equal(gestures, 1, 'Single finger tap preserves follow');
+clock += 350;
+div.fire('touchstart', [touch(100,100)]);
+div.fire('touchmove', [touch(103,102)]);
+assert.equal(gestures, 1, 'Touch jitter preserves follow');
 div.fire('touchmove', [touch(130,120)]);
-assert.equal(map.camera.center.x, -30, 'One-finger pan');
+assert.equal(gestures, 2, 'Touch pan releases follow');
+assert.equal(map.camera.center.x, -27, 'One-finger pan after jitter threshold');
 div.fire('touchend');
 div.fire('touchstart', [touch(100,100),touch(200,100)]);
 div.fire('touchmove', [touch(80,80),touch(220,120)]);
@@ -113,7 +129,8 @@ assert.ok(images[0].style.transform.includes('rotate(0deg)'), 'Heading-up car po
 map.moveCamera({heading:30}); api.vehicle(7,90);
 assert.ok(images[0].style.transform.includes('rotate(60deg)'), 'Free rotation preserves real car course');
 marker.setMap(null);
-remove(); const count = gestures; div.fire('pointerdown');
+remove(); const count = gestures; div.fire('pointerdown', [], mouse(100,100));
+div.fire('pointermove', [], mouse(120,100));
 assert.equal(gestures,count,'Disposed Flutter listener released');
 map.moveCamera({center: {x:0,y:400}, zoom: 16, heading: 12, tilt: 30});
 api.claim(7);
@@ -123,5 +140,5 @@ queueMicrotask(() => {
   assert.equal(map.getZoom(), 16);
   assert.equal(map.getHeading(), 12);
   assert.equal(map.getTilt(), 30);
-  console.log('PASS: vector palette, immediate release, pan, combined pinch/twist, tilt, taps, anchor and vehicle overlay');
+  console.log('PASS: vector palette, tap-safe release, drag, pan, pinch/twist, tilt, taps, anchor and vehicle overlay');
 });

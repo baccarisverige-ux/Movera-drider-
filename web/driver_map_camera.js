@@ -86,24 +86,48 @@
       });
     };
     let previous, travel = 0, startedAt = 0, maxTouches = 0, lastTap = -Infinity;
+    let touchReleased = false;
+    let pointerOrigin = null;
+    let pointerReleased = false;
     const release = () => {
       state.claim = false;
       state.anchorToken++;
       state.callbacks.forEach(callback => callback());
     };
+    const releaseTouch = () => {
+      if (!touchReleased) { touchReleased = true; release(); }
+    };
     div.style.touchAction = 'none';
-    div.addEventListener('pointerdown', release, {capture: true});
+    // A tap (including marker selection) is not a map pan. Ignore pointer
+    // events from touch here; the custom touch path below owns their geometry.
+    div.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'touch') return;
+      pointerOrigin = {x: event.clientX, y: event.clientY};
+      pointerReleased = false;
+    }, {capture: true});
+    div.addEventListener('pointermove', event => {
+      if (!pointerOrigin || pointerReleased) return;
+      if (Math.hypot(event.clientX - pointerOrigin.x,
+          event.clientY - pointerOrigin.y) >= 6) {
+        pointerReleased = true;
+        release();
+      }
+    }, {capture: true});
+    const clearPointer = () => { pointerOrigin = null; pointerReleased = false; };
+    div.addEventListener('pointerup', clearPointer, {capture: true});
+    div.addEventListener('pointercancel', clearPointer, {capture: true});
+    div.addEventListener('dblclick', release, {capture: true});
     div.addEventListener('wheel', release, {capture: true, passive: true});
     // Own touch geometry so zoom + rotate can happen in the same gesture.
     // Mouse/keyboard gestures stay with Google Maps.
     div.addEventListener('touchstart', event => {
       event.preventDefault(); event.stopImmediatePropagation();
-      release();
       if (!previous) {
         startedAt = performance.now(); maxTouches = 0;
-        travel = 0;
+        travel = 0; touchReleased = false;
       }
       maxTouches = Math.max(maxTouches, event.touches.length);
+      if (event.touches.length > 1) releaseTouch();
       previous = {...touchPose(event.touches), count: event.touches.length};
     }, {capture: true, passive: false});
     div.addEventListener('touchmove', event => {
@@ -112,6 +136,8 @@
       if (!previous || previous.count !== next.count) { previous = next; return; }
       travel += Math.hypot(next.x - previous.x, next.y - previous.y) +
           Math.abs(next.span - previous.span);
+      if (next.count > 1 || travel >= 6) releaseTouch();
+      if (!touchReleased) { previous = next; return; }
       if (next.count > 1) {
         const twist = delta(previous.angle, next.angle);
         const ratio = previous.span > 0 ? next.span / previous.span : 1;
@@ -133,14 +159,20 @@
       if (event.type !== 'touchcancel' && previous &&
           performance.now() - startedAt < 300 &&
           travel < 8) {
-        if (maxTouches > 1) map.moveCamera({zoom: map.getZoom() - 1});
-        else {
+        if (maxTouches > 1) {
+          releaseTouch();
+          map.moveCamera({zoom: map.getZoom() - 1});
+        } else {
           const now = performance.now();
-          if (now - lastTap < 300) { map.moveCamera({zoom: map.getZoom() + 1}); lastTap = 0; }
-          else lastTap = now;
+          if (now - lastTap < 300) {
+            releaseTouch();
+            map.moveCamera({zoom: map.getZoom() + 1});
+            lastTap = 0;
+          } else lastTap = now;
         }
       }
       previous = null;
+      touchReleased = false;
     };
     div.addEventListener('touchend', end, {capture: true, passive: false});
     div.addEventListener('touchcancel', end, {capture: true, passive: false});

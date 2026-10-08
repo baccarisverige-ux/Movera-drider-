@@ -132,12 +132,21 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
   @override
   Widget build(BuildContext context) {
     return Listener(
+      // Platform map views may expose no Flutter hit-test child (notably
+      // headless tests and some web platform-view frames). Still observe
+      // genuine input over the full map surface without blocking the map.
+      behavior: HitTestBehavior.opaque,
       onPointerDown: (event) {
         if (_pointerOrigins.isEmpty) {
           _gestureReported = false;
         }
         _pointerOrigins[event.pointer] = event.position;
-        _reportGesture();
+        // A tap may select a marker or dismiss an overlay without panning.
+        // Only a second active pointer (pinch/rotate) or real movement should
+        // take follow-camera ownership away from the driver.
+        if (_pointerOrigins.length > 1) {
+          _reportGesture();
+        }
       },
       onPointerMove: (event) {
         final origin = _pointerOrigins[event.pointer];
