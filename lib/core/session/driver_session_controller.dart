@@ -44,9 +44,13 @@ class DriverSessionController extends ChangeNotifier {
   }
 
   void beginTrip(String tripId) {
-    if (_disposed) {
+    // A duplicate widget mount or a stale navigation action must not replace
+    // the active trip or reset its return-to-online intent.
+    if (_disposed || tripId.trim().isEmpty ||
+        (_activeTripId != null && _activeTripId != tripId)) {
       return;
     }
+    if (_activeTripId == tripId) return;
     _revision++;
     if (_activeTripId == null) {
       _statusBeforeTrip = _status == DriverOnlineStatus.onTrip
@@ -172,6 +176,15 @@ class DriverSessionController extends ChangeNotifier {
   /// meanwhile. Only an available driver becomes available again.
   void endTrip() {
     if (_disposed) {
+      return;
+    }
+    if (_activeTripId == null) {
+      // Late/duplicate terminal callbacks cannot turn an offline, suspended,
+      // or still-connecting driver into an available one. Preserve the legacy
+      // Home return hint if this was already an online session.
+      if (_status == DriverOnlineStatus.online) {
+        _resumeHomeAfterTrip = true;
+      }
       return;
     }
     _revision++;
