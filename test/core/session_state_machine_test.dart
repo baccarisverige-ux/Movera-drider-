@@ -64,6 +64,34 @@ void main() {
     expect(session.status, DriverOnlineStatus.online);
   });
 
+  test('rapid A-to-B trip handoff cannot consume an old Home return hint', () {
+    final session = DriverSessionController()..setOnline(true);
+    addTearDown(session.dispose);
+    session.beginTrip('trip-A');
+    session.endTrip();
+    // Home can be offstage or restoring when B begins immediately.
+    session.beginTrip('trip-B');
+    expect(session.status, DriverOnlineStatus.onTrip);
+    expect(session.activeTripId, 'trip-B');
+    expect(session.consumeResumeHomeAfterTrip(), isFalse);
+    session.endTrip();
+    expect(session.consumeResumeHomeAfterTrip(), isTrue);
+    expect(session.consumeResumeHomeAfterTrip(), isFalse);
+  });
+
+  test('duplicate current-trip start preserves a pending Home return state', () {
+    final session = DriverSessionController()..setOnline(true);
+    addTearDown(session.dispose);
+    session.beginTrip('trip-A');
+    session.endTrip();
+    // The new trip owns the session; duplicate mount stays a no-op.
+    session.beginTrip('trip-B');
+    session.beginTrip('trip-B');
+    expect(session.consumeResumeHomeAfterTrip(), isFalse);
+    session.endTrip();
+    expect(session.consumeResumeHomeAfterTrip(), isTrue);
+  });
+
   test('duplicate trip end cannot reactivate a deliberately offline driver', () async {
     final store = MemoryDriverSessionRepository();
     final session = DriverSessionController(repository: store);
