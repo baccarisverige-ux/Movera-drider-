@@ -13,7 +13,17 @@ class Element {
 class MapMock {
   constructor(div, options) { this.div = div; this.options = options;
     this.camera = {center: {x: 0, y: 0}, zoom: 16, heading: 0, tilt: 0}; }
-  moveCamera(camera) { Object.assign(this.camera, camera); }
+  moveCamera(camera) {
+    // Match the Maps raster default: integer-only zoom unless fractional
+    // zoom is explicitly enabled. This makes the pinch test fail when the
+    // adapter accidentally drops that required map option.
+    const next = {...camera};
+    if (next.zoom != null && this.options.renderingType === 'RASTER' &&
+        !this.options.isFractionalZoomEnabled) {
+      next.zoom = Math.round(next.zoom);
+    }
+    Object.assign(this.camera, next);
+  }
   addListener(event, callback) { this.listeners ??= {}; this.listeners[event] = callback; return {remove: () => delete this.listeners[event]}; }
   getRenderingType() { return this.renderer ?? this.options.renderingType; }
   getCenter() { return this.camera.center; } getZoom() { return this.camera.zoom; }
@@ -51,6 +61,8 @@ const div = new Element('plugins.flutter.io/google_maps_7');
 const style = [{featureType: 'water'}];
 const map = new maps.Map(div, {styles: style});
 assert.equal(map.options.renderingType, 'VECTOR');
+assert.equal(map.options.isFractionalZoomEnabled, true,
+  'Vector Maps keeps fractional following and pinch zoom');
 assert.equal(map.options.styles, undefined, 'Cloud style and inline styles cannot coexist');
 assert.equal(map.options.mapId, 'configured-vector-style');
 assert.equal(map.options.headingInteractionEnabled, true);
@@ -60,10 +72,14 @@ context.document.querySelector = () => ({content: ''});
 const rasterDiv = new Element('plugins.flutter.io/google_maps_8');
 const raster = new maps.Map(rasterDiv, {styles: style});
 assert.equal(raster.options.renderingType, 'RASTER');
+assert.equal(raster.options.isFractionalZoomEnabled, true,
+  'Raster fallback must allow fractional pinch steps');
 assert.equal(raster.options.styles, style, 'Explicit 2D preview retains approved palette');
 assert.equal(api.supports3D(8), false);
 rasterDiv.fire('touchstart', [{clientX:100,clientY:100},{clientX:200,clientY:100}]);
 rasterDiv.fire('touchmove', [{clientX:80,clientY:80},{clientX:220,clientY:120}]);
+assert.ok(raster.getZoom() > 16 && raster.getZoom() < 17,
+  'A single raster pinch frame should zoom smoothly, not snap or get ignored');
 assert.equal(raster.getHeading(), 0, 'Raster gestures do not request rotation');
 assert.equal(raster.getTilt(), 0, 'Raster gestures do not request tilt');
 let changed = 0;
