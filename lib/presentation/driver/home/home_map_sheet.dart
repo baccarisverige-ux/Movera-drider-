@@ -279,7 +279,7 @@ extension _HomeMapSheet on _DriverHomeState {
 
       if (!isCurrent()) return;
       await _fitPoints(
-        roadPoints.isNotEmpty ? roadPoints : <LatLng>[pickup, dropoff],
+        MapPreviewGeneration.framingPoints(pickup, dropoff, roadPoints),
         padding: insets.boundsPadding,
       );
     }
