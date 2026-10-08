@@ -45,7 +45,11 @@ void main() {
     expect(
       tester
           .widget<IconButton>(
-            find.descendant(of: send, matching: find.byType(IconButton)),
+            find.byWidgetPredicate(
+              (widget) =>
+                  widget is IconButton &&
+                  widget.tooltip == 'Save message locally',
+            ),
           )
           .onPressed,
       isNull,
