@@ -43,9 +43,11 @@ class TripIslandController extends ChangeNotifier {
   TripIslandFace? _notice;
   bool defaultFace = false, waitingMessageFace = false;
   int _pointers = 0;
+  int _touchEpoch = 0;
   bool _disposed = false;
 
   void update(TripIslandInput input) {
+    if (_disposed) return;
     final wasWaiting = _input.waitingSeconds != null;
     final changedWait =
         wasWaiting != (input.waitingSeconds != null) ||
@@ -84,20 +86,24 @@ class TripIslandController extends ChangeNotifier {
   }
 
   void hold() {
+    if (_disposed) return;
     _pointers++;
+    _touchEpoch++;
     _idle?.cancel();
   }
 
   void release() {
-    _pointers = (_pointers - 1).clamp(0, 100);
+    if (_disposed || _pointers == 0) return;
+    _pointers--;
     if (_pointers != 0) return;
+    final epoch = ++_touchEpoch;
     scheduleMicrotask(() {
-      if (_disposed) return;
+      if (_disposed || _pointers != 0 || _touchEpoch != epoch) return;
       defaultFace = true;
       notifyListeners();
       _idle?.cancel();
       _idle = Timer(const Duration(seconds: 2), () {
-        if (_disposed) return;
+        if (_disposed || _pointers != 0 || _touchEpoch != epoch) return;
         defaultFace = false;
         notifyListeners();
       });
@@ -184,6 +190,7 @@ class TripIslandController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _touchEpoch++;
     _idle?.cancel();
     _waitingCycle?.cancel();
     _noticeTimer?.cancel();
