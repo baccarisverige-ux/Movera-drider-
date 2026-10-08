@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "commit": "ddf074a384dfb1ca3d32ce39b94393badb5d4deb",
+  "checks": [
+    {
+      "id": "automated",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    },
+    {
+      "id": "real-maps",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    },
+    {
+      "id": "trip-journeys",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    },
+    {
+      "id": "secondary-screens",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    },
+    {
+      "id": "layout",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    },
+    {
+      "id": "accessibility",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    },
+    {
+      "id": "device-lifecycle",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    },
+    {
+      "id": "performance",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    },
+    {
+      "id": "staging-services",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    },
+    {
+      "id": "deployment-smoke",
+      "result": "PENDING",
+      "commit": "",
+      "artifact": "",
+      "detail": ""
+    }
+  ]
+}
