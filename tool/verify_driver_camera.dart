@@ -193,6 +193,29 @@ Future<void> runCameraContractTests() async {
     'Time-based four-axis smoothing',
   );
 
+  final thresholdRoad = route(RouteManeuverType.turn);
+  DriverCameraPose nearTurn(double metersBeforeTurn) {
+    final camera = DriverCameraPolicy();
+    return camera.resolve(
+      location: fix(
+        GeoPoint(turn.latitude - metersBeforeTurn / 111320, turn.longitude),
+      ),
+      route: thresholdRoad,
+      navigating: true,
+      immediate: true,
+    );
+  }
+  final outsidePreview = nearTurn(184);
+  final insidePreview = nearTurn(176);
+  check(
+    (insidePreview.zoom - outsidePreview.zoom).abs() < .15,
+    'Turn preview begins without a half-level camera zoom snap',
+  );
+  check(
+    nearTurn(90).zoom > insidePreview.zoom,
+    'Approaching a turn steadily tightens the map framing',
+  );
+
   final curve = DriverCameraPolicy();
   final curvedRoute = route(RouteManeuverType.turn);
   curve.resolve(
