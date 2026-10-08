@@ -84,16 +84,39 @@ assert.equal(gestures, 1, 'Real mouse drag releases follow');
 div.fire('pointermove', [], mouse(130,100));
 assert.equal(gestures, 1, 'One drag releases once');
 div.fire('pointerup', [], mouse(130,100));
+// Clicking Google's +/- control must release follow exactly once, unlike a
+// map/marker tap. Keyboard activation has no pointerdown, but must still work.
+const cameraControl = {
+  closest: selector => selector.includes('.gm-bundled-control') ? {} : null,
+};
+const mapSurface = {closest: () => null};
+div.fire('pointerdown', [], {...mouse(100,100), target: mapSurface});
+div.fire('click', [], {target: mapSurface});
+assert.equal(gestures, 1, 'Ordinary tap preserves GPS follow');
+div.fire('pointerdown', [], {...mouse(100,100), target: cameraControl});
+assert.equal(gestures, 2, 'Native zoom-in control immediately releases GPS follow');
+div.fire('click', [], {target: cameraControl});
+assert.equal(gestures, 2, 'Pointer click cannot double-release camera');
+div.fire('click', [], {target: cameraControl});
+assert.equal(gestures, 3, 'Keyboard zoom-out click also releases follow');
+// Some SDK versions render the control as a labelled button rather than
+// .gm-bundled-control. Confirm the generic native button fallback.
+const labelledButton = {getAttribute: field =>
+  field === 'aria-label' ? 'Zoom out' : null};
+const labelledTarget = {closest: selector =>
+  selector.includes('button[aria-label]') ? labelledButton : null};
+div.fire('click', [], {target: labelledTarget});
+assert.equal(gestures, 4, 'ARIA-labelled map zoom button releases follow');
 const touch = (x, y) => ({clientX: x, clientY: y});
 div.fire('touchstart', [touch(100,100)]);
 div.fire('touchend');
-assert.equal(gestures, 1, 'Single finger tap preserves follow');
+assert.equal(gestures, 4, 'Single finger tap preserves follow');
 clock += 350;
 div.fire('touchstart', [touch(100,100)]);
 div.fire('touchmove', [touch(103,102)]);
-assert.equal(gestures, 1, 'Touch jitter preserves follow');
+assert.equal(gestures, 4, 'Touch jitter preserves follow');
 div.fire('touchmove', [touch(130,120)]);
-assert.equal(gestures, 2, 'Touch pan releases follow');
+assert.equal(gestures, 5, 'Touch pan releases follow');
 assert.equal(map.camera.center.x, -27, 'One-finger pan after jitter threshold');
 div.fire('touchend');
 div.fire('touchstart', [touch(100,100),touch(200,100)]);
@@ -131,6 +154,8 @@ div.fire('touchstart', [touch(100,100),touch(200,100)]);
 div.fire('touchmove', [touch(50,70),touch(260,160)]);
 div.fire('touchend');
 div.fire('wheel');
+div.fire('pointerdown', [], {...mouse(100,100), target: cameraControl});
+div.fire('click', [], {target: cameraControl});
 assert.equal(map.getZoom(), lockedZoom, 'Locked map ignores two-finger zoom');
 assert.equal(map.getHeading(), lockedHeading, 'Locked map ignores rotation');
 assert.equal(JSON.stringify(map.getCenter()), lockedCenter,
@@ -154,6 +179,18 @@ div.fire('touchmove', [touch(100,100), touch(5000,100)]);
 assert.ok(map.getZoom() - beforeSparsePinch <= 0.400001,
   'Sparse pinch events cannot jump multiple zoom levels');
 div.fire('touchend');
+// Native double-tap / two-finger tap must respect Maps zoom boundaries.
+map.moveCamera({zoom: 3});
+clock += 500;
+div.fire('touchstart', [touch(100,100), touch(200,100)]);
+div.fire('touchend');
+assert.equal(map.getZoom(), 3, 'Two-finger zoom-out cannot go below level 3');
+map.moveCamera({zoom: 21});
+clock += 500;
+div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
+clock += 150;
+div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
+assert.equal(map.getZoom(), 21, 'Double-tap zoom-in cannot exceed level 21');
 api.configure(7, 100, 200, .72);
 map.moveCamera({center: {x:0,y:400}}); api.anchor(7);
 assert.equal(map.camera.center.y, 224, '72% screen anchor above overlays');
