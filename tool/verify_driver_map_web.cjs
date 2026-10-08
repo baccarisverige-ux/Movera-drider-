@@ -201,7 +201,7 @@ clock += 150;
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 assert.equal(map.getZoom(), beforeDoubleTap + 1,
   'Double tap zooms in exactly one level from current fractional zoom');
-assert.ok(map.camera.center.x > 0 && map.camera.center.y > 0,
+assert.ok(map.camera.center.x < 0 && map.camera.center.y < 0,
   'Double-tap on upper-left map point zooms around tap, not screen center');
 // Fast taps at different positions should select different map items, not zoom.
 clock += 400;
