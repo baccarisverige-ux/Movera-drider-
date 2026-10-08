@@ -14,7 +14,11 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # PR-triggered Drider CI completion also starts this workflow (the deploy
+  # job then skips). A shared "pages" group let these skipped runs cancel the
+  # latest valid main deployment. Isolate event branches so only a newer
+  # main-branch deployment can supersede the current main deployment.
+  group: pages-${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.workflow_run.head_branch || github.run_id }}
   cancel-in-progress: true
 
 jobs:
