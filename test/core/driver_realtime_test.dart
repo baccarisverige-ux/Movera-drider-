@@ -36,6 +36,47 @@ void main() {
     );
   });
 
+  test('invalid envelopes cannot advance sequence or poison terminal trip', () {
+    final gate = DriverRealtimeSequenceGate();
+    final at = DateTime(2026, 10, 8);
+    const trip = 'trip-1';
+    expect(
+      gate.evaluate(DriverRealtimeEvent(
+        tripId: trip,
+        kind: DriverRealtimeKind.riderCancelled,
+        sequence: 0,
+        at: at,
+        status: TripStatus.cancelledByRider,
+      )),
+      DriverRealtimeDisposition.staleOrDuplicate,
+    );
+    expect(gate.lastSequenceFor(trip), isNull);
+    expect(gate.isTerminal(trip), isFalse);
+    expect(
+      gate.evaluate(DriverRealtimeEvent(
+        tripId: '  ',
+        kind: DriverRealtimeKind.riderCancelled,
+        sequence: 1,
+        at: at,
+        status: TripStatus.cancelledByRider,
+      )),
+      DriverRealtimeDisposition.staleOrDuplicate,
+    );
+    expect(gate.lastSequenceFor('  '), isNull);
+    expect(gate.isTerminal('  '), isFalse);
+    expect(
+      gate.evaluate(DriverRealtimeEvent(
+        tripId: trip,
+        kind: DriverRealtimeKind.tripProjection,
+        sequence: 1,
+        at: at,
+        status: TripStatus.inTrip,
+      )),
+      DriverRealtimeDisposition.accepted,
+    );
+    expect(gate.isTerminal(trip), isFalse);
+  });
+
   test('sequence gate exposes gaps so the adapter can resync', () {
     final gate = DriverRealtimeSequenceGate();
     final at = DateTime(2026, 9, 30);
