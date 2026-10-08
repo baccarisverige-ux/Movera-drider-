@@ -40,7 +40,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
           builder: (context, constraints) {
             // In a short landscape window, the header must scroll too; otherwise
             // large text consumes the entire viewport before the cards can render.
-            final compact = constraints.maxHeight < 500;
+            final compact =\n                constraints.maxHeight <\n                500 * MediaQuery.textScalerOf(context).scale(13) / 13;
             final list = ListView.separated(
               shrinkWrap: compact,
               physics: compact ? const NeverScrollableScrollPhysics() : null,

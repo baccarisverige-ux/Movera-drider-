@@ -165,6 +165,8 @@ void main() {
           150,
           scrollable: find.byType(Scrollable).first,
         );
+        await tester.pumpAndSettle();
+        expect(find.text('184.00 kr').hitTestable(), findsOneWidget);
         await tester.tap(find.text('184.00 kr'));
         await tester.pumpAndSettle();
         await tester.tap(
@@ -177,6 +179,7 @@ void main() {
           100,
           scrollable: find.byType(Scrollable).last,
         );
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Vehicle issue'));
         await tester.pumpAndSettle();
         await tester.ensureVisible(find.text('Continue'));
