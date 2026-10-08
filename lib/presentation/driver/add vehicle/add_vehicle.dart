@@ -9,7 +9,9 @@ import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AddVehicle extends StatefulWidget {
-  const AddVehicle({super.key});
+  const AddVehicle({super.key, this.store});
+
+  final LocalVehicleStore? store;
 
   @override
   State<AddVehicle> createState() => _AddVehicleState();
@@ -25,6 +27,7 @@ class _AddVehicleState extends State<AddVehicle> {
   final TextEditingController _plate = TextEditingController();
   String? _year;
   bool _saving = false;
+  late final _store = widget.store ?? LocalVehicleStore();
   late final String _vehicleId =
       'local-${DateTime.now().microsecondsSinceEpoch}';
 
@@ -55,6 +58,51 @@ class _AddVehicleState extends State<AddVehicle> {
       _model.text.trim().isNotEmpty &&
       _year != null &&
       _plate.text.trim().isNotEmpty;
+
+  Future<void> _save() async {
+    if (!mounted || _saving || !_ready) {
+      return;
+    }
+    final submitted = <String, dynamic>{
+      'id': _vehicleId,
+      'make': _make.text.trim(),
+      'model': _model.text.trim(),
+      'year': _year!,
+      'plate': _plate.text.trim(),
+    };
+    setState(() => _saving = true);
+    try {
+      await _store.upsert(submitted);
+      if (!mounted) {
+        return;
+      }
+      await pushSingle(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => VehicleDocuments(
+            vehicleId: submitted['id'] as String,
+            make: submitted['make'] as String,
+            model: submitted['model'] as String,
+            year: submitted['year'] as String,
+            plate: submitted['plate'] as String,
+            store: _store,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save local vehicle draft. Retry.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
 
   Future<void> _pickYear() async {
     final picked = await showModalBottomSheet<String>(
@@ -229,49 +277,7 @@ class _AddVehicleState extends State<AddVehicle> {
               width: double.infinity,
               height: 52,
               child: FilledButton(
-                onPressed: _ready && !_saving
-                    ? () async {
-                        setState(() => _saving = true);
-                        try {
-                          await LocalVehicleStore().upsert({
-                            'id': _vehicleId,
-                            'make': _make.text.trim(),
-                            'model': _model.text.trim(),
-                            'year': _year!,
-                            'plate': _plate.text.trim(),
-                          });
-                          if (!context.mounted) {
-                            return;
-                          }
-                          await pushSingle(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (_) => VehicleDocuments(
-                                vehicleId: _vehicleId,
-                                make: _make.text.trim(),
-                                model: _model.text.trim(),
-                                year: _year!,
-                                plate: _plate.text.trim(),
-                              ),
-                            ),
-                          );
-                        } catch (_) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Could not save local vehicle draft. Retry.',
-                                ),
-                              ),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() => _saving = false);
-                          }
-                        }
-                      }
-                    : null,
+                onPressed: _ready && !_saving ? _save : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: _ink,
                   disabledBackgroundColor: const Color(0xFFE8EAEC),
