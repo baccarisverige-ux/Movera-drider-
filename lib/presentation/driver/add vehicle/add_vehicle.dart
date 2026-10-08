@@ -319,6 +319,7 @@ class VehicleDocuments extends StatefulWidget {
     required this.model,
     required this.year,
     required this.plate,
+    this.store,
   });
 
   final String? vehicleId;
@@ -326,6 +327,7 @@ class VehicleDocuments extends StatefulWidget {
   final String model;
   final String year;
   final String plate;
+  final LocalVehicleStore? store;
 
   @override
   State<VehicleDocuments> createState() => _VehicleDocumentsState();
@@ -335,7 +337,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _line = Color(0xFFE6E8EA);
 
-  final _store=LocalVehicleStore();
+  late final _store=widget.store ?? LocalVehicleStore();
   Map<String,dynamic>? _draft;
   bool _busy=false;
   @override
@@ -696,43 +698,3 @@ class _VehiclePhotoPage extends StatelessWidget {
                       children: [
                         const Text('•  ', style: TextStyle(color: _ink)),
                         Expanded(
-                          child: Text(
-                            check,
-                            style: const TextStyle(
-                              color: _ink,
-                              fontSize: 15,
-                              height: 1.35,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton(
-                onPressed: () => _take(context),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _ink,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text(
-                  'Take photo',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
