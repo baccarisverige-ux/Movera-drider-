@@ -146,6 +146,12 @@ void main() {
     testWidgets(
       'scheduled cancellation stays reachable at 200 percent in $size',
       (tester) async {
+        final previous = FlutterError.onError;
+        FlutterError.onError = (details) {
+          FlutterError.dumpErrorToConsole(details, forceReport: true);
+          previous?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = previous);
         tester.view.devicePixelRatio = 1;
         tester.view.physicalSize = size;
         addTearDown(tester.view.resetDevicePixelRatio);
