@@ -378,8 +378,10 @@ extension _HomeOfferRadar on _DriverHomeState {
       _homeRadarNoticeTimer?.cancel();
 
       _rebuild(() {
-        _homeRadarMatchingOfferId = null;
-        _homeRadarMatchStates.remove(offer.id);
+        // Keep ownership until the active ride opens. Other offers and the
+        // dispatch removal of our own claimed offer cannot steal this handoff.
+        _homeRadarMatchingOfferId = offer.id;
+        _homeRadarMatchStates[offer.id] = _HomeRadarMatchState.resolving;
       });
       IslandMessages.show(HomeIslandNotices.matched);
 
@@ -398,10 +400,10 @@ extension _HomeOfferRadar on _DriverHomeState {
       // The row itself says what happened; the island adds a line when
       // this driver was the one matching.
       final wasMatching = _homeRadarMatchingOfferId == offer.id;
-      _homeRadarNoticeTimer?.cancel();
+      if (wasMatching) { _homeRadarNoticeTimer?.cancel(); }
       _rebuild(() {
         _homeRadarGoneReasons[offer.id] = reason;
-        _homeRadarMatchingOfferId = null;
+        if (wasMatching) { _homeRadarMatchingOfferId = null; }
         _homeRadarMatchStates[offer.id] =
             _HomeRadarMatchState.claimedElsewhere;
       });

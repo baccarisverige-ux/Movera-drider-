@@ -86,6 +86,24 @@ void main() {
               .waitingSeconds,
           270,
         );
+        // A delayed foreground callback must count the full interval too.
+        now = now.add(const Duration(seconds: 17));
+        await tester.pump(const Duration(seconds: 1));
+        expect(
+          tester
+              .widget<AdaptiveTripIsland>(find.byType(AdaptiveTripIsland))
+              .waitingSeconds,
+          287,
+        );
+        // A backwards clock adjustment must not remove accrued waiting time.
+        now = now.subtract(const Duration(seconds: 30));
+        await tester.pump(const Duration(seconds: 1));
+        expect(
+          tester
+              .widget<AdaptiveTripIsland>(find.byType(AdaptiveTripIsland))
+              .waitingSeconds,
+          287,
+        );
         // Repeated lifecycle notifications must not add the same interval twice.
         tester.binding.handleAppLifecycleStateChanged(
           AppLifecycleState.resumed,
@@ -95,7 +113,7 @@ void main() {
           tester
               .widget<AdaptiveTripIsland>(find.byType(AdaptiveTripIsland))
               .waitingSeconds,
-          270,
+          287,
         );
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());

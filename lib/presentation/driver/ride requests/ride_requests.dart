@@ -242,11 +242,12 @@ class _RideRequestsState extends State<RideRequests> {
         setState(() {
           _matchingOfferId = null;
           _offerStates.remove(trip.id);
-          _matchNotice = null;
+          _matchNotice = const _RadarMatchNotice(
+            type: _RadarMatchNoticeType.error,
+            title: 'Could not match trip. Try again.',
+            message: 'Connection interrupted. You can retry this request.',
+          );
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not match trip. Try again.'),
-        ));
     }
   }
 
@@ -584,7 +585,7 @@ class _RideRequestsState extends State<RideRequests> {
             Icon(
               reason == _RadarGone.unavailable
                   ? Icons.event_busy_outlined
-                  : Icons.person_off_outlined,
+                  : Icons.wifi_off_rounded,
               size: 18,
               color: _muted,
             ),
@@ -869,7 +870,7 @@ enum _RadarGone {
 
 enum _RadarOfferState { available, resolving, claimedElsewhere }
 
-enum _RadarMatchNoticeType { matching, success }
+enum _RadarMatchNoticeType { matching, success, error }
 
 class _RadarMatchNotice {
   const _RadarMatchNotice({
