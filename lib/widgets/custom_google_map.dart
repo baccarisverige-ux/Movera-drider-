@@ -75,7 +75,7 @@ class CustomGoogleMap extends StatefulWidget {
     this.padding = EdgeInsets.zero,
     this.cameraAnchor = .5,
     this.customMapStyle,
-    this.webCameraControlEnabled = true,
+    this.webCameraControlEnabled = false,
   });
 
   @override
