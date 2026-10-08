@@ -45,6 +45,7 @@ void main() {
       ) {
         await tester.pump(const Duration(milliseconds: 25));
       }
+      expect(find.text('Profile'), findsOneWidget);
       expect(find.text('Volvo XC60'), findsOneWidget);
       expect(find.text('Mercedes-Benz E 220'), findsNothing);
     },

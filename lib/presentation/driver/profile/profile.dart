@@ -30,6 +30,19 @@ class _DriverProfileState extends State<DriverProfile> {
   void initState() {
     super.initState();
     _identity = _vehicles.primaryIdentity();
+    LocalVehicleStore.changes.addListener(_vehicleChanged);
+  }
+
+  void _vehicleChanged() {
+    if (mounted && !_logoutBusy) {
+      setState(() => _identity = _vehicles.primaryIdentity());
+    }
+  }
+
+  @override
+  void dispose() {
+    LocalVehicleStore.changes.removeListener(_vehicleChanged);
+    super.dispose();
   }
 
   Future<void> _openPage(
