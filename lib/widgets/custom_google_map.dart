@@ -137,7 +137,12 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
           _gestureReported = false;
         }
         _pointerOrigins[event.pointer] = event.position;
-        _reportGesture();
+        // A tap may select a marker or dismiss an overlay without panning.
+        // Only a second active pointer (pinch/rotate) or real movement should
+        // take follow-camera ownership away from the driver.
+        if (_pointerOrigins.length > 1) {
+          _reportGesture();
+        }
       },
       onPointerMove: (event) {
         final origin = _pointerOrigins[event.pointer];
