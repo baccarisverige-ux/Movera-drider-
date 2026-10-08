@@ -4,6 +4,7 @@ import 'package:movera/core/location/location_freshness.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'dart:async';
 import 'package:movera/core/navigation/driver_camera_controller.dart';
+import 'package:movera/core/navigation/driver_map_zoom_change_detector.dart';
 import 'package:movera/core/navigation/route_camera_geometry.dart';
 import 'package:movera/widgets/google_driver_camera_port.dart';
 import 'dart:math' as math;
@@ -393,6 +394,8 @@ class _AcceptRideState extends State<AcceptRide>
   bool _browsing = false;
   // Last two-finger touch or wheel on the map, used to detect manual zoom.
   DateTime? _lastMapZoom;
+  final DriverMapZoomChangeDetector _manualZoomDetector =
+      DriverMapZoomChangeDetector(initialZoom: 15.8);
   int _mapPointers = 0;
   double _browseReturnPos = 0;
   late final AnimationController _browsePulse = AnimationController(
