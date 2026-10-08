@@ -8,7 +8,9 @@ class MapZoomSheetSettle {
 
   int get activePointers => _pointers.length;
 
-  void pointerDown(int pointer) => _pointers.add(pointer);
+  void pointerDown(int pointer) {
+    _pointers.add(pointer);
+  }
 
   /// Returns true only when the pending sheet collapse can safely start.
   bool pointerEnded(int pointer) {
