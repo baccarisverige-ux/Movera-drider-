@@ -82,7 +82,7 @@ void main() {
 
     const live = LatLng(59.34, 18.07);
     location.updates.add(DriverLocation(
-      point: const GeoPoint(live.latitude, live.longitude),
+      point: const GeoPoint(59.34, 18.07),
       measuredAt: DateTime.now(),
       accuracyMeters: 5,
       speedMetersPerSecond: 4,
