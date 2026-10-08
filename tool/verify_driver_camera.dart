@@ -146,6 +146,25 @@ Future<void> runCameraContractTests() async {
   check(DriverCameraPolicy.zoomForSpeed(10) == 16.5, 'Urban-speed zoom');
   check(DriverCameraPolicy.zoomForSpeed(20) == 15.5, 'Fast urban zoom');
   check(DriverCameraPolicy.zoomForSpeed(30) == 14.75, 'Highway zoom');
+  check(DriverCameraPolicy.zoomForSpeed(double.nan) == 17.5,
+      'Missing speed stays at slow-speed framing');
+  // Former 20/50/80 km/h hard thresholds jumped a full zoom level when
+  // sensor speed oscillated by a fraction of a metre per second.
+  for (final threshold in [20 / 3.6, 50 / 3.6, 80 / 3.6]) {
+    final before = DriverCameraPolicy.zoomForSpeed(threshold - 0.03);
+    final after = DriverCameraPolicy.zoomForSpeed(threshold + 0.03);
+    check((before - after).abs() < .03,
+        'Speed fluctuation near $threshold m/s must not snap camera zoom');
+  }
+  var previousZoom = DriverCameraPolicy.zoomForSpeed(0);
+  for (var speed = .5; speed <= 36; speed += .5) {
+    final zoom = DriverCameraPolicy.zoomForSpeed(speed);
+    check(zoom.isFinite && zoom >= 14.75 && zoom <= 17.5,
+        'Autozoom must stay within approved road framing');
+    check(zoom <= previousZoom,
+        'Zoom decreases smoothly as driving speed rises');
+    previousZoom = zoom;
+  }
   check(wrapped.tilt == 0, 'Outside trip uses flat location following');
   final waiting = policy.resolve(
     location: fix(origin),
