@@ -38,40 +38,43 @@ void main() {
     tester,
   ) async {
     final handle = tester.ensureSemantics();
-    addTearDown(handle.dispose);
-    await _chat(tester);
-    final send = find.byTooltip('Save message locally');
-    expect(send, findsOneWidget);
-    expect(
-      tester
-          .widget<IconButton>(
-            find.byWidgetPredicate(
-              (widget) =>
-                  widget is IconButton &&
-                  widget.tooltip == 'Save message locally',
-            ),
-          )
-          .onPressed,
-      isNull,
-    );
-    await tester.enterText(find.byType(TextFormField), 'On my way');
-    await tester.pump();
-    final node = tester.getSemantics(
-      find.bySemanticsLabel('Save message locally'),
-    );
-    expect(node.getSemanticsData().label, contains('Save message locally'));
-    tester.binding.performSemanticsAction(
-      SemanticsActionEvent(
-        viewId: tester.view.viewId,
-        nodeId: node.id,
-        type: SemanticsAction.tap,
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('On my way'), findsOneWidget);
-    expect(find.byType(SenderMessage), findsOneWidget);
-    expect(find.text('Local preview · not sent'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    try {
+      await _chat(tester);
+      final send = find.byTooltip('Save message locally');
+      expect(send, findsOneWidget);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byWidgetPredicate(
+                (widget) =>
+                    widget is IconButton &&
+                    widget.tooltip == 'Save message locally',
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.enterText(find.byType(TextFormField), 'On my way');
+      await tester.pump();
+      final node = tester.getSemantics(
+        find.bySemanticsLabel('Save message locally'),
+      );
+      expect(node.getSemanticsData().label, contains('Save message locally'));
+      tester.binding.performSemanticsAction(
+        SemanticsActionEvent(
+          viewId: tester.view.viewId,
+          nodeId: node.id,
+          type: SemanticsAction.tap,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('On my way'), findsOneWidget);
+      expect(find.byType(SenderMessage), findsOneWidget);
+      expect(find.text('Local preview · not sent'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    } finally {
+      handle.dispose();
+    }
   });
 
   testWidgets('keyboard Send saves locally once and rejects whitespace', (
