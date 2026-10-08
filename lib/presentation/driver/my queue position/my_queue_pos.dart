@@ -42,8 +42,13 @@ class MyQueuePosition extends StatelessWidget {
             topRight: Radius.circular(8),
           ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.90,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             31.height,
@@ -52,23 +57,25 @@ class MyQueuePosition extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  InkWell(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    child: Icon(
+                  IconButton(
+                    tooltip: 'Close queue position',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(
                       Icons.keyboard_arrow_down_rounded,
                       size: ResSize.h * 24,
                       color: AppColor.title,
                     ),
                   ),
-                  TextWidget(
-                    text: "My Queue position",
-                    color: AppColor.title,
-                    fontSize: 16,
-                    fontWeight: fwSemiBold,
+                  Expanded(
+                    child: TextWidget(
+                      text: "My Queue position",
+                      textAlign: TextAlign.center,
+                      color: AppColor.title,
+                      fontSize: 16,
+                      fontWeight: fwSemiBold,
+                    ),
                   ),
-                  SizedBox(width: ResSize.w * 20),
+                  const SizedBox(width: 48),
                 ],
               ),
             ),
@@ -117,21 +124,21 @@ class MyQueuePosition extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              Transform.scale(
-                                scale: 1.8,
-                                child: Transform.translate(
-                                  offset: Offset(-10, 10),
-                                  child: Image.asset(
-                                    AppAssets.queue,
-                                    height: ResSize.h * 60,
-                                  ),
+                              SizedBox(
+                                width: ResSize.w * 64,
+                                child: Image.asset(
+                                  AppAssets.queue,
+                                  height: ResSize.h * 60,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ],
                           ),
                           20.height,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          Wrap(
+                            alignment: WrapAlignment.spaceEvenly,
+                            spacing: 12,
+                            runSpacing: 8,
                             children: [
                               Row(
                                 children: [
@@ -167,8 +174,10 @@ class MyQueuePosition extends StatelessWidget {
                               ),
                             ],
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          Wrap(
+                            alignment: WrapAlignment.spaceEvenly,
+                            spacing: 12,
+                            runSpacing: 8,
                             children: [
                               Row(
                                 children: [
@@ -282,7 +291,9 @@ class MyQueuePosition extends StatelessWidget {
               ),
             ),
             60.height,
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
