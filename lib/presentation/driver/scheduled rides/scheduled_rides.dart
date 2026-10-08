@@ -1274,6 +1274,9 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
   }
 
   Future<void> _showCancelReasons(BuildContext context) async {
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent == false) {
+      return;
+    }
     final reason = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -1287,6 +1290,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _CancelConfirmationSheet(reason: reason),
     );
@@ -1436,59 +1440,60 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
           color: Color(0xFFF7F8F8),
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 10),
-            Container(
-              height: 4,
-              width: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFFD3D8DB),
-                borderRadius: BorderRadius.circular(99),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                height: 4,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD3D8DB),
+                  borderRadius: BorderRadius.circular(99),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 14, 8),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Why are you cancelling?',
-                          style: TextStyle(
-                            color: Color(0xFF252E3A),
-                            fontSize: 21,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.4,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 14, 8),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Why are you cancelling?',
+                            style: TextStyle(
+                              color: Color(0xFF252E3A),
+                              fontSize: 21,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.4,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Choose the reason that best matches.',
-                          style: TextStyle(
-                            color: Color(0xFF7D888E),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                          SizedBox(height: 4),
+                          Text(
+                            'Choose the reason that best matches.',
+                            style: TextStyle(
+                              color: Color(0xFF7D888E),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                    color: const Color(0xFF39444A),
-                  ),
-                ],
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded),
+                      color: const Color(0xFF39444A),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Flexible(
-              child: ListView.separated(
+              ListView.separated(
                 shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 itemCount: _reasons.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -1559,32 +1564,35 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
                   );
                 },
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-              color: Colors.white,
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton(
-                  onPressed: _selected == null
-                      ? null
-                      : () => Navigator.pop(context, _selected),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF252E3A),
-                    disabledBackgroundColor: const Color(0xFFDCE1E3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(17),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+                color: Colors.white,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _selected == null
+                        ? null
+                        : () => Navigator.pop(context, _selected),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF252E3A),
+                      disabledBackgroundColor: const Color(0xFFDCE1E3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(17),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                    child: const Text(
+                      'Continue',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1600,104 +1608,106 @@ class _CancelConfirmationSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                height: 4,
-                width: 42,
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  height: 4,
+                  width: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD3D8DB),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                height: 50,
+                width: 50,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD3D8DB),
-                  borderRadius: BorderRadius.circular(99),
+                  color: const Color(0xFFFFEDEF),
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: const Icon(
+                  Icons.event_busy_rounded,
+                  color: Color(0xFFC84E58),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              height: 50,
-              width: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEDEF),
-                borderRadius: BorderRadius.circular(17),
+              const SizedBox(height: 14),
+              const Text(
+                'Cancel this reservation?',
+                style: TextStyle(
+                  color: Color(0xFF252E3A),
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.4,
+                ),
               ),
-              child: const Icon(
-                Icons.event_busy_rounded,
-                color: Color(0xFFC84E58),
+              const SizedBox(height: 8),
+              Text(
+                reason,
+                style: const TextStyle(
+                  color: Color(0xFF59656C),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Cancel this reservation?',
-              style: TextStyle(
-                color: Color(0xFF252E3A),
-                fontSize: 21,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.4,
+              const SizedBox(height: 8),
+              const Text(
+                'Cancelling close to pickup can affect your scheduled-ride access. This action cannot be undone in this demo flow.',
+                style: TextStyle(
+                  color: Color(0xFF7D888E),
+                  fontSize: 12,
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              reason,
-              style: const TextStyle(
-                color: Color(0xFF59656C),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Cancelling close to pickup can affect your scheduled-ride access. This action cannot be undone in this demo flow.',
-              style: TextStyle(
-                color: Color(0xFF7D888E),
-                fontSize: 12,
-                height: 1.4,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF252E3A),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(17),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF252E3A),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(17),
+                    ),
                   ),
-                ),
-                child: const Text(
-                  'Cancel reservation',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ),
-            const SizedBox(height: 9),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text(
-                  'Keep reservation',
-                  style: TextStyle(
-                    color: Color(0xFF354047),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
+                  child: const Text(
+                    'Cancel reservation',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 9),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text(
+                    'Keep reservation',
+                    style: TextStyle(
+                      color: Color(0xFF354047),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -131,6 +131,55 @@ void main() {
     expect(find.text('Gamla vägen, Stockholm'), findsNothing);
   });
 
+  for (final size in [const Size(320, 700), const Size(568, 320)]) {
+    testWidgets(
+      'scheduled cancellation stays reachable at 200 percent in $size',
+      (tester) async {
+        await tester.binding.setSurfaceSize(size);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(2)),
+              child: child!,
+            ),
+            home: const ScheduledRidesScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Accepted'));
+        await tester.tap(find.text('Accepted'));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('184.00 kr'));
+        await tester.tap(find.text('184.00 kr'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.widgetWithText(OutlinedButton, 'Cancel reservation'),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await tester.ensureVisible(find.text('Vehicle issue'));
+        await tester.tap(find.text('Vehicle issue'));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Continue'));
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+        expect(find.text('Cancel this reservation?'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        final confirm = find.widgetWithText(FilledButton, 'Cancel reservation');
+        await tester.ensureVisible(confirm);
+        await tester.pumpAndSettle();
+        expect(confirm.hitTestable(), findsOneWidget);
+        await tester.tap(confirm);
+        await tester.pumpAndSettle();
+        expect(find.text('Reservation cancelled'), findsOneWidget);
+        expect(find.text('184.00 kr'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   for (final reset in [false, true]) {
     testWidgets(
       'stale scheduled details cannot accept after ${reset ? 'session reset' : 'external decline'}',
