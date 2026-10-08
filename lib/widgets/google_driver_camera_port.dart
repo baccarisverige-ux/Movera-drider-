@@ -273,9 +273,13 @@ class GoogleDriverCameraPort implements DriverCameraPort {
       );
       onStatus?.call(null);
     } catch (_) {
-      if (!_disposed && generation == _generation) {
-        onStatus?.call('Map camera unavailable — tap recenter to retry');
+      if (_disposed || generation != _generation) {
+        return;
       }
+      onStatus?.call('Map camera unavailable — tap recenter to retry');
+      // The owner must know that fitting the route failed. Otherwise it
+      // remains in Overview forever and suppresses subsequent GPS following.
+      rethrow;
     }
   }
 
