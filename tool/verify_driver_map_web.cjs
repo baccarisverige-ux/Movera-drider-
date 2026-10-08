@@ -206,6 +206,18 @@ assert.ok(Math.abs(map.camera.center.x - 25) < 0.001,
 assert.ok(Math.abs(map.camera.center.y - 75) < 0.001,
   'Two-finger tap maintains midpoint even when the touches end separately');
 div.left = 0; div.top = 0;
+map.moveCamera({zoom: 16, center: {x:0, y:0}});
+clock += 400;
+div.fire('touchstart', [touch(100,200), touch(200,200)]);
+div.fire('touchmove', [touch(100,200), touch(300,200)]);
+const combinedScale = 2 ** (map.getZoom() - 16);
+assert.ok(Math.abs(map.camera.center.x +
+    (50 + (combinedScale - 1) * 50)) < 0.001,
+  'Simultaneous pan plus zoom uses previous pinch center, then translates');
+assert.ok(Math.abs(map.camera.center.y +
+    (combinedScale - 1) * 200) < 0.001,
+  'Combined pinch and pan retains Y anchor without drift');
+div.fire('touchend');
 map.moveCamera({center: {x:0, y:0}});
 const beforeDoubleTap = map.getZoom();
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
