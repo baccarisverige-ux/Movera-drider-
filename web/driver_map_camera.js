@@ -53,7 +53,8 @@
   }
   function install(map, div, id) {
     const state = {map, div, top: 0, bottom: 0, anchor: .5,
-      callbacks: new Set(), rendererCallbacks: new Set(), heading: 0, car: null, claim: false, anchorToken: 0};
+      callbacks: new Set(), rendererCallbacks: new Set(), heading: 0, car: null, claim: false, anchorToken: 0,
+      gesturesEnabled: true};
     const rendererListener = map.addListener?.('renderingtype_changed', () => {
       state.rendererCallbacks.forEach(callback => callback());
     });
@@ -89,7 +90,15 @@
     let touchReleased = false;
     let pointerOrigin = null;
     let pointerReleased = false;
+    state.setGesturesEnabled = enabled => {
+      state.gesturesEnabled = !!enabled;
+      if (!enabled) {
+        previous = null; pointerOrigin = null;
+        touchReleased = false; pointerReleased = false;
+      }
+    };
     const release = () => {
+      if (!state.gesturesEnabled) return;
       state.claim = false;
       state.anchorToken++;
       state.callbacks.forEach(callback => callback());
@@ -101,12 +110,12 @@
     // A tap (including marker selection) is not a map pan. Ignore pointer
     // events from touch here; the custom touch path below owns their geometry.
     div.addEventListener('pointerdown', event => {
-      if (event.pointerType === 'touch') return;
+      if (!state.gesturesEnabled || event.pointerType === 'touch') return;
       pointerOrigin = {x: event.clientX, y: event.clientY};
       pointerReleased = false;
     }, {capture: true});
     div.addEventListener('pointermove', event => {
-      if (!pointerOrigin || pointerReleased) return;
+      if (!state.gesturesEnabled || !pointerOrigin || pointerReleased) return;
       if (Math.hypot(event.clientX - pointerOrigin.x,
           event.clientY - pointerOrigin.y) >= 6) {
         pointerReleased = true;
@@ -121,6 +130,7 @@
     // Own touch geometry so zoom + rotate can happen in the same gesture.
     // Mouse/keyboard gestures stay with Google Maps.
     div.addEventListener('touchstart', event => {
+      if (!state.gesturesEnabled) return;
       event.preventDefault(); event.stopImmediatePropagation();
       if (!previous) {
         startedAt = performance.now(); maxTouches = 0;
@@ -131,6 +141,7 @@
       previous = {...touchPose(event.touches), count: event.touches.length};
     }, {capture: true, passive: false});
     div.addEventListener('touchmove', event => {
+      if (!state.gesturesEnabled) return;
       event.preventDefault(); event.stopImmediatePropagation();
       const next = {...touchPose(event.touches), count: event.touches.length};
       if (!previous || previous.count !== next.count) { previous = next; return; }
@@ -154,6 +165,7 @@
       previous = next;
     }, {capture: true, passive: false});
     const end = event => {
+      if (!state.gesturesEnabled) { previous = null; return; }
       event.preventDefault(); event.stopImmediatePropagation();
       if (event.touches.length) { previous = {...touchPose(event.touches), count: event.touches.length}; return; }
       if (event.type !== 'touchcancel' && previous &&
@@ -260,6 +272,9 @@
     configure(id, top, bottom, anchor) {
       const state = states.get(id); if (!state) return;
       Object.assign(state, {top, bottom, anchor});
+    },
+    gestures(id, enabled) {
+      states.get(id)?.setGesturesEnabled(enabled);
     },
     listen(id, callback) {
       const state = states.get(id); state?.callbacks.add(callback);
