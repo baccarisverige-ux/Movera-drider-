@@ -186,7 +186,17 @@ class _RideRequestsState extends State<RideRequests> {
   }
 
   void _closeRides() {
-    widget.onCloseRides?.call(_visibleOffers.isNotEmpty);
+    final onClose = widget.onCloseRides;
+    if (onClose != null) {
+      onClose(_visibleOffers.isNotEmpty);
+      return;
+    }
+    // Embedded Radar uses Home's callback. A standalone Radar route must
+    // still offer a functional Back action rather than trapping navigation.
+    final navigator = Navigator.maybeOf(context);
+    if (navigator?.canPop() ?? false) {
+      navigator!.pop();
+    }
   }
 
   _RadarOfferState _stateFor(String id) =>
