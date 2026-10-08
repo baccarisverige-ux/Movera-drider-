@@ -69,7 +69,9 @@ class ActiveRideController extends ChangeNotifier {
 
   /// Apply an authoritative projection, including skipped live stages.
   Future<bool> applyProjection(TripStatus status) async {
-    if (saving || _disposed) {
+    // Once a terminal result has committed, later duplicate or conflicting
+    // projections must not replay persistence or rewrite the final outcome.
+    if (saving || _disposed || terminal) {
       return false;
     }
     if (status.isTerminal) {
