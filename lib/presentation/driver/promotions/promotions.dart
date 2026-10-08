@@ -80,7 +80,8 @@ class _PromotionsState extends State<Promotions> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
@@ -99,12 +100,10 @@ class _PromotionsState extends State<Promotions> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Row(
-              children: [
-                _tabChip('Preview', 0),
-                const SizedBox(width: 8),
-                _tabChip('Saved', 1),
-              ],
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [_tabChip('Preview', 0), _tabChip('Saved', 1)],
             ),
           ),
           Expanded(
@@ -209,7 +208,10 @@ class _PromotionsState extends State<Promotions> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               TextButton(
                 onPressed: () {
@@ -230,7 +232,6 @@ class _PromotionsState extends State<Promotions> {
                   ),
                 ),
               ),
-              const Spacer(),
               TextButton(
                 onPressed: () {
                   setState(() {

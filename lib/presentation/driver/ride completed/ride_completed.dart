@@ -279,12 +279,15 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            record?.fare ?? 'Completed',
-            style: const TextStyle(
-              color: _green,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
+          Flexible(
+            child: Text(
+              record?.fare ?? 'Completed',
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                color: _green,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
