@@ -37,6 +37,11 @@ void main() {
     expect(find.byType(RideRequests), findsNothing);
     expect(find.byKey(const ValueKey('open-radar')), findsOneWidget);
     expect(tester.takeException(), isNull);
+    // External dispatch is owned by this test, not by RideRequests. Dispose
+    // its demo timers before the widget-test pending-timer invariant runs.
+    await tester.pumpWidget(const SizedBox.shrink());
+    dispatch.dispose();
+    await tester.pump();
   });
 
   testWidgets('embedded Radar Back still calls Home-owned callback', (tester) async {
@@ -58,5 +63,10 @@ void main() {
     expect(closeCalls, 1);
     expect(find.byType(RideRequests), findsOneWidget);
     expect(tester.takeException(), isNull);
+    // External dispatch is owned by this test, not by RideRequests. Dispose
+    // its demo timers before the widget-test pending-timer invariant runs.
+    await tester.pumpWidget(const SizedBox.shrink());
+    dispatch.dispose();
+    await tester.pump();
   });
 }
