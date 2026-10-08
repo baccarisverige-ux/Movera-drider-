@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -18,6 +19,15 @@ class RecordingMapPlatform extends HeadlessMapPlatform {
       throw StateError('SDK unavailable');
     }
     moves.add(update);
+  }
+}
+
+class _DelayedCameraAckPlatform extends RecordingMapPlatform {
+  final ack = Completer<void>();
+  @override
+  Future<void> moveCamera(CameraUpdate update, {required int mapId}) async {
+    moves.add(update);
+    await ack.future;
   }
 }
 
@@ -117,6 +127,51 @@ void main() {
     await port.overview(bounds, 80);
     expect(statuses.last, isNull);
     expect(platform.moves, isNotEmpty);
+    port.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('late SDK move cannot update marker after manual camera pan', (
+    tester,
+  ) async {
+    final original = GoogleMapsFlutterPlatform.instance;
+    final platform = _DelayedCameraAckPlatform();
+    GoogleMapsFlutterPlatform.instance = platform;
+    addTearDown(() => GoogleMapsFlutterPlatform.instance = original);
+    GoogleMapController? controller;
+    await tester.pumpWidget(MaterialApp(
+      home: GoogleMap(
+        initialCameraPosition: const CameraPosition(
+          target: LatLng(59, 18),
+          zoom: 16,
+        ),
+        onMapCreated: (value) => controller = value,
+      ),
+    ));
+    await tester.pump();
+    expect(controller, isNotNull);
+    final statuses = <String?>[];
+    final frames = <CameraPosition>[];
+    final port = GoogleDriverCameraPort(
+      controller!,
+      reducedMotion: true,
+      onStatus: statuses.add,
+      onFrame: frames.add,
+    );
+    final pending = port.animate(
+      const DriverCameraPose(GeoPoint(59.002, 18.003), 17, 25, 35),
+    );
+    await tester.pump();
+    expect(platform.moves, hasLength(1));
+    // The physical gesture happens before Maps resolves moveCamera().
+    port.interrupt();
+    platform.ack.complete();
+    await tester.pump();
+    await pending;
+    expect(frames, isEmpty,
+        reason: 'An obsolete SDK response cannot reposition the vehicle');
+    expect(statuses, isEmpty,
+        reason: 'An obsolete SDK response cannot clear a new camera error');
     port.dispose();
     await tester.pumpWidget(const SizedBox.shrink());
   });
