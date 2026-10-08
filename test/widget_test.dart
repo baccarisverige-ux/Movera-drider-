@@ -268,7 +268,8 @@ void main() {
       var latestPanel = tester.widget<SlidingUpPanel>(
         find.byType(SlidingUpPanel),
       );
-      expect((latestPanel.body! as AbsorbPointer).absorbing, isTrue);
+      expect((latestPanel.body! as AbsorbPointer).absorbing, isFalse,
+          reason: 'Map remains zoomable after interrupted sheet open/close/open');
       expect(
         find.byKey(const ValueKey<String>('home-sheet-today')).hitTestable(),
         findsOneWidget,
