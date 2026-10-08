@@ -51,7 +51,7 @@ jobs:
 
       - name: Frontend release evidence contracts
         run: |
-          python3 -m unittest discover -s tool/tests -p 'test_frontend_release.py' -v
+          python3 -m unittest discover -s tool/tests -p 'test_*.py' -v
           python3 tool/check_frontend_release.py docs/frontend-completion/09-release-candidate.json
 
       - name: Driver web camera gesture contracts
