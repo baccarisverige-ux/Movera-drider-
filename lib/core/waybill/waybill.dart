@@ -73,7 +73,8 @@ abstract interface class WaybillRepository {
 
   /// Move a secured next trip into the current slot.
   ///
-  /// Returns the promoted record, or null if nothing was queued.
+  /// Returns the promoted current record, or null if no trip is queued or
+  /// another trip is still active. Never replaces an active trip.
   WaybillRecord? promoteNextToCurrent();
 }
 
@@ -145,10 +146,13 @@ class InMemoryWaybillRepository implements WaybillRepository {
   @override
   WaybillRecord? promoteNextToCurrent() {
     final queued = next;
-    if (queued == null) { return null; }
-    _current.value = queued.copyWith(statusLabel: 'Current trip');
+    if (queued == null || current != null) {
+      return null;
+    }
+    final promoted = queued.copyWith(statusLabel: 'Current trip');
+    _current.value = promoted;
     _next.value = null;
-    return queued;
+    return promoted;
   }
 
   @override
