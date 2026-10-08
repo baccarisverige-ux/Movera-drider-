@@ -698,3 +698,43 @@ class _VehiclePhotoPage extends StatelessWidget {
                       children: [
                         const Text('•  ', style: TextStyle(color: _ink)),
                         Expanded(
+                          child: Text(
+                            check,
+                            style: const TextStyle(
+                              color: _ink,
+                              fontSize: 15,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: () => _take(context),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _ink,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Take photo',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
