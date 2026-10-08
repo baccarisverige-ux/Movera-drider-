@@ -87,6 +87,7 @@
       });
     };
     let previous, travel = 0, startedAt = 0, maxTouches = 0, lastTap = -Infinity;
+    let lastTapPoint = null;
     let touchReleased = false;
     let pointerOrigin = null;
     let pointerReleased = false;
@@ -108,6 +109,7 @@
       if (!enabled) {
         previous = null; pointerOrigin = null;
         touchReleased = false; pointerReleased = false;
+        lastTap = -Infinity; lastTapPoint = null;
       }
     };
     const release = () => {
@@ -207,16 +209,28 @@
           travel < 8) {
         if (maxTouches > 1) {
           releaseTouch();
-          lastTap = -Infinity;
+          lastTap = -Infinity; lastTapPoint = null;
           map.moveCamera({zoom: clamp(map.getZoom() - 1, 3, 21)});
         } else {
           const now = performance.now();
-          if (now - lastTap < 300) {
+          // Two independent taps anywhere on the map are not a double-tap
+          // zoom. Require both a short interval and nearby touch positions.
+          const nearby = lastTapPoint != null &&
+            Math.hypot(previous.x - lastTapPoint.x,
+              previous.y - lastTapPoint.y) <= 32;
+          if (now - lastTap < 300 && nearby) {
             releaseTouch();
             map.moveCamera({zoom: clamp(map.getZoom() + 1, 3, 21)});
-            lastTap = -Infinity;
-          } else lastTap = now;
+            lastTap = -Infinity; lastTapPoint = null;
+          } else {
+            lastTap = now;
+            lastTapPoint = {x: previous.x, y: previous.y};
+          }
         }
+      } else {
+        // A long press, drag, or cancelled touch cannot become the first half
+        // of a subsequent double-tap.
+        lastTap = -Infinity; lastTapPoint = null;
       }
       previous = null;
       touchReleased = false;
