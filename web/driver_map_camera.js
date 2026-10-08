@@ -237,7 +237,9 @@
         const vertical = next.y - previous.y;
         const tilting = Math.abs(vertical) > Math.abs(next.x - previous.x) &&
           Math.abs(twist) < 2 && Math.abs(zoomDelta) < .03;
-        zoomAt(zoomDelta, next.x, next.y,
+        // Zoom about the *previous* focal point; the midpoint translation
+        // below then carries that road point to the fingers' new position.
+        zoomAt(zoomDelta, previous.x, previous.y,
           supports3D() ? {
             heading: ((map.getHeading() || 0) - twist + 360) % 360,
             tilt: clamp((map.getTilt() || 0) - (tilting ? vertical * .3 : 0), 0, 60)
