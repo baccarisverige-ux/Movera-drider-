@@ -142,8 +142,10 @@ void main() {
     testWidgets(
       'scheduled cancellation stays reachable at 200 percent in $size',
       (tester) async {
-        await tester.binding.setSurfaceSize(size);
-        addTearDown(() => tester.binding.setSurfaceSize(null));
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = size;
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
         await tester.pumpWidget(
           MaterialApp(
             builder: (context, child) => MediaQuery(
