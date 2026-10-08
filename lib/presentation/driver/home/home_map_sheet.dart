@@ -391,6 +391,7 @@ extension _HomeMapSheet on _DriverHomeState {
     void _endDestinationMode() {
       if (!_destinationModeActive) { return; }
       _mapPreviews.cancel();
+      _camera.endPreview();
       _rebuild(() {
         _destinationModeActive = false;
         _destinationAddress = null;
@@ -1300,6 +1301,7 @@ extension _HomeMapSheet on _DriverHomeState {
       }
 
       _mapPreviews.cancel();
+      _camera.endPreview();
       _rebuild(() {
         showRideRequests = false;
         _isDirectOfferRoutePreview = false;
