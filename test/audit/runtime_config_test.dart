@@ -98,6 +98,22 @@ void main() {
     expect(a, isNot(b));
   });
 
+  test('same-tick acceptances never reuse a local trip ID', () {
+    final instant = DateTime.utc(2026, 10, 2, 10);
+    final ids = <String>{};
+    for (var i = 0; i < 100; i++) {
+      ids.add(tripOccurrenceId('nearby-1', now: instant));
+    }
+    expect(ids, hasLength(100));
+
+    final olderClock = instant.subtract(const Duration(seconds: 10));
+    final last = tripOccurrenceId('nearby-1', now: olderClock);
+    expect(ids.contains(last), isFalse);
+    final anotherOffer = tripOccurrenceId('airport-2', now: olderClock);
+    expect(anotherOffer, startsWith('airport-2-'));
+    expect(anotherOffer, isNot(last));
+  });
+
   test('every accept path uses the occurrence factory', () {
     for (final path in [
       'lib/presentation/driver/ride requests/ride_requests.dart',
