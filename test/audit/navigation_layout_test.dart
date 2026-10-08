@@ -47,6 +47,7 @@ void main() {
     'DocumentPreview': const DocumentPreview(title: 'Driver’s License'),
   };
   for (final size in [
+    const Size(320, 568),
     const Size(320, 700),
     const Size(375, 812),
     const Size(430, 932),
