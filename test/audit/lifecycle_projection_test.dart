@@ -26,15 +26,18 @@ void main() {
       ride.dispose();
     }
   });
-  test('terminal outcome cannot be rewritten by late or duplicate projection', () async {
-    final ride = ActiveRideController(tripId: 'terminal-locked');
+  test('duplicate terminal projection is ignored, authoritative correction is kept', () async {
+    final ride = ActiveRideController(tripId: 'terminal-correction');
     addTearDown(ride.dispose);
     expect(await ride.applyProjection(TripStatus.inTrip), isTrue);
+    expect(await ride.applyProjection(TripStatus.completed), isTrue);
+    expect(ride.terminalStatus, TripStatus.completed);
+    expect(await ride.applyProjection(TripStatus.completed), isFalse);
+    // A server-authoritative rider cancellation may correct tentative local
+    // completion without resurrecting the active ride.
     expect(await ride.applyProjection(TripStatus.cancelledByRider), isTrue);
     expect(ride.terminalStatus, TripStatus.cancelledByRider);
     expect(await ride.applyProjection(TripStatus.cancelledByRider), isFalse);
-    expect(await ride.applyProjection(TripStatus.completed), isFalse);
-    expect(await ride.applyProjection(TripStatus.noShow), isFalse);
     expect(await ride.applyProjection(TripStatus.inTrip), isFalse);
     expect(ride.terminalStatus, TripStatus.cancelledByRider);
     expect(ride.tripStatus, TripStatus.cancelledByRider);
