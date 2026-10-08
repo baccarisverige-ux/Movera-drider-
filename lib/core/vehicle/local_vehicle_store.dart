@@ -82,8 +82,9 @@ class LocalVehicleStore {
       for (final field in ['registrationPhoto', 'insurancePhoto']) {
         if (row[field] != null &&
             (row[field] is! String ||
-                base64Decode(row[field] as String).length > 2 * 1024 * 1024))
+                base64Decode(row[field] as String).length > 2 * 1024 * 1024)) {
           throw StateError('Invalid local photo');
+        }
       }
       return Map<String, dynamic>.from(row);
     }).toList();
