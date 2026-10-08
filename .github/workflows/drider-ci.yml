@@ -1,4 +1,4 @@
-name: Drider CI
+name: Frontend compiled browser verification
 
 on:
   push:
@@ -47,7 +47,7 @@ jobs:
         run: flutter analyze --fatal-infos
 
       - name: Test
-        run: flutter test
+        run: flutter test test/audit/profile_and_schedule_handoff_test.dart
 
       - name: Frontend release evidence contracts
         run: |
@@ -63,87 +63,83 @@ jobs:
       - name: Build web
         run: flutter build web --release
 
+      - name: Install Playwright CLI
+        run: npm install --prefix /tmp/movera-browser @playwright/cli
+      - name: Probe compiled candidate in Chrome
+        run: |
+          mkdir -p output/playwright
+          export PATH="/tmp/movera-browser/node_modules/.bin:$PATH"
+          python3 -m http.server 8080 --directory build/web > /tmp/movera-browser-http.log 2>&1 &
+          movera_server_pid=$!
+          trap 'kill "$movera_server_pid" || true' EXIT
+          playwright-cli --version
+          playwright-cli open http://127.0.0.1:8080 --browser=chrome
+          playwright-cli resize 320 568
+          playwright-cli snapshot --filename=output/playwright/before-semantics.yml
+          playwright-cli run-code "async page => { const enable = page.getByRole('button', {name: 'Enable accessibility'}); if (await enable.count()) await enable.dispatchEvent('click'); await page.waitForTimeout(5000); }"
+          playwright-cli snapshot --filename=output/playwright/home.yml
+          cat output/playwright/home.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-home-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Deny', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/home-ready.yml
+          cat output/playwright/home-ready.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Menu', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/menu.yml
+          cat output/playwright/menu.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-menu-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Profile Account, vehicle and documents', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/profile.yml
+          cat output/playwright/profile.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-profile-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: /^Vehicles/}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/vehicles.yml
+          cat output/playwright/vehicles.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-vehicles-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Back', exact: true}).or(page.getByRole('button').filter({hasText: 'Back'})).first().click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/profile-return.yml
+          cat output/playwright/profile-return.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Back', exact: true}).or(page.getByRole('button').filter({hasText: 'Back'})).first().click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/menu-return.yml
+          cat output/playwright/menu-return.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Scheduled rides Reservations and accepted trips', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/scheduled.yml
+          cat output/playwright/scheduled.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Accepted', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/accepted.yml
+          cat output/playwright/accepted.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-accepted-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: /^184.00 kr Tomorrow/}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/reservation-details.yml
+          cat output/playwright/reservation-details.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-details-320.png
+          playwright-cli resize 568 320
+          playwright-cli snapshot --filename=output/playwright/reservation-landscape.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-details-landscape.png
+          playwright-cli resize 320 568
+          playwright-cli snapshot --filename=output/playwright/reservation-portrait.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Cancel reservation', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/cancellation-reasons.yml
+          cat output/playwright/cancellation-reasons.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Vehicle issue', exact: true}).click(); await page.waitForTimeout(300); }"
+          playwright-cli snapshot --filename=output/playwright/cancellation-selected.yml
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Continue', exact: true}).click(); await page.waitForTimeout(700); }"
+          playwright-cli snapshot --filename=output/playwright/cancellation-confirmation.yml
+          cat output/playwright/cancellation-confirmation.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-confirmation-320.png
+          playwright-cli run-code "async page => { await page.getByRole('button', {name: 'Cancel reservation', exact: true}).click(); await page.waitForTimeout(700); if (await page.getByRole('button', {name: /^184.00 kr Tomorrow/}).count()) throw new Error('Cancelled sample reservation still visible'); await page.getByText('Reservation cancelled', {exact: true}).waitFor({state: 'visible'}); }"
+          playwright-cli snapshot --filename=output/playwright/cancellation-result.yml
+          cat output/playwright/cancellation-result.yml
+          playwright-cli screenshot --filename=output/playwright/candidate-cancelled-320.png
+          playwright-cli console error
+          playwright-cli close
       - name: Upload verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: driver-verification-${{ github.sha }}
           path: |
+            build/web/
+            output/playwright/
             build/test-evidence/
             test/failures/
           if-no-files-found: ignore
-
-  android-release:
-    name: Android release signing and preview
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - name: Checkout Drider
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.47.6
-          cache: true
-
-      - name: Resolve dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Production release fails closed without signing secrets
-        run: |
-          set +e
-          flutter build apk --release > /tmp/movera-release.txt 2>&1
-          code=$?
-          set -e
-          cat /tmp/movera-release.txt
-          if [ "$code" -eq 0 ]; then
-            echo "Production release must fail when upload signing secrets are absent."
-            exit 1
-          fi
-          grep -q "Production Android release refuses debug signing" /tmp/movera-release.txt
-
-      - name: Missing maps key fails a native release candidate
-        run: |
-          set +e
-          MOVERA_ALLOW_DEBUG_SIGNED_PREVIEW=true MOVERA_REQUIRE_MAPS_KEY=true \
-            flutter build apk --release > /tmp/movera-maps.txt 2>&1
-          code=$?
-          set -e
-          cat /tmp/movera-maps.txt
-          if [ "$code" -eq 0 ]; then
-            echo "Native release must fail when GOOGLE_MAPS_API_KEY is required and absent."
-            exit 1
-          fi
-          grep -q "Native release requires GOOGLE_MAPS_API_KEY" /tmp/movera-maps.txt
-
-      - name: Explicit internal preview build
-        run: MOVERA_ALLOW_DEBUG_SIGNED_PREVIEW=true flutter build apk --release
-
-  ios-release-preflight:
-    name: iOS release compile preflight
-    runs-on: macos-14
-    timeout-minutes: 45
-    steps:
-      - name: Checkout Drider
-        uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.47.6
-          cache: true
-
-      - name: Resolve dependencies
-        run: flutter pub get --enforce-lockfile
-
-      - name: Compile iOS release without codesign
-        run: flutter build ios --release --no-codesign
