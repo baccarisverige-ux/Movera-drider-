@@ -535,9 +535,17 @@ extension _AcceptRideTrip on _AcceptRideState {
       DriverLocation location, {
       bool forceRoute = false,
     }) async {
-      if(!location.point.latitude.isFinite || !location.point.longitude.isFinite || location.point.latitude.abs()>90 || location.point.longitude.abs()>180) { return; }
-      final next = location.point.toLatLng();
       if (!mounted) { return; }
+      if (!location.isDisplayableAt(DateTime.now())) {
+        // Keep the previous car position and route; do not draw a stale fix.
+        _navigation.keepLastKnown(status: 'Location updating…');
+        _rebuild(() {
+          _hasLiveLocation = false;
+          _locationStatus = 'Location updating…';
+        });
+        return;
+      }
+      final next = location.point.toLatLng();
 
       _lastGpsAppliedAt = DateTime.now();
       _lastLocation = location;
