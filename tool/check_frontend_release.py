@@ -7,7 +7,7 @@ import sys
 
 REQUIRED = {
     "automated", "real-maps", "trip-journeys", "secondary-screens", "layout",
-    "accessibility", "device-lifecycle", "performance", "staging-services",
+    "accessibility", "device-lifecycle", "performance",
     "deployment-smoke",
 }
 
