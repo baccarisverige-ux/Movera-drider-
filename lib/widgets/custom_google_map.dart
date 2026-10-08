@@ -86,8 +86,14 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
   final Map<int, Offset> _pointerOrigins = {};
   bool _gestureReported = false;
 
+  bool get _cameraGesturesEnabled =>
+      widget.scrollGesturesEnabled ||
+      widget.zoomGesturesEnabled ||
+      widget.rotateGesturesEnabled ||
+      widget.tiltGesturesEnabled;
+
   void _reportGesture() {
-    if (_gestureReported) {
+    if (!_cameraGesturesEnabled || _gestureReported) {
       return;
     }
     _gestureReported = true;
@@ -111,6 +117,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
         widget.cameraAnchor,
       );
       _updateWebVehicle(controller.mapId);
+      web.gestures(controller.mapId, _cameraGesturesEnabled);
     }
   }
 
@@ -216,6 +223,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
                 }
               });
               _updateWebVehicle(controller.mapId);
+              web.gestures(controller.mapId, _cameraGesturesEnabled);
               // Call the provided onMapCreated callback
               if (widget.onMapCreated != null) {
                 widget.onMapCreated!(controller);

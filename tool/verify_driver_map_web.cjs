@@ -117,6 +117,31 @@ div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 clock += 150;
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 assert.equal(map.getZoom(), beforeTap, 'Double tap zooms in');
+// A locked active-trip sheet must prevent custom web pan, pinch and zoom,
+// not merely disable native Google Maps gesture flags.
+api.gestures(7, false);
+const lockedZoom = map.getZoom();
+const lockedHeading = map.getHeading();
+const lockedCenter = JSON.stringify(map.getCenter());
+const lockedCallbacks = gestures;
+div.fire('pointerdown', [], mouse(100,100));
+div.fire('pointermove', [], mouse(160,140));
+div.fire('pointerup', [], mouse(160,140));
+div.fire('touchstart', [touch(100,100),touch(200,100)]);
+div.fire('touchmove', [touch(50,70),touch(260,160)]);
+div.fire('touchend');
+div.fire('wheel');
+assert.equal(map.getZoom(), lockedZoom, 'Locked map ignores two-finger zoom');
+assert.equal(map.getHeading(), lockedHeading, 'Locked map ignores rotation');
+assert.equal(JSON.stringify(map.getCenter()), lockedCenter,
+  'Locked map ignores pointer and touch pan');
+assert.equal(gestures, lockedCallbacks,
+  'Locked map cannot steal follow-camera ownership');
+api.gestures(7, true);
+div.fire('touchstart', [touch(100,100),touch(200,100)]);
+div.fire('touchmove', [touch(60,100),touch(240,100)]);
+assert.ok(map.getZoom() > lockedZoom, 'Re-enabled zoom gesture works');
+div.fire('touchend');
 api.configure(7, 100, 200, .72);
 map.moveCamera({center: {x:0,y:400}}); api.anchor(7);
 assert.equal(map.camera.center.y, 224, '72% screen anchor above overlays');
@@ -140,5 +165,5 @@ queueMicrotask(() => {
   assert.equal(map.getZoom(), 16);
   assert.equal(map.getHeading(), 12);
   assert.equal(map.getTilt(), 30);
-  console.log('PASS: vector palette, tap-safe release, drag, pan, pinch/twist, tilt, taps, anchor and vehicle overlay');
+  console.log('PASS: vector palette, tap-safe release, gesture lock, drag, pan, pinch/twist, tilt, taps, anchor and vehicle overlay');
 });
