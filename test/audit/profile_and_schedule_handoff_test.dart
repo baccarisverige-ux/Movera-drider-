@@ -138,7 +138,11 @@ void main() {
     expect(find.text('Gamla vägen, Stockholm'), findsNothing);
   });
 
-  for (final size in [const Size(320, 700), const Size(568, 320)]) {
+  for (final size in [
+    const Size(320, 568),
+    const Size(320, 700),
+    const Size(568, 320),
+  ]) {
     testWidgets(
       'scheduled cancellation stays reachable at 200 percent in $size',
       (tester) async {
