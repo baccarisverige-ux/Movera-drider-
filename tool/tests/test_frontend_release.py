@@ -19,6 +19,10 @@ def manifest(result="PASS"):
 
 
 class CandidateEvidenceTest(unittest.TestCase):
+    def test_frontend_gate_has_no_backend_requirement(self):
+        self.assertNotIn("staging-services", REQUIRED)
+        self.assertEqual(validate(manifest(), True), [])
+
     def test_complete_evidence(self):
         self.assertEqual(validate(manifest(), True), [])
 
