@@ -6,7 +6,7 @@ import 'package:movera/core/support/local_support_repository.dart';
 import 'package:movera/presentation/driver/support/support_inbox.dart';
 
 class _Support extends LocalSupportRepository {
-  _Support({this.messageCount = 500});
+  _Support({this.messageCount = 1000});
   final int messageCount;
   final List<Object> saved = [];
   Completer<void>? pending;
@@ -45,7 +45,7 @@ void main() {
     'long conversation opens at latest and builds visible rows only',
     (tester) async {
       await _open(tester, _Support());
-      expect(find.text('History 499').hitTestable(), findsOneWidget);
+      expect(find.text('History 999').hitTestable(), findsOneWidget);
       expect(find.text('History 0'), findsNothing);
       expect(find.textContaining('History ').evaluate().length, lessThan(30));
       expect(tester.takeException(), isNull);
