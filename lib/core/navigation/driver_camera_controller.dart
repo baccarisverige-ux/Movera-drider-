@@ -311,6 +311,14 @@ class DriverCameraController {
     _request(immediate: true);
   }
 
+  /// Dismiss an offer/destination preview without taking the map away from
+  /// a driver who has manually panned it since the preview began.
+  void endPreview() {
+    if (_mode == DriverCameraMode.overview) {
+      recenter();
+    }
+  }
+
   Future<void> preview(List<GeoPoint> points, {double padding = 80}) async {
     if (_disposed ||
         _suspended ||
