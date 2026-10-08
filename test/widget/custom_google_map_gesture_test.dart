@@ -3,10 +3,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:movera/widgets/custom_google_map.dart';
+import 'package:movera/core/navigation/map_double_tap_policy.dart';
 
 import '../../integration_test/headless_map_platform.dart';
 
 void main() {
+  test('tap proximity and time threshold reject stale/distant taps', () {
+    const at = Duration(seconds: 1);
+    const position = Offset(100, 200);
+    bool second(Duration next, Offset point) =>
+        MapDoubleTapPolicy.isSecondTap(
+          previousAt: at,
+          previousPosition: position,
+          currentAt: next,
+          currentPosition: point,
+        );
+    expect(second(const Duration(milliseconds: 1150), position), isTrue);
+    expect(second(const Duration(milliseconds: 1300), position), isTrue);
+    expect(second(const Duration(milliseconds: 1301), position), isFalse,
+        reason: 'Two taps more than 300 ms apart are unrelated');
+    expect(second(const Duration(milliseconds: 999), position), isFalse);
+    expect(second(const Duration(milliseconds: 1080), const Offset(200, 200)),
+        isFalse, reason: 'Taps at separate marker positions are unrelated');
+    expect(MapDoubleTapPolicy.isSecondTap(
+      previousAt: null, previousPosition: null,
+      currentAt: const Duration(milliseconds: 1200),
+      currentPosition: position,
+    ), isFalse);
+  });
+
   testWidgets('no native web zoom buttons while pinch and pan stay enabled',
       (tester) async {
     final original = GoogleMapsFlutterPlatform.instance;
@@ -125,9 +150,6 @@ void main() {
     await show(zoom: true);
     final center = tester.getCenter(find.byType(CustomGoogleMap));
     await tester.tapAt(center);
-    await tester.pump(const Duration(milliseconds: 340));
-    await tester.tapAt(center);
-    expect(claims, 0, reason: 'Taps outside double-tap window select markers');
     await tester.pump(const Duration(milliseconds: 80));
     await tester.tapAt(center + const Offset(120, 0));
     expect(claims, 0, reason: 'Distant taps do not claim map camera');
