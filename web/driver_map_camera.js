@@ -260,11 +260,16 @@
           const {styles, ...cloudOptions} = options;
           driverOptions = {...cloudOptions, mapId: configuredId,
             renderingType: sdk.RenderingType.VECTOR,
+            isFractionalZoomEnabled: true,
             headingInteractionEnabled: true, tiltInteractionEnabled: true};
         } else {
           // Explicit 2D preview preserves the approved inline palette. Styled
           // vector navigation stays gated until its cloud style is configured.
-          driverOptions = {...options, renderingType: sdk.RenderingType.RASTER};
+          // Google Maps raster tiles default to integer-only zoom. The
+          // custom pinch handler issues fractional steps, so enable smooth
+          // fractional zoom even without the configured vector Map ID.
+          driverOptions = {...options, renderingType: sdk.RenderingType.RASTER,
+            isFractionalZoomEnabled: true};
         }
       }
       const map = Reflect.construct(target, [div, driverOptions]);
