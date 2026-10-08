@@ -179,10 +179,12 @@ div.fire('touchend');
 assert.ok(map.getZoom() < beforeMicroShrink &&
   map.getZoom() > beforeMicroShrink - 0.2,
   'Small pinch-out remains fractional instead of doubling zoom-out');
+const beforeDoubleTap = map.getZoom();
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 clock += 150;
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
-assert.equal(map.getZoom(), beforeTap, 'Double tap zooms in');
+assert.equal(map.getZoom(), beforeDoubleTap + 1,
+  'Double tap zooms in exactly one level from current fractional zoom');
 // Fast taps at different positions should select different map items, not zoom.
 clock += 400;
 const separateZoom = map.getZoom();
