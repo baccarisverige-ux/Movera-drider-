@@ -268,7 +268,8 @@ void main() {
       var latestPanel = tester.widget<SlidingUpPanel>(
         find.byType(SlidingUpPanel),
       );
-      expect((latestPanel.body! as AbsorbPointer).absorbing, isTrue);
+      expect((latestPanel.body! as AbsorbPointer).absorbing, isFalse,
+          reason: 'Map remains zoomable after interrupted sheet open/close/open');
       expect(
         find.byKey(const ValueKey<String>('home-sheet-today')).hitTestable(),
         findsOneWidget,
@@ -411,7 +412,7 @@ void main() {
     _expectNoException(tester);
   });
 
-  testWidgets('Sheet open and close correctly blocks and releases map input', (
+  testWidgets('Home map remains zoomable above a settled sheet', (
     WidgetTester tester,
   ) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -425,7 +426,20 @@ void main() {
 
     await _openPanel(tester);
     panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
-    expect((panel.body! as AbsorbPointer).absorbing, isTrue);
+    expect((panel.body! as AbsorbPointer).absorbing, isFalse,
+        reason: 'A settled sheet must not block zoom on exposed map');
+    final drag = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey<String>('home-sheet-today'))),
+    );
+    await tester.pump();
+    panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect((panel.body! as AbsorbPointer).absorbing, isTrue,
+        reason: 'An active sheet pointer cannot simultaneously pan the map');
+    await drag.up();
+    await tester.pump();
+    panel = tester.widget<SlidingUpPanel>(find.byType(SlidingUpPanel));
+    expect((panel.body! as AbsorbPointer).absorbing, isFalse,
+        reason: 'Releasing a sheet touch restores map zoom even while open');
     _expectNoException(tester);
 
     await _closePanel(tester);

@@ -803,7 +803,9 @@ class _DriverHomeState extends State<DriverHome>
                   _HomeMapSheet(this)._closeHomeFloatingPopupsForSheet();
                 }
                 final nextPanelOpen = pos > 0.3;
-                final nextBlockMap = _sheetPointerActive || pos > 0.001;
+                // A settled sheet covers only its own region. The exposed map
+                // remains pinchable; block input only during a sheet drag.
+                final nextBlockMap = _sheetPointerActive;
                 if (isPanelOpen != nextPanelOpen ||
                     _blockMapGestures != nextBlockMap) {
                   setState(() {
@@ -817,7 +819,7 @@ class _DriverHomeState extends State<DriverHome>
                 _mainPanelPosition = 1;
                 _panelSlidePosition.value = 1;
                 _HomeMapSheet(this)._closeHomeFloatingPopupsForSheet();
-                _HomeMapSheet(this)._setMapGesturesBlocked(true);
+                _HomeMapSheet(this)._setMapGesturesBlocked(_sheetPointerActive);
               },
               onPanelClosed: () {
                 _homeSheetPositionGuardTimer?.cancel();
