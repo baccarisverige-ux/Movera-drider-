@@ -251,7 +251,8 @@ extension _HomeMapSheet on _DriverHomeState {
         if (!isCurrent()) return;
       }
 
-      if (!isCurrent()) return;
+      // The route request crossed an async gap: prove context is still mounted.
+      if (!mounted || !isCurrent()) return;
 
       final media = MediaQuery.of(context);
       final insets = MapOverlayInsets.forHome(
