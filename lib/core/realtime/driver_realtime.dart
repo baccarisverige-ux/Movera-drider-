@@ -183,8 +183,32 @@ class MemoryDriverRealtime implements DriverRealtime {
   @override
   Future<void> reconnectAndResync(String tripId) async {
     if(_disposed || _tripId!=tripId) { return; }
-    final last = _projectionsByTrip[tripId] ?? _lastByTrip[tripId];
-    if (last != null) { _controller.add(last); }
+    final projection = _projectionsByTrip[tripId];
+    final last = projection ?? _lastByTrip[tripId];
+    if (last == null) return;
+
+    // A cached nonterminal projection may predate subsequent location events.
+    // Replaying its old sequence would be dropped by the receiving sequence
+    // gate, leaving the driver's ride stage unrestored. Re-issue the current
+    // projection as a new mock event while preserving its lifecycle status.
+    // Terminal snapshots retain their original identity and cannot be revived.
+    final newest = _lastByTrip[tripId];
+    if (projection != null &&
+        projection.status?.isTerminal != true &&
+        projection.kind != DriverRealtimeKind.riderCancelled &&
+        newest != null &&
+        newest.sequence > projection.sequence) {
+      emit(
+        tripId: tripId,
+        kind: projection.kind,
+        status: projection.status,
+        latitude: projection.latitude,
+        longitude: projection.longitude,
+        message: projection.message,
+      );
+      return;
+    }
+    _controller.add(last);
   }
 
   @override
