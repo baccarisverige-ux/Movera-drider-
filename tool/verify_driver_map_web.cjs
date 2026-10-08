@@ -142,6 +142,18 @@ div.fire('touchstart', [touch(100,100),touch(200,100)]);
 div.fire('touchmove', [touch(60,100),touch(240,100)]);
 assert.ok(map.getZoom() > lockedZoom, 'Re-enabled zoom gesture works');
 div.fire('touchend');
+const beforeCollapsedPinch = map.getZoom();
+div.fire('touchstart', [touch(100,100), touch(200,100)]);
+div.fire('touchmove', [touch(100,100), touch(100,100)]);
+assert.equal(map.getZoom(), beforeCollapsedPinch,
+  'Overlapping touch positions must not snap zoom to minimum');
+div.fire('touchend');
+const beforeSparsePinch = map.getZoom();
+div.fire('touchstart', [touch(100,100), touch(200,100)]);
+div.fire('touchmove', [touch(100,100), touch(5000,100)]);
+assert.ok(map.getZoom() - beforeSparsePinch <= 0.400001,
+  'Sparse pinch events cannot jump multiple zoom levels');
+div.fire('touchend');
 api.configure(7, 100, 200, .72);
 map.moveCamera({center: {x:0,y:400}}); api.anchor(7);
 assert.equal(map.camera.center.y, 224, '72% screen anchor above overlays');
