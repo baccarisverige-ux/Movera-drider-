@@ -140,6 +140,25 @@ div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 clock += 150;
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 assert.equal(map.getZoom(), beforeTap, 'Double tap zooms in');
+// Fast taps at different positions should select different map items, not zoom.
+clock += 400;
+const separateZoom = map.getZoom();
+div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
+clock += 100;
+div.fire('touchstart', [touch(550,550)]); div.fire('touchend');
+assert.equal(map.getZoom(), separateZoom,
+  'Distant taps inside 300ms must not zoom unexpectedly');
+clock += 100;
+div.fire('touchstart', [touch(552,551)]); div.fire('touchend');
+assert.equal(map.getZoom(), separateZoom + 1,
+  'A nearby second tap still zooms in');
+clock += 400;
+const canceledZoom = map.getZoom();
+div.fire('touchstart', [touch(200,200)]); div.fire('touchcancel');
+clock += 100;
+div.fire('touchstart', [touch(200,200)]); div.fire('touchend');
+assert.equal(map.getZoom(), canceledZoom,
+  'Canceled touch must not become a double-tap first strike');
 // A locked active-trip sheet must prevent custom web pan, pinch and zoom,
 // not merely disable native Google Maps gesture flags.
 api.gestures(7, false);
