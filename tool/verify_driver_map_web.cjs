@@ -158,10 +158,33 @@ const beforeTap = map.getZoom();
 div.fire('touchstart', [touch(100,100),touch(200,100)]);
 div.fire('touchend', [touch(100,100)]); div.fire('touchend');
 assert.equal(map.getZoom(), beforeTap - 1, 'Two-finger tap zooms out');
+// A small *actual* pinch must not also apply the unrelated two-finger-tap
+// zoom-out step when the fingers lift. Before the fix a 3px pinch produced
+// +0.04 zoom and then -1.00 zoom on release.
+clock += 400;
+const beforeMicroPinch = map.getZoom();
+div.fire('touchstart', [touch(100,100), touch(200,100)]);
+div.fire('touchmove', [touch(100,100), touch(203,100)]);
+div.fire('touchend', [touch(100,100)]);
+div.fire('touchend');
+assert.ok(map.getZoom() > beforeMicroPinch &&
+  map.getZoom() < beforeMicroPinch + 0.2,
+  'Small pinch-in cannot reverse into full zoom-out on finger release');
+clock += 400;
+const beforeMicroShrink = map.getZoom();
+div.fire('touchstart', [touch(100,100), touch(200,100)]);
+div.fire('touchmove', [touch(100,100), touch(197,100)]);
+div.fire('touchend', [touch(100,100)]);
+div.fire('touchend');
+assert.ok(map.getZoom() < beforeMicroShrink &&
+  map.getZoom() > beforeMicroShrink - 0.2,
+  'Small pinch-out remains fractional instead of doubling zoom-out');
+const beforeDoubleTap = map.getZoom();
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
 clock += 150;
 div.fire('touchstart', [touch(100,100)]); div.fire('touchend');
-assert.equal(map.getZoom(), beforeTap, 'Double tap zooms in');
+assert.equal(map.getZoom(), beforeDoubleTap + 1,
+  'Double tap zooms in exactly one level from current fractional zoom');
 // Fast taps at different positions should select different map items, not zoom.
 clock += 400;
 const separateZoom = map.getZoom();
