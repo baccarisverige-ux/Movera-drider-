@@ -65,8 +65,9 @@ Future<void> _mount(
   await tester.pumpWidget(
     ScreenUtilInit(
       designSize: const Size(375, 812),
-      builder: (_, __) =>
-          MaterialApp(home: AcceptRide(locationRepository: location)),
+      builder: (_, __) => MaterialApp(
+        home: AcceptRide(locationRepository: location, routeRepository: routes),
+      ),
     ),
   );
   await _frames(tester);
