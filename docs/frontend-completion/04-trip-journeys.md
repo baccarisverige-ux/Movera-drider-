@@ -34,7 +34,7 @@ Commands: `flutter test test/audit/location_resume_failure_test.dart`, `flutter 
 
 ## Acceptance, waiting and ownership corrections
 
-Home and full Radar now convert thrown dispatch failures into a retryable UI outcome. Full Radar renders an inline error because it also appears as a sheet without its own Scaffold. Home keeps the winning claim locked until the active ride opens; removing another offer does not clear the matching owner or cancel the winning handoff. Demo dispatch invalidates pending claims across reset and disposal, preventing a previous session from consuming a freshly restored offer.
+Home and full Radar now convert thrown dispatch failures into a retryable UI outcome. Full Radar renders an inline error because it also appears as a sheet without its own Scaffold. Home keeps the winning claim locked until the active ride opens; removing another offer does not clear the matching owner or cancel the winning handoff. Pending and won Home claims survive pause; accepted-trip navigation waits for foreground/resume. Demo dispatch invalidates pending claims across reset and disposal, preventing a previous session from consuming a freshly restored offer.
 
 Waiting uses an elapsed-time anchor instead of counting timer callbacks. It catches up after background/resume and delayed callbacks, retains accrued seconds across a backwards clock adjustment, starts restored paid-stop waits, and resets the anchor for each new stop. Authoritative projections start side effects from the current stage rather than the original stage passed to the widget.
 
@@ -43,7 +43,7 @@ The active-ride controller rejects disposed owners and fences delayed restore su
 | Controlled verification | Coverage |
 | --- | --- |
 | `acceptance_session_races_test.dart` | Reset/dispose during claim, simultaneous claims, thrown transport failure and retry, expiry/unavailability, duplicate tap guard |
-| `home_claim_ownership_test.dart` | Thrown error retry, unrelated offer removal during claim, winning claim locked through dispatch removal and navigation |
+| `home_claim_ownership_test.dart` | Thrown error retry, unrelated offer removal during claim, winning claim locked through dispatch removal and navigation, pending/won claim across pause/resume |
 | `active_ride_restore_races_test.dart` | Late restore after transition/completion, stale/current read errors, disposed commands |
 | `wait_elapsed_lifecycle_test.dart` | Pickup and paid-stop waiting across lock/resume, delayed callbacks, backwards clock, repeated resume |
 | `trip_journey_boundaries_test.dart` | Delayed duplicate onboard command, failed completion retry, authoritative arrival wait, two stops with independent paid waits |

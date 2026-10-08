@@ -128,6 +128,42 @@ void main() {
   });
   tearDown(() => DriverRuntimeConfig.current = previous);
 
+  for (final wonBeforePause in [false, true]) {
+    testWidgets(
+      'Home preserves ${wonBeforePause ? 'won' : 'pending'} claim across pause',
+      (tester) async {
+        final dispatch = _Dispatch();
+        await _mount(tester, dispatch);
+        await _match(tester, 'first');
+        if (wonBeforePause) {
+          dispatch.claims.single.complete(ClaimResult.success(_offer('first')));
+          await tester.pump();
+        }
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await _frames(tester, 2);
+        if (!wonBeforePause) {
+          dispatch.claims.single.complete(ClaimResult.success(_offer('first')));
+          await tester.pump();
+        }
+        await _frames(tester, 20);
+        expect(
+          find.byType(AcceptRide),
+          findsNothing,
+          reason: 'Opening an accepted trip waits until Home is foreground.',
+        );
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await _frames(tester, 30);
+        expect(find.byType(AcceptRide), findsOneWidget);
+        expect(dispatch.claims, hasLength(1));
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await dispatch.updates.close();
+      },
+    );
+  }
+
   testWidgets('Home recovers a thrown claim error and allows retry', (
     tester,
   ) async {
