@@ -64,6 +64,65 @@ void main() {
     expect(session.status, DriverOnlineStatus.online);
   });
 
+  test('duplicate trip end cannot reactivate a deliberately offline driver', () async {
+    final store = MemoryDriverSessionRepository();
+    final session = DriverSessionController(repository: store);
+    session.setOnline(true);
+    session.beginTrip('trip-a');
+    session.setOnline(false);
+    session.endTrip();
+    expect(session.status, DriverOnlineStatus.offline);
+    session.endTrip(); // A duplicate terminal event must remain a no-op.
+    expect(session.status, DriverOnlineStatus.offline);
+    expect(session.activeTripId, isNull);
+    await Future<void>.delayed(Duration.zero);
+    expect(await store.readOnline(), isFalse);
+    session.dispose();
+  });
+
+  test('stale trip end cannot bypass suspension or going-online gate', () {
+    final session = DriverSessionController();
+    session.suspend();
+    session.endTrip();
+    expect(session.status, DriverOnlineStatus.suspended);
+    session.reset();
+    session.beginGoingOnline();
+    session.endTrip();
+    expect(session.status, DriverOnlineStatus.goingOnline);
+    expect(session.availableForOffers, isFalse);
+    session.dispose();
+  });
+
+  test('late terminal event after explicit offline request stays offline', () {
+    final session = DriverSessionController()..setOnline(true);
+    session.beginTrip('trip-a');
+    session.endTrip();
+    session.setOnline(false);
+    session.stayOnlineAfterTrip();
+    expect(session.status, DriverOnlineStatus.offline);
+    expect(session.availableForOffers, isFalse);
+    session.dispose();
+  });
+
+  test('duplicate and foreign trip starts preserve active trip ownership', () {
+    final session = DriverSessionController()..setOnline(true);
+    session.beginTrip('trip-a');
+    session.setOnline(false); // Remember the offline intent while occupied.
+    session.beginTrip('trip-a'); // Same trip remounted after a route rebuild.
+    session.beginTrip('trip-b'); // Stale competing route may not steal it.
+    session.beginTrip(' ');
+    expect(session.activeTripId, 'trip-a');
+    expect(session.status, DriverOnlineStatus.onTrip);
+    session.endTrip();
+    expect(session.status, DriverOnlineStatus.offline);
+    expect(session.activeTripId, isNull);
+    session.beginTrip('trip-b'); // Legitimate next trip after the first ends.
+    expect(session.activeTripId, 'trip-b');
+    session.endTrip();
+    expect(session.status, DriverOnlineStatus.offline);
+    session.dispose();
+  });
+
   test('demo dispatch reset restores the first-launch offers', () async {
     final dispatch = DemoDispatchRepository(
       claimDelay: Duration.zero,
