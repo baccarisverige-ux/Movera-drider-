@@ -101,6 +101,7 @@ extension _HomeOfferRadar on _DriverHomeState {
       if (!mounted) { return; }
       _rebuild(() {
         _mapPreviews.cancel();
+        _camera.endPreview();
         _isDirectOfferRoutePreview = false;
         _directOfferRouteMarkers = {};
         _directOfferRoutePolylines = {};
@@ -547,6 +548,7 @@ extension _HomeOfferRadar on _DriverHomeState {
           _pendingRadarHomeOffers.clear();
           _hasRideOffers = false;
           _mapPreviews.cancel();
+        _camera.endPreview();
         _isDirectOfferRoutePreview = false;
           _directOfferRouteMarkers = {};
           _directOfferRoutePolylines = {};
@@ -596,6 +598,7 @@ extension _HomeOfferRadar on _DriverHomeState {
           _pendingRadarHomeOffers.clear();
           _hasRideOffers = false;
           _mapPreviews.cancel();
+        _camera.endPreview();
         _isDirectOfferRoutePreview = false;
           _directOfferRouteMarkers = {};
           _directOfferRoutePolylines = {};
