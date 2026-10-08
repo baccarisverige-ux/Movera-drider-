@@ -90,19 +90,6 @@
     let touchReleased = false;
     let pointerOrigin = null;
     let pointerReleased = false;
-    let controlPointerReleased = false;
-    // Google Maps' own +/- camera buttons produce SDK zoom events, not a
-    // drag/wheel. Their native control clicks must still switch Movera from
-    // GPS-follow to manually owned zoom, or the next fix undoes the change.
-    const nativeCameraControl = target => {
-      if (!target?.closest) return false;
-      if (target.closest('.gm-bundled-control, .gm-control-active')) return true;
-      const button = target.closest('button[aria-label], button[title], [role="button"][aria-label]');
-      if (!button) return false;
-      const name = (button.getAttribute?.('aria-label') ||
-          button.getAttribute?.('title') || '').toLowerCase();
-      return /zoom|zoom[a-z]*|förstora|förminska|agrandir|dézoomer/.test(name);
-    };
     state.setGesturesEnabled = enabled => {
       state.gesturesEnabled = !!enabled;
       if (!enabled) {
@@ -123,24 +110,9 @@
     // A tap (including marker selection) is not a map pan. Ignore pointer
     // events from touch here; the custom touch path below owns their geometry.
     div.addEventListener('pointerdown', event => {
-      controlPointerReleased = false;
-      if (!state.gesturesEnabled) return;
-      if (nativeCameraControl(event.target)) {
-        release();
-        controlPointerReleased = true;
-        pointerOrigin = null;
-        return;
-      }
-      if (event.pointerType === 'touch') return;
+      if (!state.gesturesEnabled || event.pointerType === 'touch') return;
       pointerOrigin = {x: event.clientX, y: event.clientY};
       pointerReleased = false;
-    }, {capture: true});
-    // Keyboard activation has no pointerdown. Do not double-report pointer
-    // clicks and do not treat ordinary marker/map taps as camera zoom.
-    div.addEventListener('click', event => {
-      if (state.gesturesEnabled && nativeCameraControl(event.target) &&
-          !controlPointerReleased) release();
-      controlPointerReleased = false;
     }, {capture: true});
     div.addEventListener('pointermove', event => {
       if (!state.gesturesEnabled || !pointerOrigin || pointerReleased) return;
