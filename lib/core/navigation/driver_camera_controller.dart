@@ -314,9 +314,19 @@ class DriverCameraController {
     }
     _invalidate();
     _mode = DriverCameraMode.overview;
+    final port = _port!;
+    final epoch = _epoch;
     try {
-      await _port!.overview(points, padding);
-    } catch (_) {}
+      await port.overview(points, padding);
+    } catch (_) {
+      // A failed camera fit must not strand the driver in Preview forever.
+      // Respect any later manual pan, map replacement or lifecycle pause.
+      if (!_disposed && !_suspended && epoch == _epoch &&
+          identical(port, _port) && _mode == DriverCameraMode.overview) {
+        _mode = DriverCameraMode.following;
+        _request(immediate: true);
+      }
+    }
   }
 
   void suspend() {
