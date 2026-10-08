@@ -22,7 +22,8 @@ class AcceptanceRate extends StatelessWidget {
         foregroundColor: AppColor.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () {
             Navigator.pop(context);
           },
@@ -68,8 +69,10 @@ class AcceptanceRate extends StatelessWidget {
             fontWeight: fwSemiBold,
           ),
           4.height,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 4,
             children: [
               Image.asset(
                 AppAssets.triangle,
@@ -207,8 +210,7 @@ class AcceptanceRate extends StatelessWidget {
             iconAsset: AppAssets.calculator,
             title: 'How your acceptance rate is calculated',
             child: TextWidget(
-              text:
-                  'Your acceptance rate is calculated based on the number of trip requests you accept compared to the total trip requests you receive. We use your last 100 trip requests to determine this percentage.',
+              text: 'Your acceptance rate is calculated based on the number of trip requests you accept compared to the total trip requests you receive. We use your last 100 trip requests to determine this percentage.',
               color: AppColor.subtitle,
               fontSize: 14,
               fontWeight: fwNormal,
@@ -218,8 +220,7 @@ class AcceptanceRate extends StatelessWidget {
             iconAsset: AppAssets.infoOutl,
             title: 'Why acceptance rate matters',
             child: TextWidget(
-              text:
-                  'A low acceptance rate reduces your chances of receiving ride requests and may affect your standing on the platform. Maintaining a high acceptance rate helps you get more trips and ensures a reliable experience for riders.',
+              text: 'A low acceptance rate reduces your chances of receiving ride requests and may affect your standing on the platform. Maintaining a high acceptance rate helps you get more trips and ensures a reliable experience for riders.',
               color: AppColor.subtitle,
               fontSize: 14,
               fontWeight: fwNormal,

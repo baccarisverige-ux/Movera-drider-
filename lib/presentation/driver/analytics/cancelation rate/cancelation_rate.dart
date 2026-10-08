@@ -22,7 +22,8 @@ class CancelationRate extends StatelessWidget {
         foregroundColor: AppColor.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () {
             Navigator.pop(context);
           },
@@ -68,8 +69,10 @@ class CancelationRate extends StatelessWidget {
             fontWeight: fwSemiBold,
           ),
           4.height,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 4,
             children: [
               Image.asset(
                 AppAssets.triangle,
@@ -207,8 +210,7 @@ class CancelationRate extends StatelessWidget {
             iconAsset: AppAssets.calculator,
             title: 'How your cancelation is calculated',
             child: TextWidget(
-              text:
-                  'Your cancellation rate is calculated based on the number of trips you cancel compared to the total trips you confirm. We use your last 100 confirmed trip requests to determine this percentage.',
+              text: 'Your cancellation rate is calculated based on the number of trips you cancel compared to the total trips you confirm. We use your last 100 confirmed trip requests to determine this percentage.',
               color: AppColor.subtitle,
               fontSize: 14,
               fontWeight: fwNormal,
@@ -219,8 +221,7 @@ class CancelationRate extends StatelessWidget {
             iconAsset: AppAssets.infoOutl,
             title: 'Why cancelation rate matters',
             child: TextWidget(
-              text:
-                  'A high cancellation rate affects the reliability of our service and can impact your ability to get ride requests. Maintaining a low cancellation rate helps ensure better service for all users.',
+              text: 'A high cancellation rate affects the reliability of our service and can impact your ability to get ride requests. Maintaining a low cancellation rate helps ensure better service for all users.',
               color: AppColor.subtitle,
               fontSize: 14,
               fontWeight: fwNormal,

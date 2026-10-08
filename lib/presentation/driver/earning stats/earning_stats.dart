@@ -29,7 +29,8 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
         foregroundColor: AppColor.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           icon: Icon(
             Icons.arrow_back_ios,
             color: AppColor.title,
@@ -53,7 +54,9 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
               child: SizedBox(
-                height: ResSize.h * 46,
+                height:
+                    MediaQuery.textScalerOf(context).scale(ResSize.setSp(16)) +
+                    24,
                 child: ListView.builder(
                   physics: BouncingScrollPhysics(),
                   shrinkWrap: true,
@@ -72,7 +75,10 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
                           });
                         },
                         child: Container(
-                          height: ResSize.h * 46,
+                          height:
+                              MediaQuery.textScalerOf(context)
+                                  .scale(ResSize.setSp(16)) +
+                              24,
                           padding: EdgeInsets.symmetric(
                             horizontal: ResSize.w * 16,
                           ),
@@ -186,7 +192,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
                       color: AppColor.title,
                     ),
                     4.height,
-                    Row(
+                    Wrap(
                       children: [
                         TextWidget(
                           text: "Movera demo",
