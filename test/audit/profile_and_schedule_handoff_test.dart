@@ -169,6 +169,7 @@ void main() {
         expect(find.text('184.00 kr').hitTestable(), findsOneWidget);
         await tester.tap(find.text('184.00 kr'));
         await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
         await tester.tap(
           find.widgetWithText(OutlinedButton, 'Cancel reservation'),
         );

@@ -752,7 +752,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: SizedBox(
-        height: 176,
+        height: 176 * MediaQuery.textScalerOf(context).scale(11) / 11,
         width: double.infinity,
         child: Stack(
           fit: StackFit.expand,
@@ -760,6 +760,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
             CustomPaint(painter: _RoutePreviewPainter(accepted: ride.accepted)),
             Positioned(
               left: 14,
+              right: 66,
               top: 14,
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -782,12 +783,14 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.route_rounded, size: 16, color: _green),
                     SizedBox(width: 6),
-                    Text(
-                      'Illustrative route — sample data',
-                      style: TextStyle(
-                        color: _ink,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
+                    Expanded(
+                      child: Text(
+                        'Illustrative route — sample data',
+                        style: TextStyle(
+                          color: _ink,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
