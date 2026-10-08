@@ -514,13 +514,19 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
   Future<void> _removeOwned() async {
     final remove = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            18,
+            20,
+            20 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -543,9 +549,12 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
                 ),
               ),
               const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
+              ConstrainedBox(
+                // Allow translated and enlarged labels to wrap.
+                constraints: const BoxConstraints(
+                  minWidth: double.infinity,
+                  minHeight: 50,
+                ),
                 child: FilledButton(
                   onPressed: () => Navigator.pop(context, false),
                   style: FilledButton.styleFrom(
@@ -561,9 +570,12 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
                 ),
               ),
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
+              ConstrainedBox(
+                // Allow translated and enlarged labels to wrap.
+                constraints: const BoxConstraints(
+                  minWidth: double.infinity,
+                  minHeight: 50,
+                ),
                 child: FilledButton(
                   onPressed: () => Navigator.pop(context, true),
                   style: FilledButton.styleFrom(
@@ -705,9 +717,11 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
                 ),
               ),
           const SizedBox(height: 22),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
+          ConstrainedBox(
+            constraints: const BoxConstraints(
+              minWidth: double.infinity,
+              minHeight: 50,
+            ),
             child: TextButton(
               onPressed: _canEdit ? _confirmRemove : null,
               style: TextButton.styleFrom(
