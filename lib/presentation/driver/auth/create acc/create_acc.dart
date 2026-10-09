@@ -163,11 +163,12 @@ class _DriverCreateAccountState extends State<DriverCreateAccount> {
           ],
         ),
       ),
-      bottomNavigationBar: SizedBox(
-        height: ResSize.h * 80,
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.symmetric(vertical: 12),
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               CustomButton(
                 centerContent: "Continue",

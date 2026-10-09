@@ -28,7 +28,7 @@ class DriverPhoneVerification extends StatelessWidget {
       ),
     );
     return Scaffold(
-      body: Padding(
+      body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,7 +36,8 @@ class DriverPhoneVerification extends StatelessWidget {
             56.height,
             Transform.translate(
               offset: Offset(ResSize.w * -10, 0),
-              child: IconButton(tooltip: 'Back', 
+              child: IconButton(
+                tooltip: 'Back',
                 onPressed: () {
                   popOwned(context);
                 },
@@ -112,8 +113,9 @@ class DriverPhoneVerification extends StatelessWidget {
                     ),
                   ),
                   14.height,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       TextWidget(
                         text: "Did you don’t get code?",
@@ -139,17 +141,22 @@ class DriverPhoneVerification extends StatelessWidget {
         ),
       ),
 
-      bottomNavigationBar: SizedBox(
-        height: ResSize.h * 80,
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.symmetric(vertical: 12),
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               CustomButton(
                 centerContent: "Continue",
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Verification is unavailable in this demo.')),
+                    const SnackBar(
+                      content: Text(
+                        'Verification is unavailable in this demo.',
+                      ),
+                    ),
                   );
                 },
               ),

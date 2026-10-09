@@ -1,4 +1,4 @@
-import 'dart:ui' show SemanticsFlag;
+import 'dart:ui' show CheckedState;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -89,19 +89,19 @@ void main() {
       );
       final checkbox = find.bySemanticsLabel('Accept terms and privacy policy');
       expect(
-        tester.getSemantics(checkbox).hasFlag(SemanticsFlag.hasCheckedState),
-        isTrue,
+        tester.getSemantics(checkbox).flagsCollection.isChecked,
+        isNot(CheckedState.none),
       );
       expect(
-        tester.getSemantics(checkbox).hasFlag(SemanticsFlag.isChecked),
-        isFalse,
+        tester.getSemantics(checkbox).flagsCollection.isChecked,
+        CheckedState.isFalse,
       );
       await tester.tap(find.byType(Checkbox));
       await tester.pumpAndSettle();
       expect(checked, isTrue);
       expect(
-        tester.getSemantics(checkbox).hasFlag(SemanticsFlag.isChecked),
-        isTrue,
+        tester.getSemantics(checkbox).flagsCollection.isChecked,
+        CheckedState.isTrue,
       );
       expect(tester.takeException(), isNull);
     },

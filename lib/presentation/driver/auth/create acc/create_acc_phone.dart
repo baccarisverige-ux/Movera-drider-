@@ -51,7 +51,8 @@ class _DriverCreateAccountPhoneState extends State<DriverCreateAccountPhone> {
             56.height,
             Transform.translate(
               offset: Offset(ResSize.w * -10, 0),
-              child: IconButton(tooltip: 'Back', 
+              child: IconButton(
+                tooltip: 'Back',
                 onPressed: () {
                   popOwned(context);
                 },
@@ -125,11 +126,12 @@ class _DriverCreateAccountPhoneState extends State<DriverCreateAccountPhone> {
           ],
         ),
       ),
-      bottomNavigationBar: SizedBox(
-        height: ResSize.h * 80,
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.symmetric(vertical: 12),
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               CustomButton(
                 centerContent: "Continue",
