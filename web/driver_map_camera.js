@@ -92,6 +92,9 @@
     // A short but real pinch is not a two-finger tap. Its fractional zoom
     // must not be followed by an accidental full-level zoom-out on release.
     let multiTouchMoved = false;
+    // A cancelled multi-touch stream must not be completed by a later
+    // touchend as a stationary two-finger tap (which zooms out one level).
+    let cancelledTouchSequence = false;
     let touchOnControl = false;
     let pointerOrigin = null;
     let pointerReleased = false;
@@ -114,6 +117,7 @@
         previous = null; pointerOrigin = null;
         touchReleased = false; pointerReleased = false;
         multiTouchMoved = false;
+        cancelledTouchSequence = false;
         touchOnControl = false; controlPointerReleased = false;
         lastTap = -Infinity; lastTapPoint = null;
       }
@@ -188,7 +192,7 @@
     // Own touch geometry so zoom + rotate can happen in the same gesture.
     // Mouse/keyboard gestures stay with Google Maps.
     div.addEventListener('touchstart', event => {
-      if (!state.gesturesEnabled) return;
+      if (!state.gesturesEnabled || cancelledTouchSequence) return;
       // Let browser synthesize click for Maps' native +/- controls.
       // Capturing/preventing their touchstart can make zoom unresponsive.
       if (nativeCameraControl(event.target)) {
@@ -211,7 +215,8 @@
       }
     }, {capture: true, passive: false});
     div.addEventListener('touchmove', event => {
-      if (!state.gesturesEnabled || touchOnControl) return;
+      if (!state.gesturesEnabled || touchOnControl ||
+          cancelledTouchSequence) return;
       event.preventDefault(); event.stopImmediatePropagation();
       const next = {...touchPose(event.touches), count: event.touches.length};
       if (next.count > 1) lastTwoFingerPoint = {x: next.x, y: next.y};
@@ -250,6 +255,25 @@
       previous = next;
     }, {capture: true, passive: false});
     const end = event => {
+      if (event.type === 'touchcancel') {
+        // Browser/OS gesture interruption can leave one finger on the map.
+        // Discard *all* tap and pinch history until the final touch lifts.
+        cancelledTouchSequence = event.touches.length > 0;
+        previous = null;
+        touchReleased = false;
+        multiTouchMoved = false;
+        lastTwoFingerPoint = null;
+        maxTouches = 0;
+        travel = 0;
+        lastTap = -Infinity;
+        lastTapPoint = null;
+        touchOnControl = false;
+        return;
+      }
+      if (cancelledTouchSequence) {
+        if (!event.touches.length) cancelledTouchSequence = false;
+        return;
+      }
       if (touchOnControl) {
         if (!event.touches.length) touchOnControl = false;
         return;
