@@ -55,6 +55,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
       setState(() => _rides = records.map((record) {
         final at = record.completedAt;
         return _HistoryRide(
+          record: record,
           id: record.tripId,
           day: at == null ? 'Previous' : '${at.day}/${at.month}/${at.year}',
           time: at == null ? '' : '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}',
@@ -66,9 +67,6 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
           earnings: record.status == TripStatus.completed ? record.fare : '—',
           status:record.status,
           fareMoney:record.fareMoney,
-          cancellationActor:record.cancellationActor,
-          cancellationReasonCode:record.cancellationReasonCode,
-          riderName: record.riderName,
           completedAt: at,
         );
       }).toList());
@@ -795,21 +793,7 @@ class _HistoryRideCard extends StatelessWidget {
           pushSingle(context,
             MaterialPageRoute<void>(
               builder: (_) => DriverRideHistoryDetail(
-                record: TripHistoryRecord(
-                  tripId: ride.id,
-                  riderName: ride.riderName,
-                  whenLabel: '${ride.day}, ${ride.time}',
-                  pickup: ride.pickup,
-                  dropoff: ride.dropoff,
-                  fare: ride.earnings,
-                  category: ride.category,
-                  distance: ride.distance,
-                  duration: ride.duration,
-                  status:ride.status,
-                  fareMinorUnits:ride.fareMoney?.minorUnits,
-                  cancellationActor:ride.cancellationActor,
-                  cancellationReasonCode:ride.cancellationReasonCode,
-                ),
+                record: ride.record,
               ),
             ),
           );
@@ -935,6 +919,7 @@ class _HistoryRideCard extends StatelessWidget {
 
 class _HistoryRide {
   const _HistoryRide({
+    required this.record,
     required this.id,
     required this.day,
     required this.time,
@@ -944,14 +929,12 @@ class _HistoryRide {
     required this.distance,
     required this.duration,
     required this.earnings,
-    required this.riderName,
     this.completedAt,
     this.status=TripStatus.completed,
     this.fareMoney,
-    this.cancellationActor,
-    this.cancellationReasonCode,
   });
 
+  final TripHistoryRecord record;
   final String id;
   final String day;
   final String time;
@@ -961,10 +944,7 @@ class _HistoryRide {
   final String distance;
   final String duration;
   final String earnings;
-  final String riderName;
   final DateTime? completedAt;
   final TripStatus status;
   final Money? fareMoney;
-  final String? cancellationActor;
-  final String? cancellationReasonCode;
 }

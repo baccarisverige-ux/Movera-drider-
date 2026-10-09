@@ -14,7 +14,9 @@ Future<T?> showSafetyToolKitSheet<T>(BuildContext context) {
 }
 
 class SafetyToolKits extends StatefulWidget {
-  const SafetyToolKits({super.key});
+  const SafetyToolKits({super.key, this.launchEmergencyDial});
+
+  final Future<bool> Function()? launchEmergencyDial;
 
   @override
   State<SafetyToolKits> createState() => _SafetyToolKitsState();
@@ -28,61 +30,71 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
   static const Color _canvas = Color(0xFFF4F6F7);
 
   String? _status;
+  bool _emergencyInFlight = false;
+
+  bool get _ownsRoute => mounted && ModalRoute.of(context)?.isCurrent == true;
 
   void _showMessage(String message) {
+    if (!_ownsRoute) return;
     setState(() => _status = message);
   }
 
   Future<void> _confirmEmergencyCall() async {
-    final call = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          title: const Text(
-            'Contact emergency services?',
-            style: TextStyle(
-              color: _ink,
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
+    if (!_ownsRoute || _emergencyInFlight) return;
+    _emergencyInFlight = true;
+    try {
+      final call = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
             ),
-          ),
-          content: const Text(
-            'Use 112 only when you or someone else needs immediate help.',
-            style: TextStyle(color: _muted, fontSize: 13, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => popOwned(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => popOwned(dialogContext, true),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFCB424B),
+            title: const Text(
+              'Contact emergency services?',
+              style: TextStyle(
+                color: _ink,
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
               ),
-              child: const Text('Call 112'),
             ),
-          ],
-        );
-      },
-    );
+            content: const Text(
+              'Use 112 only when you or someone else needs immediate help.',
+              style: TextStyle(color: _muted, fontSize: 13, height: 1.4),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => popOwned(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => popOwned(dialogContext, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFCB424B),
+                ),
+                child: const Text('Call 112'),
+              ),
+            ],
+          );
+        },
+      );
 
-    if (call == true && mounted) {
-      final result = await handoffEmergencyDial(
-        () => launchUrl(Uri.parse('tel:112')),
-      );
-      if (!mounted) {
-        return;
+      if (call == true && _ownsRoute) {
+        final result = await handoffEmergencyDial(
+          widget.launchEmergencyDial ?? () => launchUrl(Uri.parse('tel:112')),
+        );
+        if (!_ownsRoute) {
+          return;
+        }
+        _showMessage(
+          result == EmergencyDialResult.opened
+              ? 'Emergency dialer opened — confirm the call on your device.'
+              : 'Could not open the dialer. Dial 112 manually.',
+        );
       }
-      _showMessage(
-        result == EmergencyDialResult.opened
-            ? 'Emergency dialer opened — confirm the call on your device.'
-            : 'Could not open the dialer. Dial 112 manually.',
-      );
+    } finally {
+      _emergencyInFlight = false;
     }
   }
 
@@ -95,6 +107,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
   }
 
   Future<void> _openPreferences() {
+    if (!_ownsRoute) return Future<void>.value();
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
