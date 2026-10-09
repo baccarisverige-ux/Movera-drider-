@@ -16,10 +16,9 @@ class DriverDestinationPicker extends StatefulWidget {
   const DriverDestinationPicker({super.key});
 
   static Future<DriverDestinationResult?> open(BuildContext context) {
-    return pushSingle<DriverDestinationResult>(context,
-      MaterialPageRoute(
-        builder: (_) => const DriverDestinationPicker(),
-      ),
+    return pushSingle<DriverDestinationResult>(
+      context,
+      MaterialPageRoute(builder: (_) => const DriverDestinationPicker()),
     );
   }
 
@@ -81,6 +80,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
+  bool _selectionReturned = false;
 
   List<_DestinationPlace> get _results {
     final query = _searchController.text.trim().toLowerCase();
@@ -97,7 +97,9 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) { _searchFocus.requestFocus(); }
+      if (mounted) {
+        _searchFocus.requestFocus();
+      }
     });
   }
 
@@ -109,11 +111,16 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
   }
 
   void _select(_DestinationPlace place) {
+    // A closing route remains mounted during its reverse animation. A second
+    // tap must not return another result or pop the screen beneath the picker.
+    if (_selectionReturned ||
+        !mounted ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    _selectionReturned = true;
     Navigator.of(context).pop(
-      DriverDestinationResult(
-        position: place.position,
-        address: place.address,
-      ),
+      DriverDestinationResult(position: place.position, address: place.address),
     );
   }
 
@@ -138,7 +145,8 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                     elevation: 1,
                     shadowColor: Colors.black.withValues(alpha: 0.08),
                     shape: const CircleBorder(),
-                    child: IconButton(tooltip: 'Back', 
+                    child: IconButton(
+                      tooltip: 'Back',
                       key: const ValueKey<String>('destination-picker-back'),
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(
@@ -185,9 +193,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                 decoration: BoxDecoration(
                   color: _softGreen,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: const Color(0xFFDDEAE2),
-                  ),
+                  border: Border.all(color: const Color(0xFFDDEAE2)),
                 ),
                 child: const Row(
                   children: [
@@ -249,15 +255,12 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                     ),
                     prefixIcon: const Padding(
                       padding: EdgeInsets.only(left: 3),
-                      child: Icon(
-                        Icons.search_rounded,
-                        color: _ink,
-                        size: 22,
-                      ),
+                      child: Icon(Icons.search_rounded, color: _ink, size: 22),
                     ),
                     suffixIcon: _searchController.text.isEmpty
                         ? null
-                        : IconButton(tooltip: 'Close', 
+                        : IconButton(
+                            tooltip: 'Close',
                             key: const ValueKey<String>(
                               'destination-search-clear',
                             ),
@@ -279,9 +282,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
-                      borderSide: const BorderSide(
-                        color: Color(0xFFE6EAE8),
-                      ),
+                      borderSide: const BorderSide(color: Color(0xFFE6EAE8)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
@@ -290,9 +291,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                         width: 1.4,
                       ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 17,
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 17),
                   ),
                 ),
               ),
@@ -302,15 +301,17 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  Expanded(child: Text(
-                    _searchController.text.trim().isEmpty
-                        ? 'Suggested addresses'
-                        : 'Results',
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    )),
+                  Expanded(
+                    child: Text(
+                      _searchController.text.trim().isEmpty
+                          ? 'Suggested addresses'
+                          : 'Results',
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   if (_searchController.text.trim().isNotEmpty)
@@ -334,12 +335,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                       physics: const NeverScrollableScrollPhysics(),
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
-                      padding: EdgeInsets.fromLTRB(
-                        12,
-                        0,
-                        12,
-                        18 + bottomInset,
-                      ),
+                      padding: EdgeInsets.fromLTRB(12, 0, 12, 18 + bottomInset),
                       itemCount: results.length,
                       separatorBuilder: (_, __) => const Divider(
                         height: 1,
@@ -374,9 +370,7 @@ class _DirectionBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFDDE7E1),
-        ),
+        border: Border.all(color: const Color(0xFFDDE7E1)),
       ),
       child: const Icon(
         Icons.near_me_rounded,
@@ -388,10 +382,7 @@ class _DirectionBadge extends StatelessWidget {
 }
 
 class _DestinationRow extends StatelessWidget {
-  const _DestinationRow({
-    required this.place,
-    required this.onTap,
-  });
+  const _DestinationRow({required this.place, required this.onTap});
 
   final _DestinationPlace place;
   final VoidCallback onTap;
