@@ -48,9 +48,7 @@ void main() {
       );
       expect(
         tester
-            .widget<DropdownButtonFormField<String>>(
-              find.byType(DropdownButtonFormField<String>),
-            )
+            .widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
             .items,
         hasLength(2),
       );
@@ -81,6 +79,57 @@ void main() {
       controller.dispose();
       callback('B');
       expect(calls, 0);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'R19 callback cannot write to a replaced controller or covered route',
+    (tester) async {
+      final oldController = TextEditingController(text: 'A');
+      final newController = TextEditingController(text: 'A');
+      var calls = 0;
+      AppDropdownField field(TextEditingController controller) =>
+          AppDropdownField(
+            controller: controller,
+            items: const ['A', 'B'],
+            onChanged: (_) => calls++,
+          );
+      await open(tester, field(oldController));
+      final oldCallback = tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>),
+          )
+          .onChanged!;
+      await open(tester, field(newController));
+      oldCallback('B');
+      expect(oldController.text, 'A');
+      expect(newController.text, 'A');
+      expect(calls, 0);
+      final callback = tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>),
+          )
+          .onChanged!;
+      final context = tester.element(find.byType(AppDropdownField));
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('Covered')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      callback('B');
+      expect(newController.text, 'A');
+      expect(calls, 0);
+      Navigator.of(context).pop();
+      await tester.pumpAndSettle();
+      callback('B');
+      await tester.pump();
+      expect(newController.text, 'B');
+      expect(calls, 1);
+      await tester.pumpWidget(const SizedBox());
+      oldController.dispose();
+      newController.dispose();
       expect(tester.takeException(), isNull);
     },
   );

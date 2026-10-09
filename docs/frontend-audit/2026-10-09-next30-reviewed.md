@@ -31,7 +31,7 @@ Each row counts one root defect, including grouped manifestations of one defect.
 | R21 | Nullable obscure setting is force-unwrapped. | Treat null as false. | next30_shared_form R21 |
 | R22 | Obscured multiline input causes a framework assertion. | Force one line for obscured input. | next30_shared_form R22 |
 | R23 | Loading button remains enabled and submits duplicate pending work. | Disable its action during loading. | next30_shared_form R23 |
-| R24 | NaN/infinite/negative persisted along-route progress corrupts the projection window. | Fall back to global projection for invalid persisted values. | frontend_route_progress_corruption; overlaps #229 |
+| R24 | NaN/negative progress hints bias projection onto an earlier nearby road pass. | Fall back to global projection for invalid progress hints. | frontend_route_progress_corruption; overlaps #229 |
 | R25 | Empty route stroke builders call at() and throw. | Return empty traveled/remaining strokes for empty geometry. | frontend_empty_route_geometry; overlaps #230 |
 | R26 | Invalid requested origin/destination is passed to the routing adapter and retained for Retry. | Reject coordinates, invalidate pending requests and clear invalid destination. | next30_navigation R26 |
 | R27 | GPS course above 360 is normalized into a fictitious direction despite being invalid. | Retain previous course for values outside the valid compass domain. | next30_navigation R27 |
@@ -42,7 +42,9 @@ Each row counts one root defect, including grouped manifestations of one defect.
 ## Validation
 
 Local: 14 Python release/deployment contract tests pass; web camera/gesture
-contracts pass; Dart formatting and git whitespace checks pass.
+contracts pass; Dart formatting and git whitespace checks pass. Six pure-Dart
+regressions reproduce on main and pass with this patch, including a parallel-road
+case for invalid progress hints.
 Flutter dependency setup is unavailable in this checkout. Repository CI must
 verify fatal-info analysis, complete unit/widget suite, critical lifecycle,
 release web build, Android preview/signing checks and iOS compile preflight.

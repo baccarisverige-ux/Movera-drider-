@@ -5,14 +5,21 @@ import 'package:movera/core/routing/route_repository.dart';
 
 void main() {
   final route = RoadRoute(
-    points: const [GeoPoint(59.3, 18.0), GeoPoint(59.31, 18.01)],
+    // Two passes within GPS tolerance; an invalid hint must not bias the
+    // vehicle onto the earlier pass instead of the closer return leg.
+    points: const [
+      GeoPoint(59, 18),
+      GeoPoint(59, 18.01),
+      GeoPoint(59.00005, 18.01),
+      GeoPoint(59.00005, 18),
+    ],
     distanceMeters: 1300,
     durationSeconds: 180,
   );
-  final position = const GeoPoint(59.305, 18.005);
+  const position = GeoPoint(59.00005, 18.005);
   const calculator = RouteProgressCalculator();
 
-  test('NaN persisted progress falls back to global projection', () {
+  test('R24 NaN progress hint falls back to global projection', () {
     final expected = calculator.measure(route: route, position: position);
     final actual = calculator.measure(
       route: route,
@@ -24,7 +31,7 @@ void main() {
     expect(actual.offRoute, expected.offRoute);
   });
 
-  test('infinite and negative persisted progress are ignored', () {
+  test('R24 infinite and negative progress hints are ignored', () {
     final expected = calculator.measure(route: route, position: position);
     for (final bad in [double.infinity, double.negativeInfinity, -100.0]) {
       final actual = calculator.measure(
