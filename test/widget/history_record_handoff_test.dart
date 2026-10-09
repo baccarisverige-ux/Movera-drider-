@@ -65,6 +65,8 @@ void main() {
       expect(detail.record, same(record));
       expect(detail.record.tip, '20 kr');
       expect(detail.record.paymentMethod, 'Card');
+      expect(find.text('Rated you'), findsNothing);
+      expect(find.text('5.0'), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }

@@ -1,3 +1,4 @@
+import 'package:movera/presentation/driver/home/components/app_update_sheet.dart';
 import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
@@ -69,7 +70,6 @@ import 'package:movera/presentation/driver/sheets/movera_snap_sheet_controller.d
 import 'package:movera/presentation/driver/overlays/map_overlay_insets.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 part 'home_offer_radar.dart';
 part 'home_map_sheet.dart';

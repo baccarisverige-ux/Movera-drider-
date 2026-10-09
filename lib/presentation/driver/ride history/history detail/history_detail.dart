@@ -44,9 +44,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
         controller: _panelController,
         margin: EdgeInsets.all(0),
         minHeight: ResSize.h * 120,
-        padding: EdgeInsets.symmetric(
-          vertical: ResSize.h * 19,
-        ),
+        padding: EdgeInsets.symmetric(vertical: ResSize.h * 19),
         boxShadow: [],
         defaultPanelState: PanelState.OPEN,
         maxHeight: ResSize.h * 550,
@@ -76,10 +74,15 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                 left: 16,
                 right: 16,
                 child: SafeArea(
-                  child: Text('Illustrative map · archived route unavailable',
+                  child: Text(
+                    'Illustrative map · archived route unavailable',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF252E3A),
-                      fontSize: 12, fontWeight: FontWeight.w700)),
+                    style: TextStyle(
+                      color: Color(0xFF252E3A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
               SizedBox(
@@ -106,7 +109,8 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                                   BoxShadow(
                                     offset: const Offset(0, 4),
                                     // ignore: deprecated_member_use
-                                    color: Color(0xff606060).withValues(alpha: 0.12),
+                                    color: Color(0xff606060)
+                                        .withValues(alpha: 0.12),
                                     spreadRadius: 6,
                                     blurRadius: 40,
                                   ),
@@ -175,43 +179,6 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                       ),
                     ],
                   ),
-                ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: ResSize.w * 60,
-                      padding: EdgeInsets.symmetric(vertical: ResSize.h * 3),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        color: AppColor.title,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextWidget(
-                            text: "5.0",
-                            color: AppColor.whiteText,
-                            fontSize: 12,
-                            fontWeight: fwBold,
-                          ),
-                          3.width,
-                          Icon(
-                            Icons.star_rounded,
-                            color: AppColor.white,
-                            size: ResSize.h * 18,
-                          ),
-                        ],
-                      ),
-                    ),
-                    4.height,
-                    TextWidget(
-                      text: "Rated you",
-                      color: AppColor.subtitle,
-                      fontSize: 12,
-                      fontWeight: fwBold,
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -360,138 +327,63 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
     );
   }
 
-  Widget _buildSummaryRows(BuildContext context) {
-    return Column(
+  Widget _detailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextWidget(
-              color: AppColor.subtitle,
-              fontSize: 16,
-              fontWeight: fwBold,
-              text: 'Ride Cost',
-            ),
-            TextWidget(
-              color: AppColor.title,
-              fontSize: 16,
-              fontWeight: fwBold,
-              text: _ride.fare,
-            ),
-          ],
+        Expanded(
+          child: TextWidget(
+            text: label,
+            color: AppColor.subtitle,
+            fontSize: 16,
+            fontWeight: fwBold,
+          ),
         ),
-        16.height,
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextWidget(
-              color: AppColor.subtitle,
-              fontSize: 16,
-              fontWeight: fwBold,
-              text: 'Tip',
-            ),
-            TextWidget(
-              color: AppColor.title,
-              fontSize: 16,
-              fontWeight: fwBold,
-              text: _ride.tip,
-            ),
-          ],
-        ),
-        16.height,
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextWidget(
-              color: AppColor.subtitle,
-              fontSize: 16,
-              fontWeight: fwBold,
-              text: 'Payment Method',
-            ),
-            Row(
-              children: [
-                if (_ride.paymentMethod != '—') ...[
-                  Transform.scale(
-                    scale: 1.2,
-                    child: Image.asset(
-                      AppAssets.wallet2,
-                      color: AppColor.title,
-                      height: ResSize.h * 22,
-                    ),
-                  ),
-                  6.width,
-                ],
-                TextWidget(
-                  color: AppColor.title,
-                  fontSize: 16,
-                  fontWeight: fwBold,
-                  text: _ride.paymentMethod,
-                ),
-              ],
-            ),
-          ],
-        ),
-        16.height,
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextWidget(
-              color: AppColor.subtitle,
-              fontSize: 16,
-              fontWeight: fwBold,
-              text: 'Ride Type',
-            ),
-            TextWidget(
-              color: AppColor.title,
-              fontSize: 16,
-              fontWeight: fwBold,
-              text: _ride.category,
-            ),
-          ],
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextWidget(
+            text: value,
+            color: AppColor.title,
+            textAlign: TextAlign.end,
+            fontSize: 16,
+            fontWeight: fwBold,
+          ),
         ),
       ],
     );
   }
 
+  Widget _buildSummaryRows(BuildContext context) {
+    return Column(
+      children: [
+        _detailRow('Ride Cost', _ride.fare),
+        16.height,
+        _detailRow('Tip', _ride.tip),
+        16.height,
+        _detailRow('Payment Method', _ride.paymentMethod),
+        16.height,
+        _detailRow('Ride Type', _ride.category),
+      ],
+    );
+  }
+
   Widget _buildMetaRows() {
+    final outcome = switch (_ride.status) {
+      TripStatus.completed => 'Ride completed on',
+      TripStatus.cancelledByRider => 'Cancelled by rider',
+      TripStatus.cancelledByDriver => 'Cancelled by driver',
+      TripStatus.cancelledByAdmin => 'Cancelled by support',
+      TripStatus.noShow => 'Rider did not arrive',
+      TripStatus.expired => 'Trip expired',
+      TripStatus.failed => 'Trip failed',
+      _ => 'Trip ended',
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextWidget(
-              text: 'Trip ID',
-              color: AppColor.subtitle,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-            TextWidget(
-              text: _ride.tripId,
-              color: AppColor.title,
-              fontSize: 16,
-              fontWeight: fwBold,
-            ),
-          ],
-        ),
+        _detailRow('Trip ID', _ride.tripId),
         20.height,
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextWidget(
-              text: _ride.status == TripStatus.completed ? 'Ride Completed on' : 'Trip ended: ${_ride.status.wireName} (${_ride.cancellationActor ?? 'actor unavailable'}; ${_ride.cancellationReasonCode ?? 'reason unavailable'})',
-              color: AppColor.subtitle,
-              fontSize: 16,
-              fontWeight: fwBold,
-            ),
-            TextWidget(
-              text: _ride.whenLabel,
-              color: AppColor.title,
-              fontSize: 16,
-              fontWeight: fwBold,
-            ),
-          ],
-        ),
+        _detailRow(outcome, _ride.whenLabel),
       ],
     );
   }
