@@ -38,6 +38,7 @@ class RouteCameraGeometry {
   }
 
   List<GeoPoint> remaining(double meters) {
+    if (points.isEmpty) return const <GeoPoint>[];
     final bounded = _boundedMeters(meters);
     return [
       at(bounded),
@@ -47,6 +48,7 @@ class RouteCameraGeometry {
   }
 
   List<GeoPoint> traveled(double meters) {
+    if (points.isEmpty) return const <GeoPoint>[];
     final bounded = _boundedMeters(meters);
     return [
       for (var i = 0; i < points.length; i++)
