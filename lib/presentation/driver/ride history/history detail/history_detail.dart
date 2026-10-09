@@ -327,7 +327,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
     );
   }
 
-  Widget _detailRow(String label, String value) {
+  Widget _detailRow(String label, String value, {bool paymentIcon = false}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -341,12 +341,26 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: TextWidget(
-            text: value,
-            color: AppColor.title,
-            textAlign: TextAlign.end,
-            fontSize: 16,
-            fontWeight: fwBold,
+          child: Row(
+            children: [
+              if (paymentIcon && value != '—') ...[
+                Image.asset(
+                  AppAssets.wallet2,
+                  color: AppColor.title,
+                  height: 22,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: TextWidget(
+                  text: value,
+                  color: AppColor.title,
+                  textAlign: TextAlign.end,
+                  fontSize: 16,
+                  fontWeight: fwBold,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -360,7 +374,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
         16.height,
         _detailRow('Tip', _ride.tip),
         16.height,
-        _detailRow('Payment Method', _ride.paymentMethod),
+        _detailRow('Payment Method', _ride.paymentMethod, paymentIcon: true),
         16.height,
         _detailRow('Ride Type', _ride.category),
       ],
