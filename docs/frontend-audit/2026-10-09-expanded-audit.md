@@ -4,11 +4,11 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 
 | Category | Confirmed findings | Target |
 | --- | ---: | ---: |
-| Bug | 7 | 10 |
+| Bug | 8 | 10 |
 | Error | 8 | 10 |
 | Problem | 5 | 10 |
 | Wrong code | 6 | 10 |
-| Critique | 5 | 10 |
+| Critique | 6 | 10 |
 
 | ID | Category | Trigger / incorrect behavior | Fix | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -30,10 +30,10 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | F16 | Critique | Update button uses near-black text on a dark background. | Use white action text. | app_update_sheet_test.dart | 216 — merged, all CI green |
 | F17 | Critique | Document picker actions are bare gestures without standard button keyboard/focus behavior. | Use Material text buttons for both actions. | vehicle_document_picker_ownership_test.dart | 217 — merged, all CI green |
 | F18 | Bug | Promotion copy claims success before the clipboard write completes and leaves failures unhandled. | Await clipboard completion, guard ownership, lock repeated copies and report failures. | promotion_clipboard_test.dart | 217 — merged, all CI green |
-| F19 | Error | Color picker fixed non-scrolling grid overflows short landscape and enlarged-text viewports. | Constrain dialog height, scroll the grid and size cells for text scaling. | color_picker_ownership_layout_test.dart | 218 — verification pending |
-| F20 | Bug | Reservation map markers stay at old endpoints when request or label mode changes. | Rebuild markers from a captured request/mode with generation ownership. | reservation_marker_update_test.dart | 218 — verification pending |
-| F21 | Wrong code | Runtime scope ignores changed home/logout callbacks when session identity stays the same. | Notify inherited consumers for every exposed dependency change. | runtime_scope_update_test.dart | 218 — verification pending |
-| F22 | Error | Reservation marker raster failures escape an unawaited marker build. | Keep endpoint markers with fallback icons on rendering failure. | reservation_marker_update_test.dart | 218 — verification pending |
+| F19 | Error | Color picker fixed non-scrolling grid overflows short landscape and enlarged-text viewports. | Constrain dialog height, scroll the grid and size cells for text scaling. | color_picker_ownership_layout_test.dart | 218 — merged, all CI green |
+| F20 | Bug | Reservation map markers stay at old endpoints when request or label mode changes. | Rebuild markers from a captured request/mode with generation ownership. | reservation_marker_update_test.dart | 218 — merged, all CI green |
+| F21 | Wrong code | Runtime scope ignores changed home/logout callbacks when session identity stays the same. | Notify inherited consumers for every exposed dependency change. | runtime_scope_update_test.dart | 218 — merged, all CI green |
+| F22 | Error | Reservation marker raster failures escape an unawaited marker build. | Keep endpoint markers with fallback icons on rendering failure. | reservation_marker_update_test.dart | 218 — merged, all CI green |
 | F23 | Error | Active ride Google Maps launcher exceptions escape the action callback. | Catch failed launches and allow retry after the pending action completes. | active_ride_external_map_test.dart | Verification pending |
 | F24 | Bug | Trusted-contact dialer permits concurrent launches and late failure feedback over a covering route. | Shared single-flight external handoff with current-route ownership. | external_handoff_ownership_test.dart | Verification pending |
 | F25 | Critique | Registration and insurance duplicate the same picker lifecycle and upload UI across two large implementations. | One shared document-upload component with explicit title and progress inputs. | Existing vehicle_document_picker_ownership_test.dart for both wrappers | Verification pending |
@@ -43,5 +43,7 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | F29 | Problem | Bank preview promises to keep a draft and offers Save although its form never saves any details. | Explain discard-on-exit behavior and label the action Check details. | Source review and bank_preview_feedback_test.dart | Verification pending |
 | F30 | Problem | International form labels a foreign IBAN country code as a bank and tells invalid foreign IBAN users to start with SE. | Label foreign codes Country and use country-neutral validation guidance. | bank_preview_feedback_test.dart | Verification pending |
 | F31 | Critique | Sweden/International bank tabs are gesture-only and cannot be activated with keyboard focus. | Material buttons with selected semantics and keyboard activation. | bank_preview_feedback_test.dart | Verification pending |
+| F32 | Bug | Captured chat Send/keyboard/contact callbacks can clear a covered composer or access disposed controllers/context. | Guard current route ownership before actions and after-frame scrolling. | chat_callback_ownership_test.dart | Verification pending |
+| F33 | Critique | Every chat message creates a State object despite having no mutable state, while suppressing the immutable-widget lint for its text field. | Make message widgets immutable and stateless. | Source review; existing chat accessibility and layout tests | Verification pending |
 
 Widget test filenames are under `test/widget/`, except money validation under `test/core/`. CI runs full analysis, Flutter tests, lifecycle and release contracts, web build, Android preview/signing guards and iOS compile preflight. Browser and physical-device interaction are still unverified in this environment. No backend changes are included.

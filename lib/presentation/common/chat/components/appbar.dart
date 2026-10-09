@@ -57,6 +57,8 @@ class ChatAppBar extends StatelessWidget {
               ? 'Call rider'
               : RiderContactPolicy.unavailableMessage,
           onPressed: () {
+            if (!context.mounted || ModalRoute.of(context)?.isCurrent != true)
+              return;
             if (RiderContactPolicy.available) {
               return;
             }

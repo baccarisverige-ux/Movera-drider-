@@ -46,6 +46,7 @@ class _ChatState extends State<Chat> {
 
   // Function to send message
   void _sendMessage() {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
     if (_messageController.text.trim().isEmpty) {
       return; // Don't send if text is empty
     }
@@ -54,7 +55,9 @@ class _ChatState extends State<Chat> {
     setState(() {});
     _messageController.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _scroll.hasClients) {
+      if (mounted &&
+          ModalRoute.of(context)?.isCurrent == true &&
+          _scroll.hasClients) {
         _scroll.animateTo(
           0,
           duration: MediaQuery.disableAnimationsOf(context)
@@ -177,17 +180,10 @@ class _ChatState extends State<Chat> {
   }
 }
 
-// ignore: must_be_immutable
-class SenderMessage extends StatefulWidget {
-  late String text;
+class SenderMessage extends StatelessWidget {
+  final String text;
 
-  SenderMessage({super.key, required this.text});
-
-  @override
-  State<SenderMessage> createState() => _SenderMessageState();
-}
-
-class _SenderMessageState extends State<SenderMessage> {
+  const SenderMessage({super.key, required this.text});
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -227,7 +223,7 @@ class _SenderMessageState extends State<SenderMessage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: TextWidget(
-                        text: widget.text,
+                        text: text,
                         fontSize: 14,
                         color: AppColor.title,
                         fontWeight: fwNormal,
