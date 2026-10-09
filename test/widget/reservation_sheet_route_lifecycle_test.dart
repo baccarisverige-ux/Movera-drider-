@@ -238,20 +238,23 @@ void main() {
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ReservationRequestSheet(
-            request: _request(59.3),
-            mapBuilder: _map,
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ReservationRequestSheet(
+              request: _request(59.3),
+              mapBuilder: _map,
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('View reservation route'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+      );
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('View reservation route'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
+    }
   });
 
   test('arrival calculation does not normalize malformed times or negative durations', () {

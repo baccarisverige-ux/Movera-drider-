@@ -74,36 +74,41 @@ void main() {
     'terms control exposes named checked state and toggles normally',
     (tester) async {
       final handle = tester.ensureSemantics();
-      addTearDown(handle.dispose);
-      var checked = false;
-      await _open(
-        tester,
-        const Size(375, 812),
-        StatefulBuilder(
-          builder: (context, setState) => CustomCheckBox(
-            value: checked,
-            semanticLabel: 'Accept terms and privacy policy',
-            onPressed: () => setState(() => checked = !checked),
+      try {
+        var checked = false;
+        await _open(
+          tester,
+          const Size(375, 812),
+          StatefulBuilder(
+            builder: (context, setState) => CustomCheckBox(
+              value: checked,
+              semanticLabel: 'Accept terms and privacy policy',
+              onPressed: () => setState(() => checked = !checked),
+            ),
           ),
-        ),
-      );
-      final checkbox = find.bySemanticsLabel('Accept terms and privacy policy');
-      expect(
-        tester.getSemantics(checkbox).flagsCollection.isChecked,
-        isNot(CheckedState.none),
-      );
-      expect(
-        tester.getSemantics(checkbox).flagsCollection.isChecked,
-        CheckedState.isFalse,
-      );
-      await tester.tap(find.byType(Checkbox));
-      await tester.pumpAndSettle();
-      expect(checked, isTrue);
-      expect(
-        tester.getSemantics(checkbox).flagsCollection.isChecked,
-        CheckedState.isTrue,
-      );
-      expect(tester.takeException(), isNull);
+        );
+        final checkbox = find.bySemanticsLabel(
+          'Accept terms and privacy policy',
+        );
+        expect(
+          tester.getSemantics(checkbox).flagsCollection.isChecked,
+          isNot(CheckedState.none),
+        );
+        expect(
+          tester.getSemantics(checkbox).flagsCollection.isChecked,
+          CheckedState.isFalse,
+        );
+        await tester.tap(find.byType(Checkbox));
+        await tester.pumpAndSettle();
+        expect(checked, isTrue);
+        expect(
+          tester.getSemantics(checkbox).flagsCollection.isChecked,
+          CheckedState.isTrue,
+        );
+        expect(tester.takeException(), isNull);
+      } finally {
+        handle.dispose();
+      }
     },
   );
 }
