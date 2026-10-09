@@ -73,7 +73,14 @@ class _PreferencesState extends State<Preferences> {
   bool _loading = true;
   bool _restoreFailed = false;
   bool _restoring = false;
-  bool get _canEdit => !_loading && !_restoreFailed;
+  bool _saveFailed = false;
+  bool _retryingSave = false;
+  int _saveRevision = 0;
+  bool get _canEdit =>
+      mounted &&
+      ModalRoute.of(context)?.isCurrent == true &&
+      !_loading &&
+      !_restoreFailed;
   Future<void> _restoreSettings() async {
     if (_restoring || !mounted) return;
     _restoring = true;
@@ -113,16 +120,27 @@ class _PreferencesState extends State<Preferences> {
 
   Future<bool> _persistSettings() async {
     if (!_canEdit) return false;
+    final revision = ++_saveRevision;
+    var saved = false;
     try {
       await _settings.save('categories', {'selected': _selected});
-      return true;
+      saved = true;
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save preferences. Retry.')),
-        );
-      }
-      return false;
+      saved = false;
+    }
+    if (mounted && revision == _saveRevision) {
+      setState(() => _saveFailed = !saved);
+    }
+    return saved;
+  }
+
+  Future<void> _retrySave() async {
+    if (!_canEdit || _retryingSave) return;
+    setState(() => _retryingSave = true);
+    try {
+      await _persistSettings();
+    } finally {
+      if (mounted) setState(() => _retryingSave = false);
     }
   }
 
@@ -144,7 +162,7 @@ class _PreferencesState extends State<Preferences> {
   }
 
   Future<void> _save() async {
-    if (!await _persistSettings() || !mounted) {
+    if (!await _persistSettings() || !mounted || !_canEdit) {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
@@ -226,6 +244,16 @@ class _PreferencesState extends State<Preferences> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_loading) const LinearProgressIndicator(),
+        if (_saveFailed)
+          TextButton(
+            key: const ValueKey('settings-save-retry'),
+            onPressed: _retryingSave ? null : _retrySave,
+            child: Text(
+              _retryingSave
+                  ? 'Saving preferences…'
+                  : 'Changes not saved — Retry',
+            ),
+          ),
         if (_restoreFailed)
           TextButton(
             onPressed: _restoreSettings,

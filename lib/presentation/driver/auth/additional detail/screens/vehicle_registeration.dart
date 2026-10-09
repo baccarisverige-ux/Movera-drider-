@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +16,12 @@ class AdditionDetailVehicleRegisteration extends StatefulWidget {
   const AdditionDetailVehicleRegisteration({
     super.key,
     required this.circleProgress,
+    this.selectFile,
+    this.capturePhoto,
   });
+
+  final Future<PlatformFile?> Function()? selectFile;
+  final Future<XFile?> Function()? capturePhoto;
 
   @override
   State<AdditionDetailVehicleRegisteration> createState() =>
@@ -28,6 +34,7 @@ class _AdditionDetailVehicleRegisterationState
   Uint8List? selectedFileBytes;
   final ImagePicker _picker = ImagePicker();
   bool _isPicking = false;
+  bool get _ownsRoute => mounted && ModalRoute.of(context)?.isCurrent == true;
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -98,8 +105,8 @@ class _AdditionDetailVehicleRegisterationState
           24.height,
 
           // Tap to upload text
-          GestureDetector(
-            onTap: _pickAnyFile,
+          TextButton(
+            onPressed: _isPicking ? null : _pickAnyFile,
             child: TextWidget(
               text: "Tap to upload",
               color: Color(0xff30A1F7),
@@ -112,7 +119,7 @@ class _AdditionDetailVehicleRegisterationState
 
           // File format info
           TextWidget(
-            text: "PNG, JPG, PDF (max 800 x 400px)",
+            text: "PNG, JPG, PDF",
             color: AppColor.subtitle,
             fontSize: 16,
             fontWeight: fwMedium,
@@ -138,8 +145,8 @@ class _AdditionDetailVehicleRegisterationState
           14.height,
 
           // Open Camera button
-          GestureDetector(
-            onTap: _isPicking ? null : _openCamera,
+          TextButton(
+            onPressed: _isPicking ? null : _openCamera,
             child: Container(
               padding: EdgeInsets.symmetric(
                 horizontal: ResSize.w * 32,
@@ -183,12 +190,7 @@ class _AdditionDetailVehicleRegisterationState
         children: [
           // File preview
           isImage && bytes != null
-              ? Image.memory(
-                  bytes,
-                  height: 60,
-                  width: 60,
-                  fit: BoxFit.cover,
-                )
+              ? Image.memory(bytes, height: 60, width: 60, fit: BoxFit.cover)
               : const Icon(Icons.picture_as_pdf, size: 50, color: Colors.red),
 
           const SizedBox(width: 12),
@@ -203,7 +205,8 @@ class _AdditionDetailVehicleRegisterationState
           ),
 
           // Remove button
-          IconButton(tooltip: 'Close', 
+          IconButton(
+            tooltip: 'Close',
             icon: const Icon(Icons.close, color: Colors.red),
             onPressed: () {
               setState(() {
@@ -218,43 +221,62 @@ class _AdditionDetailVehicleRegisterationState
   }
 
   Future<void> _pickAnyFile() async {
+    if (!_ownsRoute || _isPicking) return;
+    setState(() => _isPicking = true);
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'], // ⬅️ allow both
-      );
-
-      if (result != null) {
-        final file = result.files.single;
-        Uint8List? bytes = file.bytes;
-        if (bytes == null && file.path != null) {
-          bytes = await XFile(file.path!).readAsBytes();
-        }
-        setState(() {
-          selectedFileName = file.name;
-          selectedFileBytes = bytes;
-        });
-        _showSuccessMessage("File selected successfully!");
+      PlatformFile? file;
+      if (widget.selectFile != null) {
+        file = await widget.selectFile!();
+      } else {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+          withData: true,
+        );
+        file = result?.files.single;
       }
-    } catch (e, stack) {
-      DriverLog.error('Vehicle registration file picker failed', e, stack);
-      _showErrorMessage("Error selecting file: $e");
+      if (!_ownsRoute || file == null) return;
+      var bytes = file.bytes;
+      if (bytes == null && file.path != null) {
+        bytes = await XFile(file.path!).readAsBytes();
+      }
+      if (!_ownsRoute) return;
+      if (bytes == null || bytes.isEmpty) {
+        throw const FormatException('Document bytes are unavailable');
+      }
+      final fileName = file.name;
+      setState(() {
+        selectedFileName = fileName;
+        selectedFileBytes = bytes;
+      });
+      _showSuccessMessage('File selected successfully!');
+    } catch (error, stack) {
+      DriverLog.error('Vehicle document selection failed', error, stack);
+      _showErrorMessage('Could not read the selected file. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
     }
   }
 
   Future<void> _openCamera() async {
-    if (_isPicking) { return; } // 🚫 Prevent multiple calls
+    if (!_ownsRoute || _isPicking) return;
     setState(() => _isPicking = true);
 
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 800,
-        maxHeight: 400,
-      );
+      final XFile? image =
+          await (widget.capturePhoto?.call() ??
+              _picker.pickImage(
+                source: ImageSource.camera,
+                maxWidth: 800,
+                maxHeight: 400,
+              ));
 
-      if (image != null && mounted) {
+      if (image != null && _ownsRoute) {
         final bytes = await image.readAsBytes();
+        if (!_ownsRoute) return;
+        if (bytes.isEmpty) {
+          throw const FormatException('Photo bytes are unavailable');
+        }
         setState(() {
           selectedFileName = image.name;
           selectedFileBytes = bytes;
@@ -263,7 +285,9 @@ class _AdditionDetailVehicleRegisterationState
       }
     } catch (e) {
       if (mounted) {
-        _showErrorMessage("Error capturing photo: $e");
+        _showErrorMessage(
+          'Could not read the captured photo. Please try again.',
+        );
       }
     } finally {
       if (mounted) {
@@ -273,6 +297,7 @@ class _AdditionDetailVehicleRegisterationState
   }
 
   void _showSuccessMessage(String message) {
+    if (!_ownsRoute) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -283,6 +308,7 @@ class _AdditionDetailVehicleRegisterationState
   }
 
   void _showErrorMessage(String message) {
+    if (!_ownsRoute) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),

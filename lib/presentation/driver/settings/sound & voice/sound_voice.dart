@@ -23,7 +23,14 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
   bool _loading = true;
   bool _restoreFailed = false;
   bool _restoring = false;
-  bool get _canEdit => !_loading && !_restoreFailed;
+  bool _saveFailed = false;
+  bool _retryingSave = false;
+  int _saveRevision = 0;
+  bool get _canEdit =>
+      mounted &&
+      ModalRoute.of(context)?.isCurrent == true &&
+      !_loading &&
+      !_restoreFailed;
   Future<void> _restoreSettings() async {
     if (_restoring || !mounted) return;
     _restoring = true;
@@ -68,6 +75,8 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
 
   Future<bool> _persistSettings() async {
     if (!_canEdit) return false;
+    final revision = ++_saveRevision;
+    var saved = false;
     try {
       await _settings.save('sound', {
         'generalVolume': generalVolume,
@@ -75,14 +84,23 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
         'voiceNavigation': voiceNavigation,
         'readRiderMessages': readRiderMessages,
       });
-      return true;
+      saved = true;
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save preferences. Retry.')),
-        );
-      }
-      return false;
+      saved = false;
+    }
+    if (mounted && revision == _saveRevision) {
+      setState(() => _saveFailed = !saved);
+    }
+    return saved;
+  }
+
+  Future<void> _retrySave() async {
+    if (!_canEdit || _retryingSave) return;
+    setState(() => _retryingSave = true);
+    try {
+      await _persistSettings();
+    } finally {
+      if (mounted) setState(() => _retryingSave = false);
     }
   }
 
@@ -121,6 +139,16 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
           if (_loading) const LinearProgressIndicator(),
+          if (_saveFailed)
+            TextButton(
+              key: const ValueKey('settings-save-retry'),
+              onPressed: _retryingSave ? null : _retrySave,
+              child: Text(
+                _retryingSave
+                    ? 'Saving preferences…'
+                    : 'Changes not saved — Retry',
+              ),
+            ),
           if (_restoreFailed)
             TextButton(
               onPressed: _restoreSettings,
@@ -148,6 +176,7 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
                 onChanged: !_canEdit
                     ? null
                     : (value) {
+                        if (!_canEdit) return;
                         setState(() => generalVolume = value);
                         _persistSettings();
                       },
@@ -157,6 +186,7 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
                 'Plays even when the phone is silent',
                 alwaysPlayRequests,
                 (value) {
+                  if (!_canEdit) return;
                   setState(() => alwaysPlayRequests = value);
                   _persistSettings();
                 },
@@ -180,6 +210,7 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
                 'Spoken turns while you drive',
                 voiceNavigation,
                 (value) {
+                  if (!_canEdit) return;
                   setState(() => voiceNavigation = value);
                   _persistSettings();
                 },
@@ -189,6 +220,7 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
                 'Reads new chat messages aloud',
                 readRiderMessages,
                 (value) {
+                  if (!_canEdit) return;
                   setState(() => readRiderMessages = value);
                   _persistSettings();
                 },
