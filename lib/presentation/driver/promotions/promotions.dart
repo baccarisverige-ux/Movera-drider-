@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 /// Plain promotion rows. An admin panel can replace [_catalog] with the
 /// same fields: title, detail, reward, window, and whether it is live.
 class Promotions extends StatefulWidget {
-  const Promotions({super.key});
+  const Promotions({super.key, this.copyCode});
+
+  final Future<void> Function(String)? copyCode;
 
   @override
   State<Promotions> createState() => _PromotionsState();
@@ -62,6 +64,31 @@ class _PromotionsState extends State<Promotions> {
 
   final Set<String> _saved = {'airport'};
   int _tab = 0;
+  bool _copying = false;
+  bool get _ownsRoute => mounted && ModalRoute.of(context)?.isCurrent == true;
+
+  Future<void> _copyCode(_Promo promo) async {
+    if (!_ownsRoute || _copying) return;
+    setState(() => _copying = true);
+    String message;
+    try {
+      await (widget.copyCode ??
+          (code) => Clipboard.setData(ClipboardData(text: code)))(promo.code);
+      message = 'Demo code ${promo.code} copied';
+    } catch (_) {
+      message = 'Could not copy the code. Please try again.';
+    } finally {
+      if (mounted) setState(() => _copying = false);
+    }
+    if (!mounted || !_ownsRoute) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: _ink,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   List<_Promo> get _visible {
     if (_tab == 1) {
@@ -133,7 +160,10 @@ class _PromotionsState extends State<Promotions> {
   Widget _tabChip(String label, int index) {
     final selected = _tab == index;
     return GestureDetector(
-      onTap: () => setState(() => _tab = index),
+      onTap: () {
+        if (!_ownsRoute) return;
+        setState(() => _tab = index);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -214,16 +244,7 @@ class _PromotionsState extends State<Promotions> {
             runSpacing: 4,
             children: [
               TextButton(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: promo.code));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Demo code ${promo.code} copied'),
-                      backgroundColor: _ink,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
+                onPressed: _copying ? null : () => _copyCode(promo),
                 child: Text(
                   promo.code,
                   style: const TextStyle(
@@ -234,6 +255,7 @@ class _PromotionsState extends State<Promotions> {
               ),
               TextButton(
                 onPressed: () {
+                  if (!_ownsRoute) return;
                   setState(() {
                     if (saved) {
                       _saved.remove(promo.id);

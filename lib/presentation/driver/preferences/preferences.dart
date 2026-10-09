@@ -162,7 +162,7 @@ class _PreferencesState extends State<Preferences> {
   }
 
   Future<void> _save() async {
-    if (!await _persistSettings() || !_canEdit) {
+    if (!await _persistSettings() || !mounted || !_canEdit) {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
