@@ -22,7 +22,14 @@ class _AccessibilityState extends State<Accessibility> {
   bool _loading = true;
   bool _restoreFailed = false;
   bool _restoring = false;
-  bool get _canEdit => !_loading && !_restoreFailed;
+  bool _saveFailed = false;
+  bool _retryingSave = false;
+  int _saveRevision = 0;
+  bool get _canEdit =>
+      mounted &&
+      ModalRoute.of(context)?.isCurrent == true &&
+      !_loading &&
+      !_restoreFailed;
   Future<void> _restoreSettings() async {
     if (_restoring || !mounted) return;
     _restoring = true;
@@ -58,19 +65,30 @@ class _AccessibilityState extends State<Accessibility> {
 
   Future<bool> _persistSettings() async {
     if (!_canEdit) return false;
+    final revision = ++_saveRevision;
+    var saved = false;
     try {
       await _settings.save('accessibility', {
         'flash': _flash,
         'vibration': _vibration,
       });
-      return true;
+      saved = true;
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save preferences. Retry.')),
-        );
-      }
-      return false;
+      saved = false;
+    }
+    if (mounted && revision == _saveRevision) {
+      setState(() => _saveFailed = !saved);
+    }
+    return saved;
+  }
+
+  Future<void> _retrySave() async {
+    if (!_canEdit || _retryingSave) return;
+    setState(() => _retryingSave = true);
+    try {
+      await _persistSettings();
+    } finally {
+      if (mounted) setState(() => _retryingSave = false);
     }
   }
 
@@ -109,6 +127,16 @@ class _AccessibilityState extends State<Accessibility> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
           if (_loading) const LinearProgressIndicator(),
+          if (_saveFailed)
+            TextButton(
+              key: const ValueKey('settings-save-retry'),
+              onPressed: _retryingSave ? null : _retrySave,
+              child: Text(
+                _retryingSave
+                    ? 'Saving preferences…'
+                    : 'Changes not saved — Retry',
+              ),
+            ),
           if (_restoreFailed)
             TextButton(
               onPressed: _restoreSettings,
@@ -125,6 +153,7 @@ class _AccessibilityState extends State<Accessibility> {
               color: Color(0xFFB0B8BC),
             ),
             onTap: () {
+              if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
               showDialog<void>(
                 context: context,
                 builder: (dialogContext) {
@@ -162,6 +191,7 @@ class _AccessibilityState extends State<Accessibility> {
               onTap: !_canEdit
                   ? null
                   : () {
+                      if (!_canEdit) return;
                       setState(() => _flash = !_flash);
                       _persistSettings();
                     },
@@ -172,6 +202,7 @@ class _AccessibilityState extends State<Accessibility> {
                   onChanged: !_canEdit
                       ? null
                       : (value) {
+                          if (!_canEdit) return;
                           setState(() => _flash = value);
                           _persistSettings();
                         },
@@ -191,6 +222,7 @@ class _AccessibilityState extends State<Accessibility> {
               onTap: !_canEdit
                   ? null
                   : () {
+                      if (!_canEdit) return;
                       setState(() => _vibration = !_vibration);
                       _persistSettings();
                     },
@@ -201,6 +233,7 @@ class _AccessibilityState extends State<Accessibility> {
                   onChanged: !_canEdit
                       ? null
                       : (value) {
+                          if (!_canEdit) return;
                           setState(() => _vibration = value);
                           _persistSettings();
                         },
