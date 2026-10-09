@@ -99,7 +99,12 @@ void main() {
     var selections = 0;
     await _open(tester, const Size(430, 1000), (_) => selections++);
     final close = tester
-        .widget<IconButton>(find.byTooltip('Close color picker'))
+        .widget<IconButton>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is IconButton && widget.tooltip == 'Close color picker',
+          ),
+        )
         .onPressed!;
     close();
     close();
