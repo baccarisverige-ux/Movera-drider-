@@ -33,6 +33,41 @@ RoadRoute _road() => RoadRoute(
 );
 
 void main() {
+  for (final fail in [false, true]) {
+    test(
+      'route ${fail ? 'failure' : 'success'} cannot clear an unresolved GPS warning',
+      () async {
+        final routes = _Routes();
+        final navigation = NavigationController(routeRepository: routes);
+        addTearDown(navigation.dispose);
+        navigation.setVehicle(_fix(_origin));
+        final request = navigation.ensureRoute(
+          origin: _origin,
+          destination: _destination,
+        );
+        navigation.keepLastKnown();
+        if (fail) {
+          routes.responses.single.completeError(
+            StateError('Route unavailable'),
+          );
+        } else {
+          routes.responses.single.complete(_road());
+        }
+        await request;
+        expect(navigation.status, 'Location updating…');
+        expect(navigation.snapshot.status, 'Location updating…');
+        expect(navigation.snapshot.banner?.status, 'Location updating…');
+        navigation.setVehicle(_fix(_origin));
+        expect(
+          navigation.routeState,
+          fail ? RouteLoadState.failed : RouteLoadState.ready,
+        );
+        expect(navigation.status, fail ? 'Route unavailable — retry' : isNull);
+        expect(routes.responses, hasLength(1));
+      },
+    );
+  }
+
   for (final point in [_origin, const GeoPoint(59.3001, 18)]) {
     test(
       'GPS recovery at $point restores failed route feedback until Retry',

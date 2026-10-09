@@ -67,6 +67,8 @@ class NavigationController extends ChangeNotifier {
   double? _progressAlong;
   bool _userPausedFollow = false;
   String? _status;
+  String? _locationWarning;
+  String? get _displayStatus => _locationWarning ?? _status;
   Timer? _rerouteDebounce;
   bool _disposed = false;
   bool _routeInFlight = false;
@@ -99,7 +101,7 @@ class NavigationController extends ChangeNotifier {
   }
 
   bool get followCamera => !_userPausedFollow;
-  String? get status => _status;
+  String? get status => _displayStatus;
 
   void setStage(ActiveRideStage stage) {
     if (_stage != stage) {
@@ -150,14 +152,10 @@ class NavigationController extends ChangeNotifier {
     // A valid fix may arrive at exactly the same coordinates as the last
     // point, especially after a brief stream interruption. Clear only the
     // transient GPS warning; a failed road route still needs explicit retry.
-    final restoredGps = _status == 'Location updating…' &&
+    final restoredGps = _locationWarning != null &&
         location.isUsableAt(DateTime.now());
     if (restoredGps) {
-      _status = switch (_routeState) {
-        RouteLoadState.failed => 'Route unavailable — retry',
-        RouteLoadState.loading => 'Route updating…',
-        _ => null,
-      };
+      _locationWarning = null;
     }
     final moved = _snapshot.vehicle.distanceMetersTo(location.point);
     if (!restoredGps &&
@@ -175,14 +173,14 @@ class NavigationController extends ChangeNotifier {
       waitingAtPickup: _stage == ActiveRideStage.waitingForRider,
       route: _route,
       banner: _snapshot.banner,
-      status: _status,
+      status: _displayStatus,
       offRoute: _snapshot.offRoute,
     );
     _rebuildBanner();
   }
 
   void keepLastKnown({String? status}) {
-    _status = status ?? 'Location updating…';
+    _locationWarning = status ?? 'Location updating…';
     _rebuildBanner();
   }
 
@@ -288,7 +286,7 @@ class NavigationController extends ChangeNotifier {
           distanceLabel: 'Waiting for rider',
           symbol: NavigationBannerSymbol.arrive,
         ),
-        status: _status,
+        status: _displayStatus,
       );
       notifyListeners();
       return;
@@ -322,7 +320,7 @@ class NavigationController extends ChangeNotifier {
       waitingAtPickup: false,
       route: route,
       banner: _bannerFor(progress),
-      status: _status,
+      status: _displayStatus,
       offRoute: progress?.offRoute ?? false,
     );
     notifyListeners();
@@ -336,11 +334,11 @@ class NavigationController extends ChangeNotifier {
         primary: arrivingToPickup
             ? 'Navigate to pickup'
             : 'Navigate to ${_targetLabel ?? 'drop-off'}',
-        distanceLabel: _status ?? 'Route updating…',
+        distanceLabel: _displayStatus ?? 'Route updating…',
         symbol: arrivingToPickup
             ? NavigationBannerSymbol.straight
             : NavigationBannerSymbol.arrive,
-        status: _status,
+        status: _displayStatus,
       );
     }
 
@@ -353,7 +351,7 @@ class NavigationController extends ChangeNotifier {
           distanceLabel: 'in ${RouteInstructionCopy.formatDistance(meters)}',
           roadName: instruction.roadName,
           symbol: NavigationBannerSymbol.arrive,
-          status: _status,
+          status: _displayStatus,
         );
       }
       return NavigationBanner(
@@ -363,7 +361,7 @@ class NavigationController extends ChangeNotifier {
         distanceLabel: 'in ${RouteInstructionCopy.formatDistance(meters)}',
         roadName: instruction.roadName,
         symbol: NavigationBannerSymbol.arrive,
-        status: _status,
+        status: _displayStatus,
       );
     }
 
@@ -382,7 +380,7 @@ class NavigationController extends ChangeNotifier {
         type: instruction.type,
         modifier: instruction.modifier,
       ),
-      status: _status,
+      status: _displayStatus,
     );
   }
 
