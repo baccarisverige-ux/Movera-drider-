@@ -192,7 +192,7 @@ class _AdditionDetailAddVehicleState extends State<AdditionDetailAddVehicle> {
                     hint: 'Select color',
                     readOnly: true,
                     ontap: () {
-                      ColorPickerDialog.show((selectedColor) {
+                      ColorPickerDialog.show(context, (selectedColor) {
                         _colorController.text = selectedColor;
                       });
                     },
