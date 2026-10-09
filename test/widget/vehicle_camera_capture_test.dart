@@ -83,7 +83,7 @@ void main() {
     final store = _PhotoStore();
     final gate = Completer<XFile?>();
     final photo = XFile.fromData(
-      await File(AppAssets.profileImg).readAsBytes(),
+      File(AppAssets.profileImg).readAsBytesSync(),
     );
     await _open(tester, store, () => gate.future);
     await tester.tap(find.text('Take photo'));
