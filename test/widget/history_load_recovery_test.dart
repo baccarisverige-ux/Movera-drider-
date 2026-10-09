@@ -92,6 +92,7 @@ void main() {
     final retry = _retry(tester);
     retry();
     retry();
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
     expect(loader.reads, hasLength(2));
     expect(find.byKey(const ValueKey('history-retry')), findsNothing);
