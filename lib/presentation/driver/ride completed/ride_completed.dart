@@ -36,6 +36,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
   static const Color _line = Color(0xFFE7ECEA);
 
   double _rating = 0;
+  bool _finishing = false;
   late final WaybillRepository _waybills;
 
   WaybillRecord? get _record => _waybills.last;
@@ -47,6 +48,10 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
   }
 
   void _finish() {
+    if (!mounted || _finishing || ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    setState(() => _finishing = true);
     final navigator = Navigator.of(context);
     final nextRide = widget.nextRide;
     if (nextRide != null) {
@@ -158,7 +163,7 @@ class _DriverRideCompletedState extends State<DriverRideCompleted> {
                 height: 52,
                 child: FilledButton(
                   key: const ValueKey<String>('ride-completed-done'),
-                  onPressed: _finish,
+                  onPressed: _finishing ? null : _finish,
                   style: FilledButton.styleFrom(
                     elevation: 0,
                     backgroundColor: _ink,
