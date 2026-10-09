@@ -172,7 +172,7 @@ class _AddVehicleState extends State<AddVehicle> {
         elevation: 0,
         leading: IconButton(
           tooltip: 'Back',
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => maybePopOwned(context),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
       ),
@@ -652,7 +652,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
         elevation: 0,
         leading: IconButton(
           tooltip: 'Back',
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => maybePopOwned(context),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
       ),
@@ -890,7 +890,7 @@ class _VehiclePhotoPageState extends State<_VehiclePhotoPage> {
         elevation: 0,
         leading: IconButton(
           tooltip: 'Back',
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => maybePopOwned(context),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
       ),

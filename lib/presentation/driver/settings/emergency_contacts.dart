@@ -110,7 +110,13 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
           .hasMatch(phone.replaceAll(RegExp(r'[\s()-]'), '')) ||
       phone == '112';
   Future<void> _addContact() async {
-    if (_loading || _restoreFailed || _adding) return;
+    if (!mounted ||
+        ModalRoute.of(context)?.isCurrent != true ||
+        _loading ||
+        _restoreFailed ||
+        _adding) {
+      return;
+    }
     setState(() => _adding = true);
     try {
       final created = await showModalBottomSheet<_EmergencyContact>(

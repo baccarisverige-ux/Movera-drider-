@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 
 class DrivingLogs extends StatelessWidget {
@@ -17,7 +18,7 @@ class DrivingLogs extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(tooltip: 'Back', 
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => maybePopOwned(context),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
         titleSpacing: 0,

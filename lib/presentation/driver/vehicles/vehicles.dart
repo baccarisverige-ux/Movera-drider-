@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/vehicle/local_vehicle_store.dart';
@@ -23,7 +24,7 @@ class _DriverVehiclesState extends State<DriverVehicles> {
   }
 
   Future<void> _load() async {
-    if (_restoring) return;
+    if (!mounted || _restoring) return;
     _restoring = true;
     setState(() => _loading = true);
     try {
@@ -57,7 +58,7 @@ class _DriverVehiclesState extends State<DriverVehicles> {
         elevation: 0,
         leading: IconButton(
           tooltip: 'Back',
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => maybePopOwned(context),
           icon: const Icon(Icons.arrow_back_rounded, color: _ink),
         ),
         title: const Text(
