@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:country_pickers/country.dart';
 import 'package:country_pickers/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -61,7 +62,7 @@ class _DriverSignInPhoneState extends State<DriverSignInPhone> {
                           children: [
                             IconButton(tooltip: 'Back', 
                               onPressed: () {
-                                Navigator.pop(context);
+                                popOwned(context);
                               },
                               icon: Icon(
                                 Icons.arrow_back_ios_rounded,

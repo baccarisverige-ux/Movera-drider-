@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 
 class PinVerification extends StatefulWidget {
@@ -66,12 +67,13 @@ class _PinVerificationState extends State<PinVerification> {
             height: 50,
             child: FilledButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
+                final messenger = ScaffoldMessenger.of(context);
+                if (!popOwned(context)) return;
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('PIN verification is not connected in this demo.'),
                   ),
                 );
-                Navigator.pop(context);
               },
               style: FilledButton.styleFrom(
                 backgroundColor: _ink,

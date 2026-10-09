@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -37,7 +38,7 @@ class DriverPhoneVerification extends StatelessWidget {
               offset: Offset(ResSize.w * -10, 0),
               child: IconButton(tooltip: 'Back', 
                 onPressed: () {
-                  Navigator.pop(context);
+                  popOwned(context);
                 },
                 icon: Icon(
                   Icons.arrow_back_ios_rounded,

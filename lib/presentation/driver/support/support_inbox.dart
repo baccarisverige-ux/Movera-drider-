@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 
 import 'dart:async';
@@ -363,7 +364,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
                                             true) {
                                       return;
                                     }
-                                    Navigator.pop(sheetContext, ticket);
+                                    popOwned(sheetContext, ticket);
                                   },
                             child: Text(
                               saving

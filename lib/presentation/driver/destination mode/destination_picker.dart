@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -148,7 +149,7 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
                     child: IconButton(
                       tooltip: 'Back',
                       key: const ValueKey<String>('destination-picker-back'),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => popOwned(context),
                       icon: const Icon(
                         Icons.arrow_back_ios_new_rounded,
                         size: 17,

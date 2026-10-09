@@ -1450,7 +1450,7 @@ extension _HomeMapSheet on _DriverHomeState {
                       final rawUrl = update.updateUrl;
                       if (rawUrl == null || rawUrl.isEmpty) {
                         if (sheetContext.mounted) {
-                          Navigator.pop(sheetContext);
+                          popOwned(sheetContext);
                         }
                         if (!mounted) { return; }
                         IslandMessages.show(HomeIslandNotices.updateUnavailable);
@@ -1485,7 +1485,7 @@ extension _HomeMapSheet on _DriverHomeState {
                 if (!update.mandatory) ...[
                   const SizedBox(height: 8),
                   TextButton(
-                    onPressed: () => Navigator.pop(sheetContext),
+                    onPressed: () => popOwned(sheetContext),
                     child: Text(
                       update.dismissLabel,
                       style: const TextStyle(

@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/core/vehicle/vehicle_year_policy.dart';
 import 'package:flutter/material.dart';
@@ -864,7 +865,7 @@ class _VehiclePhotoPageState extends State<_VehiclePhotoPage> {
           );
           return;
         }
-        Navigator.pop(context, bytes);
+        popOwned(context, bytes);
       }
     } catch (_) {
       if (!mounted || !_ownsRoute) {

@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/settings/settings_repository.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -183,7 +184,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         elevation: 0,
         leading: IconButton(
           tooltip: 'Back',
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => popOwned(context),
           icon: Icon(
             Icons.arrow_back_ios_rounded,
             color: AppColor.title,
@@ -282,7 +283,7 @@ class _ContactComposerState extends State<_ContactComposer> {
     });
     try {
       await widget.onSave(contact);
-      if (mounted) Navigator.pop(context, contact);
+      if (mounted) popOwned(context, contact);
     } catch (error) {
       if (mounted) {
         setState(() {

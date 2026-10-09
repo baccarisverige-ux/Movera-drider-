@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:country_pickers/country.dart';
 import 'package:country_pickers/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -52,7 +53,7 @@ class _DriverCreateAccountPhoneState extends State<DriverCreateAccountPhone> {
               offset: Offset(ResSize.w * -10, 0),
               child: IconButton(tooltip: 'Back', 
                 onPressed: () {
-                  Navigator.pop(context);
+                  popOwned(context);
                 },
                 icon: Icon(
                   Icons.arrow_back_ios_rounded,

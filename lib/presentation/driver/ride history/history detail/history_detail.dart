@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:flutter/material.dart';
 import 'package:dotted_line/dotted_line.dart';
@@ -93,7 +94,7 @@ class _DriverRideHistoryDetailState extends State<DriverRideHistoryDetail> {
                         children: [
                           InkWell(
                             onTap: () {
-                              Navigator.pop(context);
+                              popOwned(context);
                             },
                             child: Container(
                               height: ResSize.h * 24,

@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/safety/emergency_dial.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -55,11 +56,11 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
+              onPressed: () => popOwned(dialogContext, false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () => popOwned(dialogContext, true),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFCB424B),
               ),
@@ -150,7 +151,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
                         ),
                         IconButton(
                           tooltip: 'Close',
-                          onPressed: () => Navigator.pop(sheetContext),
+                          onPressed: () => popOwned(sheetContext),
                           icon: const Icon(Icons.close_rounded),
                           color: _muted,
                         ),
@@ -273,7 +274,7 @@ class _SafetyToolKitsState extends State<SafetyToolKits> {
               Row(
                 children: [
                   IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => popOwned(context),
                     icon: const Icon(Icons.close_rounded),
                     color: _ink,
                     tooltip: 'Close',

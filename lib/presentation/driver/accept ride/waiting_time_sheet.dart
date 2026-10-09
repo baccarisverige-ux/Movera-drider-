@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -80,7 +81,7 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
               children: [
-                _CloseMark(onTap: () => Navigator.pop(context)),
+                _CloseMark(onTap: () => popOwned(context)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -188,7 +189,7 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
                     child: OutlinedButton(
                       key: const ValueKey<String>('waiting-no-show-cancel'),
                       onPressed: () {
-                        Navigator.pop(context);
+                        if (!popOwned(context)) return;
                         widget.onNoShow?.call();
                       },
                       style: OutlinedButton.styleFrom(
@@ -227,7 +228,7 @@ class _WaitingTimeSheetState extends State<WaitingTimeSheet> {
               width: double.infinity,
               height: 52,
               child: FilledButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => popOwned(context),
                 style: FilledButton.styleFrom(
                   elevation: 0,
                   backgroundColor: _ink,

@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/privacy/local_data.dart';
@@ -358,7 +359,7 @@ class _DriverProfileState extends State<DriverProfile> {
               ModalRoute.of(dialogContext)?.isCurrent != true) {
             return;
           }
-          Navigator.pop(dialogContext, result);
+          popOwned(dialogContext, result);
         }
 
         return AlertDialog(

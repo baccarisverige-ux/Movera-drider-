@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -423,12 +424,12 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
             ListTile(
               leading: const Icon(Icons.alt_route_rounded),
               title: const Text('Trip route and options'),
-              onTap: () => Navigator.pop(context, 'route'),
+              onTap: () => popOwned(context, 'route'),
             ),
             ListTile(
               leading: const Icon(Icons.shield_outlined),
               title: const Text('Safety toolkit'),
-              onTap: () => Navigator.pop(context, 'safety'),
+              onTap: () => popOwned(context, 'safety'),
             ),
             if (widget.radarVisible)
               ListTile(
@@ -436,7 +437,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
                 title: Text(
                   widget.radarOn ? 'Turn radar off' : 'Turn radar on',
                 ),
-                onTap: () => Navigator.pop(context, 'radar'),
+                onTap: () => popOwned(context, 'radar'),
               ),
             ListTile(
               leading: Icon(
