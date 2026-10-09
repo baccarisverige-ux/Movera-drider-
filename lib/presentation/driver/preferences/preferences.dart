@@ -205,7 +205,7 @@ class _PreferencesState extends State<Preferences> {
             ? ListView(
                 padding: EdgeInsets.symmetric(horizontal: side),
                 children: [
-                  _buildHeader(),
+                  _buildHeader(context),
                   for (final index in _displayOrder)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
@@ -218,7 +218,7 @@ class _PreferencesState extends State<Preferences> {
                 children: [
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: side),
-                    child: _buildHeader(),
+                    child: _buildHeader(context),
                   ),
                   Expanded(
                     child: LayoutBuilder(
@@ -255,7 +255,7 @@ class _PreferencesState extends State<Preferences> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
