@@ -115,8 +115,9 @@ class _DriverDestinationPickerState extends State<DriverDestinationPicker> {
     // tap must not return another result or pop the screen beneath the picker.
     if (_selectionReturned ||
         !mounted ||
-        ModalRoute.of(context)?.isCurrent != true)
+        ModalRoute.of(context)?.isCurrent != true) {
       return;
+    }
     _selectionReturned = true;
     Navigator.of(context).pop(
       DriverDestinationResult(position: place.position, address: place.address),
