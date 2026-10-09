@@ -74,6 +74,8 @@ void main() {
     final yearSelector = find.byWidgetPredicate(
       (w) => w is InkWell && w.child is InputDecorator,
     );
+    await tester.ensureVisible(yearSelector);
+    await tester.pumpAndSettle();
     final open = tester.widget<InkWell>(yearSelector).onTap!;
     open();
     open();
