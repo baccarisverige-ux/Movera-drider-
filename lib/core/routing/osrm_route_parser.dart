@@ -23,18 +23,21 @@ class OsrmRouteParser {
     final points = <GeoPoint>[];
     for (final coordinate in coordinatesJson) {
       if (coordinate is! List || coordinate.length < 2) {
-        continue;
+        throw const FormatException('Malformed route coordinates.');
       }
       final longitude = coordinate[0];
       final latitude = coordinate[1];
-      if (longitude is num &&
-          latitude is num &&
-          longitude.isFinite &&
-          latitude.isFinite &&
-          longitude.abs() <= 180 &&
-          latitude.abs() <= 90) {
-        points.add(GeoPoint(latitude.toDouble(), longitude.toDouble()));
+      if (longitude is! num ||
+          latitude is! num ||
+          !longitude.isFinite ||
+          !latitude.isFinite ||
+          longitude.abs() > 180 ||
+          latitude.abs() > 90) {
+        // Dropping one waypoint could draw an artificial shortcut through
+        // unsafe roads. Invalidate the whole route and use the Retry UI.
+        throw const FormatException('Invalid route coordinates.');
       }
+      points.add(GeoPoint(latitude.toDouble(), longitude.toDouble()));
     }
 
     if (points.length < 2) {
