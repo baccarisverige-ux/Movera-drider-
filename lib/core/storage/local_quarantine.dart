@@ -42,7 +42,14 @@ class LocalQuarantine {
     DateTime? now,
   }) async {
     final at = (now ?? DateTime.now()).toUtc();
-    final key = '$prefix${source}_${at.microsecondsSinceEpoch}';
+    // More than one corrupt record can be quarantined in the same microsecond
+    // (including deterministic clock tests); never overwrite the first one.
+    var stamp = at.microsecondsSinceEpoch;
+    var key = '$prefix${source}_$stamp';
+    while (prefs.containsKey(key)) {
+      stamp++;
+      key = '$prefix${source}_$stamp';
+    }
     final payload = jsonEncode(<String, Object>{
       'source': source,
       'reason': reason,

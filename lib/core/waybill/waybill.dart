@@ -113,11 +113,15 @@ class InMemoryWaybillRepository implements WaybillRepository {
 
   @override
   void beginCurrent(WaybillRecord record) {
+    // A stale screen must not replace an independently active ride.
+    if (current != null && current!.tripId != record.tripId) return;
     _current.value = record;
   }
 
   @override
   void secureNext(WaybillRecord record) {
+    // A queued ride must be explicitly released before a different one wins.
+    if (next != null && next!.tripId != record.tripId) return;
     _next.value = record;
   }
 
