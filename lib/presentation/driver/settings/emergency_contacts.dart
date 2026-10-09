@@ -104,40 +104,43 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
       final created = await showModalBottomSheet<_EmergencyContact>(
         context: context,
         isScrollControlled: true,
+        // A swipe closes BottomSheet directly, bypassing the composer's
+        // PopScope. Keep Back/barrier dismissal, which respect pending saves.
+        enableDrag: false,
         backgroundColor: Colors.white,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        builder: (_) => _ContactComposer(validPhone: _validPhone),
+        builder: (_) => _ContactComposer(
+          validPhone: _validPhone,
+          onSave: (contact) async {
+            final number = contact.phone.replaceAll(RegExp(r'[\s()-]'), '');
+            if (_contacts.any(
+              (existing) =>
+                  existing.phone.replaceAll(RegExp(r'[\s()-]'), '') == number,
+            )) {
+              throw const FormatException(
+                'This number is already in your contacts.',
+              );
+            }
+            final updated = [..._contacts, contact];
+            await _settings.save('contacts', {
+              'rows': updated
+                  .where((c) => c.phone != '112')
+                  .map(
+                    (c) => {
+                      'name': c.name,
+                      'phone': c.phone,
+                      'relation': c.relation,
+                    },
+                  )
+                  .toList(),
+            });
+          },
+        ),
       );
       if (created != null && mounted) {
-        final updated = [..._contacts, created];
-        try {
-          await _settings.save('contacts', {
-            'rows': updated
-                .where((c) => c.phone != '112')
-                .map(
-                  (c) => {
-                    'name': c.name,
-                    'phone': c.phone,
-                    'relation': c.relation,
-                  },
-                )
-                .toList(),
-          });
-        } catch (_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Contact could not be saved. Retry.'),
-              ),
-            );
-          }
-          return;
-        }
-        if (mounted) {
-          setState(() => _contacts.add(created));
-        }
+        setState(() => _contacts.add(created));
       }
     } finally {
       if (mounted) {
@@ -245,8 +248,9 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
 }
 
 class _ContactComposer extends StatefulWidget {
-  const _ContactComposer({required this.validPhone});
+  const _ContactComposer({required this.validPhone, required this.onSave});
   final bool Function(String) validPhone;
+  final Future<void> Function(_EmergencyContact) onSave;
   @override
   State<_ContactComposer> createState() => _ContactComposerState();
 }
@@ -256,6 +260,37 @@ class _ContactComposerState extends State<_ContactComposer> {
   final name = TextEditingController();
   final phone = TextEditingController();
   final relation = TextEditingController(text: 'Family');
+  bool _saving = false;
+  String? _saveError;
+
+  Future<void> _save() async {
+    if (_saving || !_form.currentState!.validate()) return;
+    final contact = _EmergencyContact(
+      name: name.text.trim(),
+      phone: phone.text.trim(),
+      relation: relation.text.trim().isEmpty
+          ? 'Trusted contact'
+          : relation.text.trim(),
+    );
+    setState(() {
+      _saving = true;
+      _saveError = null;
+    });
+    try {
+      await widget.onSave(contact);
+      if (mounted) Navigator.pop(context, contact);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _saveError = error is FormatException
+              ? error.message
+              : 'Contact could not be saved. Retry.';
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     name.dispose();
@@ -265,64 +300,70 @@ class _ContactComposerState extends State<_ContactComposer> {
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _form,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Add trusted contact',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Enter a name'
-                      : null,
-                ),
-                TextFormField(
-                  controller: phone,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone'),
-                  validator: (value) => widget.validPhone(value?.trim() ?? '')
-                      ? null
-                      : 'Enter a valid phone number',
-                ),
-                TextFormField(
-                  controller: relation,
-                  decoration: const InputDecoration(labelText: 'Relation'),
-                ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: () {
-                    if (!_form.currentState!.validate()) return;
-                    Navigator.pop(
-                      context,
-                      _EmergencyContact(
-                        name: name.text.trim(),
-                        phone: phone.text.trim(),
-                        relation: relation.text.trim().isEmpty
-                            ? 'Trusted contact'
-                            : relation.text.trim(),
-                      ),
-                    );
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF19865C),
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_saving,
+    child: SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _form,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Add trusted contact',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
-                  child: const Text('Save contact'),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: name,
+                    enabled: !_saving,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Enter a name'
+                        : null,
+                  ),
+                  TextFormField(
+                    controller: phone,
+                    enabled: !_saving,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                    validator: (value) => widget.validPhone(value?.trim() ?? '')
+                        ? null
+                        : 'Enter a valid phone number',
+                  ),
+                  TextFormField(
+                    controller: relation,
+                    enabled: !_saving,
+                    decoration: const InputDecoration(labelText: 'Relation'),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_saveError != null)
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        _saveError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF19865C),
+                    ),
+                    child: Text(_saving ? 'Saving contact…' : 'Save contact'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
