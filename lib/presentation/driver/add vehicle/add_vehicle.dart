@@ -8,6 +8,14 @@ import 'dart:typed_data';
 import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:image_picker/image_picker.dart';
 
+// Mounted routes can still be closing or covered by another route.
+void _popVehicleRoute<T>(BuildContext context, [T? result]) {
+  if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
+    return;
+  }
+  Navigator.of(context).pop<T>(result);
+}
+
 class AddVehicle extends StatefulWidget {
   const AddVehicle({super.key, this.store});
 
@@ -105,6 +113,9 @@ class _AddVehicleState extends State<AddVehicle> {
   }
 
   Future<void> _pickYear() async {
+    if (!mounted || _saving || ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
     final picked = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.white,
@@ -132,13 +143,15 @@ class _AddVehicleState extends State<AddVehicle> {
             for (final year in years)
               ListTile(
                 title: Text(year),
-                onTap: () => Navigator.pop(context, year),
+                onTap: () => _popVehicleRoute(context, year),
               ),
           ],
         );
       },
     );
-    if (picked == null || !mounted) {
+    if (picked == null ||
+        !mounted ||
+        ModalRoute.of(context)?.isCurrent != true) {
       return;
     }
     setState(() => _year = picked);
@@ -506,7 +519,9 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
   }
 
   Future<void> _confirmRemove() async {
-    if (!_canEdit || widget.vehicleId == null) {
+    if (!_canEdit ||
+        widget.vehicleId == null ||
+        ModalRoute.of(context)?.isCurrent != true) {
       return;
     }
     setState(() => _busy = true);
@@ -564,7 +579,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
                   minHeight: 50,
                 ),
                 child: FilledButton(
-                  onPressed: () => Navigator.pop(context, false),
+                  onPressed: () => _popVehicleRoute(context, false),
                   style: FilledButton.styleFrom(
                     backgroundColor: _ink,
                     shape: RoundedRectangleBorder(
@@ -585,7 +600,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
                   minHeight: 50,
                 ),
                 child: FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
+                  onPressed: () => _popVehicleRoute(context, true),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFC4473A),
                     shape: RoundedRectangleBorder(
@@ -603,11 +618,14 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
         );
       },
     );
-    if (remove == true && mounted && widget.vehicleId != null) {
+    if (remove == true &&
+        mounted &&
+        widget.vehicleId != null &&
+        ModalRoute.of(context)?.isCurrent == true) {
       try {
         await _store.remove(widget.vehicleId!);
       } catch (_) {
-        if (mounted) {
+        if (mounted && ModalRoute.of(context)?.isCurrent == true) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Could not remove local draft. Retry.'),
@@ -619,7 +637,7 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
       if (!mounted) {
         return;
       }
-      Navigator.of(context).pop();
+      _popVehicleRoute<void>(context);
     }
   }
 
