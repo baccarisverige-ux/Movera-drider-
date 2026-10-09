@@ -4,11 +4,11 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 
 | Category | Confirmed findings | Target |
 | --- | ---: | ---: |
-| Bug | 6 | 10 |
-| Error | 6 | 10 |
+| Bug | 7 | 10 |
+| Error | 8 | 10 |
 | Problem | 3 | 10 |
-| Wrong code | 4 | 10 |
-| Critique | 3 | 10 |
+| Wrong code | 6 | 10 |
+| Critique | 4 | 10 |
 
 | ID | Category | Trigger / incorrect behavior | Fix | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -34,5 +34,11 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | F20 | Bug | Reservation map markers stay at old endpoints when request or label mode changes. | Rebuild markers from a captured request/mode with generation ownership. | reservation_marker_update_test.dart | 218 — verification pending |
 | F21 | Wrong code | Runtime scope ignores changed home/logout callbacks when session identity stays the same. | Notify inherited consumers for every exposed dependency change. | runtime_scope_update_test.dart | 218 — verification pending |
 | F22 | Error | Reservation marker raster failures escape an unawaited marker build. | Keep endpoint markers with fallback icons on rendering failure. | reservation_marker_update_test.dart | 218 — verification pending |
+| F23 | Error | Active ride Google Maps launcher exceptions escape the action callback. | Catch failed launches and allow retry after the pending action completes. | active_ride_external_map_test.dart | Verification pending |
+| F24 | Bug | Trusted-contact dialer permits concurrent launches and late failure feedback over a covering route. | Shared single-flight external handoff with current-route ownership. | external_handoff_ownership_test.dart | Verification pending |
+| F25 | Critique | Registration and insurance duplicate the same picker lifecycle and upload UI across two large implementations. | One shared document-upload component with explicit title and progress inputs. | Existing vehicle_document_picker_ownership_test.dart for both wrappers | Verification pending |
+| F26 | Wrong code | Explicit preference Save can announce newer selections after only an older snapshot completes; repeated callbacks queue duplicate saves. | Lock explicit Save, capture its selected count and check the save revision before success feedback. | preferences_explicit_save_test.dart | Verification pending |
+| F27 | Wrong code | Bank-input validation strips letters and signs before validating, accepting abc5491 and abc123456 as valid inputs. | Validate permitted digit grouping before normalization. | bank_account_input_validation_test.dart; baseline reproduced with standalone Dart | Verification pending |
+| F28 | Error | Vehicle document onboarding uses a non-scrolling column inside a bounded page, overflowing short viewports at enlarged text. | Scroll the shared upload component and keep camera controls reachable. | document_upload_step_layout_test.dart | Verification pending |
 
 Widget test filenames are under `test/widget/`, except money validation under `test/core/`. CI runs full analysis, Flutter tests, lifecycle and release contracts, web build, Android preview/signing guards and iOS compile preflight. Browser and physical-device interaction are still unverified in this environment. No backend changes are included.

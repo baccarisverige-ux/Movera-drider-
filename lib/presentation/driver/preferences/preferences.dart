@@ -75,6 +75,7 @@ class _PreferencesState extends State<Preferences> {
   bool _restoring = false;
   bool _saveFailed = false;
   bool _retryingSave = false;
+  bool _explicitSaving = false;
   int _saveRevision = 0;
   bool get _canEdit =>
       mounted &&
@@ -162,20 +163,34 @@ class _PreferencesState extends State<Preferences> {
   }
 
   Future<void> _save() async {
-    if (!await _persistSettings() || !mounted || !_canEdit) {
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '$_selectedCount ride categories saved',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+    if (!_canEdit || _explicitSaving || _selectedCount == 0) return;
+    setState(() => _explicitSaving = true);
+    try {
+      final selectedCount = _selectedCount;
+      final request = _persistSettings();
+      final revision = _saveRevision;
+      if (!await request ||
+          !mounted ||
+          !_canEdit ||
+          revision != _saveRevision) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$selectedCount ride categories saved',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: _ink,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
-        backgroundColor: _ink,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
+      );
+    } finally {
+      if (mounted) setState(() => _explicitSaving = false);
+    }
   }
 
   @override
@@ -406,7 +421,9 @@ class _PreferencesState extends State<Preferences> {
         width: double.infinity,
         height: 48,
         child: OutlinedButton(
-          onPressed: !_canEdit || _selectedCount == 0 ? null : _save,
+          onPressed: !_canEdit || _explicitSaving || _selectedCount == 0
+              ? null
+              : _save,
           style: OutlinedButton.styleFrom(
             backgroundColor: Colors.white,
             foregroundColor: _heading,
@@ -419,9 +436,9 @@ class _PreferencesState extends State<Preferences> {
               borderRadius: BorderRadius.circular(11),
             ),
           ),
-          child: const Text(
-            'Save preferences',
-            style: TextStyle(
+          child: Text(
+            _explicitSaving ? 'Saving preferences…' : 'Save preferences',
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
               letterSpacing: -0.2,
