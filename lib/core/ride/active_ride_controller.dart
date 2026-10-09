@@ -94,6 +94,11 @@ class ActiveRideController extends ChangeNotifier {
       if (next == null || next.index < _stage.index) {
         return false;
       }
+      // Realtime may repeat the same stage each poll: avoid disk writes and
+      // rebuild notifications when nothing in the lifecycle changed.
+      if (next == _stage) {
+        return true;
+      }
       return _write(
         () => _repository.save(_snapshot(next)),
         commit: () => _stage = next,

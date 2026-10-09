@@ -35,7 +35,14 @@ class DriverSessionController extends ChangeNotifier {
   String? get activeTripId => _activeTripId;
 
   void _save(Future<void> Function() operation) {
-    _writes = _writes.then((_) => operation()).catchError((Object error) {
+    _writes = _writes.then((_) async {
+      await operation();
+      // A later successful write resolves any visible persistence failure.
+      if (!_disposed && persistenceError != null) {
+        persistenceError = null;
+        notifyListeners();
+      }
+    }).catchError((Object error) {
       persistenceError = error;
       if (!_disposed) {
         notifyListeners();
@@ -131,7 +138,9 @@ class DriverSessionController extends ChangeNotifier {
       return;
     }
     if (_activeTripId != null) {
+      // Suspension takes effect after the active ride, not mid-journey.
       _suspendAfterTrip = true;
+      return;
     }
     if (_status == DriverOnlineStatus.suspended) {
       return;
@@ -170,6 +179,10 @@ class DriverSessionController extends ChangeNotifier {
         return;
       }
       persistenceError = error;
+      // Failed recovery must not leave an initial-online session available.
+      if (_activeTripId == null) {
+        _status = DriverOnlineStatus.offline;
+      }
       notifyListeners();
     }
   }
