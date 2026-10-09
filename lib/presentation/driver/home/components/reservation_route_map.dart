@@ -60,6 +60,7 @@ class ReservationRouteMap extends StatefulWidget {
     this.padding = EdgeInsets.zero,
     this.fitPadding = 28,
     this.interactive = false,
+    this.markerIcon,
   });
 
   final ReservationRequestPreview request;
@@ -72,6 +73,8 @@ class ReservationRouteMap extends StatefulWidget {
   /// Space between the route and the visible map edge.
   final double fitPadding;
   final bool interactive;
+  final Future<BitmapDescriptor> Function(RouteMarkKind, String, String?)?
+  markerIcon;
 
   @override
   State<ReservationRouteMap> createState() => _ReservationRouteMapState();
@@ -80,6 +83,8 @@ class ReservationRouteMap extends StatefulWidget {
 class _ReservationRouteMapState extends State<ReservationRouteMap> {
   Set<Marker> _markers = const {};
   GoogleMapController? _controller;
+  int _markerGeneration = 0;
+  Timer? _fitTimer;
 
   @override
   void initState() {
@@ -90,60 +95,86 @@ class _ReservationRouteMapState extends State<ReservationRouteMap> {
   @override
   void didUpdateWidget(covariant ReservationRouteMap oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.route != widget.route) {
+    if (oldWidget.request != widget.request ||
+        oldWidget.labelled != widget.labelled ||
+        oldWidget.markerIcon != widget.markerIcon) {
+      unawaited(_buildMarkers());
+    }
+    if (oldWidget.route != widget.route ||
+        oldWidget.request != widget.request ||
+        oldWidget.padding != widget.padding ||
+        oldWidget.fitPadding != widget.fitPadding) {
       _fit();
     }
   }
 
   Future<void> _buildMarkers() async {
+    final generation = ++_markerGeneration;
     final request = widget.request;
+    final labelled = widget.labelled;
+    final markerIcon = widget.markerIcon;
     final markers = <Marker>{};
-    Future<void> add(
+    Future<bool> add(
       String id,
       GeoPoint point,
       RouteMarkKind kind,
       String title,
       String? time,
     ) async {
-      final icon = widget.labelled
-          ? await RouteMarkPins.labelled(kind, title, time)
-          : await RouteMarkPins.mark(kind);
+      BitmapDescriptor icon;
+      try {
+        icon = markerIcon != null
+            ? await markerIcon(kind, title, time)
+            : labelled
+            ? await RouteMarkPins.labelled(kind, title, time)
+            : await RouteMarkPins.mark(kind);
+      } catch (_) {
+        icon = BitmapDescriptor.defaultMarker;
+      }
+      if (!mounted || generation != _markerGeneration) return false;
       markers.add(
         Marker(
           markerId: MarkerId(id),
           position: point.toLatLng(),
           icon: icon,
-          anchor: widget.labelled
+          anchor: labelled
               ? RouteMarkPins.labelledAnchor(title, time)
               : const Offset(0.5, 0.5),
           zIndexInt: kind == RouteMarkKind.stop ? 1 : 2,
         ),
       );
+      return true;
     }
 
-    await add(
+    if (!await add(
       'reservation-pickup',
       request.pickup,
       RouteMarkKind.pickup,
       'Pickup',
       request.pickupTime,
-    );
+    )) {
+      return;
+    }
     for (var i = 0; i < request.stops.length; i++) {
-      await add(
+      if (!await add(
         'reservation-stop-$i',
         request.stops[i].point,
         RouteMarkKind.stop,
         'Stop ${i + 1}',
         null,
-      );
+      )) {
+        return;
+      }
     }
-    await add(
+    if (!await add(
       'reservation-dropoff',
       request.dropoff,
       RouteMarkKind.dropoff,
       'Arrive',
       request.arrivalTime,
-    );
+    )) {
+      return;
+    }
     if (mounted) {
       setState(() => _markers = markers);
     }
@@ -171,7 +202,8 @@ class _ReservationRouteMapState extends State<ReservationRouteMap> {
       return;
     }
     // Let the map lay out before fitting; fitting a 0-size map throws.
-    Future<void>.delayed(const Duration(milliseconds: 250), () async {
+    _fitTimer?.cancel();
+    _fitTimer = Timer(const Duration(milliseconds: 250), () async {
       if (!mounted) {
         return;
       }
@@ -181,6 +213,13 @@ class _ReservationRouteMapState extends State<ReservationRouteMap> {
         );
       } catch (_) {}
     });
+  }
+
+  @override
+  void dispose() {
+    _markerGeneration++;
+    _fitTimer?.cancel();
+    super.dispose();
   }
 
   @override

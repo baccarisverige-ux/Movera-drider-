@@ -19,5 +19,7 @@ class DriverRuntimeScope extends InheritedWidget {
       context.dependOnInheritedWidgetOfExactType<DriverRuntimeScope>();
   @override
   bool updateShouldNotify(DriverRuntimeScope oldWidget) =>
-      oldWidget.session != session;
+      oldWidget.session != session ||
+      oldWidget.homeBuilder != homeBuilder ||
+      oldWidget.logout != logout;
 }
