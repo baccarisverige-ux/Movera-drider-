@@ -85,6 +85,7 @@ void main() {
     (tester) async {
       await openScheduled(tester);
       await openCancellation(tester);
+      await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       final keep = tester
@@ -113,7 +114,13 @@ void main() {
     await openScheduled(tester);
     await tester.tap(find.text('Gamla vägen, Stockholm'));
     await tester.pumpAndSettle();
-    final back = tester.widget<IconButton>(find.byTooltip('Back')).onPressed!;
+    final back = tester
+        .widget<IconButton>(
+          find.byWidgetPredicate(
+            (widget) => widget is IconButton && widget.tooltip == 'Back',
+          ),
+        )
+        .onPressed!;
     back();
     back();
     await tester.pumpAndSettle();
