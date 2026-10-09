@@ -411,6 +411,7 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
 
   Widget _liveMap(BuildContext context) {
     return FutureBuilder<List<GeoPoint>>(
+      key: ValueKey(_route),
       future: _route,
       initialData: reservationWaypoints(request),
       builder: (context, snapshot) => ReservationRouteMap(
