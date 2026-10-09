@@ -647,7 +647,10 @@ class _ConversationState extends State<_Conversation> {
   final _history = ScrollController();
   bool _saving = false;
   Future<void> saveMessage() async {
-    if (_saving || input.text.trim().isEmpty) {
+    if (!mounted ||
+        ModalRoute.of(context)?.isCurrent != true ||
+        _saving ||
+        input.text.trim().isEmpty) {
       return;
     }
     final rawText = input.text;

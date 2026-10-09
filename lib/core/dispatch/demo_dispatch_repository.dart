@@ -17,9 +17,9 @@ class DemoDispatchRepository implements DispatchRepository {
     Duration externalClaimDelay = const Duration(seconds: 13),
     this.losingOfferId = 'nearby-2',
     this.externalClaimOfferId = 'nearby-3',
-  })  : _claimDelay = claimDelay,
-        _newOfferDelay = newOfferDelay,
-        _externalClaimDelay = externalClaimDelay;
+  }) : _claimDelay = claimDelay,
+       _newOfferDelay = newOfferDelay,
+       _externalClaimDelay = externalClaimDelay;
 
   final Duration _claimDelay;
   final Duration _newOfferDelay;
@@ -130,27 +130,51 @@ class DemoDispatchRepository implements DispatchRepository {
   Stream<List<RideOffer>> watchNearbyOffers({
     bool destinationModeActive = false,
   }) {
-    _ensureDemoSchedule();
-    Future<void>.microtask(() => _emitNearby());
-    return _nearby.stream.map((offers) {
-      if (!destinationModeActive) { return offers; }
-      return offers.where((offer) => offer.followsDestination).toList();
-    });
+    return Stream<List<RideOffer>>.multi((sink) {
+      if (_disposed) {
+        sink.closeSync();
+        return;
+      }
+      List<RideOffer> snapshot(List<RideOffer> offers) =>
+          List<RideOffer>.unmodifiable(
+            destinationModeActive
+                ? offers.where((offer) => offer.followsDestination)
+                : offers,
+          );
+      final subscription = _nearby.stream.listen(
+        (offers) => sink.addSync(snapshot(offers)),
+        onError: sink.addErrorSync,
+        onDone: sink.closeSync,
+      );
+      sink.onCancel = subscription.cancel;
+      _ensureDemoSchedule();
+      // Each listener owns its initial snapshot, even when it subscribes later.
+      sink.addSync(snapshot(_offers));
+    }, isBroadcast: true);
   }
 
   @override
   Stream<List<RideOffer>> watchNextTripOffers() {
-    Future<void>.microtask(() {
-      if (!_nextTrip.isClosed) {
-        _nextTrip.add(const <RideOffer>[]);
+    return Stream<List<RideOffer>>.multi((sink) {
+      if (_disposed) {
+        sink.closeSync();
+        return;
       }
-    });
-    return _nextTrip.stream;
+      final subscription = _nextTrip.stream.listen(
+        sink.addSync,
+        onError: sink.addErrorSync,
+        onDone: sink.closeSync,
+      );
+      sink.onCancel = subscription.cancel;
+      sink.addSync(const <RideOffer>[]);
+    }, isBroadcast: true);
   }
 
   @override
   Future<ClaimResult> claimOffer(String offerId) async {
-    if (_disposed) { return const ClaimResult.unavailable(); }
+    if (_disposed) {
+      return const ClaimResult.unavailable();
+    }
     final generation = _generation;
     await Future<void>.delayed(_claimDelay);
     if (_disposed || generation != _generation) {
@@ -180,7 +204,9 @@ class DemoDispatchRepository implements DispatchRepository {
   }
 
   void _ensureDemoSchedule() {
-    if (_demoStarted) { return; }
+    if (_disposed || _demoStarted) {
+      return;
+    }
     _demoStarted = true;
     _newOfferTimer = Timer(_newOfferDelay, _releaseQueuedOffers);
     _externalClaimTimer = Timer(_externalClaimDelay, () {
@@ -189,7 +215,9 @@ class DemoDispatchRepository implements DispatchRepository {
   }
 
   void _releaseQueuedOffers() {
-    if (_queued.isEmpty) { return; }
+    if (_queued.isEmpty) {
+      return;
+    }
     _offers = [..._offers, ..._queued];
     _queued = const <RideOffer>[];
     _emitNearby();
@@ -197,19 +225,25 @@ class DemoDispatchRepository implements DispatchRepository {
 
   void _removeOffer(String offerId) {
     final next = _offers.where((item) => item.id != offerId).toList();
-    if (next.length == _offers.length) { return; }
+    if (next.length == _offers.length) {
+      return;
+    }
     _offers = next;
     _emitNearby();
   }
 
   void _emitNearby() {
-    if (_nearby.isClosed) { return; }
+    if (_nearby.isClosed) {
+      return;
+    }
     _nearby.add(List<RideOffer>.unmodifiable(_offers));
   }
 
   /// Returns the demo to its first-launch offer set, for logout/re-entry.
   void reset() {
-    if (_disposed) { return; }
+    if (_disposed) {
+      return;
+    }
     _generation++;
     _newOfferTimer?.cancel();
     _externalClaimTimer?.cancel();
@@ -220,7 +254,9 @@ class DemoDispatchRepository implements DispatchRepository {
   }
 
   void dispose() {
-    if (_disposed) { return; }
+    if (_disposed) {
+      return;
+    }
     _disposed = true;
     _generation++;
     _newOfferTimer?.cancel();

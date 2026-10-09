@@ -41,7 +41,10 @@ class TripIslandController extends ChangeNotifier {
   TripIslandInput _input;
   Timer? _idle, _waitingCycle, _noticeTimer;
   TripIslandFace? _notice;
-  bool defaultFace = false, waitingMessageFace = false;
+  bool _defaultFace = false;
+  bool waitingMessageFace = false;
+  String? get _fault => _input.navigationStatus ?? _input.banner?.status;
+  bool get defaultFace => _defaultFace && !(_fault?.isNotEmpty ?? false);
   int _pointers = 0;
   int _touchEpoch = 0;
   bool _disposed = false;
@@ -56,6 +59,10 @@ class TripIslandController extends ChangeNotifier {
     final previousFault = previous.navigationStatus ?? previous.banner?.status;
     final fault = input.navigationStatus ?? input.banner?.status;
     _input = input;
+    if (fault?.isNotEmpty ?? false) {
+      _defaultFace = false;
+      _idle?.cancel();
+    }
     if (wasWaiting && input.waitingSeconds == null) {
       _showNotice(previous.waitingAtStop ? input.status : 'Trip started');
     } else if (previousFault != null && fault == null) {
@@ -99,12 +106,13 @@ class TripIslandController extends ChangeNotifier {
     final epoch = ++_touchEpoch;
     scheduleMicrotask(() {
       if (_disposed || _pointers != 0 || _touchEpoch != epoch) return;
-      defaultFace = true;
+      if (_fault?.isNotEmpty ?? false) return;
+      _defaultFace = true;
       notifyListeners();
       _idle?.cancel();
       _idle = Timer(const Duration(seconds: 2), () {
         if (_disposed || _pointers != 0 || _touchEpoch != epoch) return;
-        defaultFace = false;
+        _defaultFace = false;
         notifyListeners();
       });
     });
