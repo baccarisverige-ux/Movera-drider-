@@ -197,11 +197,17 @@ class RouteInstructionCopy {
             ? 'Merge right$onto'
             : 'Merge$onto';
       case RouteManeuverType.fork:
-        return modifier.contains('left') ? 'Keep left$onto' : 'Keep right$onto';
+        return modifier.contains('left')
+            ? 'Keep left$onto'
+            : modifier.contains('right')
+            ? 'Keep right$onto'
+            : 'Continue at the fork$onto';
       case RouteManeuverType.endOfRoad:
         return modifier.contains('left')
             ? 'Turn left at the end of the road$onto'
-            : 'Turn right at the end of the road$onto';
+            : modifier.contains('right')
+            ? 'Turn right at the end of the road$onto'
+            : 'At the end of the road$onto';
       case RouteManeuverType.turn:
       case RouteManeuverType.unknown:
       case RouteManeuverType.notification:
@@ -244,9 +250,17 @@ class RouteInstructionCopy {
             ? 'Merge right'
             : 'Merge';
       case RouteManeuverType.fork:
-        return modifier.contains('left') ? 'Keep left' : 'Keep right';
+        return modifier.contains('left')
+            ? 'Keep left'
+            : modifier.contains('right')
+            ? 'Keep right'
+            : 'Continue at the fork';
       case RouteManeuverType.endOfRoad:
-        return modifier.contains('left') ? 'Turn left' : 'Turn right';
+        return modifier.contains('left')
+            ? 'Turn left'
+            : modifier.contains('right')
+            ? 'Turn right'
+            : 'End of the road';
       case RouteManeuverType.turn:
       case RouteManeuverType.unknown:
       case RouteManeuverType.notification:

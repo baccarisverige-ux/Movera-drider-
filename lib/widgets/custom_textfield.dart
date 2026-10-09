@@ -41,10 +41,8 @@ Widget customTextfield({
     enabled: enabled,
     validator: onValidator,
     textInputAction: textInputAction,
-    onChanged: (v) {
-      onChangedbool ? onChanged!(v) : (v) {};
-    },
-    maxLines: maxline,
+    onChanged: (v) => onChanged?.call(v),
+    maxLines: isobscure == true ? 1 : maxline,
     keyboardType: keyboardType,
     textCapitalization: textCapitalization,
     onFieldSubmitted: (value) {
@@ -60,7 +58,7 @@ Widget customTextfield({
     ),
     controller: controller,
     textAlign: TextAlign.start,
-    obscureText: isobscure!,
+    obscureText: isobscure ?? false,
     decoration: InputDecoration(
       contentPadding: EdgeInsets.symmetric(
         horizontal: ResSize.w * contentHorizPadding,

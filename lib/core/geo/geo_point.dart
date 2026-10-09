@@ -9,19 +9,27 @@ class GeoPoint {
   final double latitude;
   final double longitude;
 
+  bool get isValid =>
+      latitude.isFinite &&
+      longitude.isFinite &&
+      latitude.abs() <= 90 &&
+      longitude.abs() <= 180;
+
   double distanceMetersTo(GeoPoint other) {
     const earthRadiusMeters = 6371000.0;
     final lat1 = latitude * math.pi / 180;
     final lat2 = other.latitude * math.pi / 180;
     final dLat = (other.latitude - latitude) * math.pi / 180;
     final dLon = (other.longitude - longitude) * math.pi / 180;
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(lat1) *
             math.cos(lat2) *
             math.sin(dLon / 2) *
             math.sin(dLon / 2);
     final bounded = a.clamp(0.0, 1.0);
-    return earthRadiusMeters * 2 *
+    return earthRadiusMeters *
+        2 *
         math.atan2(math.sqrt(bounded), math.sqrt(1 - bounded));
   }
 
@@ -31,7 +39,8 @@ class GeoPoint {
     final lat2 = other.latitude * math.pi / 180;
     final dLon = (other.longitude - longitude) * math.pi / 180;
     final y = math.sin(dLon) * math.cos(lat2);
-    final x = math.cos(lat1) * math.sin(lat2) -
+    final x =
+        math.cos(lat1) * math.sin(lat2) -
         math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
     return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
   }

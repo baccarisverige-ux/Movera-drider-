@@ -19,16 +19,20 @@ class DriverLocation {
           speedMetersPerSecond!.isFinite &&
           speedMetersPerSecond! >= 1 &&
           headingDegrees.isFinite &&
-          headingDegrees >= 0
+          headingDegrees >= 0 &&
+          headingDegrees <= 360
       ? headingDegrees % 360
       : previous;
   final DateTime? measuredAt;
   final double? accuracyMeters;
+
   /// Map and demo boundary. A real measured GPS fix must be fresh and
   /// accurate; metadata-free demo points remain usable for frontend previews.
   bool isDisplayableAt(DateTime now) {
-    if (!point.latitude.isFinite || !point.longitude.isFinite ||
-        point.latitude.abs() > 90 || point.longitude.abs() > 180) {
+    if (!point.latitude.isFinite ||
+        !point.longitude.isFinite ||
+        point.latitude.abs() > 90 ||
+        point.longitude.abs() > 180) {
       return false;
     }
     if (measuredAt != null || accuracyMeters != null) {

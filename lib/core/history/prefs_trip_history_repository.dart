@@ -28,6 +28,7 @@ class PrefsTripHistoryRepository {
   Future<List<TripHistoryRecord>> list() => _enqueue(() async {
     LocalWriteSession.check(_generation);
     final prefs = await _load();
+    LocalWriteSession.check(_generation);
     final raw = prefs.getString(key);
     if (raw == null) {
       return const <TripHistoryRecord>[];
@@ -84,7 +85,6 @@ class PrefsTripHistoryRepository {
       DriverLog.warn('History rows are malformed');
       return const _HistoryDecode([], invalid: true);
     }
-    final ids = <String>{};
     final rows = <Map<String, dynamic>>[];
     bool invalid = false;
     for (final row in decoded) {
@@ -98,7 +98,7 @@ class PrefsTripHistoryRepository {
             'fare',
             'category',
           ].every((key) => row[key] is String) ||
-          (row['tripId'] as String).isEmpty ||
+          (row['tripId'] as String).trim().isEmpty ||
           ![
             'distance',
             'duration',
@@ -110,7 +110,7 @@ class PrefsTripHistoryRepository {
           (row['fareMinorUnits'] != null && row['fareMinorUnits'] is! int) ||
           (row['status'] != null &&
               !TripStatus.values.any(
-                (status) => status.name == row['status'],
+                (status) => status.isTerminal && status.name == row['status'],
               )) ||
           (row['completedAt'] != null &&
               (row['completedAt'] is! String ||
@@ -119,9 +119,7 @@ class PrefsTripHistoryRepository {
         DriverLog.warn('Skipping malformed history row');
         continue;
       }
-      if (ids.add(row['tripId'] as String)) {
-        rows.add(Map<String, dynamic>.from(row));
-      }
+      rows.add(Map<String, dynamic>.from(row));
     }
     rows.sort(
       (a, b) =>
@@ -132,7 +130,11 @@ class PrefsTripHistoryRepository {
                     DateTime(1970),
               ),
     );
-    return _HistoryDecode(rows.take(maxReceipts).toList(), invalid: invalid);
+    // A legacy duplicate can be ordered oldest first. Select the latest
+    // version after sorting rather than losing a corrected/newer receipt.
+    final ids = <String>{};
+    final unique = rows.where((row) => ids.add(row['tripId'] as String));
+    return _HistoryDecode(unique.take(maxReceipts).toList(), invalid: invalid);
   }
 
   Future<void> _preserveInvalid(
@@ -162,6 +164,12 @@ class PrefsTripHistoryRepository {
     String? cancellationReasonCode,
     bool authoritative = false,
   }) {
+    if (record.tripId.trim().isEmpty || !status.isTerminal) {
+      return Future<void>.error(
+        ArgumentError('A terminal trip with a nonempty ID is required'),
+      );
+    }
+    final at = completedAt ?? DateTime.now();
     Future<void> write() async {
       final prefs = await _load();
       final raw = prefs.getString(key);
@@ -178,7 +186,6 @@ class PrefsTripHistoryRepository {
         if (!authoritative) return;
         rows.removeWhere((row) => row['tripId'] == record.tripId);
       }
-      final at = completedAt ?? DateTime.now();
       rows.insert(0, <String, dynamic>{
         'tripId': record.tripId,
         'riderName': record.riderName,
@@ -202,6 +209,15 @@ class PrefsTripHistoryRepository {
           'paymentMethod': paymentMethod!.trim(),
         'completedAt': at.toIso8601String(),
       });
+      rows.sort(
+        (a, b) =>
+            (DateTime.tryParse(b['completedAt'] as String? ?? '') ??
+                    DateTime(1970))
+                .compareTo(
+                  DateTime.tryParse(a['completedAt'] as String? ?? '') ??
+                      DateTime(1970),
+                ),
+      );
       LocalWriteSession.check(_generation);
       final success = await prefs.setString(
         key,

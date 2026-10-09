@@ -35,25 +35,28 @@ class DriverSessionController extends ChangeNotifier {
   String? get activeTripId => _activeTripId;
 
   void _save(Future<void> Function() operation) {
-    _writes = _writes.then((_) async {
-      await operation();
-      // A later successful write resolves any visible persistence failure.
-      if (!_disposed && persistenceError != null) {
-        persistenceError = null;
-        notifyListeners();
-      }
-    }).catchError((Object error) {
-      persistenceError = error;
-      if (!_disposed) {
-        notifyListeners();
-      }
-    });
+    _writes = _writes
+        .then((_) async {
+          await operation();
+          // A later successful write resolves any visible persistence failure.
+          if (!_disposed && persistenceError != null) {
+            persistenceError = null;
+            notifyListeners();
+          }
+        })
+        .catchError((Object error) {
+          persistenceError = error;
+          if (!_disposed) {
+            notifyListeners();
+          }
+        });
   }
 
   void beginTrip(String tripId) {
     // A duplicate widget mount or a stale navigation action must not replace
     // the active trip or reset its return-to-online intent.
-    if (_disposed || tripId.trim().isEmpty ||
+    if (_disposed ||
+        tripId.trim().isEmpty ||
         (_activeTripId != null && _activeTripId != tripId)) {
       return;
     }
@@ -153,7 +156,7 @@ class DriverSessionController extends ChangeNotifier {
 
   /// D11: crash / cold start is always offline. Going online is explicit.
   Future<void> restore() async {
-    if (_disposed) {
+    if (_disposed || _activeTripId != null) {
       return;
     }
     final revision = ++_revision;
@@ -208,7 +211,7 @@ class DriverSessionController extends ChangeNotifier {
     if (_suspendAfterTrip || _status == DriverOnlineStatus.suspended) {
       next = DriverOnlineStatus.suspended;
     } else if (_offlineAfterTrip ||
-        _statusBeforeTrip == DriverOnlineStatus.offline) {
+        _statusBeforeTrip != DriverOnlineStatus.online) {
       next = DriverOnlineStatus.offline;
     } else {
       next = DriverOnlineStatus.online;
