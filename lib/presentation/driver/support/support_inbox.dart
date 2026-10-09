@@ -18,55 +18,65 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   bool _restoreFailed = false;
   bool _loading = true;
   bool _opening = false;
+  bool _restoring = false;
   @override
   void initState() {
     super.initState();
     _restore();
   }
 
-  Future<void> _restore() async {
+  Future<void> _restore({bool recover = false}) async {
+    if (_restoring || !mounted) {
+      return;
+    }
+    _restoring = true;
+    setState(() => _loading = true);
     try {
+      if (recover) {
+        await _repository.recover();
+        if (!mounted) {
+          return;
+        }
+      }
       final data = await _repository.read();
       if (!mounted) {
         return;
       }
-      setState(() {
-        tickets.clear();
-        _restoreFailed = false;
-        for (final row in (data['tickets'] as List? ?? [])) {
-          if (row is Map) {
-            final ticket = _Ticket.fromJson(Map<String, dynamic>.from(row));
-            if (ticket != null) {
-              tickets.add(ticket);
-            }
+      final restored = <_Ticket>[];
+      for (final row in (data['tickets'] as List? ?? [])) {
+        if (row is Map) {
+          final ticket = _Ticket.fromJson(Map<String, dynamic>.from(row));
+          if (ticket != null) {
+            restored.add(ticket);
           }
         }
-        _loading = false;
+      }
+      setState(() {
+        tickets
+          ..clear()
+          ..addAll(restored);
+        _restoreFailed = false;
       });
     } catch (_) {
       if (mounted) {
-        setState(() {
-          _restoreFailed = true;
-          _loading = false;
-        });
+        setState(() => _restoreFailed = true);
+        if (recover && ModalRoute.of(context)?.isCurrent == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not recover local support. Retry.'),
+            ),
+          );
+        }
+      }
+    } finally {
+      _restoring = false;
+      if (mounted) {
+        setState(() => _loading = false);
       }
     }
   }
 
-  Future<void> _recover() async {
-    try {
-      await _repository.recover();
-      await _restore();
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not recover local support. Retry.'),
-          ),
-        );
-      }
-    }
-  }
+  Future<void> _recover() => _restore(recover: true);
 
   Future<void> _saveTickets() async {
     try {
@@ -413,7 +423,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   );
 
   void _open(_Ticket ticket) {
-    if (_loading) {
+    if (_loading || _restoreFailed) {
       return;
     }
     setState(() => ticket.unread = false);
@@ -485,13 +495,14 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
           ),
         ),
         const SizedBox(height: 20),
+        if (_loading) const LinearProgressIndicator(),
         if (_restoreFailed) ...[
           TextButton(
-            onPressed: _restore,
+            onPressed: _loading ? null : _restore,
             child: const Text('Could not load local support — Retry'),
           ),
           TextButton(
-            onPressed: _recover,
+            onPressed: _loading ? null : _recover,
             child: const Text(
               'Recover local support (preserve unreadable data)',
             ),
