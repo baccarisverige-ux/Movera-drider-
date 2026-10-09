@@ -28,12 +28,17 @@ class LocalVehicleStore {
   /// Decoded total of all stored photos (~2.7 MB once base64-encoded).
   static const maxStoredPhotoBytes = 2 * 1024 * 1024;
 
+  static int _encodedPhotoBytes(String value) {
+    final padding = value.endsWith('==') ? 2 : (value.endsWith('=') ? 1 : 0);
+    return (value.length * 3) ~/ 4 - padding;
+  }
+
   static int _photoBytes(Map<String, dynamic> row) {
     var total = 0;
     for (final field in ['registrationPhoto', 'insurancePhoto']) {
       final value = row[field];
       if (value is String) {
-        total += (value.length * 3) ~/ 4;
+        total += _encodedPhotoBytes(value);
       }
     }
     return total;
@@ -116,7 +121,7 @@ class LocalVehicleStore {
       final unchanged = previous.isNotEmpty && previous.first[field] == value;
       if (value is String &&
           !unchanged &&
-          (value.length * 3) ~/ 4 > maxPhotoBytes) {
+          _encodedPhotoBytes(value) > maxPhotoBytes) {
         throw const VehiclePhotoBudgetExceeded(
           'Photo is too large to keep on this device.',
         );

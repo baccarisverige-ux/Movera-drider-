@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/vehicle/local_vehicle_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -62,4 +65,46 @@ void main() {
       ));
     },
   );
+  test('single photo budget accepts its exact decoded limit and rejects one byte more', () async {
+    final store = LocalVehicleStore();
+    final atLimit = base64Encode(Uint8List(LocalVehicleStore.maxPhotoBytes));
+    await store.upsert({
+      ...LocalVehicleStore.demo,
+      'registrationPhoto': atLimit,
+    });
+    expect((await store.list()).first['registrationPhoto'], atLimit);
+    await expectLater(
+      store.upsert({
+        ...LocalVehicleStore.demo,
+        'registrationPhoto': base64Encode(
+          Uint8List(LocalVehicleStore.maxPhotoBytes + 1),
+        ),
+      }),
+      throwsA(isA<VehiclePhotoBudgetExceeded>()),
+    );
+    expect((await store.list()).first['registrationPhoto'], atLimit);
+  });
+
+  test('combined photo budget uses decoded bytes at its exact limit', () async {
+    final store = LocalVehicleStore();
+    final large = base64Encode(Uint8List(LocalVehicleStore.maxPhotoBytes));
+    final remaining =
+        LocalVehicleStore.maxStoredPhotoBytes -
+        2 * LocalVehicleStore.maxPhotoBytes;
+    await store.upsert({...LocalVehicleStore.demo, 'registrationPhoto': large});
+    await store.upsert({..._vehicle('second'), 'registrationPhoto': large});
+    final thirdPhoto = base64Encode(Uint8List(remaining));
+    await store.upsert({..._vehicle('third'), 'insurancePhoto': thirdPhoto});
+    await expectLater(
+      store.upsert({
+        ..._vehicle('third'),
+        'insurancePhoto': base64Encode(Uint8List(remaining + 1)),
+      }),
+      throwsA(isA<VehiclePhotoBudgetExceeded>()),
+    );
+    final rows = await store.list();
+    expect(rows, hasLength(3));
+    expect(rows.last['insurancePhoto'], thirdPhoto);
+    expect(rows.first['registrationPhoto'], large);
+  });
 }
