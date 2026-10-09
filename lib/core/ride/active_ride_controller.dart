@@ -57,14 +57,10 @@ class ActiveRideController extends ChangeNotifier {
       return false;
     }
 
-    if (!await _write(() => _repository.save(_snapshot(next)))) {
-      return false;
-    }
-    _stage = next;
-    if (!_disposed) {
-      notifyListeners();
-    }
-    return true;
+    return _write(
+      () => _repository.save(_snapshot(next)),
+      commit: () => _stage = next,
+    );
   }
 
   /// Apply an authoritative projection, including skipped live stages.
@@ -72,15 +68,16 @@ class ActiveRideController extends ChangeNotifier {
     // Duplicate terminal deliveries must not rerun persistence. A different
     // authoritative terminal status may correct an earlier tentative outcome;
     // the completion journal supports such authoritative corrections.
-    if (saving || _disposed ||
+    if (saving ||
+        _disposed ||
         (terminal && (!status.isTerminal || _terminalStatus == status))) {
       return false;
     }
     if (status.isTerminal) {
-      if (!await _write(() => _finish(status))) {
-        return false;
-      }
-      _terminalStatus = status;
+      return _write(
+        () => _finish(status),
+        commit: () => _terminalStatus = status,
+      );
     } else {
       if (terminal) {
         return false;
@@ -97,23 +94,22 @@ class ActiveRideController extends ChangeNotifier {
       if (next == null || next.index < _stage.index) {
         return false;
       }
-      if (!await _write(() => _repository.save(_snapshot(next)))) {
-        return false;
-      }
-      _stage = next;
+      return _write(
+        () => _repository.save(_snapshot(next)),
+        commit: () => _stage = next,
+      );
     }
-    if (!_disposed) {
-      notifyListeners();
-    }
-    return true;
   }
 
   Future<bool> complete({bool clearSnapshot = true}) async {
     if (_disposed || terminal || saving || _stage != ActiveRideStage.onTrip) {
       return false;
     }
-    if (clearSnapshot && !await _write(() => _finish(TripStatus.completed))) {
-      return false;
+    if (clearSnapshot) {
+      return _write(
+        () => _finish(TripStatus.completed),
+        commit: () => _terminalStatus = TripStatus.completed,
+      );
     }
     _terminalStatus = TripStatus.completed;
     if (!_disposed) {
@@ -129,8 +125,11 @@ class ActiveRideController extends ChangeNotifier {
     if (_disposed || terminal || saving || !_isCancellationTerminal(status)) {
       return false;
     }
-    if (clearSnapshot && !await _write(() => _finish(status))) {
-      return false;
+    if (clearSnapshot) {
+      return _write(
+        () => _finish(status),
+        commit: () => _terminalStatus = status,
+      );
     }
     _terminalStatus = status;
     if (!_disposed) {
@@ -167,7 +166,10 @@ class ActiveRideController extends ChangeNotifier {
   PersistedActiveRide _snapshot(ActiveRideStage stage) =>
       snapshotBuilder?.call(stage) ??
       PersistedActiveRide(tripId: tripId ?? 'demo', stage: stage);
-  Future<bool> _write(Future<void> Function() operation) async {
+  Future<bool> _write(
+    Future<void> Function() operation, {
+    VoidCallback? commit,
+  }) async {
     if (_disposed || _writing) {
       return false;
     }
@@ -179,7 +181,11 @@ class ActiveRideController extends ChangeNotifier {
     }
     try {
       await operation();
-      return !_disposed;
+      if (_disposed) return false;
+      // Commit lifecycle state while the write lock is still held. The final
+      // notification may synchronously trigger another command or snapshot.
+      commit?.call();
+      return true;
     } catch (error) {
       persistenceError = error;
       return false;
@@ -193,7 +199,9 @@ class ActiveRideController extends ChangeNotifier {
 
   /// Errors are observable; fire-and-forget lifecycle saves never throw.
   Future<bool> persistNow() async {
-    if (_disposed) { return false; }
+    if (_disposed) {
+      return false;
+    }
     if (terminal || tripId == null) {
       return true;
     }
@@ -208,18 +216,24 @@ class ActiveRideController extends ChangeNotifier {
   }
 
   Future<void> restore() async {
-    if (_disposed || terminal || saving) { return; }
+    if (_disposed || terminal || saving) {
+      return;
+    }
     final revision = ++_revision;
     PersistedActiveRide? stored;
     try {
       stored = await _repository.read();
     } catch (error) {
-      if (_disposed || terminal || saving || revision != _revision) { return; }
+      if (_disposed || terminal || saving || revision != _revision) {
+        return;
+      }
       persistenceError = error;
       notifyListeners();
       return;
     }
-    if (_disposed || terminal || saving || revision != _revision) { return; }
+    if (_disposed || terminal || saving || revision != _revision) {
+      return;
+    }
     if (stored == null) {
       return;
     }
