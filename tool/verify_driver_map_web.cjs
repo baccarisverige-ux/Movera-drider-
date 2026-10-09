@@ -246,6 +246,29 @@ clock += 100;
 div.fire('touchstart', [touch(200,200)]); div.fire('touchend');
 assert.equal(map.getZoom(), canceledZoom,
   'Canceled touch must not become a double-tap first strike');
+// OS/browser may cancel a two-finger gesture *while one finger remains*.
+// The final release must not be mistaken for an intentional two-finger tap.
+clock += 400;
+const interruptedPinchZoom = map.getZoom();
+div.fire('touchstart', [touch(100,100), touch(200,100)]);
+div.fire('touchcancel', [touch(100,100)]);
+div.fire('touchmove', [touch(110,100)]);
+div.fire('touchstart', [touch(110,100), touch(210,100)]);
+div.fire('touchend', [touch(110,100)]);
+div.fire('touchend');
+assert.equal(map.getZoom(), interruptedPinchZoom,
+  'Cancelled pinch with surviving finger cannot zoom out on release');
+clock += 100;
+div.fire('touchstart', [touch(110,100)]); div.fire('touchend');
+assert.equal(map.getZoom(), interruptedPinchZoom,
+  'Cancelled pinch must not leave behind a false double-tap');
+clock += 400;
+const recoveredPinchZoom = map.getZoom();
+div.fire('touchstart', [touch(100,100), touch(200,100)]);
+div.fire('touchmove', [touch(100,100), touch(220,100)]);
+div.fire('touchend');
+assert.ok(map.getZoom() > recoveredPinchZoom,
+  'Fresh two-finger pinch still zooms normally after cancellation');
 // A locked active-trip sheet must prevent custom web pan, pinch and zoom,
 // not merely disable native Google Maps gesture flags.
 api.gestures(7, false);
