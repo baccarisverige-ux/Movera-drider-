@@ -6,9 +6,9 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | --- | ---: | ---: |
 | Bug | 10 | 10 |
 | Error | 10 | 10 |
-| Problem | 9 | 10 |
-| Wrong code | 9 | 10 |
-| Critique | 9 | 10 |
+| Problem | 10 | 10 |
+| Wrong code | 10 | 10 |
+| Critique | 10 | 10 |
 
 | ID | Category | Trigger / incorrect behavior | Fix | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -59,5 +59,8 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | F45 | Error | Full reservation-map details extend above a short viewport with many stops and large text, making earlier details unreachable. | Bound the card height, scroll its contents and wrap its header. | reservation_sheet_route_lifecycle_test.dart | Verification pending |
 | F46 | Problem | Reservation addresses are truncated in both request and full-map details with no way to view the complete address visually. | Wrap addresses in the scrolling details. | reservation_sheet_route_lifecycle_test.dart | Verification pending |
 | F47 | Critique | Reservation map's transparent route-opening target lacks an accessible action name and button role. | Name it View reservation route and expose button semantics. | reservation_sheet_route_lifecycle_test.dart | Verification pending |
+| F48 | Critique | Terms acceptance uses a selected IconButton instead of exposing named checkbox and checked-state semantics. | Native Checkbox with an explicit terms/privacy label. | shared_control_accessibility_test.dart | Verification pending |
+| F49 | Wrong code | Shared buttons apply responsive font scaling before passing the size to TextWidget, which scales it a second time. | Pass the base font size so only TextWidget scales it. | shared_control_accessibility_test.dart | Verification pending |
+| F50 | Problem | Shared buttons shrink enlarged long action text inside a fixed-height FittedBox, defeating readable text scaling. | Let labels wrap and buttons grow to fit their text with a minimum height. | shared_control_accessibility_test.dart | Verification pending |
 
 Widget test filenames are under `test/widget/`, except money validation under `test/core/`. CI runs full analysis, Flutter tests, lifecycle and release contracts, web build, Android preview/signing guards and iOS compile preflight. Browser and physical-device interaction are still unverified in this environment. No backend changes are included.

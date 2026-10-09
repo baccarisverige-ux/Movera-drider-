@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
+
 import 'custom_text_widget.dart';
 import 'responsive_size.dart';
 
-// ignore: must_be_immutable
 class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final double borderRadius;
@@ -18,9 +18,9 @@ class CustomButton extends StatelessWidget {
   final double fontSize;
   final Widget icon;
   final Widget loader;
-  bool isLoading;
+  final bool isLoading;
   final double iconSize;
-  CustomButton({
+  const CustomButton({
     super.key,
     this.onPressed,
     this.borderRadius = 12,
@@ -51,7 +51,8 @@ class CustomButton extends StatelessWidget {
       ),
       color: null,
       child: Container(
-        height: ResSize.h * height,
+        constraints: BoxConstraints(minHeight: ResSize.h * height),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         width: width,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(borderRadius),
@@ -59,6 +60,7 @@ class CustomButton extends StatelessWidget {
           border: Border.all(color: borderColor, width: borderwidth),
         ),
         child: Center(
+          heightFactor: 1,
           child: isLoading
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -69,14 +71,12 @@ class CustomButton extends StatelessWidget {
                   children: [
                     icon,
                     Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: TextWidget(
-                          fontSize: ResSize.setSp(fontSize),
-                          text: centerContent,
-                          color: textColor,
-                          fontWeight: fwSemiBold,
-                        ),
+                      child: TextWidget(
+                        fontSize: fontSize,
+                        textAlign: TextAlign.center,
+                        text: centerContent,
+                        color: textColor,
+                        fontWeight: fwSemiBold,
                       ),
                     ),
                   ],

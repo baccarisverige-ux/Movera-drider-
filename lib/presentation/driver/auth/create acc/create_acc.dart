@@ -52,7 +52,8 @@ class _DriverCreateAccountState extends State<DriverCreateAccount> {
             56.height,
             Transform.translate(
               offset: Offset(ResSize.w * -10, 0),
-              child: IconButton(tooltip: 'Back', 
+              child: IconButton(
+                tooltip: 'Back',
                 onPressed: () {
                   popOwned(context);
                 },
@@ -72,8 +73,7 @@ class _DriverCreateAccountState extends State<DriverCreateAccount> {
             9.height,
             TextWidget(
               textAlign: TextAlign.start,
-              text:
-                  "Enter a valid phone number where we will send a verification code",
+              text: "Enter a valid phone number where we will send a verification code",
               color: AppColor.subtitle,
               fontSize: 16,
               fontWeight: fwMedium,
@@ -104,6 +104,7 @@ class _DriverCreateAccountState extends State<DriverCreateAccount> {
                   offset: Offset(ResSize.w * -10, -7),
                   child: CustomCheckBox(
                     value: isAccept,
+                    semanticLabel: 'Accept terms and privacy policy',
                     onPressed: () {
                       setState(() {
                         isAccept = !isAccept;
