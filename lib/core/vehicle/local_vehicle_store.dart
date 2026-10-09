@@ -114,17 +114,34 @@ class LocalVehicleStore {
   }
 
   Future<void> upsert(Map<String, dynamic> vehicle) => _serial(() async {
+    // Reject bad drafts at the write boundary: a single invalid row would
+    // otherwise make every subsequent vehicle/profile read fail.
+    if (!['id', 'make', 'model', 'year', 'plate'].every(
+      (key) => vehicle[key] is String &&
+          (vehicle[key] as String).trim().isNotEmpty,
+    )) {
+      throw const FormatException('Vehicle identity fields are required');
+    }
     final rows = await list();
     final previous = rows.where((row) => row['id'] == vehicle['id']).toList();
     for (final field in ['registrationPhoto', 'insurancePhoto']) {
       final value = vehicle[field];
       final unchanged = previous.isNotEmpty && previous.first[field] == value;
-      if (value is String &&
-          !unchanged &&
-          _encodedPhotoBytes(value) > maxPhotoBytes) {
+      if (value == null) continue;
+      if (value is! String) {
+        throw const FormatException('Invalid vehicle photo payload');
+      }
+      if (!unchanged && _encodedPhotoBytes(value) > maxPhotoBytes) {
         throw const VehiclePhotoBudgetExceeded(
           'Photo is too large to keep on this device.',
         );
+      }
+      // Size alone is not proof of valid base64. Refuse a poisoned draft now
+      // instead of breaking all future calls to list().
+      try {
+        base64Decode(value);
+      } on FormatException {
+        throw const FormatException('Invalid vehicle photo encoding');
       }
     }
     final index = rows.indexWhere((row) => row['id'] == vehicle['id']);
@@ -144,6 +161,7 @@ class LocalVehicleStore {
   });
   Future<void> remove(String id) => _serial(() async {
     final rows = await list();
+    if (!rows.any((row) => row['id'] == id)) return;
     rows.removeWhere((row) => row['id'] == id);
     await _settings.save('vehicles', {'rows': rows});
     _changes.value++;
