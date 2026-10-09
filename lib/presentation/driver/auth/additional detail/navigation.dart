@@ -41,6 +41,7 @@ class AdditionalInfoNavigationController extends GetxController {
   ];
 
   Future<void> moveToNextStep(BuildContext context) async {
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) return;
     if (_moving || _closed || !pageController.hasClients) return;
     _moving = true;
     try {
@@ -48,7 +49,9 @@ class AdditionalInfoNavigationController extends GetxController {
         final next = currentPageIndex.value + 1;
         await pageController.animateToPage(
           next,
-          duration: const Duration(milliseconds: 280),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 280),
           curve: Curves.easeInOut,
         );
         if (!_closed) currentPageIndex.value = next;
@@ -61,6 +64,7 @@ class AdditionalInfoNavigationController extends GetxController {
   }
 
   Future<void> moveToPreviousStep(BuildContext context) async {
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) return;
     if (_moving || _closed || !pageController.hasClients) return;
     if (currentPageIndex.value == 0) {
       Navigator.maybePop(context);
@@ -71,7 +75,9 @@ class AdditionalInfoNavigationController extends GetxController {
       final previous = currentPageIndex.value - 1;
       await pageController.animateToPage(
         previous,
-        duration: const Duration(milliseconds: 280),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 280),
         curve: Curves.easeInOut,
       );
       if (!_closed) currentPageIndex.value = previous;
@@ -195,7 +201,19 @@ class _ProgressWidgetState extends State<ProgressWidget>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentPageIndex != widget.currentPageIndex ||
         oldWidget.totalPages != widget.totalPages) {
-      _progress.animateTo(_value);
+      if (MediaQuery.disableAnimationsOf(context)) {
+        _progress.value = _value;
+      } else {
+        _progress.animateTo(_value);
+      }
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _progress.value = _value;
     }
   }
 
