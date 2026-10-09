@@ -6,9 +6,9 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | --- | ---: | ---: |
 | Bug | 7 | 10 |
 | Error | 8 | 10 |
-| Problem | 3 | 10 |
+| Problem | 5 | 10 |
 | Wrong code | 6 | 10 |
-| Critique | 4 | 10 |
+| Critique | 5 | 10 |
 
 | ID | Category | Trigger / incorrect behavior | Fix | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -40,5 +40,8 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | F26 | Wrong code | Explicit preference Save can announce newer selections after only an older snapshot completes; repeated callbacks queue duplicate saves. | Lock explicit Save, capture its selected count and check the save revision before success feedback. | preferences_explicit_save_test.dart | Verification pending |
 | F27 | Wrong code | Bank-input validation strips letters and signs before validating, accepting abc5491 and abc123456 as valid inputs. | Validate permitted digit grouping before normalization. | bank_account_input_validation_test.dart; baseline reproduced with standalone Dart | Verification pending |
 | F28 | Error | Vehicle document onboarding uses a non-scrolling column inside a bounded page, overflowing short viewports at enlarged text. | Scroll the shared upload component and keep camera controls reachable. | document_upload_step_layout_test.dart | Verification pending |
+| F29 | Problem | Bank preview promises to keep a draft and offers Save although its form never saves any details. | Explain discard-on-exit behavior and label the action Check details. | Source review and bank_preview_feedback_test.dart | Verification pending |
+| F30 | Problem | International form labels a foreign IBAN country code as a bank and tells invalid foreign IBAN users to start with SE. | Label foreign codes Country and use country-neutral validation guidance. | bank_preview_feedback_test.dart | Verification pending |
+| F31 | Critique | Sweden/International bank tabs are gesture-only and cannot be activated with keyboard focus. | Material buttons with selected semantics and keyboard activation. | bank_preview_feedback_test.dart | Verification pending |
 
 Widget test filenames are under `test/widget/`, except money validation under `test/core/`. CI runs full analysis, Flutter tests, lifecycle and release contracts, web build, Android preview/signing guards and iOS compile preflight. Browser and physical-device interaction are still unverified in this environment. No backend changes are included.

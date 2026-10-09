@@ -19,7 +19,8 @@ class MyBank extends StatelessWidget {
         backgroundColor: AppColor.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(tooltip: 'Back', 
+        leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.of(context).maybePop(),
           icon: Icon(
             Icons.arrow_back_ios_rounded,
@@ -36,7 +37,7 @@ class MyBank extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Add a local preview draft',
+            tooltip: 'Preview account details',
             onPressed: () {
               pushSingle(context, TopToBottomTransition(const AddNewAccount()));
             },
@@ -63,7 +64,7 @@ class MyBank extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Adding an account keeps a draft on this screen only. It does not connect a payout account or move money.',
+            'You can check account details in the preview form. Details are discarded when you leave the form; no payout account is connected.',
             style: TextStyle(color: Color(0xFF7D898F), height: 1.4),
           ),
         ],

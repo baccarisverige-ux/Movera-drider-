@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:movera/core/money/bank_account.dart';
 
-/// Payout account: one quiet list, Swedish clearing + account number or an
-/// international IBAN + BIC. The bank is read from the numbers, not typed.
+/// Local-only validation preview; no account details are persisted or sent.
 class AddNewAccount extends StatefulWidget {
   const AddNewAccount({super.key});
 
@@ -24,6 +23,7 @@ class _AddNewAccountState extends State<AddNewAccount> {
   final _bic = TextEditingController();
   bool _international = false;
   bool _tried = false;
+  bool get _ownsRoute => mounted && ModalRoute.of(context)?.isCurrent == true;
 
   @override
   void dispose() {
@@ -41,7 +41,7 @@ class _AddNewAccountState extends State<AddNewAccount> {
     if (_holder.text.trim().isEmpty) return 'Add the account holder’s name.';
     if (_international) {
       if (!BankAccountRules.validIban(_iban.text)) {
-        return 'Check the IBAN. A Swedish IBAN has 24 characters and starts with SE.';
+        return 'Check the IBAN format and check digits against your bank statement.';
       }
       if (!BankAccountRules.validBic(_bic.text)) {
         return 'BIC / SWIFT has 8 or 11 letters and digits.';
@@ -58,62 +58,77 @@ class _AddNewAccountState extends State<AddNewAccount> {
   }
 
   void _save() {
+    if (!_ownsRoute) return;
     setState(() => _tried = true);
     final problem = _problem;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(problem ?? 'Preview only — account not saved.'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(problem ?? 'Preview only — account not saved.')),
+    );
   }
 
   Widget _tabs() => Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF2F3F3),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            for (final (label, intl) in [('Sweden', false), ('International', true)])
-              Expanded(
-                child: GestureDetector(
-                  key: ValueKey<String>('bank-tab-$label'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() {
-                    _international = intl;
-                    _tried = false;
-                  }),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    constraints: const BoxConstraints(minHeight: 36),
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF2F3F3),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Row(
+      children: [
+        for (final (label, intl) in [
+          ('Sweden', false),
+          ('International', true),
+        ])
+          Expanded(
+            child: TextButton(
+              key: ValueKey<String>('bank-tab-$label'),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9),
+                ),
+              ),
+              onPressed: () {
+                if (!_ownsRoute) return;
+                setState(() {
+                  _international = intl;
+                  _tried = false;
+                });
+              },
+              child: Semantics(
+                selected: _international == intl,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  constraints: const BoxConstraints(minHeight: 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _international == intl
+                        ? Colors.white
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(
                       color: _international == intl
-                          ? Colors.white
+                          ? _line
                           : Colors.transparent,
-                      borderRadius: BorderRadius.circular(9),
-                      border: Border.all(
-                        color: _international == intl
-                            ? _line
-                            : Colors.transparent,
-                      ),
                     ),
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: _international == intl ? _ink : _muted,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  ),
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _international == intl ? _ink : _muted,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ),
-          ],
-        ),
-      );
+            ),
+          ),
+      ],
+    ),
+  );
 
   Widget _row(
     String label, {
@@ -142,7 +157,10 @@ class _AddNewAccountState extends State<AddNewAccount> {
         children: [
           SizedBox(
             width: 92,
-            child: Text(label, style: const TextStyle(color: _muted, fontSize: 15)),
+            child: Text(
+              label,
+              style: const TextStyle(color: _muted, fontSize: 15),
+            ),
           ),
           Expanded(
             child: controller == null
@@ -165,7 +183,9 @@ class _AddNewAccountState extends State<AddNewAccount> {
                     autocorrect: false,
                     style: valueStyle,
                     cursorColor: _ink,
-                    onChanged: (_) => setState(() {}),
+                    onChanged: (_) {
+                      if (_ownsRoute) setState(() {});
+                    },
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
@@ -194,6 +214,9 @@ class _AddNewAccountState extends State<AddNewAccount> {
   @override
   Widget build(BuildContext context) {
     final bank = _bank;
+    final foreignIban =
+        _international &&
+        !BankAccountRules.compact(_iban.text).startsWith('SE');
     final problem = _tried ? _problem : null;
     return Scaffold(
       backgroundColor: Colors.white,
@@ -210,7 +233,11 @@ class _AddNewAccountState extends State<AddNewAccount> {
         centerTitle: true,
         title: const Text(
           'Bank account',
-          style: TextStyle(color: _ink, fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: _ink,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       body: ListView(
@@ -237,37 +264,47 @@ class _AddNewAccountState extends State<AddNewAccount> {
             ),
             child: Column(
               children: [
-                _row('Holder',
-                    controller: _holder,
-                    hint: 'Full name',
-                    caps: TextCapitalization.words),
-                _row('Bank', value: bank),
+                _row(
+                  'Holder',
+                  controller: _holder,
+                  hint: 'Full name',
+                  caps: TextCapitalization.words,
+                ),
+                _row(foreignIban ? 'Country' : 'Bank', value: bank),
                 if (!_international) ...[
-                  _row('Clearing',
-                      controller: _clearing,
-                      hint: '8327-9',
-                      ok: bank != null,
-                      keyboard: TextInputType.number),
-                  _row('Account',
-                      controller: _account,
-                      hint: '123 456 789-0',
-                      ok: BankAccountRules.validAccount(_account.text),
-                      keyboard: TextInputType.number,
-                      last: true),
+                  _row(
+                    'Clearing',
+                    controller: _clearing,
+                    hint: '8327-9',
+                    ok: bank != null,
+                    keyboard: TextInputType.number,
+                  ),
+                  _row(
+                    'Account',
+                    controller: _account,
+                    hint: '123 456 789-0',
+                    ok: BankAccountRules.validAccount(_account.text),
+                    keyboard: TextInputType.number,
+                    last: true,
+                  ),
                 ] else ...[
-                  _row('IBAN',
-                      controller: _iban,
-                      hint: 'SE45 5000 0000 …',
-                      ok: BankAccountRules.validIban(_iban.text),
-                      caps: TextCapitalization.characters,
-                      // 24+ characters: wraps rather than scrolling out of sight.
-                      maxLines: 2),
-                  _row('BIC',
-                      controller: _bic,
-                      hint: 'ESSESESS',
-                      ok: BankAccountRules.validBic(_bic.text),
-                      caps: TextCapitalization.characters,
-                      last: true),
+                  _row(
+                    'IBAN',
+                    controller: _iban,
+                    hint: 'SE45 5000 0000 …',
+                    ok: BankAccountRules.validIban(_iban.text),
+                    caps: TextCapitalization.characters,
+                    // 24+ characters: wraps rather than scrolling out of sight.
+                    maxLines: 2,
+                  ),
+                  _row(
+                    'BIC',
+                    controller: _bic,
+                    hint: 'ESSESESS',
+                    ok: BankAccountRules.validBic(_bic.text),
+                    caps: TextCapitalization.characters,
+                    last: true,
+                  ),
                 ],
               ],
             ),
@@ -277,7 +314,7 @@ class _AddNewAccountState extends State<AddNewAccount> {
             child: Text(
               problem ??
                   (_international
-                      ? 'IBAN as on your bank statement. The bank is found from it.'
+                      ? 'Use the IBAN on your bank statement. Foreign IBANs show a country code; no bank connection is verified.'
                       : 'The bank is found from the clearing number.'),
               key: const ValueKey<String>('bank-note'),
               style: TextStyle(
@@ -301,7 +338,7 @@ class _AddNewAccountState extends State<AddNewAccount> {
                 ),
               ),
               child: const Text(
-                'Save account',
+                'Check details',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
