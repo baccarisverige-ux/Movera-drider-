@@ -5,10 +5,10 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | Category | Confirmed findings | Target |
 | --- | ---: | ---: |
 | Bug | 10 | 10 |
-| Error | 8 | 10 |
-| Problem | 8 | 10 |
-| Wrong code | 7 | 10 |
-| Critique | 8 | 10 |
+| Error | 10 | 10 |
+| Problem | 9 | 10 |
+| Wrong code | 9 | 10 |
+| Critique | 9 | 10 |
 
 | ID | Category | Trigger / incorrect behavior | Fix | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -53,5 +53,11 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | F39 | Problem | Year field asks users to select a year but its tap callback is empty and only numeric entry works. | Label manual year entry and remove the empty tap callback. | onboarding_route_regression_test.dart | Verification pending |
 | F40 | Problem | Vehicle form exposes two identical Vehicle type selectors with independent values and no distinction between them. | Keep one vehicle type input and dispose its one controller. | onboarding_route_regression_test.dart | Verification pending |
 | F41 | Critique | Onboarding page and progress animations ignore disabled-animation preferences. | Skip page animation and update progress immediately when motion is disabled. | onboarding_route_regression_test.dart | Verification pending |
+| F42 | Wrong code | Reusing a reservation sheet with a new request or routing dependency retains its original route future. | Reload routing for changed inputs and capture matching request/route when opening the map. | reservation_sheet_route_lifecycle_test.dart | Verification pending |
+| F43 | Error | Captured reservation map callback reads State context after disposal. | Check mounted/current ownership before accessing context and opening a route. | reservation_sheet_route_lifecycle_test.dart | Verification pending |
+| F44 | Wrong code | Arrival-time calculation turns invalid hours/minutes and negative ride durations into plausible arrival times. | Preserve the input fallback for invalid time ranges or durations. | reservation_sheet_route_lifecycle_test.dart | Verification pending |
+| F45 | Error | Full reservation-map details extend above a short viewport with many stops and large text, making earlier details unreachable. | Bound the card height, scroll its contents and wrap its header. | reservation_sheet_route_lifecycle_test.dart | Verification pending |
+| F46 | Problem | Reservation addresses are truncated in both request and full-map details with no way to view the complete address visually. | Wrap addresses in the scrolling details. | reservation_sheet_route_lifecycle_test.dart | Verification pending |
+| F47 | Critique | Reservation map's transparent route-opening target lacks an accessible action name and button role. | Name it View reservation route and expose button semantics. | reservation_sheet_route_lifecycle_test.dart | Verification pending |
 
 Widget test filenames are under `test/widget/`, except money validation under `test/core/`. CI runs full analysis, Flutter tests, lifecycle and release contracts, web build, Android preview/signing guards and iOS compile preflight. Browser and physical-device interaction are still unverified in this environment. No backend changes are included.
