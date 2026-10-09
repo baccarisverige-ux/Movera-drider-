@@ -18,7 +18,9 @@ class LocalSupportRepository {
 
   Future<Map<String, dynamic>> read() => _enqueue(() async {
     LocalWriteSession.check(_generation);
-    return _read(await _load());
+    final prefs = await _load();
+    LocalWriteSession.check(_generation);
+    return _read(prefs);
   });
 
   Future<Map<String, dynamic>> _read(SharedPreferences prefs) async {
@@ -100,18 +102,27 @@ class LocalSupportRepository {
     }
   });
 
-  Future<void> update(String field, Object value) => _enqueue(() async {
-    final prefs = await _load();
-    LocalWriteSession.check(_generation);
-    final data = await _read(prefs);
-    data['schemaVersion'] = 1;
-    data[field] = value;
-    if (!_valid(data)) throw const FormatException('Invalid support data');
-    LocalWriteSession.check(_generation);
-    if (!await prefs.setString(key, jsonEncode(data))) {
-      throw StateError('Local draft could not be saved');
+  Future<void> update(String field, Object value) {
+    // The editor can keep changing nested lists while a previous save waits.
+    final Object snapshot;
+    try {
+      snapshot = jsonDecode(jsonEncode(value)) as Object;
+    } catch (error, stack) {
+      return Future<void>.error(error, stack);
     }
-  });
+    return _enqueue(() async {
+      final prefs = await _load();
+      LocalWriteSession.check(_generation);
+      final data = await _read(prefs);
+      data['schemaVersion'] = 1;
+      data[field] = snapshot;
+      if (!_valid(data)) throw const FormatException('Invalid support data');
+      LocalWriteSession.check(_generation);
+      if (!await prefs.setString(key, jsonEncode(data))) {
+        throw StateError('Local draft could not be saved');
+      }
+    });
+  }
 
   Future<T> _enqueue<T>(Future<T> Function() write) {
     final previous = _pending;

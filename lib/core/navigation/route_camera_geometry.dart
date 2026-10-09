@@ -12,9 +12,8 @@ class RouteCameraGeometry {
   }
   final List<GeoPoint> points;
   final List<double> distances = [0];
-  double _boundedMeters(double meters) => meters.isNaN
-      ? 0
-      : math.min(distances.last, math.max(0, meters));
+  double _boundedMeters(double meters) =>
+      meters.isNaN ? 0 : math.min(distances.last, math.max(0, meters));
 
   GeoPoint at(double meters) {
     if (points.isEmpty) {
@@ -38,6 +37,7 @@ class RouteCameraGeometry {
   }
 
   List<GeoPoint> remaining(double meters) {
+    if (points.isEmpty) return const <GeoPoint>[];
     final bounded = _boundedMeters(meters);
     return [
       at(bounded),
@@ -47,6 +47,7 @@ class RouteCameraGeometry {
   }
 
   List<GeoPoint> traveled(double meters) {
+    if (points.isEmpty) return const <GeoPoint>[];
     final bounded = _boundedMeters(meters);
     return [
       for (var i = 0; i < points.length; i++)

@@ -5,29 +5,40 @@
 /// Existing callers do not block UI while another fetch already owns the lane.
 class CoalescingMapRouteRefresh {
   bool _running = false;
-  bool _pending = false;
+  Future<void> Function()? _pending;
 
   bool get isRunning => _running;
 
   Future<void> request(Future<void> Function() refresh) async {
     if (_running) {
-      _pending = true;
+      _pending = refresh;
       return;
     }
     _running = true;
+    Object? firstError;
+    StackTrace? firstStack;
     try {
+      var next = refresh;
       do {
-        _pending = false;
-        await refresh();
-      } while (_pending);
+        _pending = null;
+        try {
+          await next();
+        } catch (error, stack) {
+          firstError ??= error;
+          firstStack ??= stack;
+        }
+        if (_pending == null) break;
+        next = _pending!;
+      } while (true);
     } finally {
       _running = false;
     }
+    if (firstError != null) Error.throwWithStackTrace(firstError, firstStack!);
   }
 
   /// Stop queued work when destination mode is dismissed. A running fetch may
   /// still complete, so its caller separately validates request ownership.
   void cancelPending() {
-    _pending = false;
+    _pending = null;
   }
 }

@@ -73,16 +73,22 @@ class RouteProgressCalculator {
     }
 
     final geometry = _geometry[route] ??= _RouteGeometry.of(route);
-    var projection = previousAlongMeters == null
+    // A corrupt persisted progress value must never poison route projection.
+    final safePreviousAlong =
+        previousAlongMeters != null &&
+            previousAlongMeters.isFinite &&
+            previousAlongMeters >= 0
+        ? previousAlongMeters
+        : null;
+    var projection = safePreviousAlong == null
         ? null
         : geometry.project(
             position,
-            fromAlong: previousAlongMeters - backwardWindowMeters,
-            toAlong: previousAlongMeters + forwardWindowMeters,
-            preferAlong: previousAlongMeters,
+            fromAlong: safePreviousAlong - backwardWindowMeters,
+            toAlong: safePreviousAlong + forwardWindowMeters,
+            preferAlong: safePreviousAlong,
           );
-    if (projection == null ||
-        projection.distance > offRouteThresholdMeters) {
+    if (projection == null || projection.distance > offRouteThresholdMeters) {
       final global = geometry.project(position);
       if (projection == null || global.distance < projection.distance) {
         projection = global;
@@ -136,7 +142,9 @@ const double _tieMeters = 10;
 
 /// Forward movement is cheap; moving backwards beyond GPS jitter is costly.
 double _progressCost(double along, double preferAlong) =>
-    along >= preferAlong - 5 ? along - preferAlong : 1000 + (preferAlong - along);
+    along >= preferAlong - 5
+    ? along - preferAlong
+    : 1000 + (preferAlong - along);
 
 typedef _Projection = ({int index, double distance, double along});
 
@@ -155,13 +163,16 @@ class _RouteGeometry {
     final points = route.geoPoints;
     final cumulative = List<double>.filled(points.length, 0);
     for (var i = 1; i < points.length; i++) {
-      cumulative[i] = cumulative[i - 1] + points[i - 1].distanceMetersTo(points[i]);
+      cumulative[i] =
+          cumulative[i - 1] + points[i - 1].distanceMetersTo(points[i]);
     }
     final geometry = _RouteGeometry._(points, cumulative, cumulative.last);
     var from = 0.0;
     geometry.maneuverAlong = [
       for (final instruction in route.instructions)
-        from = geometry.project(instruction.maneuverLocation, fromAlong: from).along,
+        from = geometry
+            .project(instruction.maneuverLocation, fromAlong: from)
+            .along,
     ];
     return geometry;
   }
@@ -176,8 +187,12 @@ class _RouteGeometry {
     var index = 0;
     final scale = math.cos(position.latitude * math.pi / 180);
     for (var i = 0; i < points.length - 1; i++) {
-      if (cumulative[i + 1] < fromAlong) { continue; }
-      if (cumulative[i] > toAlong) { break; }
+      if (cumulative[i + 1] < fromAlong) {
+        continue;
+      }
+      if (cumulative[i] > toAlong) {
+        break;
+      }
       final a = points[i], b = points[i + 1];
       final dx = (b.longitude - a.longitude) * scale;
       final dy = b.latitude - a.latitude;
@@ -196,11 +211,11 @@ class _RouteGeometry {
           cumulative[i] + (cumulative[i + 1] - cumulative[i]) * t;
       // Where two passes of the same road are equally close (U-turn, loop),
       // keep the one that continues forward from the previous progress.
-      final tie = preferAlong != null &&
-          (distance - bestDistance).abs() <= _tieMeters;
+      final tie =
+          preferAlong != null && (distance - bestDistance).abs() <= _tieMeters;
       if (tie
           ? _progressCost(candidateAlong, preferAlong) <
-              _progressCost(along, preferAlong)
+                _progressCost(along, preferAlong)
           : distance < bestDistance) {
         bestDistance = tie ? math.min(bestDistance, distance) : distance;
         along = candidateAlong;

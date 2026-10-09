@@ -65,6 +65,8 @@ class NavigationController extends ChangeNotifier {
   GeoPoint? _lastRouteOrigin;
   int _instructionHint = 0;
   double? _progressAlong;
+  DateTime? _lastMeasuredAt;
+  double? _routeLength;
   bool _userPausedFollow = false;
   String? _status;
   String? _locationWarning;
@@ -94,10 +96,11 @@ class NavigationController extends ChangeNotifier {
   /// Share of the current route already driven, 0..1; null without one.
   double? get routeFraction {
     final route = _route;
-    if (route == null || route.distanceMeters <= 0) {
+    final length = _routeLength;
+    if (route == null || length == null || length <= 0) {
       return null;
     }
-    return ((_progressAlong ?? 0) / route.distanceMeters).clamp(0.0, 1.0);
+    return ((_progressAlong ?? 0) / length).clamp(0.0, 1.0);
   }
 
   bool get followCamera => !_userPausedFollow;
@@ -110,6 +113,13 @@ class NavigationController extends ChangeNotifier {
       _rerouteDebounce?.cancel();
       _rerouteDebounce = null;
       _route = null;
+      _routeLength = null;
+      _destination = null;
+      _targetLabel = null;
+      _lastRouteAt = null;
+      _lastRouteOrigin = null;
+      _lastRouteStage = null;
+      _status = null;
       _routeState = RouteLoadState.idle;
       _instructionHint = 0;
       _progressAlong = null;
@@ -137,9 +147,12 @@ class NavigationController extends ChangeNotifier {
   }
 
   void setVehicle(DriverLocation location) {
+    if (_disposed) return;
     final point = location.point;
-    if (!point.latitude.isFinite || !point.longitude.isFinite ||
-        point.latitude.abs() > 90 || point.longitude.abs() > 180) {
+    if (!point.latitude.isFinite ||
+        !point.longitude.isFinite ||
+        point.latitude.abs() > 90 ||
+        point.longitude.abs() > 180) {
       return;
     }
     // Real GPS measurements carry freshness/accuracy evidence. Reject
@@ -149,11 +162,18 @@ class NavigationController extends ChangeNotifier {
         !location.isUsableAt(DateTime.now())) {
       return;
     }
+    final at = location.measuredAt;
+    if (at != null &&
+        _lastMeasuredAt != null &&
+        at.isBefore(_lastMeasuredAt!)) {
+      return;
+    }
+    if (at != null) _lastMeasuredAt = at;
     // A valid fix may arrive at exactly the same coordinates as the last
     // point, especially after a brief stream interruption. Clear only the
     // transient GPS warning; a failed road route still needs explicit retry.
-    final restoredGps = _locationWarning != null &&
-        location.isUsableAt(DateTime.now());
+    final restoredGps =
+        _locationWarning != null && location.isUsableAt(DateTime.now());
     if (restoredGps) {
       _locationWarning = null;
     }
@@ -195,6 +215,21 @@ class NavigationController extends ChangeNotifier {
     }
     _targetLabel = targetLabel;
     if (_stage == ActiveRideStage.waitingForRider) {
+      return;
+    }
+
+    if (!origin.isValid || !destination.isValid) {
+      _routeRequestToken++;
+      _routeInFlight = false;
+      _rerouteDebounce?.cancel();
+      _rerouteDebounce = null;
+      _destination = null;
+      _route = null;
+      _routeLength = null;
+      _progressAlong = null;
+      _routeState = RouteLoadState.failed;
+      _status = 'Route unavailable — check location';
+      _rebuildBanner();
       return;
     }
 
@@ -242,6 +277,13 @@ class NavigationController extends ChangeNotifier {
         return;
       }
       if (route.points.length < 2 ||
+          route.points.any((point) => !point.isValid) ||
+          route.instructions.any(
+            (instruction) =>
+                !instruction.maneuverLocation.isValid ||
+                !instruction.distanceMeters.isFinite ||
+                instruction.distanceMeters < 0,
+          ) ||
           !route.distanceMeters.isFinite ||
           !route.durationSeconds.isFinite ||
           route.distanceMeters < 0 ||
@@ -249,7 +291,20 @@ class NavigationController extends ChangeNotifier {
         throw const FormatException('Invalid route');
       }
       _routeState = RouteLoadState.ready;
-      _route = route;
+      // The provider may reuse its lists. Own a snapshot so projection's
+      // cached geometry and the displayed polyline cannot diverge later.
+      _route = RoadRoute(
+        points: List<GeoPoint>.unmodifiable(route.points),
+        distanceMeters: route.distanceMeters,
+        durationSeconds: route.durationSeconds,
+        instructions: List<RouteInstruction>.unmodifiable(route.instructions),
+      );
+      _routeLength = 0;
+      for (var i = 1; i < route.points.length; i++) {
+        _routeLength =
+            _routeLength! +
+            route.points[i - 1].distanceMetersTo(route.points[i]);
+      }
       _instructionHint = 0;
       _progressAlong = null;
       _status = null;
@@ -311,6 +366,10 @@ class NavigationController extends ChangeNotifier {
         _stage != ActiveRideStage.waitingForRider) {
       _status = 'Recalculating route…';
       _scheduleReroute();
+    } else if (progress != null && !progress.offRoute) {
+      _rerouteDebounce?.cancel();
+      _rerouteDebounce = null;
+      if (_status == 'Recalculating route…') _status = null;
     }
 
     _snapshot = NavigationSnapshot(

@@ -113,12 +113,26 @@ class LocalVehicleStore {
     }
   }
 
-  Future<void> upsert(Map<String, dynamic> vehicle) => _serial(() async {
+  Future<void> upsert(Map<String, dynamic> vehicle) {
+    final Map<String, dynamic> snapshot;
+    try {
+      snapshot = Map<String, dynamic>.from(
+        jsonDecode(jsonEncode(vehicle)) as Map,
+      );
+    } catch (error, stack) {
+      return Future<void>.error(error, stack);
+    }
+    return _upsertSnapshot(snapshot);
+  }
+
+  Future<void> _upsertSnapshot(
+    Map<String, dynamic> vehicle,
+  ) => _serial(() async {
     // Reject bad drafts at the write boundary: a single invalid row would
     // otherwise make every subsequent vehicle/profile read fail.
     if (!['id', 'make', 'model', 'year', 'plate'].every(
-      (key) => vehicle[key] is String &&
-          (vehicle[key] as String).trim().isNotEmpty,
+      (key) =>
+          vehicle[key] is String && (vehicle[key] as String).trim().isNotEmpty,
     )) {
       throw const FormatException('Vehicle identity fields are required');
     }

@@ -43,7 +43,7 @@ class CustomButton extends StatelessWidget {
     return MaterialButton(
       clipBehavior: Clip.none,
       padding: EdgeInsets.zero,
-      onPressed: onPressed,
+      onPressed: isLoading ? null : onPressed,
       height: ResSize.h * height,
       minWidth: width,
       shape: RoundedRectangleBorder(
