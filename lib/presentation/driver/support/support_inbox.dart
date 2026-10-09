@@ -91,8 +91,9 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
         _loading ||
         _restoreFailed ||
         !mounted ||
-        ModalRoute.of(context)?.isCurrent != true)
+        ModalRoute.of(context)?.isCurrent != true) {
       return;
+    }
     setState(() => _opening = true);
     try {
       await _createTicket();
