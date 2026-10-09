@@ -93,13 +93,20 @@ class SettingsRepository {
   }
 
   Future<void> save(String section, Map<String, dynamic> values) {
-    Future<void> write() async {
-      final prefs = await _load();
-      LocalWriteSession.check(_generation);
-      final payload = jsonEncode(<String, dynamic>{
+    // Capture the requested value now, before queued storage awaits. Callers
+    // may keep editing nested lists/maps while an earlier write is pending.
+    final String payload;
+    try {
+      payload = jsonEncode(<String, dynamic>{
         'schemaVersion': 1,
         'values': values,
       });
+    } catch (error, stack) {
+      return Future<void>.error(error, stack);
+    }
+    Future<void> write() async {
+      final prefs = await _load();
+      LocalWriteSession.check(_generation);
       if (!await prefs.setString(_sectionKey(section), payload)) {
         throw StateError('Settings save failed');
       }

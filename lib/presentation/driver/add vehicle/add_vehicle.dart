@@ -828,12 +828,12 @@ class _VehiclePhotoPageState extends State<_VehiclePhotoPage> {
                 imageQuality: 60,
                 maxWidth: 1024,
               ));
-      if (!_ownsRoute) {
+      if (!mounted || !_ownsRoute) {
         return;
       }
       if (file != null) {
         final bytes = await file.readAsBytes();
-        if (!_ownsRoute) {
+        if (!mounted || !_ownsRoute) {
           return;
         }
         if (bytes.length > LocalVehicleStore.maxPhotoBytes) {
@@ -849,7 +849,7 @@ class _VehiclePhotoPageState extends State<_VehiclePhotoPage> {
         Navigator.pop(context, bytes);
       }
     } catch (_) {
-      if (!_ownsRoute) {
+      if (!mounted || !_ownsRoute) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
