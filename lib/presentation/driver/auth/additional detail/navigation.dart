@@ -47,13 +47,15 @@ class AdditionalInfoNavigationController extends GetxController {
     try {
       if (currentPageIndex.value < pages.length - 1) {
         final next = currentPageIndex.value + 1;
-        await pageController.animateToPage(
-          next,
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 280),
-          curve: Curves.easeInOut,
-        );
+        if (MediaQuery.disableAnimationsOf(context)) {
+          pageController.jumpToPage(next);
+        } else {
+          await pageController.animateToPage(
+            next,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeInOut,
+          );
+        }
         if (!_closed) currentPageIndex.value = next;
       } else {
         await pushSingle(context, TopToBottomTransition(SelectDocumentType()));
@@ -73,13 +75,15 @@ class AdditionalInfoNavigationController extends GetxController {
     _moving = true;
     try {
       final previous = currentPageIndex.value - 1;
-      await pageController.animateToPage(
-        previous,
-        duration: MediaQuery.disableAnimationsOf(context)
-            ? Duration.zero
-            : const Duration(milliseconds: 280),
-        curve: Curves.easeInOut,
-      );
+      if (MediaQuery.disableAnimationsOf(context)) {
+        pageController.jumpToPage(previous);
+      } else {
+        await pageController.animateToPage(
+          previous,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeInOut,
+        );
+      }
       if (!_closed) currentPageIndex.value = previous;
     } finally {
       _moving = false;
