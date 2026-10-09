@@ -78,12 +78,15 @@ class _ColorPicker extends StatelessWidget {
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: constraints.maxWidth >= 400 ? 3 : 2,
                     mainAxisExtent:
-                        64 + MediaQuery.textScalerOf(context).scale(14) * 2,
+                        80 + MediaQuery.textScalerOf(context).scale(14) * 3,
                   ),
                   itemBuilder: (context, index) {
                     final (name, color) = _colors[index];
                     return TextButton(
                       key: ValueKey('vehicle-color-$name'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.all(8),
+                      ),
                       onPressed: () => popOwned(context, name),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -103,6 +106,7 @@ class _ColorPicker extends StatelessWidget {
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 14,
+                              height: 1.2,
                               color: Colors.black,
                             ),
                           ),
