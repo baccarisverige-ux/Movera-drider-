@@ -1,6 +1,15 @@
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 
+// A route remains mounted during its reverse transition. A second callback
+// must not pop the route underneath it or return a second decision.
+void _popScheduledRoute<T>(BuildContext context, [T? result]) {
+  if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
+    return;
+  }
+  Navigator.of(context).pop<T>(result);
+}
+
 class ScheduledRidesScreen extends StatefulWidget {
   const ScheduledRidesScreen({super.key});
 
@@ -163,7 +172,7 @@ class _ScheduledRidesScreenState extends State<ScheduledRidesScreen> {
         children: [
           IconButton(
             tooltip: 'Back',
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => _popScheduledRoute<void>(context),
             icon: const Icon(Icons.arrow_back_rounded),
             color: const Color(0xFF252E3A),
           ),
@@ -704,7 +713,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           tooltip: 'Back',
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => _popScheduledRoute<void>(context),
           icon: const Icon(Icons.arrow_back_rounded),
           color: _ink,
         ),
@@ -1263,7 +1272,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 onPressed: () =>
-                    Navigator.pop(context, _ScheduledRideAction.accepted),
+                    _popScheduledRoute(context, _ScheduledRideAction.accepted),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(54),
                   backgroundColor: _ink,
@@ -1285,7 +1294,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
   }
 
   Future<void> _showCancelReasons(BuildContext context) async {
-    if (!context.mounted || ModalRoute.of(context)?.isCurrent == false) {
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
       return;
     }
     final reason = await showModalBottomSheet<String>(
@@ -1295,7 +1304,9 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
       builder: (sheetContext) => const _CancelReasonSheet(),
     );
 
-    if (reason == null || !context.mounted) {
+    if (reason == null ||
+        !context.mounted ||
+        ModalRoute.of(context)?.isCurrent != true) {
       return;
     }
 
@@ -1307,7 +1318,7 @@ class _ScheduledRideDetailsScreen extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      Navigator.pop(context, _ScheduledRideAction.cancelled);
+      _popScheduledRoute(context, _ScheduledRideAction.cancelled);
     }
   }
 }
@@ -1495,7 +1506,7 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
                     ),
                     IconButton(
                       tooltip: 'Close',
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => _popScheduledRoute<void>(context),
                       icon: const Icon(Icons.close_rounded),
                       color: const Color(0xFF39444A),
                     ),
@@ -1584,7 +1595,7 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
                   child: FilledButton(
                     onPressed: _selected == null
                         ? null
-                        : () => Navigator.pop(context, _selected),
+                        : () => _popScheduledRoute(context, _selected),
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF252E3A),
                       disabledBackgroundColor: const Color(0xFFDCE1E3),
@@ -1686,7 +1697,7 @@ class _CancelConfirmationSheet extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
+                  onPressed: () => _popScheduledRoute(context, true),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                     backgroundColor: const Color(0xFF252E3A),
@@ -1705,7 +1716,7 @@ class _CancelConfirmationSheet extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: TextButton(
-                  onPressed: () => Navigator.pop(context, false),
+                  onPressed: () => _popScheduledRoute(context, false),
                   style: TextButton.styleFrom(
                     minimumSize: const Size.fromHeight(48),
                   ),
