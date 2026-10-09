@@ -122,8 +122,11 @@ class LocalVehicleStore {
         );
       }
     }
+    final index = rows.indexWhere((row) => row['id'] == vehicle['id']);
     rows.removeWhere((row) => row['id'] == vehicle['id']);
-    rows.add(Map.of(vehicle));
+    // The first row owns Profile/waybill identity. Editing its document
+    // photos must not promote another vehicle by moving this row to the end.
+    rows.insert(index < 0 ? rows.length : index, Map.of(vehicle));
     final total = rows.fold<int>(0, (sum, row) => sum + _photoBytes(row));
     final before = previous.fold<int>(0, (sum, row) => sum + _photoBytes(row));
     if (total > maxStoredPhotoBytes && _photoBytes(vehicle) > before) {
