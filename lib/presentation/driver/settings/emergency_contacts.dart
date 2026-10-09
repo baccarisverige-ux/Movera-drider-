@@ -41,6 +41,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
 
   late final _settings = widget.repository ?? SettingsRepository();
   bool _loading = true;
+  bool _restoring = false;
   bool _restoreFailed = false;
   bool _adding = false;
   @override
@@ -50,12 +51,12 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   }
 
   Future<void> _restore() async {
-    if (mounted) {
-      setState(() {
-        _loading = true;
-        _restoreFailed = false;
-      });
-    }
+    if (_restoring || !mounted) return;
+    _restoring = true;
+    setState(() {
+      _loading = true;
+      _restoreFailed = false;
+    });
     try {
       final data = await _settings.read('contacts');
       final rows = data['rows'];
@@ -80,15 +81,18 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
               }
             }
           }
-          _loading = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _loading = false;
           _restoreFailed = true;
         });
+      }
+    } finally {
+      _restoring = false;
+      if (mounted) {
+        setState(() => _loading = false);
       }
     }
   }
