@@ -1436,7 +1436,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                     key: const ValueKey<String>('retry-route-option'),
                     title: 'Retry route',
                     subtitle: 'Route unavailable. Your trip remains active.',
-                    onTap: () { Navigator.pop(sheetContext); unawaited(_navigation.retryRoute()); },
+                    onTap: () { if (popOwned(sheetContext)) unawaited(_navigation.retryRoute()); },
                   ),
                 _CleanRow(
                   key: const ValueKey<String>('current-trip-waybill-option'),
@@ -1444,7 +1444,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                   subtitle:
                       '${widget.pickupAddress} → ${widget.dropoffAddress}',
                   onTap: () {
-                    Navigator.pop(sheetContext);
+                    if (!popOwned(sheetContext)) return;
                     final record = _waybills.current;
                     if (record != null) {
                       showMoveraWaybillSheet(
@@ -1461,7 +1461,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                     title: 'Next trip waybill',
                     subtitle: _waybills.next!.dropoff,
                     onTap: () {
-                      Navigator.pop(sheetContext);
+                      if (!popOwned(sheetContext)) return;
                       showMoveraWaybillSheet(
                         context,
                         _waybills.next!,
@@ -1473,7 +1473,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                   title: 'Safety toolkit',
                   subtitle: 'Share trip, record audio, get help',
                   onTap: () {
-                    Navigator.pop(sheetContext);
+                    if (!popOwned(sheetContext)) return;
                     showSafetyToolKitSheet(context);
                   },
                 ),
@@ -1485,7 +1485,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                   danger: true,
                   last: true,
                   onTap: () {
-                    Navigator.pop(sheetContext);
+                    if (!popOwned(sheetContext)) return;
                     _showCancellationReasons();
                   },
                 ),
@@ -1541,7 +1541,7 @@ extension _AcceptRidePanel on _AcceptRideState {
                       title: reasons[i].title,
                       subtitle: reasons[i].subtitle,
                       last: i == reasons.length - 1,
-                      onTap: () => Navigator.pop(sheetContext, reasons[i]),
+                      onTap: () => popOwned(sheetContext, reasons[i]),
                     ),
                 ],
               ),

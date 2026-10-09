@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/presentation/driver/my%20bank/my_bank.dart';
@@ -61,7 +62,7 @@ class WalletScreen extends StatelessWidget {
               color: const Color(0xFFF0F3F1),
               shape: const CircleBorder(),
               child: InkWell(
-                onTap: () => Navigator.pop(context),
+                onTap: () => popOwned(context),
                 customBorder: const CircleBorder(),
                 child: const SizedBox(
                   height: 42,

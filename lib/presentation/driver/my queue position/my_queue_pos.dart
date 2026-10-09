@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -59,7 +60,7 @@ class MyQueuePosition extends StatelessWidget {
                 children: [
                   IconButton(
                     tooltip: 'Close queue position',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => popOwned(context),
                     icon: Icon(
                       Icons.keyboard_arrow_down_rounded,
                       size: ResSize.h * 24,

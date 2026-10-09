@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/widgets/movera_modal_sheet.dart';
 
@@ -12,7 +13,7 @@ Future<void> showDriverSuspendedSheet(BuildContext context) {
     heightFactor: 0.48,
     barrierColor: const Color(0x730D1519),
     builder: (sheetContext) => DriverSuspendedSheet(
-      onAcknowledge: () => Navigator.of(sheetContext).pop(),
+      onAcknowledge: () => popOwned(sheetContext),
     ),
   );
 }

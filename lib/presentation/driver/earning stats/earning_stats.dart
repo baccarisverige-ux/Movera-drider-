@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dotted_line/dotted_line.dart';
@@ -36,7 +37,7 @@ class _EarningStatsScreenState extends State<EarningStatsScreen> {
             color: AppColor.title,
             size: ResSize.h * 20,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => popOwned(context),
         ),
         title: TextWidget(
           text: "Earnings preview",

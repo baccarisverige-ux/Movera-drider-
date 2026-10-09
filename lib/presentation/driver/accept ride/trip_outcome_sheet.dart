@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/widgets/movera_modal_sheet.dart';
@@ -58,7 +59,7 @@ Future<void> showTripOutcomeSheet(
     builder: (sheetContext) => TripOutcomeSheet(
       status: status,
       hasNext: hasNext,
-      onAcknowledge: () => Navigator.of(sheetContext).pop(),
+      onAcknowledge: () => popOwned(sheetContext),
     ),
   );
 }

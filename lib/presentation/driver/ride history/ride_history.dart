@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/core/contracts/trip_status.dart';
 import 'package:movera/core/money/money.dart';
@@ -141,7 +142,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
         ModalRoute.of(context)?.isCurrent != true) {
       return;
     }
-    Navigator.pop(context);
+    popOwned(context);
   }
 
   @override

@@ -768,7 +768,7 @@ extension _AcceptRideTrip on _AcceptRideState {
                     width: double.infinity,
                     height: 48,
                     child: FilledButton(
-                      onPressed: () => Navigator.pop(sheetContext, false),
+                      onPressed: () => popOwned(sheetContext, false),
                       style: FilledButton.styleFrom(
                         elevation: 0,
                         backgroundColor: _AcceptRideState._ink,
@@ -788,7 +788,7 @@ extension _AcceptRideTrip on _AcceptRideState {
                     width: double.infinity,
                     height: 48,
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(sheetContext, true),
+                      onPressed: () => popOwned(sheetContext, true),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: _AcceptRideState._ink,
                         side: const BorderSide(color: Color(0xFFD5DCDF)),
@@ -1139,7 +1139,7 @@ extension _AcceptRideTrip on _AcceptRideState {
                   height: 52,
                   child: FilledButton(
                     key: const ValueKey<String>('confirm-trip-cancellation'),
-                    onPressed: () => Navigator.pop(sheetContext, true),
+                    onPressed: () => popOwned(sheetContext, true),
                     style: FilledButton.styleFrom(
                       elevation: 0,
                       backgroundColor: const Color(0xFFC2453A),
@@ -1159,7 +1159,7 @@ extension _AcceptRideTrip on _AcceptRideState {
                 SizedBox(
                   height: 52,
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(sheetContext, false),
+                    onPressed: () => popOwned(sheetContext, false),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF111614),
                       side: const BorderSide(color: Color(0xFFDADEDC)),

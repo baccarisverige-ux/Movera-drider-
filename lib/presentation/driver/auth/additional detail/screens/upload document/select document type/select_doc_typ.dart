@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
 import 'package:movera/constants/appcolors.dart';
@@ -49,7 +50,7 @@ class _SelectDocumentTypeState extends State<SelectDocumentType> {
               offset: Offset(ResSize.w * -10, 0),
               child: IconButton(tooltip: 'Back', 
                 onPressed: () {
-                  Navigator.pop(context);
+                  popOwned(context);
                 },
                 icon: Icon(
                   Icons.arrow_back_ios_rounded,

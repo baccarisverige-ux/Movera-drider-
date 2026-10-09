@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appcolors.dart';
 import 'package:movera/constants/appfontweight.dart';
@@ -46,7 +47,7 @@ class LegalDocumentScreen extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(tooltip: 'Back', 
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => popOwned(context),
           icon: Icon(
             Icons.arrow_back_ios_rounded,
             color: AppColor.title,

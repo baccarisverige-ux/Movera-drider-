@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 
 /// A saved-trip problem the driver has to act on. The island only flashes
@@ -43,7 +44,7 @@ Future<void> showTripProblemSheet(
             FilledButton(
               key: const ValueKey<String>('trip-problem-action'),
               onPressed: () {
-                Navigator.pop(sheetContext);
+                if (!popOwned(sheetContext)) return;
                 onAction();
               },
               style: FilledButton.styleFrom(
@@ -60,7 +61,7 @@ Future<void> showTripProblemSheet(
               ),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(sheetContext),
+              onPressed: () => popOwned(sheetContext),
               style: TextButton.styleFrom(
                 foregroundColor: muted,
                 minimumSize: const Size.fromHeight(46),

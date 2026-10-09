@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/core/settings/settings_repository.dart';
 import 'package:flutter/material.dart';
 
@@ -135,11 +136,11 @@ class _AccessibilityState extends State<Accessibility> {
                     ),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
+                        onPressed: () => popOwned(dialogContext),
                         child: const Text('Not now'),
                       ),
                       FilledButton(
-                        onPressed: () => Navigator.pop(dialogContext),
+                        onPressed: () => popOwned(dialogContext),
                         style: FilledButton.styleFrom(backgroundColor: _ink),
                         child: const Text('Close preview'),
                       ),

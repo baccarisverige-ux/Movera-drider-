@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
@@ -214,7 +215,7 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
                     child: FilledButton(
                       key: const ValueKey<String>('reservation-deny'),
                       onPressed: () =>
-                          Navigator.of(context).pop(ReservationDecision.denied),
+                          popOwned(context, ReservationDecision.denied),
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFFEDEEED),
                         foregroundColor: _ink,

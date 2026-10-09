@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
 import 'package:movera/core/ride/completion_journal.dart';
@@ -488,8 +489,8 @@ class _DriverHomeState extends State<DriverHome>
       final resume = await showDialog<bool>(context: context, barrierDismissible: false,
         builder: (context) => AlertDialog(title: const Text('Unresolved trip'),
           content: Text(snapshot!.hasVerifiedEndpoints ? 'This saved trip is older than six hours. Resume it or close it explicitly.' : 'Saved route coordinates are unavailable. Close this trip explicitly before accepting another.'),
-          actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Close trip')),
-            FilledButton(onPressed: snapshot.hasVerifiedEndpoints ? () => Navigator.pop(context, true) : null, child: const Text('Resume trip'))]));
+          actions: [TextButton(onPressed: () => popOwned(context, false), child: const Text('Close trip')),
+            FilledButton(onPressed: snapshot.hasVerifiedEndpoints ? () => popOwned(context, true) : null, child: const Text('Resume trip'))]));
       if (!mounted) { return; }
       if (resume != true) {
         try {
@@ -547,11 +548,11 @@ class _DriverHomeState extends State<DriverHome>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => popOwned(context, false),
             child: const Text('Not now'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => popOwned(context, true),
             child: const Text('Close unreadable trip'),
           ),
         ],

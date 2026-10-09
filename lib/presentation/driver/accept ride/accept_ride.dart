@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
 import 'package:movera/core/location/location_freshness.dart';
@@ -1543,8 +1544,8 @@ class _SlideRideActionState extends State<_SlideRideAction> {
     final confirmed=await showDialog<bool>(context:context,builder:(context)=>AlertDialog(
       title:Text(widget.label.replaceFirst('Slide to ','')),
       content:const Text('Confirm this trip action?'),
-      actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),
-        FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Confirm'))]));
+      actions:[TextButton(onPressed:()=>popOwned(context,false),child:const Text('Cancel')),
+        FilledButton(onPressed:()=>popOwned(context,true),child:const Text('Confirm'))]));
     if(!mounted || confirmed!=true || _confirming) { return; }
     _fraction=1;
     await _finish();
