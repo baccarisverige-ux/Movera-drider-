@@ -133,8 +133,7 @@ void main() {
       island.release();
       await tester.pump();
       expect(island.defaultFace, isTrue);
-      island.dispose();
-      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
     },
   );
 }
