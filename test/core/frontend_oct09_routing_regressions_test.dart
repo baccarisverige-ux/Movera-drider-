@@ -40,22 +40,25 @@ Map<String, dynamic> _step({
 void main() {
   const parser = OsrmRouteParser();
 
-  test('invalid finite and out-of-range route coordinates are excluded', () {
-    final route = parser.parseRoute(_route(coordinates: [
-      [18.06, 59.33],
+  test('bad route coordinate fails closed instead of drawing shortcuts', () {
+    final valid = parser.parseRoute(_route());
+    expect(valid.points, const [GeoPoint(59.33, 18.06), GeoPoint(59.34, 18.07)]);
+    for (final invalid in [
       [18.01, double.nan],
       [18.01, 92],
       [181, 59.34],
-      [18.07, 59.34],
-    ]));
-    expect(route.points, const [GeoPoint(59.33, 18.06), GeoPoint(59.34, 18.07)]);
-    expect(
-      () => parser.parseRoute(_route(coordinates: [
-        [181, 59.33],
-        [18.07, 59.34],
-      ])),
-      throwsFormatException,
-    );
+      [18.02],
+      ['bad', 59.32],
+    ]) {
+      expect(
+        () => parser.parseRoute(_route(coordinates: [
+          [18.06, 59.33],
+          invalid,
+          [18.07, 59.34],
+        ])),
+        throwsFormatException,
+      );
+    }
   });
 
   test('negative and nonfinite route distances are rejected', () {
