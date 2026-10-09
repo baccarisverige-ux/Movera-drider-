@@ -295,6 +295,7 @@ class ReservationRouteMapPage extends StatelessWidget {
             children: [
               Positioned.fill(
                 child: FutureBuilder<List<GeoPoint>>(
+                  key: ValueKey(route),
                   future: route,
                   initialData: reservationWaypoints(request),
                   builder: (context, snapshot) {
