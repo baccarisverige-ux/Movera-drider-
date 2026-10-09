@@ -7,7 +7,9 @@ import 'package:movera/core/history/prefs_trip_history_repository.dart';
 import 'package:movera/presentation/driver/ride%20history/history%20detail/history_detail.dart';
 
 class DriverRideHistory extends StatefulWidget {
-  const DriverRideHistory({super.key});
+  const DriverRideHistory({super.key, this.loadHistory});
+
+  final Future<List<TripHistoryRecord>> Function()? loadHistory;
 
   @override
   State<DriverRideHistory> createState() => _DriverRideHistoryState();
@@ -27,6 +29,11 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
   _HistoryPeriod _period = _HistoryPeriod.week;
 
   List<_HistoryRide> _rides = <_HistoryRide>[];
+  late final _readHistory =
+      widget.loadHistory ?? PrefsTripHistoryRepository().list;
+  bool _loading = true;
+  bool _loadFailed = false;
+  bool _restoring = false;
 
   @override
   void initState() {
@@ -35,8 +42,14 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
   }
 
   Future<void> _loadHistory() async {
+    if (_restoring || !mounted) return;
+    _restoring = true;
+    setState(() {
+      _loading = true;
+      _loadFailed = false;
+    });
     try {
-      final records = await PrefsTripHistoryRepository().list();
+      final records = await _readHistory();
       if (!mounted) { return; }
       setState(() => _rides = records.map((record) {
         final at = record.completedAt;
@@ -59,10 +72,14 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
         );
       }).toList());
     } catch (_) {
-      if (!mounted) { return; }
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Could not load ride history.'),
-      ));
+      if (mounted) {
+        setState(() => _loadFailed = true);
+      }
+    } finally {
+      _restoring = false;
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -138,9 +155,11 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
                     child: SlideTransition(position: slide, child: child),
                   );
                 },
-                child: _view == _HistoryView.overview
-                    ? _buildOverview()
-                    : _buildAllRides(),
+                child: _loading || _loadFailed
+                    ? _buildLoadState()
+                    : _view == _HistoryView.overview
+                        ? _buildOverview()
+                        : _buildAllRides(),
               ),
             ),
           ],
@@ -148,6 +167,31 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
       ),
     );
   }
+
+  Widget _buildLoadState() => ListView(
+    key: ValueKey<String>(_loading ? 'history-loading' : 'history-load-error'),
+    padding: const EdgeInsets.all(24),
+    children: [
+      if (_loading) const LinearProgressIndicator(),
+      const SizedBox(height: 16),
+      Semantics(
+        liveRegion: true,
+        child: Text(
+          _loading ? 'Loading ride history…' : 'Could not load ride history.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: _muted, fontSize: 14),
+        ),
+      ),
+      if (!_loading)
+        Center(
+          child: TextButton(
+            key: const ValueKey<String>('history-retry'),
+            onPressed: _loadHistory,
+            child: const Text('Retry'),
+          ),
+        ),
+    ],
+  );
 
   Widget _buildHeader() {
     return Padding(
