@@ -122,47 +122,66 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
   String get _periodHours => '—';
 
   void _showOverview() {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
     if (_view == _HistoryView.overview) { return; }
     setState(() => _view = _HistoryView.overview);
   }
 
   void _showAllRides() {
+    if (!mounted || _loading || _loadFailed ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
     if (_view == _HistoryView.rides) { return; }
     setState(() => _view = _HistoryView.rides);
   }
 
+  void _closeHistory() {
+    if (!mounted || _view != _HistoryView.overview ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFBFCFB),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 280),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  final slide = Tween<Offset>(
-                    begin: const Offset(0.025, 0),
-                    end: Offset.zero,
-                  ).animate(animation);
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(position: slide, child: child),
-                  );
-                },
-                child: _loading || _loadFailed
-                    ? _buildLoadState()
-                    : _view == _HistoryView.overview
-                        ? _buildOverview()
-                        : _buildAllRides(),
+    return PopScope<void>(
+      canPop: _view == _HistoryView.overview,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _view == _HistoryView.rides) _showOverview();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFBFCFB),
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 280),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final slide = Tween<Offset>(
+                      begin: const Offset(0.025, 0),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(position: slide, child: child),
+                    );
+                  },
+                  child: _loading || _loadFailed
+                      ? _buildLoadState()
+                      : _view == _HistoryView.overview
+                          ? _buildOverview()
+                          : _buildAllRides(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -206,7 +225,7 @@ class _DriverRideHistoryState extends State<DriverRideHistory> {
             child: IconButton(tooltip: 'Back', 
               onPressed: _view == _HistoryView.rides
                   ? _showOverview
-                  : () => Navigator.pop(context),
+                  : _closeHistory,
               icon: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 size: 17,
