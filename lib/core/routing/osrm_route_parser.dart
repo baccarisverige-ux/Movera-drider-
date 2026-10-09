@@ -23,13 +23,21 @@ class OsrmRouteParser {
     final points = <GeoPoint>[];
     for (final coordinate in coordinatesJson) {
       if (coordinate is! List || coordinate.length < 2) {
-        continue;
+        throw const FormatException('Malformed route coordinates.');
       }
       final longitude = coordinate[0];
       final latitude = coordinate[1];
-      if (longitude is num && latitude is num) {
-        points.add(GeoPoint(latitude.toDouble(), longitude.toDouble()));
+      if (longitude is! num ||
+          latitude is! num ||
+          !longitude.isFinite ||
+          !latitude.isFinite ||
+          longitude.abs() > 180 ||
+          latitude.abs() > 90) {
+        // Dropping one waypoint could draw an artificial shortcut through
+        // unsafe roads. Invalidate the whole route and use the Retry UI.
+        throw const FormatException('Invalid route coordinates.');
       }
+      points.add(GeoPoint(latitude.toDouble(), longitude.toDouble()));
     }
 
     if (points.length < 2) {
@@ -38,11 +46,18 @@ class OsrmRouteParser {
 
     final distance = route['distance'];
     final duration = route['duration'];
+    // Provider corruption must not produce negative/NaN ETA or progress.
+    if (distance is! num || !distance.isFinite || distance < 0) {
+      throw const FormatException('Invalid route distance.');
+    }
+    if (duration is! num || !duration.isFinite || duration < 0) {
+      throw const FormatException('Invalid route duration.');
+    }
 
     return RoadRoute(
       points: points,
-      distanceMeters: distance is num ? distance.toDouble() : 0,
-      durationSeconds: duration is num ? duration.toDouble() : 0,
+      distanceMeters: distance.toDouble(),
+      durationSeconds: duration.toDouble(),
       instructions: parseInstructions(route),
     );
   }
@@ -145,7 +160,12 @@ class OsrmRouteParser {
     }
     final longitude = location[0];
     final latitude = location[1];
-    if (longitude is! num || latitude is! num) {
+    if (longitude is! num ||
+        latitude is! num ||
+        !longitude.isFinite ||
+        !latitude.isFinite ||
+        longitude.abs() > 180 ||
+        latitude.abs() > 90) {
       return null;
     }
 
@@ -157,7 +177,16 @@ class OsrmRouteParser {
         : '';
     final roadName = step['name'] is String ? step['name'] as String : null;
     final exit = maneuver['exit'];
-    final exitNumber = exit == null ? null : '$exit';
+    final int? parsedExit = exit is int
+        ? exit
+        : exit is String
+            ? int.tryParse(exit)
+            : exit is num && exit.isFinite && exit == exit.truncateToDouble()
+                ? exit.toInt()
+                : null;
+    final exitNumber = parsedExit != null && parsedExit > 0
+        ? parsedExit.toString()
+        : null;
     final distance = step['distance'];
 
     return RouteInstruction(
@@ -169,7 +198,9 @@ class OsrmRouteParser {
         roadName: roadName,
         exitNumber: exitNumber,
       ),
-      distanceMeters: distance is num ? distance.toDouble() : 0,
+      distanceMeters: distance is num && distance.isFinite && distance >= 0
+          ? distance.toDouble()
+          : 0,
       maneuverLocation: GeoPoint(latitude.toDouble(), longitude.toDouble()),
       roadName: roadName?.trim().isEmpty == true ? null : roadName,
       exitNumber: exitNumber,

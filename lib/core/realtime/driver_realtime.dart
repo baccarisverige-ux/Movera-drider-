@@ -144,6 +144,7 @@ class MemoryDriverRealtime implements DriverRealtime {
     String? message,
     DateTime? at,
   }) {
+    if (_disposed) throw StateError('Realtime disposed');
     final nextSequence=(_sequencesByTrip[tripId] ?? 0)+1;
     final event = DriverRealtimeEvent(
       tripId: tripId,
@@ -162,6 +163,9 @@ class MemoryDriverRealtime implements DriverRealtime {
   @override
   Stream<DriverRealtimeEvent> subscribe(String tripId) {
     if(_disposed) { throw StateError('Realtime disposed'); }
+    if (tripId.trim().isEmpty) {
+      throw ArgumentError.value(tripId, 'tripId', 'Trip ID is required');
+    }
     _tripId = tripId;
     final generation=++_generation;
     return _controller.stream.where((event) => !_disposed && generation==_generation && _tripId==tripId && event.tripId == tripId);
