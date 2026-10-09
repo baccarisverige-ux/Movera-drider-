@@ -87,7 +87,12 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   }
 
   Future<void> _newTicket() async {
-    if (_opening || _loading || _restoreFailed) return;
+    if (_opening ||
+        _loading ||
+        _restoreFailed ||
+        !mounted ||
+        ModalRoute.of(context)?.isCurrent != true)
+      return;
     setState(() => _opening = true);
     try {
       await _createTicket();
@@ -104,7 +109,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
     try {
       data = await _repository.read();
     } catch (_) {
-      if (mounted) {
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Could not load the local draft.'),
@@ -114,7 +119,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
       }
       return;
     }
-    if (!mounted) {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) {
       return;
     }
     final draft = data['draft'] is Map

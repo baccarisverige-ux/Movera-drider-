@@ -7,12 +7,18 @@ import 'package:movera/presentation/driver/support/support_inbox.dart';
 
 class _SupportRepository extends LocalSupportRepository {
   bool failTickets = false;
+  Completer<Map<String, dynamic>>? pendingDraft;
+  int reads = 0;
   Completer<void>? pendingTickets;
   int ticketWrites = 0;
   List<dynamic> savedTickets = [];
 
   @override
-  Future<Map<String, dynamic>> read() async => {};
+  Future<Map<String, dynamic>> read() async {
+    reads++;
+    if (reads > 1 && pendingDraft != null) return pendingDraft!.future;
+    return {};
+  }
 
   @override
   Future<void> update(String field, Object value) async {
@@ -59,6 +65,7 @@ void main() {
   ) async {
     final repository = _SupportRepository()..failTickets = true;
     await _open(tester, repository);
+    await tester.ensureVisible(find.text('Save draft in demo'));
     await tester.tap(find.text('Save draft in demo'));
     await tester.pumpAndSettle();
     expect(find.text('Could not save local ticket. Retry.'), findsOneWidget);
@@ -69,6 +76,7 @@ void main() {
     );
     expect(repository.ticketWrites, 1);
     repository.failTickets = false;
+    await tester.ensureVisible(find.text('Save draft in demo'));
     await tester.tap(find.text('Save draft in demo'));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNothing);
@@ -132,6 +140,29 @@ void main() {
     expect(find.text('Vehicle problem'), findsOneWidget);
     expect(repository.ticketWrites, 1);
     expect(repository.savedTickets, hasLength(1));
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('late draft read cannot open a composer after leaving support', (
+    tester,
+  ) async {
+    final repository = _SupportRepository();
+    await _open(tester, repository);
+    await Navigator.of(tester.element(find.byType(FilledButton))).maybePop();
+    await tester.pumpAndSettle();
+    expect(find.text('Local ticket draft'), findsNothing);
+    repository.pendingDraft = Completer<Map<String, dynamic>>();
+    final action = tester
+        .widget<FloatingActionButton>(find.byType(FloatingActionButton))
+        .onPressed!;
+    action();
+    await tester.pump();
+    final context = tester.element(find.byType(SupportInboxScreen));
+    Navigator.of(context).pop();
+    repository.pendingDraft!.complete({});
+    await tester.pumpAndSettle();
+    expect(find.text('Open support'), findsOneWidget);
+    expect(find.text('Local ticket draft'), findsNothing);
+    expect(repository.ticketWrites, 0);
     expect(tester.takeException(), isNull);
   });
 }
