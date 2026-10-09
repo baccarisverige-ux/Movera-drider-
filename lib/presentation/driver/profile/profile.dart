@@ -353,6 +353,14 @@ class _DriverProfileState extends State<DriverProfile> {
     final leave = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
+        void close(bool result) {
+          if (!dialogContext.mounted ||
+              ModalRoute.of(dialogContext)?.isCurrent != true) {
+            return;
+          }
+          Navigator.pop(dialogContext, result);
+        }
+
         return AlertDialog(
           backgroundColor: Colors.white,
           title: const Text('Log out?'),
@@ -361,11 +369,11 @@ class _DriverProfileState extends State<DriverProfile> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
+              onPressed: () => close(false),
               child: const Text('Stay'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () => close(true),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF252E3A),
               ),
@@ -375,7 +383,9 @@ class _DriverProfileState extends State<DriverProfile> {
         );
       },
     );
-    if (leave == true && context.mounted) {
+    if (leave == true &&
+        context.mounted &&
+        ModalRoute.of(context)?.isCurrent == true) {
       final runtime = DriverRuntimeScope.maybeOf(context);
       try {
         if (runtime?.logout != null) {

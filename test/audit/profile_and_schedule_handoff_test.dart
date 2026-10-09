@@ -126,6 +126,90 @@ void main() {
     session.dispose();
   });
 
+  testWidgets('repeated Stay preserves the profile route without logging out', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const DriverProfile()),
+              ),
+              child: const Text('Open profile'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open profile'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Log out'));
+    await tester.pumpAndSettle();
+    final stay = tester
+        .widget<TextButton>(find.widgetWithText(TextButton, 'Stay'))
+        .onPressed!;
+    stay();
+    stay();
+    await tester.pumpAndSettle();
+    expect(find.byType(DriverProfile), findsOneWidget);
+    expect(find.text('Log out?'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'repeated logout confirmation preserves profile for save failure retry',
+    (tester) async {
+      final session = DriverSessionController();
+      final pending = Completer<void>();
+      var calls = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => DriverRuntimeScope(
+                      session: session,
+                      homeBuilder: () => const SizedBox(),
+                      logout: () {
+                        calls++;
+                        return pending.future;
+                      },
+                      child: const DriverProfile(),
+                    ),
+                  ),
+                ),
+                child: const Text('Open profile'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open profile'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Log out'));
+      await tester.pumpAndSettle();
+      final confirm = tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Log out'))
+          .onPressed!;
+      confirm();
+      confirm();
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+      expect(find.byType(DriverProfile), findsOneWidget);
+      pending.completeError(StateError('local data unavailable'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Could not clear local data'), findsOneWidget);
+      expect(find.byType(DriverProfile), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      session.dispose();
+    },
+  );
+
   testWidgets('scheduled list updates after a request is answered on Home', (
     tester,
   ) async {
