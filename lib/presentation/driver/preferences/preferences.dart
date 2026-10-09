@@ -4,7 +4,8 @@ import 'package:movera/constants/appassets.dart';
 import 'package:movera/core/settings/settings_repository.dart';
 
 class Preferences extends StatefulWidget {
-  const Preferences({super.key});
+  const Preferences({super.key, this.repository});
+  final SettingsRepository? repository;
 
   @override
   State<Preferences> createState() => _PreferencesState();
@@ -68,16 +69,26 @@ class _PreferencesState extends State<Preferences> {
 
   late List<bool> _selected;
 
-  final _settings = SettingsRepository();
-  bool _settingsTouched = false;
+  late final _settings = widget.repository ?? SettingsRepository();
+  bool _loading = true;
+  bool _restoreFailed = false;
+  bool _restoring = false;
+  bool get _canEdit => !_loading && !_restoreFailed;
   Future<void> _restoreSettings() async {
+    if (_restoring || !mounted) return;
+    _restoring = true;
+    setState(() {
+      _loading = true;
+      _restoreFailed = false;
+    });
     try {
       final data = await _settings.read('categories');
-      if (!mounted || _settingsTouched) {
+      if (!mounted) {
         return;
       }
       final saved = data['selected'];
       setState(() {
+        _loading = false;
         if (saved is List &&
             saved.length <= _categories.length &&
             saved.every((v) => v is bool)) {
@@ -90,18 +101,18 @@ class _PreferencesState extends State<Preferences> {
       });
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Could not load saved preferences.'),
-            action: SnackBarAction(label: 'Retry', onPressed: _restoreSettings),
-          ),
-        );
+        setState(() {
+          _loading = false;
+          _restoreFailed = true;
+        });
       }
+    } finally {
+      _restoring = false;
     }
   }
 
   Future<bool> _persistSettings() async {
-    _settingsTouched = true;
+    if (!_canEdit) return false;
     try {
       await _settings.save('categories', {'selected': _selected});
       return true;
@@ -125,6 +136,7 @@ class _PreferencesState extends State<Preferences> {
   int get _selectedCount => _selected.where((selected) => selected).length;
 
   void _toggle(int index) {
+    if (!_canEdit) return;
     setState(() {
       _selected[index] = !_selected[index];
     });
@@ -213,6 +225,12 @@ class _PreferencesState extends State<Preferences> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_loading) const LinearProgressIndicator(),
+        if (_restoreFailed)
+          TextButton(
+            onPressed: _restoreSettings,
+            child: const Text('Could not load saved preferences — Retry'),
+          ),
         Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Row(
@@ -279,13 +297,14 @@ class _PreferencesState extends State<Preferences> {
 
     return Semantics(
       button: true,
+      enabled: _canEdit,
       selected: selected,
       child: Material(
         color: Colors.white,
         borderRadius: radius,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => _toggle(index),
+          onTap: _canEdit ? () => _toggle(index) : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
@@ -359,7 +378,7 @@ class _PreferencesState extends State<Preferences> {
         width: double.infinity,
         height: 48,
         child: OutlinedButton(
-          onPressed: _selectedCount == 0 ? null : _save,
+          onPressed: !_canEdit || _selectedCount == 0 ? null : _save,
           style: OutlinedButton.styleFrom(
             backgroundColor: Colors.white,
             foregroundColor: _heading,
