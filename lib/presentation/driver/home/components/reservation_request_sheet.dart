@@ -63,16 +63,32 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
 
   ReservationRequestPreview get request => widget.request;
   RoadRouteService? _ownRoutes;
-  late final Future<List<GeoPoint>> _route;
+  late Future<List<GeoPoint>> _route;
 
   @override
   void initState() {
     super.initState();
-    final routes = widget.routes ??
+    _loadRoute();
+  }
+
+  void _loadRoute() {
+    _ownRoutes?.dispose();
+    _ownRoutes = null;
+    final routes =
+        widget.routes ??
         (DriverRuntimeConfig.current.externalRouting
             ? _ownRoutes = RoadRouteService()
             : null);
     _route = loadReservationRoute(request, routes);
+  }
+
+  @override
+  void didUpdateWidget(ReservationRequestSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.request != widget.request ||
+        oldWidget.routes != widget.routes) {
+      _loadRoute();
+    }
   }
 
   @override
@@ -82,14 +98,19 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
   }
 
   void _openRouteMap() {
-    pushSingle(context,
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    final openedRequest = request;
+    final route = _route;
+    final mapBuilder = widget.mapBuilder;
+    pushSingle(
+      context,
       MaterialPageRoute<void>(
         builder: (_) => ReservationRouteMapPage(
-          request: request,
-          route: _route,
-          mapBuilder: widget.mapBuilder == null
+          request: openedRequest,
+          route: route,
+          mapBuilder: mapBuilder == null
               ? null
-              : (context, _) => widget.mapBuilder!(context),
+              : (context, _) => mapBuilder(context),
         ),
       ),
     );
@@ -155,11 +176,15 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
                             Positioned.fill(
                               child: Material(
                                 type: MaterialType.transparency,
-                                child: InkWell(
-                                  key: const ValueKey<String>(
-                                    'reservation-map-open',
+                                child: Semantics(
+                                  label: 'View reservation route',
+                                  button: true,
+                                  child: InkWell(
+                                    key: const ValueKey<String>(
+                                      'reservation-map-open',
+                                    ),
+                                    onTap: _openRouteMap,
                                   ),
-                                  onTap: _openRouteMap,
                                 ),
                               ),
                             ),
@@ -225,7 +250,10 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
                       ),
                       child: const Text(
                         'Deny',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -237,8 +265,8 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
                     height: 54,
                     child: FilledButton(
                       key: const ValueKey<String>('reservation-accept'),
-                      onPressed: () => Navigator.of(context)
-                          .pop(ReservationDecision.accepted),
+                      onPressed: () =>
+                          popOwned(context, ReservationDecision.accepted),
                       style: FilledButton.styleFrom(
                         backgroundColor: _ink,
                         foregroundColor: Colors.white,
@@ -248,7 +276,10 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
                       ),
                       child: const Text(
                         'Accept',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -315,12 +346,12 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
   }
 
   Widget _connector() => Padding(
-        padding: const EdgeInsets.only(left: 5),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Container(width: 2, height: 14, color: _line),
-        ),
-      );
+    padding: const EdgeInsets.only(left: 5),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Container(width: 2, height: 14, color: _line),
+    ),
+  );
 
   Widget _routeRow({
     required Widget dot,
@@ -343,8 +374,6 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
               ),
               Text(
                 address,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _ink,
                   fontSize: 14.5,
@@ -355,31 +384,30 @@ class _ReservationRequestSheetState extends State<ReservationRequestSheet> {
           ),
         ),
         if (trailing != null) ...[
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              trailing,
-              style: const TextStyle(
-                color: _ink,
-                fontSize: 14.5,
-                fontWeight: FontWeight.w700,
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                trailing,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            Text(
-              trailingSub ?? '',
-              style: const TextStyle(color: _muted, fontSize: 11.5),
-            ),
-          ],
-        ),
+              Text(
+                trailingSub ?? '',
+                style: const TextStyle(color: _muted, fontSize: 11.5),
+              ),
+            ],
+          ),
         ],
       ],
     );
   }
 
-  static String _km(double km) =>
-      '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
+  static String _km(double km) => '${km.toStringAsFixed(km < 10 ? 1 : 0)} km';
 
   Widget _liveMap(BuildContext context) {
     return FutureBuilder<List<GeoPoint>>(

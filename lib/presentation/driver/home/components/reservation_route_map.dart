@@ -287,7 +287,10 @@ class ReservationRouteMapPage extends StatelessWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           // The details card covers roughly the lower third.
-          final cardHeight = 150.0 + request.stops.length * 44 + safe.bottom;
+          final cardHeight = math.min(
+            150.0 + request.stops.length * 44 + safe.bottom,
+            constraints.maxHeight * .55,
+          );
           return Stack(
             children: [
               Positioned.fill(
@@ -331,7 +334,11 @@ class ReservationRouteMapPage extends StatelessWidget {
                 left: 12,
                 right: 12,
                 bottom: safe.bottom + 12,
-                child: _details(),
+                child: ConstrainedBox(
+                  key: const ValueKey('reservation-route-details'),
+                  constraints: BoxConstraints(maxHeight: cardHeight),
+                  child: SingleChildScrollView(child: _details()),
+                ),
               ),
             ],
           );
@@ -351,15 +358,14 @@ class ReservationRouteMapPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 12,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: Text(
-                    '${request.pickupDay} · ${request.category}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: _muted, fontSize: 13),
-                  ),
+                Text(
+                  '${request.pickupDay} · ${request.category}',
+                  style: const TextStyle(color: _muted, fontSize: 13),
                 ),
                 Text(
                   '${request.tripMinutes} min · ${request.tripKm.toStringAsFixed(request.tripKm < 10 ? 1 : 0)} km',
@@ -427,8 +433,6 @@ class ReservationRouteMapPage extends StatelessWidget {
               ),
               Text(
                 address,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _ink,
                   fontSize: 14.5,
