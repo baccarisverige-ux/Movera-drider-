@@ -320,6 +320,13 @@ class NavigationController extends ChangeNotifier {
     } finally {
       if (token == _routeRequestToken) {
         _routeInFlight = false;
+        // A fix may have moved off the returned route during the fetch.
+        // Banner rebuild could not queue a reroute while the lane was busy.
+        if (!_disposed &&
+            _routeState == RouteLoadState.ready &&
+            _snapshot.offRoute) {
+          _scheduleReroute();
+        }
       }
     }
   }

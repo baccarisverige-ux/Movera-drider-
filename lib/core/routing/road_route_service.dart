@@ -28,9 +28,9 @@ class RoadRouteService implements RouteRepository {
     OsrmRouteParser parser = const OsrmRouteParser(),
     this.timeout = const Duration(seconds: 8),
     this.host = defaultHost,
-  })  : _client = client ?? http.Client(),
-        _ownsClient = ownsClient ?? client == null,
-        _parser = parser;
+  }) : _client = client ?? http.Client(),
+       _ownsClient = ownsClient ?? client == null,
+       _parser = parser;
 
   final http.Client _client;
   final bool _ownsClient;
@@ -70,6 +70,9 @@ class RoadRouteService implements RouteRepository {
     required GeoPoint origin,
     required GeoPoint destination,
   }) async {
+    if (_closed) {
+      throw const RoadRouteException('Routing is closed.');
+    }
     final coordinates =
         '${origin.longitude},${origin.latitude};'
         '${destination.longitude},${destination.latitude}';
@@ -101,6 +104,9 @@ class RoadRouteService implements RouteRepository {
       );
     }
 
+    if (_closed) {
+      throw const RoadRouteException('Routing is closed.');
+    }
     if (response.statusCode != 200) {
       throw RoadRouteException(
         'Routing service returned ${response.statusCode}.',

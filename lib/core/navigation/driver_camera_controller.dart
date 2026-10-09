@@ -90,6 +90,10 @@ class DriverCameraPolicy {
       _geometry = route == null || route.points.isEmpty
           ? null
           : RouteCameraGeometry(route.points);
+    } else if (!_sameManeuvers(route, _route)) {
+      // A replacement can keep the road shape but correct turn locations.
+      // Keep along-route progress, but locate the next instruction again.
+      _instructionHint = 0;
     }
     _route = route;
     _course = location.courseOr(_course);
@@ -156,8 +160,7 @@ class DriverCameraPolicy {
         // from highway zoom straight to a close-up view. Start easing well
         // before arrival, finishing flat and near at the actual endpoint.
         if (progress.remainingMeters < 140) {
-          final fraction = (1 - progress.remainingMeters / 140)
-              .clamp(0.0, 1.0);
+          final fraction = (1 - progress.remainingMeters / 140).clamp(0.0, 1.0);
           final ease = fraction * fraction * (3 - 2 * fraction);
           zoom += math.max(0.0, 17.5 - zoom) * ease;
           tilt *= 1 - ease;
@@ -201,6 +204,21 @@ class DriverCameraPolicy {
         p.latitude == q.latitude && p.longitude == q.longitude;
     for (var i = 0; i < a.length; i++) {
       if (!same(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  bool _sameManeuvers(RoadRoute? next, RoadRoute? previous) {
+    final a = next?.instructions ?? const <RouteInstruction>[];
+    final b = previous?.instructions ?? const <RouteInstruction>[];
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].maneuverLocation != b[i].maneuverLocation ||
+          a[i].type != b[i].type ||
+          a[i].modifier != b[i].modifier) {
+        return false;
+      }
     }
     return true;
   }
@@ -265,6 +283,7 @@ class DriverCameraController {
       port.dispose();
       return;
     }
+    if (identical(port, _port)) return;
     _invalidate();
     _port?.dispose();
     _port = port;
@@ -283,7 +302,8 @@ class DriverCameraController {
     }
     _location = location;
     _route = route;
-    final enteringGuidance = navigating && !_navigating;
+    final enteringGuidance =
+        navigating && !waiting && (!_navigating || _waiting);
     _navigating = navigating;
     _waiting = waiting;
     // Track car/route progress even while the viewport belongs to the driver.
@@ -342,8 +362,11 @@ class DriverCameraController {
     } catch (_) {
       // A failed camera fit must not strand the driver in Preview forever.
       // Respect any later manual pan, map replacement or lifecycle pause.
-      if (!_disposed && !_suspended && epoch == _epoch &&
-          identical(port, _port) && _mode == DriverCameraMode.overview) {
+      if (!_disposed &&
+          !_suspended &&
+          epoch == _epoch &&
+          identical(port, _port) &&
+          _mode == DriverCameraMode.overview) {
         _mode = DriverCameraMode.following;
         _request(immediate: true);
       }
@@ -406,6 +429,11 @@ class DriverCameraController {
     final port = _port;
     final pose = _pending;
     if (!_canFollow || _busy || port == null || pose == null) {
+      return;
+    }
+    final location = _location;
+    if (location == null || !location.isUsableAt(_now())) {
+      _pending = null;
       return;
     }
     _pending = null;
