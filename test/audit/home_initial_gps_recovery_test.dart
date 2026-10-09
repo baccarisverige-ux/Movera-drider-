@@ -28,6 +28,21 @@ class _RecoveringHomeLocation implements DriverLocationRepository {
       updates.stream;
 }
 
+class _StaleInitialHomeLocation implements DriverLocationRepository {
+  final updates = StreamController<DriverLocation>.broadcast();
+
+  @override
+  Future<DriverLocation> getCurrentPosition() async => DriverLocation(
+    point: const GeoPoint(59.35, 18.08),
+    measuredAt: DateTime.now().subtract(const Duration(minutes: 2)),
+    accuracyMeters: 5,
+  );
+
+  @override
+  Stream<DriverLocation> watchPosition({int distanceFilterMeters = 8}) =>
+      updates.stream;
+}
+
 class _CameraRecordingMaps extends HeadlessMapPlatform {
   final moves = <CameraUpdate>[];
 
@@ -51,6 +66,57 @@ void main() {
     );
   });
   tearDown(() => DriverRuntimeConfig.current = previous);
+
+  testWidgets('stale initial fix cannot consume first live camera center',
+      (tester) async {
+    final originalMaps = GoogleMapsFlutterPlatform.instance;
+    final maps = _CameraRecordingMaps();
+    GoogleMapsFlutterPlatform.instance = maps;
+    addTearDown(() => GoogleMapsFlutterPlatform.instance = originalMaps);
+    final location = _StaleInitialHomeLocation();
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(ScreenUtilInit(
+      designSize: const Size(375, 812),
+      builder: (_, __) => MaterialApp(
+        home: DriverHome(locationRepository: location),
+      ),
+    ));
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(location.updates.hasListener, isTrue);
+    final initial = tester.widget<GoogleMap>(find.byType(GoogleMap).first);
+    expect(initial.markers.any((marker) =>
+        marker.position == const LatLng(59.35, 18.08)), isFalse,
+        reason: 'A two-minute-old location may not move the map or marker');
+    expect(maps.moves, isEmpty,
+        reason: 'Stale GPS cannot claim first live camera framing');
+
+    const live = LatLng(59.34, 18.07);
+    location.updates.add(DriverLocation(
+      point: const GeoPoint(59.34, 18.07),
+      measuredAt: DateTime.now(),
+      accuracyMeters: 4,
+      speedMetersPerSecond: 2,
+    ));
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    final updated = tester.widget<GoogleMap>(find.byType(GoogleMap).first);
+    expect(updated.markers.any((marker) =>
+        marker.markerId.value == 'driver_location' &&
+        marker.position == live), isTrue,
+        reason: 'The first valid stream fix must reclaim the map marker');
+    expect(maps.moves, isNotEmpty,
+        reason: 'Only the valid fix is allowed to center the camera');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 100));
+    await location.updates.close();
+  });
 
   testWidgets('Home reconnects live GPS after its initial fix fails', (
     tester,

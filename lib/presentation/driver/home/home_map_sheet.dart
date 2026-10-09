@@ -36,9 +36,11 @@ extension _HomeMapSheet on _DriverHomeState {
         final position = await _driverLocationService.getCurrentPosition();
         if (!mounted) { return; }
         if (!_liveVisible || epoch != _locationEpoch) { return; }
+        final validInitial = position.isDisplayableAt(DateTime.now()) &&
+            position.isUsableAt(DateTime.now());
         _applyDriverLocation(position);
         _listenToDriverLocation();
-        if (moveCamera || !_didCenterOnLiveLocation) {
+        if (validInitial && (moveCamera || !_didCenterOnLiveLocation)) {
           _didCenterOnLiveLocation = true;
           await _animateToDriverLocation();
         }
@@ -59,8 +61,10 @@ extension _HomeMapSheet on _DriverHomeState {
           .listen(
         (location) {
           if (!mounted || !_liveVisible || epoch != _locationEpoch) { return; }
+          final usable = location.isDisplayableAt(DateTime.now()) &&
+              location.isUsableAt(DateTime.now());
           _applyDriverLocation(location);
-          if (!_didCenterOnLiveLocation) {
+          if (usable && !_didCenterOnLiveLocation) {
             _didCenterOnLiveLocation = true;
             unawaited(_animateToDriverLocation());
           }
