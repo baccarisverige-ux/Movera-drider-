@@ -73,13 +73,18 @@ class RouteProgressCalculator {
     }
 
     final geometry = _geometry[route] ??= _RouteGeometry.of(route);
-    var projection = previousAlongMeters == null
+    // A corrupt persisted progress value must never poison route projection.
+    final safePreviousAlong = previousAlongMeters != null &&
+            previousAlongMeters.isFinite && previousAlongMeters >= 0
+        ? previousAlongMeters
+        : null;
+    var projection = safePreviousAlong == null
         ? null
         : geometry.project(
             position,
-            fromAlong: previousAlongMeters - backwardWindowMeters,
-            toAlong: previousAlongMeters + forwardWindowMeters,
-            preferAlong: previousAlongMeters,
+            fromAlong: safePreviousAlong - backwardWindowMeters,
+            toAlong: safePreviousAlong + forwardWindowMeters,
+            preferAlong: safePreviousAlong,
           );
     if (projection == null ||
         projection.distance > offRouteThresholdMeters) {
