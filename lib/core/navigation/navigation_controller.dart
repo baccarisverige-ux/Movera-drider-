@@ -153,7 +153,11 @@ class NavigationController extends ChangeNotifier {
     final restoredGps = _status == 'Location updating…' &&
         location.isUsableAt(DateTime.now());
     if (restoredGps) {
-      _status = null;
+      _status = switch (_routeState) {
+        RouteLoadState.failed => 'Route unavailable — retry',
+        RouteLoadState.loading => 'Route updating…',
+        _ => null,
+      };
     }
     final moved = _snapshot.vehicle.distanceMetersTo(location.point);
     if (!restoredGps &&
