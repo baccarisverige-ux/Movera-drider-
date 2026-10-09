@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_external_action.dart';
 import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:movera/presentation/driver/sheets/sheet_trace.dart';
@@ -98,12 +99,14 @@ class AcceptRide extends StatefulWidget {
     this.initialStage = ActiveRideStage.headingToPickup,
     this.initialWaitSeconds = 0,
     this.waitNow,
+    this.launchExternalMap,
     this.restoredSnapshot,
     this.destinationModeActive = false,
     this.destinationAddress,
     this.destinationPosition,
   });
 
+  final Future<bool> Function(Uri)? launchExternalMap;
   final String offerId;
   /// Clock for elapsed waiting time; injectable for lifecycle verification.
   final DateTime Function()? waitNow;
@@ -486,6 +489,7 @@ class _AcceptRideState extends State<AcceptRide>
   static const Duration _projectionRetryBase = Duration(seconds: 1);
   static const Duration _projectionRetryMax = Duration(seconds: 30);
   Duration _projectionRetryDelay = _projectionRetryBase;
+  final _externalMapAction = OwnedExternalAction();
   bool _completionInFlight = false;
   bool _cancellationInFlight = false;
   bool _blockMapGestures = false;

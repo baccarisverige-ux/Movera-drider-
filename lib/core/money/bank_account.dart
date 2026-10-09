@@ -43,7 +43,11 @@ class BankAccountRules {
   /// The bank for a clearing number, or null when unknown or malformed.
   /// Swedbank's clearing numbers starting with 8 have five digits.
   static String? bankForClearing(String value) {
-    final d = digits(value);
+    final formatted = value.trim();
+    if (!RegExp(r'^\d+(?:\s*-\s*\d+|\s+\d+)*$').hasMatch(formatted)) {
+      return null;
+    }
+    final d = digits(formatted);
     final ok = d.startsWith('8') ? d.length == 5 : d.length == 4;
     if (!ok) return null;
     final key = int.parse(d.substring(0, 4));
@@ -55,7 +59,11 @@ class BankAccountRules {
 
   /// Swedish account numbers are 6 to 10 digits after the clearing number.
   static bool validAccount(String value) {
-    final d = digits(value);
+    final formatted = value.trim();
+    if (!RegExp(r'^\d+(?:\s*-\s*\d+|\s+\d+)*$').hasMatch(formatted)) {
+      return false;
+    }
+    final d = digits(formatted);
     return d.length >= 6 && d.length <= 10;
   }
 

@@ -745,8 +745,9 @@ extension _AcceptRidePanel on _AcceptRideState {
         'https://www.google.com/maps/dir/?api=1'
         '&destination=${target.latitude},${target.longitude}&travelmode=driving',
       );
-      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!opened && mounted) {
+      final opened = await _externalMapAction.run(context,
+        () => widget.launchExternalMap?.call(uri) ?? launchUrl(uri, mode: LaunchMode.externalApplication));
+      if (opened == false && mounted && ModalRoute.of(context)?.isCurrent == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Google Maps is unavailable.')),
         );

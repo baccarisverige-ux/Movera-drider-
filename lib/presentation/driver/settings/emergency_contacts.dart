@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_external_action.dart';
 import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/core/settings/settings_repository.dart';
@@ -8,7 +9,12 @@ import 'package:movera/widgets/responsive_size.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class EmergencyContactsScreen extends StatefulWidget {
-  const EmergencyContactsScreen({super.key, this.repository});
+  const EmergencyContactsScreen({
+    super.key,
+    this.repository,
+    this.launchDialer,
+  });
+  final Future<bool> Function(Uri)? launchDialer;
   final SettingsRepository? repository;
 
   @override
@@ -32,6 +38,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   static const Color _ink = Color(0xFF252E3A);
   static const Color _muted = Color(0xFF7D898F);
 
+  final _dialAction = OwnedExternalAction();
   final List<_EmergencyContact> _contacts = [
     const _EmergencyContact(
       name: 'Emergency services — 112',
@@ -158,18 +165,16 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     final uri = Uri.parse(
       'tel:${contact.phone.replaceAll(RegExp(r'[^0-9+]'), '')}',
     );
-    try {
-      if (!await launchUrl(uri) && mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Dialer is unavailable.')));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Dialer is unavailable.')));
-      }
+    final opened = await _dialAction.run(
+      context,
+      () => widget.launchDialer?.call(uri) ?? launchUrl(uri),
+    );
+    if (opened == false &&
+        mounted &&
+        ModalRoute.of(context)?.isCurrent == true) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Dialer is unavailable.')));
     }
   }
 
