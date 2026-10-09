@@ -357,6 +357,7 @@ class VehicleDocuments extends StatefulWidget {
     required this.year,
     required this.plate,
     this.store,
+    this.capturePhoto,
   });
 
   final String? vehicleId;
@@ -365,6 +366,9 @@ class VehicleDocuments extends StatefulWidget {
   final String year;
   final String plate;
   final LocalVehicleStore? store;
+
+  /// Optional capture port for controlled frontend verification.
+  final Future<XFile?> Function()? capturePhoto;
 
   @override
   State<VehicleDocuments> createState() => _VehicleDocumentsState();
@@ -454,7 +458,11 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
     final saved = await pushSingle<Uint8List>(
       context,
       MaterialPageRoute(
-        builder: (_) => _VehiclePhotoPage(title: title, checks: checks),
+        builder: (_) => _VehiclePhotoPage(
+          title: title,
+          checks: checks,
+          capturePhoto: widget.capturePhoto,
+        ),
       ),
     );
     if (saved == null || !mounted) {
@@ -788,27 +796,44 @@ class _VehicleDocumentsState extends State<VehicleDocuments> {
   }
 }
 
-class _VehiclePhotoPage extends StatelessWidget {
-  const _VehiclePhotoPage({required this.title, required this.checks});
+class _VehiclePhotoPage extends StatefulWidget {
+  const _VehiclePhotoPage({
+    required this.title,
+    required this.checks,
+    this.capturePhoto,
+  });
 
   final String title;
   final List<String> checks;
+  final Future<XFile?> Function()? capturePhoto;
+
+  @override
+  State<_VehiclePhotoPage> createState() => _VehiclePhotoPageState();
+}
+
+class _VehiclePhotoPageState extends State<_VehiclePhotoPage> {
+  bool _taking = false;
+  bool get _ownsRoute => mounted && ModalRoute.of(context)?.isCurrent == true;
 
   static const Color _ink = Color(0xFF252E3A);
 
-  Future<void> _take(BuildContext context) async {
+  Future<void> _take() async {
+    if (_taking || !_ownsRoute) return;
+    setState(() => _taking = true);
     try {
-      final file = await ImagePicker().pickImage(
-        source: ImageSource.camera,
-        imageQuality: 60,
-        maxWidth: 1024,
-      );
-      if (!context.mounted) {
+      final file =
+          await (widget.capturePhoto?.call() ??
+              ImagePicker().pickImage(
+                source: ImageSource.camera,
+                imageQuality: 60,
+                maxWidth: 1024,
+              ));
+      if (!_ownsRoute) {
         return;
       }
       if (file != null) {
         final bytes = await file.readAsBytes();
-        if (!context.mounted) {
+        if (!_ownsRoute) {
           return;
         }
         if (bytes.length > LocalVehicleStore.maxPhotoBytes) {
@@ -824,7 +849,7 @@ class _VehiclePhotoPage extends StatelessWidget {
         Navigator.pop(context, bytes);
       }
     } catch (_) {
-      if (!context.mounted) {
+      if (!_ownsRoute) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
@@ -833,6 +858,8 @@ class _VehiclePhotoPage extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _taking = false);
     }
   }
 
@@ -857,7 +884,7 @@ class _VehiclePhotoPage extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
               children: [
                 Text(
-                  title,
+                  widget.title,
                   style: const TextStyle(
                     color: _ink,
                     fontSize: 30,
@@ -891,7 +918,7 @@ class _VehiclePhotoPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                for (final check in checks)
+                for (final check in widget.checks)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Row(
@@ -920,16 +947,19 @@ class _VehiclePhotoPage extends StatelessWidget {
               width: double.infinity,
               height: 52,
               child: FilledButton(
-                onPressed: () => _take(context),
+                onPressed: _taking ? null : _take,
                 style: FilledButton.styleFrom(
                   backgroundColor: _ink,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text(
-                  'Take photo',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                child: Text(
+                  _taking ? 'Taking photo…' : 'Take photo',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ),
