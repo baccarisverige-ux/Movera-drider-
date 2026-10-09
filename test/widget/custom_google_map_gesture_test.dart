@@ -162,6 +162,57 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('sheet gesture lock clears stale taps and pointer ownership',
+      (tester) async {
+    final original = GoogleMapsFlutterPlatform.instance;
+    GoogleMapsFlutterPlatform.instance = HeadlessMapPlatform();
+    addTearDown(() => GoogleMapsFlutterPlatform.instance = original);
+    var claims = 0;
+    Future<void> show(bool enabled) => tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: CustomGoogleMap(
+          key: const ValueKey('lock-interruption-map'),
+          myLocationEnabled: false,
+          scrollGesturesEnabled: enabled,
+          zoomGesturesEnabled: enabled,
+          rotateGesturesEnabled: enabled,
+          tiltGesturesEnabled: enabled,
+          onUserGesture: () => claims++,
+        ),
+      ),
+    ));
+
+    await show(true);
+    final center = tester.getCenter(find.byType(CustomGoogleMap));
+    await tester.tapAt(center);
+    await show(false);
+    await show(true);
+    await tester.tapAt(center);
+    expect(claims, 0,
+        reason: 'A tap before the sheet locks cannot complete a new double-tap');
+
+    final interrupted = await tester.startGesture(center, pointer: 31);
+    await show(false);
+    await show(true);
+    final fresh = await tester.startGesture(
+      center + const Offset(24, 0), pointer: 32);
+    expect(claims, 0,
+        reason: 'Held pointer before a sheet lock must not become phantom pinch');
+    await fresh.up();
+    await interrupted.up();
+
+    final a = await tester.startGesture(
+      center + const Offset(-20, 0), pointer: 41);
+    final b = await tester.startGesture(
+      center + const Offset(20, 0), pointer: 42);
+    expect(claims, 1,
+        reason: 'A fresh pinch after unlocking must still claim the camera');
+    await b.up();
+    await a.up();
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('map tap preserves following while drag and pinch claim camera',
       (tester) async {
     final original = GoogleMapsFlutterPlatform.instance;
