@@ -6,22 +6,27 @@
 class CoalescingMapRouteRefresh {
   bool _running = false;
   bool _pending = false;
+  Future<void> Function()? _latestRefresh;
 
   bool get isRunning => _running;
 
   Future<void> request(Future<void> Function() refresh) async {
     if (_running) {
       _pending = true;
+      _latestRefresh = refresh;
       return;
     }
     _running = true;
     try {
       do {
         _pending = false;
-        await refresh();
+        final current = _latestRefresh ?? refresh;
+        _latestRefresh = null;
+        await current();
       } while (_pending);
     } finally {
       _running = false;
+      _latestRefresh = null;
     }
   }
 
@@ -29,5 +34,6 @@ class CoalescingMapRouteRefresh {
   /// still complete, so its caller separately validates request ownership.
   void cancelPending() {
     _pending = false;
+    _latestRefresh = null;
   }
 }
