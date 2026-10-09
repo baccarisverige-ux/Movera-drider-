@@ -162,6 +162,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   }
 
   Future<void> _call(_EmergencyContact contact) async {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
     final uri = Uri.parse(
       'tel:${contact.phone.replaceAll(RegExp(r'[^0-9+]'), '')}',
     );

@@ -740,6 +740,7 @@ extension _AcceptRidePanel on _AcceptRideState {
       );
     }
     Future<void> _openGoogleMaps() async {
+      if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
       final target = _approachTarget ?? widget.dropoffPosition;
       final uri = Uri.parse(
         'https://www.google.com/maps/dir/?api=1'
