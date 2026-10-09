@@ -97,7 +97,13 @@ class NavigationController extends ChangeNotifier {
     if (route == null || route.distanceMeters <= 0) {
       return null;
     }
-    return ((_progressAlong ?? 0) / route.distanceMeters).clamp(0.0, 1.0);
+    final points = route.geoPoints;
+    var polylineMeters = 0.0;
+    for (var i = 1; i < points.length; i++) {
+      polylineMeters += points[i - 1].distanceMetersTo(points[i]);
+    }
+    if (!polylineMeters.isFinite || polylineMeters <= 0) return null;
+    return ((_progressAlong ?? 0) / polylineMeters).clamp(0.0, 1.0);
   }
 
   bool get followCamera => !_userPausedFollow;
