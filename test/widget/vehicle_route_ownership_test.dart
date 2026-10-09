@@ -78,7 +78,7 @@ void main() {
     open();
     open();
     await tester.pumpAndSettle();
-    expect(find.text('Year'), findsNWidgets(2));
+    expect(find.text('Year'), findsOneWidget);
     final choice = tester
         .widget<ListTile>(
           find.widgetWithText(ListTile, DateTime.now().year.toString()),
@@ -88,7 +88,7 @@ void main() {
     choice();
     await tester.pumpAndSettle();
     expect(find.byType(AddVehicle), findsOneWidget);
-    expect(find.text('License plate number'), findsOneWidget);
+    expect(find.text('License plate number *'), findsOneWidget);
     expect(find.text(DateTime.now().year.toString()), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
