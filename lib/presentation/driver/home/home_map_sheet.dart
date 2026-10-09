@@ -1362,7 +1362,7 @@ extension _HomeMapSheet on _DriverHomeState {
       return false;
     }
     Future<void> _maybeShowAppUpdatePrompt() async {
-      if (_updatePromptShown || !mounted) { return; }
+      if (_updatePromptShown || !mounted || ModalRoute.of(context)?.isCurrent != true) { return; }
 
       final update = _adminHomeConfig.update;
       if (!update.enabled ||
@@ -1379,126 +1379,7 @@ extension _HomeMapSheet on _DriverHomeState {
         useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (sheetContext) {
-          return Container(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF9FBFA),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD7DEDB),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE6F5EE),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Icon(
-                    Icons.system_update_alt_rounded,
-                    color: Color(0xFF19865C),
-                    size: 27,
-                  ),
-                ),
-                const SizedBox(height: 13),
-                Text(
-                  update.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF252E3A),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.35,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  update.message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF7D898F),
-                    fontSize: 11.5,
-                    height: 1.45,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Version ${update.latestVersion}',
-                  style: const TextStyle(
-                    color: Color(0xFF19865C),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton(
-                    onPressed: () async {
-                      final rawUrl = update.updateUrl;
-                      if (rawUrl == null || rawUrl.isEmpty) {
-                        if (sheetContext.mounted) {
-                          popOwned(sheetContext);
-                        }
-                        if (!mounted) { return; }
-                        IslandMessages.show(HomeIslandNotices.updateUnavailable);
-                        return;
-                      }
-
-                      final uri = Uri.tryParse(rawUrl);
-                      if (uri != null) {
-                        await launchUrl(
-                          uri,
-                          mode: LaunchMode.externalApplication,
-                        );
-                      }
-                    },
-                    style: FilledButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: const Color(0xFF252E3A),
-                      foregroundColor: _islandFg,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Text(
-                      update.actionLabel,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-                if (!update.mandatory) ...[
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () => popOwned(sheetContext),
-                    child: Text(
-                      update.dismissLabel,
-                      style: const TextStyle(
-                        color: Color(0xFF66737A),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          );
+          return AppUpdateSheet(update: update);
         },
       );
     }
