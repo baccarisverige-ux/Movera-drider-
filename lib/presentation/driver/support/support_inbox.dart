@@ -87,7 +87,13 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
   }
 
   Future<void> _newTicket() async {
-    if (_opening || _loading || _restoreFailed) return;
+    if (_opening ||
+        _loading ||
+        _restoreFailed ||
+        !mounted ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
     setState(() => _opening = true);
     try {
       await _createTicket();
@@ -104,7 +110,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
     try {
       data = await _repository.read();
     } catch (_) {
-      if (mounted) {
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Could not load the local draft.'),
@@ -114,7 +120,7 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
       }
       return;
     }
-    if (!mounted) {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) {
       return;
     }
     final draft = data['draft'] is Map
@@ -160,150 +166,208 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
       unawaited(saveDraft());
     });
     bool attempted = false;
+    bool saving = false;
+    String? saveError;
     final created = await showModalBottomSheet<_Ticket>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _DraftFormLifetime(
         controllers: [subject, message],
         child: StatefulBuilder(
-          builder: (context, setSheetState) => Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
-            ),
-            child: SingleChildScrollView(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF8F9FA),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                ),
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD2D8DC),
-                            borderRadius: BorderRadius.circular(8),
+          builder: (context, setSheetState) => PopScope(
+            canPop: !saving,
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(30),
+                    ),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD2D8DC),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Local ticket draft',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF20282E),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Local ticket draft',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF20282E),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        initialValue: category,
-                        decoration: _decoration('Category'),
-                        items:
-                            [
-                                  'Trip & rider',
-                                  'Wallet & payments',
-                                  'Scheduled rides',
-                                  'Account & documents',
-                                  'Technical issue',
-                                  'Something else',
-                                ]
-                                .map(
-                                  (e) => DropdownMenuItem(
-                                    value: e,
-                                    child: Text(
-                                      e,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                        const SizedBox(height: 18),
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          initialValue: category,
+                          decoration: _decoration('Category'),
+                          items:
+                              [
+                                    'Trip & rider',
+                                    'Wallet & payments',
+                                    'Scheduled rides',
+                                    'Account & documents',
+                                    'Technical issue',
+                                    'Something else',
+                                  ]
+                                  .map(
+                                    (e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(
+                                        e,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  ),
-                                )
-                                .toList(),
-                        onChanged: (v) {
-                          if (v != null) {
-                            setSheetState(() => category = v);
-                            unawaited(saveDraft());
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: subject,
-                        onChanged: (_) {
-                          if (attempted) setSheetState(() {});
-                        },
-                        decoration: _decoration('Subject').copyWith(
-                          errorText: attempted && subject.text.trim().isEmpty
-                              ? 'Enter a subject'
-                              : null,
+                                  )
+                                  .toList(),
+                          onChanged: saving
+                              ? null
+                              : (v) {
+                                  if (v != null) {
+                                    setSheetState(() => category = v);
+                                    unawaited(saveDraft());
+                                  }
+                                },
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: message,
-                        onChanged: (_) {
-                          if (attempted) setSheetState(() {});
-                        },
-                        minLines: 4,
-                        maxLines: 6,
-                        decoration: _decoration('Tell us what happened')
-                            .copyWith(
-                              errorText:
-                                  attempted && message.text.trim().isEmpty
-                                  ? 'Enter a message'
-                                  : null,
-                            ),
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 54),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            backgroundColor: const Color(0xFF202A30),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                          ),
-                          onPressed: () {
-                            if (subject.text.trim().isEmpty ||
-                                message.text.trim().isEmpty) {
-                              setSheetState(() => attempted = true);
-                              return;
-                            }
-                            Navigator.pop(
-                              sheetContext,
-                              _Ticket(
-                                subject.text.trim(),
-                                message.text.trim(),
-                                'LOCAL DRAFT',
-                                false,
-                              ),
-                            );
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: subject,
+                          enabled: !saving,
+                          onChanged: (_) {
+                            if (attempted) setSheetState(() {});
                           },
-                          child: const Text(
-                            'Save draft in demo',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                          decoration: _decoration('Subject').copyWith(
+                            errorText: attempted && subject.text.trim().isEmpty
+                                ? 'Enter a subject'
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: message,
+                          enabled: !saving,
+                          onChanged: (_) {
+                            if (attempted) setSheetState(() {});
+                          },
+                          minLines: 4,
+                          maxLines: 6,
+                          decoration: _decoration('Tell us what happened')
+                              .copyWith(
+                                errorText:
+                                    attempted && message.text.trim().isEmpty
+                                    ? 'Enter a message'
+                                    : null,
+                              ),
+                        ),
+                        if (saveError != null) ...[
+                          const SizedBox(height: 12),
+                          Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              saveError!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 54),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              backgroundColor: const Color(0xFF202A30),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            onPressed: saving
+                                ? null
+                                : () async {
+                                    if (saving ||
+                                        !sheetContext.mounted ||
+                                        ModalRoute.of(sheetContext)
+                                                ?.isCurrent !=
+                                            true) {
+                                      return;
+                                    }
+                                    if (subject.text.trim().isEmpty ||
+                                        message.text.trim().isEmpty) {
+                                      setSheetState(() => attempted = true);
+                                      return;
+                                    }
+                                    final ticket = _Ticket(
+                                      subject.text.trim(),
+                                      message.text.trim(),
+                                      'LOCAL DRAFT',
+                                      false,
+                                    );
+                                    setSheetState(() {
+                                      saving = true;
+                                      saveError = null;
+                                    });
+                                    setState(() => tickets.insert(0, ticket));
+                                    try {
+                                      await _repository.update(
+                                        'tickets',
+                                        tickets.map((t) => t.toJson()).toList(),
+                                      );
+                                    } catch (_) {
+                                      tickets.remove(ticket);
+                                      if (mounted) setState(() {});
+                                      if (sheetContext.mounted) {
+                                        setSheetState(() {
+                                          saving = false;
+                                          saveError = 'Could not save local ticket. Retry.';
+                                        });
+                                      }
+                                      return;
+                                    }
+                                    if (!sheetContext.mounted ||
+                                        ModalRoute.of(sheetContext)
+                                                ?.isCurrent !=
+                                            true) {
+                                      return;
+                                    }
+                                    Navigator.pop(sheetContext, ticket);
+                                  },
+                            child: Text(
+                              saving
+                                  ? 'Saving local draft…'
+                                  : 'Save draft in demo',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -314,16 +378,6 @@ class _SupportInboxScreenState extends State<SupportInboxScreen> {
     );
     await saveDraft();
     if (created != null && mounted) {
-      setState(() => tickets.insert(0, created));
-      try {
-        await _saveTickets();
-      } catch (_) {
-        if (mounted) {
-          setState(() => tickets.remove(created));
-        }
-        return;
-      }
-
       try {
         await _repository.update('draft', {
           'subject': '',
