@@ -20,7 +20,9 @@ class GeoPoint {
             math.cos(lat2) *
             math.sin(dLon / 2) *
             math.sin(dLon / 2);
-    return earthRadiusMeters * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    final bounded = a.clamp(0.0, 1.0);
+    return earthRadiusMeters * 2 *
+        math.atan2(math.sqrt(bounded), math.sqrt(1 - bounded));
   }
 
   /// Initial bearing from this point toward [other], degrees clockwise from north.
@@ -41,7 +43,8 @@ class GeoPoint {
     required double fallback,
   }) {
     final moved = previous.distanceMetersTo(this);
-    if (gpsHeading.isFinite && gpsHeading != 0 && moved >= 1.5) {
+    // 0 degrees is valid due north. Negative courses indicate unavailable GPS.
+    if (gpsHeading.isFinite && gpsHeading >= 0 && moved >= 1.5) {
       return shortestAngleLerp(fallback, gpsHeading, 0.32);
     }
     if (moved >= 1.5) {
@@ -54,7 +57,8 @@ class GeoPoint {
     var delta = (to - from) % 360;
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
-    return (from + delta * t + 360) % 360;
+    final angle = (from + delta * t) % 360;
+    return angle < 0 ? angle + 360 : angle;
   }
 
   @override
