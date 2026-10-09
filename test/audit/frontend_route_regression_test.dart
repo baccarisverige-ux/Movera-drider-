@@ -44,9 +44,23 @@ void main() {
       final routeB = road(b);
       repo.responses[1].complete(routeB);
       await requestB;
+      final accepted = nav.route;
+      expect(accepted!.points, routeB.points);
+      expect(accepted.distanceMeters, routeB.distanceMeters);
+      expect(accepted.durationSeconds, routeB.durationSeconds);
+      expect(accepted.instructions, routeB.instructions);
+      expect(
+        accepted,
+        isNot(same(routeB)),
+        reason: 'Navigation owns a snapshot of provider data',
+      );
       repo.responses[0].complete(road(a));
       await requestA;
-      expect(nav.route, same(routeB));
+      expect(
+        nav.route,
+        same(accepted),
+        reason: 'Late A must not replace the accepted B snapshot',
+      );
       await nav.ensureRoute(origin: origin, destination: b);
       expect(repo.destinations, hasLength(2));
     },

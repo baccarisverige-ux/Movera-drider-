@@ -53,7 +53,10 @@ class GeoPoint {
   }) {
     final moved = previous.distanceMetersTo(this);
     // 0 degrees is valid due north. Negative courses indicate unavailable GPS.
-    if (gpsHeading.isFinite && gpsHeading >= 0 && moved >= 1.5) {
+    if (gpsHeading.isFinite &&
+        gpsHeading >= 0 &&
+        gpsHeading <= 360 &&
+        moved >= 1.5) {
       return shortestAngleLerp(fallback, gpsHeading, 0.32);
     }
     if (moved >= 1.5) {

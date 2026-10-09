@@ -181,6 +181,19 @@ void main() {
           ).courseOr(90),
           90,
         );
+        const current = GeoPoint(59, 18.001);
+        expect(
+          current.resolvedHeading(
+            gpsHeading: heading,
+            previous: origin,
+            fallback: 90,
+          ),
+          current.resolvedHeading(
+            gpsHeading: double.nan,
+            previous: origin,
+            fallback: 90,
+          ),
+        );
       }
       expect(
         const DriverLocation(
