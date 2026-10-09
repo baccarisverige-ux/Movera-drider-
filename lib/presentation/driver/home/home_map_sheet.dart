@@ -1920,7 +1920,7 @@ extension _HomeMapSheet on _DriverHomeState {
               elevation: 0,
               leading: IconButton(
                 tooltip: 'Back',
-                onPressed: () => Navigator.of(pageContext).maybePop(),
+                onPressed: () => maybePopOwned(pageContext),
                 icon: const Icon(
                   Icons.arrow_back_rounded,
                   color: Color(0xFF111614),

@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -323,7 +324,7 @@ class ReservationRouteMapPage extends StatelessWidget {
                   key: const ValueKey<String>('reservation-map-close'),
                   tooltip: 'Back to request',
                   size: 48,
-                  onTap: () => Navigator.of(context).maybePop(),
+                  onTap: () => maybePopOwned(context),
                   child: const Icon(
                     Icons.arrow_back_rounded,
                     color: _ink,

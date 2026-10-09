@@ -83,7 +83,7 @@ class _DriverProfileState extends State<DriverProfile> {
             tooltip: 'Back',
             onPressed: _logoutBusy
                 ? null
-                : () => Navigator.of(context).maybePop(),
+                : () => maybePopOwned(context),
             icon: const Icon(Icons.arrow_back_rounded, color: _ink),
           ),
           titleSpacing: 0,

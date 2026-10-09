@@ -9,3 +9,14 @@ bool popOwned<T extends Object?>(BuildContext context, [T? result]) {
   Navigator.of(context).pop<T>(result);
   return true;
 }
+
+/// Request Back only from its owning route, retaining PopScope/willPop checks.
+Future<bool> maybePopOwned<T extends Object?>(
+  BuildContext context, [
+  T? result,
+]) {
+  if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
+    return Future<bool>.value(false);
+  }
+  return Navigator.of(context).maybePop<T>(result);
+}

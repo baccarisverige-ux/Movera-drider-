@@ -1,3 +1,4 @@
+import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:movera/constants/appassets.dart';
@@ -283,7 +284,7 @@ class _PreferencesState extends State<Preferences> {
                 offset: const Offset(-10, 0),
                 child: IconButton(
                   tooltip: 'Back',
-                  onPressed: () => Navigator.of(context).maybePop(),
+                  onPressed: () => maybePopOwned(context),
                   icon: const Icon(Icons.arrow_back_rounded, size: 24),
                   color: _heading,
                 ),
