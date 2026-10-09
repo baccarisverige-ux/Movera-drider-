@@ -16,8 +16,9 @@ class ColorPickerDialog {
     );
     if (!context.mounted ||
         ModalRoute.of(context)?.isCurrent != true ||
-        selected == null)
+        selected == null) {
       return;
+    }
     onColorSelected(selected);
   }
 }

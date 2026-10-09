@@ -152,8 +152,9 @@ class _ReservationRouteMapState extends State<ReservationRouteMap> {
       RouteMarkKind.pickup,
       'Pickup',
       request.pickupTime,
-    ))
+    )) {
       return;
+    }
     for (var i = 0; i < request.stops.length; i++) {
       if (!await add(
         'reservation-stop-$i',
@@ -161,8 +162,9 @@ class _ReservationRouteMapState extends State<ReservationRouteMap> {
         RouteMarkKind.stop,
         'Stop ${i + 1}',
         null,
-      ))
+      )) {
         return;
+      }
     }
     if (!await add(
       'reservation-dropoff',
@@ -170,8 +172,9 @@ class _ReservationRouteMapState extends State<ReservationRouteMap> {
       RouteMarkKind.dropoff,
       'Arrive',
       request.arrivalTime,
-    ))
+    )) {
       return;
+    }
     if (mounted) {
       setState(() => _markers = markers);
     }
