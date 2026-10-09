@@ -4,6 +4,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/core/navigation/coalescing_map_route_refresh.dart';
 
 void main() {
+  test('queued refresh executes latest closure, not first stale closure', () async {
+    final queue = CoalescingMapRouteRefresh();
+    final blocked = Completer<void>();
+    final executed = <String>[];
+    final first = queue.request(() async {
+      executed.add('first');
+      await blocked.future;
+    });
+    await queue.request(() async { executed.add('second'); });
+    await queue.request(() async { executed.add('latest'); });
+    blocked.complete();
+    await first;
+    expect(executed, ['first', 'latest']);
+  });
+
   test('rapid GPS fixes run one fetch and one latest-position follow-up',
       () async {
     final queue = CoalescingMapRouteRefresh();
