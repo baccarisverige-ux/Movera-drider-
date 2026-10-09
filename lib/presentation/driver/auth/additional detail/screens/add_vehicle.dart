@@ -31,8 +31,6 @@ class _AdditionDetailAddVehicleState extends State<AdditionDetailAddVehicle> {
   );
   final TextEditingController _vehicleTypePrimaryController =
       TextEditingController(text: 'Luxury');
-  final TextEditingController _vehicleTypeSecondaryController =
-      TextEditingController(text: 'Luxury');
   final TextEditingController _colorController = TextEditingController();
 
   // Example dropdown data; replace with your real lists if needed.
@@ -50,7 +48,6 @@ class _AdditionDetailAddVehicleState extends State<AdditionDetailAddVehicle> {
     _yearController.dispose();
     _plateController.dispose();
     _vehicleTypePrimaryController.dispose();
-    _vehicleTypeSecondaryController.dispose();
     _colorController.dispose();
     super.dispose();
   }
@@ -140,9 +137,8 @@ class _AdditionDetailAddVehicleState extends State<AdditionDetailAddVehicle> {
                     borderWidth: 0,
                     fillColor: Color(0xffF6F8FA),
                     controller: _yearController,
-                    hint: 'select model year',
+                    hint: 'Enter model year',
                     keyboardType: TextInputType.number,
-                    ontap: () {},
                     suffixWidget: Padding(
                       padding: EdgeInsets.all(12),
                       child: Transform.scale(
@@ -161,7 +157,8 @@ class _AdditionDetailAddVehicleState extends State<AdditionDetailAddVehicle> {
                     borderColor: Colors.transparent,
                     borderWidth: 0,
                     fillColor: Color(0xffF6F8FA),
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.text,
+                    textCapitalization: TextCapitalization.characters,
                     controller: _plateController,
                     hint: 'AQS - 140',
                   ),
@@ -170,14 +167,6 @@ class _AdditionDetailAddVehicleState extends State<AdditionDetailAddVehicle> {
                   8.height,
                   AppDropdownField(
                     controller: _vehicleTypePrimaryController,
-                    hint: 'Luxury',
-                    items: vehicleTypes,
-                  ),
-                  16.height,
-                  _buildLabel('Vehicle type'),
-                  8.height,
-                  AppDropdownField(
-                    controller: _vehicleTypeSecondaryController,
                     hint: 'Luxury',
                     items: vehicleTypes,
                   ),

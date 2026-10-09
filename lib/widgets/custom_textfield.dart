@@ -18,6 +18,7 @@ Widget customTextfield({
   String? Function(String?)? onValidator,
   // bool validator = false,
   TextInputType? keyboardType,
+  TextCapitalization textCapitalization = TextCapitalization.none,
   int maxline = 1,
   Color fillColor = Colors.transparent,
   double borderWidth = 0.5,
@@ -45,6 +46,7 @@ Widget customTextfield({
     },
     maxLines: maxline,
     keyboardType: keyboardType,
+    textCapitalization: textCapitalization,
     onFieldSubmitted: (value) {
       if (onFieldSubmitted != null) {
         onFieldSubmitted(value);

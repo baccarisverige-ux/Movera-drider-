@@ -1,164 +1,46 @@
-import 'package:movera/widgets/owned_route_exit.dart';
-// import 'package:card_scanner/card_scanner.dart';
 import 'package:flutter/material.dart';
 import 'package:movera/constants/appassets.dart';
-import 'package:movera/constants/appcolors.dart';
-import 'package:movera/constants/appfontweight.dart';
-import 'package:movera/main.dart';
-import 'package:movera/widgets/custom_btn.dart';
-import 'package:movera/widgets/custom_text_widget.dart';
-import 'package:movera/widgets/navigation_transition.dart';
-import 'package:movera/widgets/responsive_size.dart';
-import 'package:movera/widgets/sizedbox_extention.dart';
+import 'package:movera/widgets/owned_route_exit.dart';
 
-class TakeIdPhoto extends StatefulWidget {
+/// A sample image preview. Camera capture and ID submission are not connected.
+class TakeIdPhoto extends StatelessWidget {
   const TakeIdPhoto({super.key});
 
   @override
-  State<TakeIdPhoto> createState() => _TakeIdPhotoState();
-}
-
-class _TakeIdPhotoState extends State<TakeIdPhoto> {
-  // CardDetails? _cardDetails;
-  // bool _isScanning = false;
-
-  // // Scanner options
-  // CardScanOptions scanOptions = CardScanOptions(
-  //   scanCardHolderName: true,
-  //   validCardsToScanBeforeFinishingScan: 1,
-  //   possibleCardHolderNamePositions: [
-  //     CardHolderNameScanPosition.aboveCardNumber,
-  //     CardHolderNameScanPosition.belowCardNumber,
-  //   ],
-  // );
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   // Start scanning immediately when widget is initialized
-  //   WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     scanCard();
-  //   });
-  // }
-
-  // Future<void> scanCard() async {
-  //   if (_isScanning) return;
-
-  //   setState(() {
-  //     _isScanning = true;
-  //   });
-
-  //   try {
-  //     var cardDetails = await CardScanner.scanCard(scanOptions: scanOptions);
-  //     if (!mounted) return;
-  //     setState(() {
-  //       _cardDetails = cardDetails;
-  //       _isScanning = false;
-  //     });
-  //   } catch (e) {
-  //     debugPrint("Error scanning card: $e");
-  //     if (mounted) {
-  //       setState(() {
-  //         _isScanning = false;
-  //       });
-  //     }
-  //   }
-  // }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: screenHorizPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            46.height,
-            Transform.translate(
-              offset: Offset(ResSize.w * -10, 0),
-              child: IconButton(tooltip: 'Back', 
-                onPressed: () {
-                  popOwned(context);
-                },
-                icon: Icon(
-                  Icons.arrow_back_ios_rounded,
-                  color: AppColor.title,
-                  size: ResSize.h * 22,
-                ),
-              ),
-            ),
-            16.height,
-            TextWidget(
-              text: "Take photo of your ID",
-              color: AppColor.title,
-              fontSize: 24,
-              fontWeight: fwSemiBold,
-            ),
-            16.height,
-            TextWidget(
-              text:
-                  "Please ensure that all details are clearly visible to facilitate a smooth verification process.",
-              color: AppColor.subtitle,
-              fontSize: 16,
-              fontWeight: fwMedium,
-            ),
-            48.height,
-
-            // Show scanning status or retry button
-            Column(
-              children: [
-                Container(
-                  height: ResSize.h * 226,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage(AppAssets.id),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: const Text('ID photo preview'),
+      leading: IconButton(
+        tooltip: 'Back',
+        onPressed: () => popOwned(context),
+        icon: const Icon(Icons.arrow_back_rounded),
       ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: screenHorizPadding,
-          vertical: ResSize.h * 20,
+    ),
+    body: ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        const Text(
+          'Sample image only. Camera capture and verification are not connected. No ID is submitted.',
+          style: TextStyle(fontSize: 16, height: 1.4),
         ),
-        child: SizedBox(
-          height: ResSize.h * 110,
-          child: Column(
-            children: [
-              CustomButton(
-                centerContent: "Submit",
-                onPressed: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    BottomToTopTransition(const MoveraApp()),
-                    (route) => false,
-                  );
-                },
-              ),
-              TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Hold the ID in frame and capture again.'),
-                    ),
-                  );
-                },
-                child: TextWidget(
-                  text: "Retake",
-                  color: AppColor.title,
-                  fontSize: 18,
-                  fontWeight: fwSemiBold,
-                ),
-              ),
-            ],
-          ),
+        const SizedBox(height: 24),
+        Image.asset(AppAssets.id, height: 226, fit: BoxFit.contain),
+        const SizedBox(height: 24),
+        FilledButton(
+          key: const ValueKey('id-preview-return'),
+          onPressed: () {
+            if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
+              return;
+            }
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+          child: const Text('Return to home'),
         ),
-      ),
-    );
-  }
+        const TextButton(
+          onPressed: null,
+          child: Text('Retake unavailable in this preview'),
+        ),
+      ],
+    ),
+  );
 }

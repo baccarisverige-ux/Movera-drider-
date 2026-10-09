@@ -4,11 +4,11 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 
 | Category | Confirmed findings | Target |
 | --- | ---: | ---: |
-| Bug | 8 | 10 |
+| Bug | 10 | 10 |
 | Error | 8 | 10 |
-| Problem | 5 | 10 |
-| Wrong code | 6 | 10 |
-| Critique | 6 | 10 |
+| Problem | 8 | 10 |
+| Wrong code | 7 | 10 |
+| Critique | 8 | 10 |
 
 | ID | Category | Trigger / incorrect behavior | Fix | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -45,5 +45,13 @@ Scope: frontend only. Target: ten distinct findings in each requested category. 
 | F31 | Critique | Sweden/International bank tabs are gesture-only and cannot be activated with keyboard focus. | Material buttons with selected semantics and keyboard activation. | bank_preview_feedback_test.dart | Verification pending |
 | F32 | Bug | Captured chat Send/keyboard/contact callbacks can clear a covered composer or access disposed controllers/context. | Guard current route ownership before actions and after-frame scrolling. | chat_callback_ownership_test.dart | Verification pending |
 | F33 | Critique | Every chat message creates a State object despite having no mutable state, while suppressing the immutable-widget lint for its text field. | Make message widgets immutable and stateless. | Source review; existing chat accessibility and layout tests | Verification pending |
+| F34 | Bug | ID Submit pushes a new MoveraApp into the existing navigator, duplicating the app root, route observer and long-lived services. | Return through the existing navigator instead of constructing another app. | onboarding_route_regression_test.dart | Verification pending |
+| F35 | Problem | ID screen shows a sample asset as a captured photo and offers Submit/Retake without capture or submission behavior. | Identify the sample preview, disable unsupported Retake and offer Return to home. | onboarding_route_regression_test.dart | Verification pending |
+| F36 | Critique | ID preview retains an obsolete commented credit-card scanner implementation that does not perform the displayed ID task. | Remove the unused scanner draft while simplifying the preview. | Source review | Verification pending |
+| F37 | Bug | Covered onboarding wizard callbacks advance its hidden step or run Back on a newer route. | Check route ownership before next/previous page commands. | onboarding_route_regression_test.dart | Verification pending |
+| F38 | Wrong code | Onboarding plate field requests a numeric keyboard although the plate contains letters. | Use a text keyboard with character capitalization. | onboarding_route_regression_test.dart | Verification pending |
+| F39 | Problem | Year field asks users to select a year but its tap callback is empty and only numeric entry works. | Label manual year entry and remove the empty tap callback. | onboarding_route_regression_test.dart | Verification pending |
+| F40 | Problem | Vehicle form exposes two identical Vehicle type selectors with independent values and no distinction between them. | Keep one vehicle type input and dispose its one controller. | onboarding_route_regression_test.dart | Verification pending |
+| F41 | Critique | Onboarding page and progress animations ignore disabled-animation preferences. | Skip page animation and update progress immediately when motion is disabled. | onboarding_route_regression_test.dart | Verification pending |
 
 Widget test filenames are under `test/widget/`, except money validation under `test/core/`. CI runs full analysis, Flutter tests, lifecycle and release contracts, web build, Android preview/signing guards and iOS compile preflight. Browser and physical-device interaction are still unverified in this environment. No backend changes are included.
