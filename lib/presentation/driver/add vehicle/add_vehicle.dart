@@ -813,13 +813,17 @@ class _VehiclePhotoPage extends StatefulWidget {
 
 class _VehiclePhotoPageState extends State<_VehiclePhotoPage> {
   bool _taking = false;
+  String? _captureError;
   bool get _ownsRoute => mounted && ModalRoute.of(context)?.isCurrent == true;
 
   static const Color _ink = Color(0xFF252E3A);
 
   Future<void> _take() async {
     if (_taking || !_ownsRoute) return;
-    setState(() => _taking = true);
+    setState(() {
+      _taking = true;
+      _captureError = null;
+    });
     try {
       final file =
           await (widget.capturePhoto?.call() ??
@@ -837,12 +841,8 @@ class _VehiclePhotoPageState extends State<_VehiclePhotoPage> {
           return;
         }
         if (bytes.length > LocalVehicleStore.maxPhotoBytes) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Photo is too large to keep on this device. Retake it closer and with less detail.',
-              ),
-            ),
+          setState(
+            () => _captureError = 'Photo is too large to keep on this device. Retake it closer and with less detail.',
           );
           return;
         }
@@ -852,11 +852,9 @@ class _VehiclePhotoPageState extends State<_VehiclePhotoPage> {
       if (!mounted || !_ownsRoute) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Camera is not available in this preview.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      // Bottom snackbars cover this page's retry button on compact screens.
+      setState(
+        () => _captureError = 'Camera is not available in this preview.',
       );
     } finally {
       if (mounted) setState(() => _taking = false);
@@ -943,25 +941,44 @@ class _VehiclePhotoPageState extends State<_VehiclePhotoPage> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton(
-                onPressed: _taking ? null : _take,
-                style: FilledButton.styleFrom(
-                  backgroundColor: _ink,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_captureError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        _captureError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _taking ? null : _take,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _ink,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      _taking ? 'Taking photo…' : 'Take photo',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  _taking ? 'Taking photo…' : 'Take photo',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
+              ],
             ),
           ),
         ],
