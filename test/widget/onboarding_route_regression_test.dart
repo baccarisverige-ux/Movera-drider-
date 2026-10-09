@@ -121,19 +121,17 @@ void main() {
     'vehicle plate accepts letters and only one type selector is presented',
     (tester) async {
       await _open(tester, const AdditionalInfoNavigation());
-      final plate = tester.widget<TextFormField>(
+      final plate = tester.widget<TextField>(
         find.byWidgetPredicate(
-          (w) => w is TextFormField && w.controller?.text == 'AQS - 140',
+          (w) => w is TextField && w.controller?.text == 'AQS - 140',
         ),
       );
       expect(plate.keyboardType, TextInputType.text);
       expect(plate.textCapitalization, TextCapitalization.characters);
       expect(find.byType(AppDropdownField), findsOneWidget);
-      final year = tester.widget<TextFormField>(
+      final year = tester.widget<TextField>(
         find.byWidgetPredicate(
-          (w) =>
-              w is TextFormField &&
-              w.decoration?.hintText == 'Enter model year',
+          (w) => w is TextField && w.decoration?.hintText == 'Enter model year',
         ),
       );
       expect(year.keyboardType, TextInputType.number);
