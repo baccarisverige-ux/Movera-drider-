@@ -114,7 +114,9 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         ModalRoute.of(context)?.isCurrent != true ||
         _loading ||
         _restoreFailed ||
-        _adding) return;
+        _adding) {
+      return;
+    }
     setState(() => _adding = true);
     try {
       final created = await showModalBottomSheet<_EmergencyContact>(
