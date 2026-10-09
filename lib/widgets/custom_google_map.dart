@@ -118,6 +118,18 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
   @override
   void didUpdateWidget(CustomGoogleMap oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollGesturesEnabled != widget.scrollGesturesEnabled ||
+        oldWidget.zoomGesturesEnabled != widget.zoomGesturesEnabled ||
+        oldWidget.rotateGesturesEnabled != widget.rotateGesturesEnabled ||
+        oldWidget.tiltGesturesEnabled != widget.tiltGesturesEnabled) {
+      // The ride sheet can lock/unlock map gestures while a finger remains
+      // down. Flutter may not send its original pointer-up through the newly
+      // blocked platform view. Do not let that stale finger become a phantom
+      // second pointer, or an earlier tap become a new double-tap zoom.
+      _pointerOrigins.clear();
+      _gestureReported = false;
+      _forgetTap();
+    }
     final controller = _mapController;
     if (controller != null) {
       web.configure(
