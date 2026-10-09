@@ -2,7 +2,8 @@ import 'package:movera/core/settings/settings_repository.dart';
 import 'package:flutter/material.dart';
 
 class SoundAndVoice extends StatefulWidget {
-  const SoundAndVoice({super.key});
+  const SoundAndVoice({super.key, this.repository});
+  final SettingsRepository? repository;
 
   @override
   State<SoundAndVoice> createState() => _SoundAndVoiceState();
@@ -18,15 +19,25 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
   bool voiceNavigation = true;
   bool readRiderMessages = false;
 
-  final _settings = SettingsRepository();
-  bool _settingsTouched = false;
+  late final _settings = widget.repository ?? SettingsRepository();
+  bool _loading = true;
+  bool _restoreFailed = false;
+  bool _restoring = false;
+  bool get _canEdit => !_loading && !_restoreFailed;
   Future<void> _restoreSettings() async {
+    if (_restoring || !mounted) return;
+    _restoring = true;
+    setState(() {
+      _loading = true;
+      _restoreFailed = false;
+    });
     try {
       final data = await _settings.read('sound');
-      if (!mounted || _settingsTouched) {
+      if (!mounted) {
         return;
       }
       setState(() {
+        _loading = false;
         if (data['generalVolume'] is num) {
           generalVolume = (data['generalVolume'] as num).toDouble().clamp(
             0.0,
@@ -45,18 +56,18 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
       });
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Could not load saved preferences.'),
-            action: SnackBarAction(label: 'Retry', onPressed: _restoreSettings),
-          ),
-        );
+        setState(() {
+          _loading = false;
+          _restoreFailed = true;
+        });
       }
+    } finally {
+      _restoring = false;
     }
   }
 
   Future<bool> _persistSettings() async {
-    _settingsTouched = true;
+    if (!_canEdit) return false;
     try {
       await _settings.save('sound', {
         'generalVolume': generalVolume,
@@ -109,6 +120,12 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
+          if (_loading) const LinearProgressIndicator(),
+          if (_restoreFailed)
+            TextButton(
+              onPressed: _restoreSettings,
+              child: const Text('Could not load saved preferences — Retry'),
+            ),
           const Text(
             'Local demo preferences — saved on this device; effects are previews.',
           ),
@@ -128,10 +145,12 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
                 activeColor: _ink,
                 semanticFormatterCallback: (value) =>
                     '${(value * 100).round()}%',
-                onChanged: (value) {
-                  setState(() => generalVolume = value);
-                  _persistSettings();
-                },
+                onChanged: !_canEdit
+                    ? null
+                    : (value) {
+                        setState(() => generalVolume = value);
+                        _persistSettings();
+                      },
               ),
               _switchRow(
                 'Always play trip requests',
@@ -236,13 +255,14 @@ class _SoundAndVoiceState extends State<SoundAndVoice> {
           ),
           Semantics(
             label: title,
+            enabled: _canEdit,
             toggled: value,
-            onTap: () => onChanged(!value),
+            onTap: _canEdit ? () => onChanged(!value) : null,
             child: ExcludeSemantics(
               child: Switch.adaptive(
                 value: value,
                 activeTrackColor: _ink,
-                onChanged: onChanged,
+                onChanged: _canEdit ? onChanged : null,
               ),
             ),
           ),

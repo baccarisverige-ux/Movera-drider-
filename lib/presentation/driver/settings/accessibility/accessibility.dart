@@ -2,7 +2,8 @@ import 'package:movera/core/settings/settings_repository.dart';
 import 'package:flutter/material.dart';
 
 class Accessibility extends StatefulWidget {
-  const Accessibility({super.key});
+  const Accessibility({super.key, this.repository});
+  final SettingsRepository? repository;
 
   @override
   State<Accessibility> createState() => _AccessibilityState();
@@ -16,15 +17,25 @@ class _AccessibilityState extends State<Accessibility> {
   bool _flash = false;
   bool _vibration = false;
 
-  final _settings = SettingsRepository();
-  bool _settingsTouched = false;
+  late final _settings = widget.repository ?? SettingsRepository();
+  bool _loading = true;
+  bool _restoreFailed = false;
+  bool _restoring = false;
+  bool get _canEdit => !_loading && !_restoreFailed;
   Future<void> _restoreSettings() async {
+    if (_restoring || !mounted) return;
+    _restoring = true;
+    setState(() {
+      _loading = true;
+      _restoreFailed = false;
+    });
     try {
       final data = await _settings.read('accessibility');
-      if (!mounted || _settingsTouched) {
+      if (!mounted) {
         return;
       }
       setState(() {
+        _loading = false;
         if (data['flash'] is bool) {
           _flash = data['flash'] as bool;
         }
@@ -34,18 +45,18 @@ class _AccessibilityState extends State<Accessibility> {
       });
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Could not load saved preferences.'),
-            action: SnackBarAction(label: 'Retry', onPressed: _restoreSettings),
-          ),
-        );
+        setState(() {
+          _loading = false;
+          _restoreFailed = true;
+        });
       }
+    } finally {
+      _restoring = false;
     }
   }
 
   Future<bool> _persistSettings() async {
-    _settingsTouched = true;
+    if (!_canEdit) return false;
     try {
       await _settings.save('accessibility', {
         'flash': _flash,
@@ -96,6 +107,12 @@ class _AccessibilityState extends State<Accessibility> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
+          if (_loading) const LinearProgressIndicator(),
+          if (_restoreFailed)
+            TextButton(
+              onPressed: _restoreSettings,
+              child: const Text('Could not load saved preferences — Retry'),
+            ),
           const Text(
             'Local demo preferences — saved on this device; effects are previews.',
           ),
@@ -139,19 +156,24 @@ class _AccessibilityState extends State<Accessibility> {
             trailing: Semantics(
               container: true,
               label: 'Flash for requests',
+              enabled: _canEdit,
               toggled: _flash,
-              onTap: () {
-                setState(() => _flash = !_flash);
-                _persistSettings();
-              },
+              onTap: !_canEdit
+                  ? null
+                  : () {
+                      setState(() => _flash = !_flash);
+                      _persistSettings();
+                    },
               child: ExcludeSemantics(
                 child: Switch.adaptive(
                   value: _flash,
                   activeTrackColor: _ink,
-                  onChanged: (value) {
-                    setState(() => _flash = value);
-                    _persistSettings();
-                  },
+                  onChanged: !_canEdit
+                      ? null
+                      : (value) {
+                          setState(() => _flash = value);
+                          _persistSettings();
+                        },
                 ),
               ),
             ),
@@ -163,19 +185,24 @@ class _AccessibilityState extends State<Accessibility> {
             trailing: Semantics(
               container: true,
               label: 'Vibration for requests',
+              enabled: _canEdit,
               toggled: _vibration,
-              onTap: () {
-                setState(() => _vibration = !_vibration);
-                _persistSettings();
-              },
+              onTap: !_canEdit
+                  ? null
+                  : () {
+                      setState(() => _vibration = !_vibration);
+                      _persistSettings();
+                    },
               child: ExcludeSemantics(
                 child: Switch.adaptive(
                   value: _vibration,
                   activeTrackColor: _ink,
-                  onChanged: (value) {
-                    setState(() => _vibration = value);
-                    _persistSettings();
-                  },
+                  onChanged: !_canEdit
+                      ? null
+                      : (value) {
+                          setState(() => _vibration = value);
+                          _persistSettings();
+                        },
                 ),
               ),
             ),
