@@ -64,6 +64,19 @@ class PersistedQueuedTrip {
     )) {
       return null;
     }
+    // Preview metadata is optional, but when supplied it must be usable.
+    // Bad estimates cannot become negative time/countdown labels.
+    final rating = json['rating'];
+    if (rating != null &&
+        (rating is! num || !rating.isFinite || rating < 0 || rating > 5)) {
+      return null;
+    }
+    for (final key in ['pickupMinutes', 'tripMinutes']) {
+      final minutes = json[key];
+      if (minutes != null && (minutes is! int || minutes < 0)) {
+        return null;
+      }
+    }
     return PersistedQueuedTrip(
       tripId: tripId,
       riderName: json['riderName'] as String? ?? '',
@@ -273,6 +286,30 @@ class PersistedActiveRide {
           !validCoordinate(json[key], latitude: key.endsWith('Lat'))) {
         return null;
       }
+    }
+    // Never silently drop a saved stop label: a partial restoration can
+    // misrepresent the rider's requested journey.
+    final addresses = json['stopAddresses'];
+    if (addresses != null &&
+        (addresses is! List || addresses.any((item) => item is! String))) {
+      return null;
+    }
+    // These counters drive waiting and multi-stop UI after app recovery.
+    final waitSeconds = json['waitSeconds'];
+    if (waitSeconds != null && (waitSeconds is! int || waitSeconds < 0)) {
+      return null;
+    }
+    final stopIndex = json['stopIndex'];
+    if (stopIndex != null && (stopIndex is! int || stopIndex < 0)) {
+      return null;
+    }
+    final riderRating = json['riderRating'];
+    if (riderRating != null &&
+        (riderRating is! num ||
+            !riderRating.isFinite ||
+            riderRating < 0 ||
+            riderRating > 5)) {
+      return null;
     }
     final stops = json['stopPoints'];
     if (stops != null &&
