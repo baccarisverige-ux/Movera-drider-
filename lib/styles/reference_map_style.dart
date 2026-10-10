@@ -382,4 +382,4 @@ const String moveraReferenceMapStyle = '''
     ]
   }
 ]
-'''
+''';
