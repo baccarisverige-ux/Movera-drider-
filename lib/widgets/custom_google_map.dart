@@ -5,7 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'dart:math' as math;
 
-import '../styles/reference_map_style.dart';
+import '../core/settings/map_appearance.dart';
 import '../core/navigation/map_double_tap_policy.dart';
 import 'driver_map_web_bridge_stub.dart'
     if (dart.library.js_interop) 'driver_map_web_bridge.dart'
@@ -111,6 +111,7 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
   }
 
   GoogleMapController? _mapController;
+  final _appearance = MapAppearanceController.instance;
   void Function()? _removeWebGesture;
   void Function()? _removeWebRenderer;
   bool _supports3D = true;
@@ -223,69 +224,72 @@ class _CustomGoogleMapState extends State<CustomGoogleMap> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          GoogleMap(
-            initialCameraPosition: widget.initialPosition ?? _defaultPosition,
-            markers: widget.markers ?? {},
-            polylines: widget.polylines ?? {},
-            circles: widget.circles ?? {},
-            polygons: widget.polygons ?? {},
-            myLocationEnabled: widget.myLocationEnabled,
-            myLocationButtonEnabled: widget.myLocationButtonEnabled,
-            zoomControlsEnabled: widget.zoomControlsEnabled,
-            mapToolbarEnabled: widget.mapToolbarEnabled,
-            compassEnabled: widget.compassEnabled,
-            trafficEnabled: widget.trafficEnabled,
-            buildingsEnabled: widget.buildingsEnabled,
-            indoorViewEnabled: widget.indoorViewEnabled,
-            scrollGesturesEnabled: widget.scrollGesturesEnabled,
-            zoomGesturesEnabled: widget.zoomGesturesEnabled,
-            rotateGesturesEnabled: widget.rotateGesturesEnabled,
-            tiltGesturesEnabled: widget.tiltGesturesEnabled,
-            mapType: widget.mapType,
-            padding: widget.padding,
-            gestureRecognizers: {
-              Factory<OneSequenceGestureRecognizer>(
-                () => EagerGestureRecognizer(),
-              ),
-            },
-            webGestureHandling: WebGestureHandling.greedy,
-            webCameraControlEnabled: widget.webCameraControlEnabled,
-            style: widget.customMapStyle ?? moveraReferenceMapStyle,
-            onMapCreated: (GoogleMapController controller) {
-              _mapController = controller;
-              _supports3D = web.supports3D(controller.mapId);
-              _removeWebRenderer = web.listenRenderer(controller.mapId, () {
+          ListenableBuilder(
+            listenable: _appearance,
+            builder: (context, _) => GoogleMap(
+              initialCameraPosition: widget.initialPosition ?? _defaultPosition,
+              markers: widget.markers ?? {},
+              polylines: widget.polylines ?? {},
+              circles: widget.circles ?? {},
+              polygons: widget.polygons ?? {},
+              myLocationEnabled: widget.myLocationEnabled,
+              myLocationButtonEnabled: widget.myLocationButtonEnabled,
+              zoomControlsEnabled: widget.zoomControlsEnabled,
+              mapToolbarEnabled: widget.mapToolbarEnabled,
+              compassEnabled: widget.compassEnabled,
+              trafficEnabled: widget.trafficEnabled,
+              buildingsEnabled: widget.buildingsEnabled,
+              indoorViewEnabled: widget.indoorViewEnabled,
+              scrollGesturesEnabled: widget.scrollGesturesEnabled,
+              zoomGesturesEnabled: widget.zoomGesturesEnabled,
+              rotateGesturesEnabled: widget.rotateGesturesEnabled,
+              tiltGesturesEnabled: widget.tiltGesturesEnabled,
+              mapType: widget.mapType,
+              padding: widget.padding,
+              gestureRecognizers: {
+                Factory<OneSequenceGestureRecognizer>(
+                  () => EagerGestureRecognizer(),
+                ),
+              },
+              webGestureHandling: WebGestureHandling.greedy,
+              webCameraControlEnabled: widget.webCameraControlEnabled,
+              style: widget.customMapStyle ?? _appearance.style,
+              onMapCreated: (GoogleMapController controller) {
+                _mapController = controller;
+                _supports3D = web.supports3D(controller.mapId);
+                _removeWebRenderer = web.listenRenderer(controller.mapId, () {
+                  if (mounted) {
+                    setState(
+                      () => _supports3D = web.supports3D(controller.mapId),
+                    );
+                  }
+                });
                 if (mounted) {
-                  setState(
-                    () => _supports3D = web.supports3D(controller.mapId),
-                  );
+                  setState(() {});
                 }
-              });
-              if (mounted) {
-                setState(() {});
-              }
-              web.configure(
-                controller.mapId,
-                widget.padding.top,
-                widget.padding.bottom,
-                widget.cameraAnchor,
-              );
-              _removeWebGesture = web.listen(controller.mapId, () {
-                if (mounted) {
-                  widget.onUserGesture?.call();
+                web.configure(
+                  controller.mapId,
+                  widget.padding.top,
+                  widget.padding.bottom,
+                  widget.cameraAnchor,
+                );
+                _removeWebGesture = web.listen(controller.mapId, () {
+                  if (mounted) {
+                    widget.onUserGesture?.call();
+                  }
+                });
+                _updateWebVehicle(controller.mapId);
+                web.gestures(controller.mapId, _cameraGesturesEnabled);
+                // Call the provided onMapCreated callback
+                if (widget.onMapCreated != null) {
+                  widget.onMapCreated!(controller);
                 }
-              });
-              _updateWebVehicle(controller.mapId);
-              web.gestures(controller.mapId, _cameraGesturesEnabled);
-              // Call the provided onMapCreated callback
-              if (widget.onMapCreated != null) {
-                widget.onMapCreated!(controller);
-              }
-            },
-            onTap: widget.onTap,
-            onLongPress: widget.onLongPress,
-            onCameraMove: widget.onCameraMove,
-            onCameraIdle: widget.onCameraIdle,
+              },
+              onTap: widget.onTap,
+              onLongPress: widget.onLongPress,
+              onCameraMove: widget.onCameraMove,
+              onCameraIdle: widget.onCameraIdle,
+            ),
           ),
           if (!_supports3D)
             Positioned(

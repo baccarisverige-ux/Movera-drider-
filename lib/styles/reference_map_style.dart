@@ -1,14 +1,17 @@
-/// Movera cream/sage palette specified by the product owner on 2026-10-07.
-/// Shared verbatim by Driver and Rider. Route/traffic overlays are independent.
-/// Embedded Google Maps styling cannot add dashed arterial centerlines or
-/// configure water-label visibility by zoom; retain provider label density.
-const String moveraReferenceMapStyle = '''
+// Driver map palettes chosen by the product owner on 2026-10-10 from Waze
+// reference screenshots: a light day map and a dark night map. Route and
+// traffic overlays are drawn separately and do not depend on these styles.
+// Embedded Google Maps styling cannot draw dashed motorway centre lines or
+// change label density by zoom; the provider's label density is kept.
+
+/// Light map: near-white land, mint parks, sky-blue water, grey roads.
+const String moveraLightMapStyle = '''
 [
   {
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#FAF7EF"
+        "color": "#FAFCFA"
       }
     ]
   },
@@ -24,7 +27,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#4E5346"
+        "color": "#575C60"
       }
     ]
   },
@@ -32,7 +35,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.stroke",
     "stylers": [
       {
-        "color": "#DAE2CE"
+        "color": "#FFFFFF"
       }
     ]
   },
@@ -46,11 +49,20 @@ const String moveraReferenceMapStyle = '''
     ]
   },
   {
-    "featureType": "administrative",
+    "featureType": "administrative.locality",
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#5F5F5F"
+        "color": "#6F8B9D"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.neighborhood",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#596268"
       }
     ]
   },
@@ -59,16 +71,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#FAF7EF"
-      }
-    ]
-  },
-  {
-    "featureType": "landscape.natural",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#FAF7EF"
+        "color": "#FAFCFA"
       }
     ]
   },
@@ -77,16 +80,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#E7E7E7"
-      }
-    ]
-  },
-  {
-    "featureType": "landscape",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#5F5F5F"
+        "color": "#E1E4E5"
       }
     ]
   },
@@ -95,7 +89,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#E7E7E7"
+        "color": "#E1E4E5"
       }
     ]
   },
@@ -104,7 +98,16 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#5F5F5F"
+        "color": "#8F9395"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.business",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "visibility": "off"
       }
     ]
   },
@@ -113,7 +116,16 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#CCE5A6"
+        "color": "#C8F0CC"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#3D8549"
       }
     ]
   },
@@ -122,7 +134,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#C5CDC2"
+        "color": "#CCD0D3"
       }
     ]
   },
@@ -140,7 +152,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#4E5346"
+        "color": "#575C60"
       }
     ]
   },
@@ -149,7 +161,16 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.stroke",
     "stylers": [
       {
-        "color": "#DAE2CE"
+        "color": "#FFFFFF"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "on"
       }
     ]
   },
@@ -158,7 +179,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#C5CDC2"
+        "color": "#CCD0D3"
       },
       {
         "weight": 1
@@ -166,32 +187,11 @@ const String moveraReferenceMapStyle = '''
     ]
   },
   {
-    "featureType": "road.local",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      {
-        "visibility": "off"
-      }
-    ]
-  },
-  {
     "featureType": "road.arterial",
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#99BD86"
-      }
-    ]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      {
-        "visibility": "on"
-      },
-      {
-        "color": "#7A976B"
+        "color": "#BFC2C5"
       }
     ]
   },
@@ -200,19 +200,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#63A08A"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      {
-        "visibility": "on"
-      },
-      {
-        "color": "#3F6658"
+        "color": "#8B9097"
       }
     ]
   },
@@ -221,7 +209,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#FAF7EF"
+        "color": "#FAFCFA"
       }
     ]
   },
@@ -230,16 +218,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#5F5F5F"
-      }
-    ]
-  },
-  {
-    "featureType": "transit.station",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#FAF7EF"
+        "color": "#8F9395"
       }
     ]
   },
@@ -248,7 +227,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#777777"
+        "color": "#D1CECC"
       }
     ]
   },
@@ -257,7 +236,7 @@ const String moveraReferenceMapStyle = '''
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#9FD4DA"
+        "color": "#ADE2FC"
       }
     ]
   },
@@ -266,9 +245,279 @@ const String moveraReferenceMapStyle = '''
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#4E5346"
+        "color": "#2D5EA2"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#FFFFFF"
       }
     ]
   }
 ]
 ''';
+
+/// Dark map: navy-slate land, deep green parks, deep blue water, blue-grey
+/// roads.
+const String moveraDarkMapStyle = '''
+[
+  {
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#272D3A"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#D3DFE1"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#1C212B"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative",
+    "elementType": "geometry.stroke",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.locality",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#A9B0BA"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.neighborhood",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#8C939F"
+      }
+    ]
+  },
+  {
+    "featureType": "landscape",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#272D3A"
+      }
+    ]
+  },
+  {
+    "featureType": "landscape.man_made",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#313C51"
+      }
+    ]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#313C51"
+      }
+    ]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#A9B7C6"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.business",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#396750"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#8BCD96"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#475C74"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry.stroke",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#D3DFE1"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#1C212B"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "on"
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#475C74"
+      },
+      {
+        "weight": 1
+      }
+    ]
+  },
+  {
+    "featureType": "road.arterial",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#4C6079"
+      }
+    ]
+  },
+  {
+    "featureType": "road.highway",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#7891AD"
+      }
+    ]
+  },
+  {
+    "featureType": "transit",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#272D3A"
+      }
+    ]
+  },
+  {
+    "featureType": "transit",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#A9B7C6"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.line",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#475C74"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#2B4676"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#6DA1BF"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#1C212B"
+      }
+    ]
+  }
+]
+''';
+
+/// The default map style (light). Kept for existing callers.
+const String moveraReferenceMapStyle = moveraLightMapStyle;

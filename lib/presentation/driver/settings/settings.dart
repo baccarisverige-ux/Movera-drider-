@@ -1,6 +1,7 @@
 import 'package:movera/widgets/owned_route_exit.dart';
 import 'package:movera/widgets/single_route_entry.dart';
 import 'package:flutter/material.dart';
+import 'package:movera/core/settings/map_appearance.dart';
 import 'package:movera/presentation/driver/pin%20verification/pin_verification.dart';
 import 'package:movera/presentation/driver/safety%20toolkits/safety_toolkits.dart';
 import 'package:movera/presentation/driver/settings/accessibility/accessibility.dart';
@@ -20,6 +21,87 @@ class _SettingsState extends State<Settings> {
   static const Color _muted = Color(0xFF7D898F);
   static const Color _line = Color(0xFFE6E8EA);
 
+  final _appearance = MapAppearanceController.instance;
+
+  static String _hour(int hour) => '${hour.toString().padLeft(2, '0')}:00';
+
+  Future<void> _chooseMapAppearance() async {
+    final chosen = await showModalBottomSheet<MapAppearance>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(4, 0, 4, 4),
+                child: Text(
+                  'Map appearance',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+                child: Text(
+                  'Automatic uses the dark map from '
+                  '${_hour(MapAppearanceController.nightStartHour)} to '
+                  '${_hour(MapAppearanceController.nightEndHour)}.',
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              for (final option in MapAppearance.values)
+                ListTile(
+                  key: ValueKey('map-appearance-${option.name}'),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  title: Text(
+                    option.label,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  trailing: Icon(
+                    option == _appearance.appearance
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_off_rounded,
+                    color: option == _appearance.appearance
+                        ? _ink
+                        : const Color(0xFFB0B8BC),
+                  ),
+                  onTap: () => Navigator.of(context).pop(option),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    try {
+      await _appearance.select(chosen);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Map appearance changed but could not be saved.'),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,10 +139,15 @@ class _SettingsState extends State<Settings> {
                 RightToLeftTransition(const SoundAndVoice()),
               ),
             ),
-            _row(
-              icon: Icons.dark_mode_outlined,
-              title: 'Dark mode',
-              detail: 'Unavailable in demo',
+            ListenableBuilder(
+              listenable: _appearance,
+              builder: (context, _) => _row(
+                key: const ValueKey('settings-map-appearance'),
+                icon: Icons.dark_mode_outlined,
+                title: 'Map appearance',
+                detail: _appearance.appearance.label,
+                onTap: _chooseMapAppearance,
+              ),
             ),
             _row(
               icon: Icons.language_rounded,
@@ -117,6 +204,7 @@ class _SettingsState extends State<Settings> {
   }
 
   Widget _row({
+    Key? key,
     required IconData icon,
     required String title,
     String? detail,
@@ -124,6 +212,7 @@ class _SettingsState extends State<Settings> {
     VoidCallback? onTap,
   }) {
     return InkWell(
+      key: key,
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),

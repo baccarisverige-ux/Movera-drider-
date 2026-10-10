@@ -19,6 +19,7 @@ import 'package:movera/core/ride/active_ride_repository.dart';
 import 'package:movera/core/ride/prefs_active_ride_repository.dart';
 import 'package:movera/core/ride/completion_journal.dart';
 import 'package:movera/core/privacy/local_data.dart';
+import 'package:movera/core/settings/map_appearance.dart';
 import 'package:movera/core/settings/settings_repository.dart';
 import 'package:movera/core/routing/road_route_service.dart';
 import 'package:movera/core/session/driver_session_controller.dart';
@@ -73,6 +74,7 @@ class _MoveraAppState extends State<MoveraApp> {
     _dispatch = DemoDispatchRepository();
     _homeConfig = const LocalDriverHomeConfigRepository();
     _activeRide = PrefsActiveRideRepository();
+    unawaited(MapAppearanceController.instance.load());
     unawaited(_session.restore());
   }
 
@@ -136,6 +138,7 @@ class _MoveraAppState extends State<MoveraApp> {
     if (dispatch is DemoDispatchRepository) {
       dispatch.reset();
     }
+    MapAppearanceController.instance.reset();
     _session.reset();
   }
 
