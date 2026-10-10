@@ -5,6 +5,11 @@
 /// inferred. Waze varies some colours by zoom (E4 is purple at city zoom,
 /// dark grey #8D9299 at street zoom); Google JSON styles are zoom-independent,
 /// so the city-zoom values are used. Route/traffic overlays are separate.
+/// Maps JavaScript (web) serialises `styles` into one compact string and
+/// silently drops ALL styling when it exceeds 1000 characters (it only logs
+/// "Custom style string for ..."). Keep rules minimal: omit any rule that
+/// repeats its parent's value. test/core/reference_map_style_test.dart
+/// guards the budget.
 const String moveraReferenceMapStyle = '''
 [
   {
@@ -72,24 +77,6 @@ const String moveraReferenceMapStyle = '''
     "stylers": [
       {
         "color": "#6F8B9D"
-      }
-    ]
-  },
-  {
-    "featureType": "landscape",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#FAFCFA"
-      }
-    ]
-  },
-  {
-    "featureType": "landscape.natural",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#FAFCFA"
       }
     ]
   },
@@ -166,24 +153,6 @@ const String moveraReferenceMapStyle = '''
     ]
   },
   {
-    "featureType": "poi.medical",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#E1E4E5"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.school",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#E1E4E5"
-      }
-    ]
-  },
-  {
     "featureType": "poi.sports_complex",
     "elementType": "geometry",
     "stylers": [
@@ -221,42 +190,6 @@ const String moveraReferenceMapStyle = '''
   },
   {
     "featureType": "road",
-    "elementType": "geometry.stroke",
-    "stylers": [
-      {
-        "color": "#CCD0D3"
-      }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#575C60"
-      }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "labels.text.stroke",
-    "stylers": [
-      {
-        "color": "#FAFCFA"
-      }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "geometry.fill",
-    "stylers": [
-      {
-        "color": "#D3D7DA"
-      }
-    ]
-  },
-  {
-    "featureType": "road.local",
     "elementType": "geometry.stroke",
     "stylers": [
       {
@@ -342,15 +275,6 @@ const String moveraReferenceMapStyle = '''
     "stylers": [
       {
         "color": "#D1CECC"
-      }
-    ]
-  },
-  {
-    "featureType": "transit.station",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#E1E4E5"
       }
     ]
   },

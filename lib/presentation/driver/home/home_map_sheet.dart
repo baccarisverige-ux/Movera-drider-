@@ -620,7 +620,10 @@ extension _HomeMapSheet on _DriverHomeState {
           webCameraControlEnabled: false,
           mapToolbarEnabled: false,
           compassEnabled: false,
-          trafficEnabled: true,
+          // Idle overview: Google's traffic layer paints free-flow roads
+          // green and hides the Waze road palette. Traffic stays on the
+          // active-ride map only.
+          trafficEnabled: false,
           buildingsEnabled: true,
           indoorViewEnabled: false,
           scrollGesturesEnabled: true,
@@ -674,7 +677,8 @@ extension _HomeMapSheet on _DriverHomeState {
           webCameraControlEnabled: false,
               mapToolbarEnabled: false,
               compassEnabled: false,
-              trafficEnabled: true,
+              // See _buildRadarMapBackdrop: no traffic layer on home.
+              trafficEnabled: false,
               onUserGesture: _camera.userGesture,
               onCameraIdle: () => _cameraPort?.onIdle(),
               onCameraMove: (position) => _cameraPort?.onMove(position),
