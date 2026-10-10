@@ -23,7 +23,7 @@ Source: deep re-audit of 2 October 2026 (N07, N08, N20, N21, N15). Frontend demo
 
 ## Web key restriction (manual, owner action)
 
-In Google Cloud Console, the key stored in the `Maps131189` secret must have:
+In Google Cloud Console, the key stored in the `newmap131189` secret must have:
 1. Application restriction: HTTP referrers, limited to `https://baccarisverige-ux.github.io/Movera-drider-/*`, plus any production domain.
 2. API restriction: Maps JavaScript API only.
 3. A budget alert.
