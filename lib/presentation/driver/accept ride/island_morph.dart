@@ -75,10 +75,10 @@ class _IslandMorphState extends State<IslandMorph>
       _motion.value = 1;
       return;
     }
+    // Same size: no morph, no crossfade. Only the content changes.
     if (widget.size == _to &&
         _radiusOf(widget) == _toRadius &&
-        (widget.shell ? 1 : 0) == _toShell &&
-        widget.face == oldWidget.face) {
+        (widget.shell ? 1 : 0) == _toShell) {
       return;
     }
     final visible = _visible;

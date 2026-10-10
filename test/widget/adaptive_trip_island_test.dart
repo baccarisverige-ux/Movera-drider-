@@ -267,6 +267,37 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+  testWidgets('Same size: only the text changes, no morph', (tester) async {
+    const right = NavigationBanner(
+      primary: 'Turn right in 180 m',
+      distanceLabel: '180 m',
+      roadName: 'Sveavägen',
+      symbol: NavigationBannerSymbol.right,
+    );
+    const left = NavigationBanner(
+      primary: 'Turn left in 90 m',
+      distanceLabel: '90 m',
+      roadName: 'Kungsgatan',
+      symbol: NavigationBannerSymbol.left,
+    );
+    await tester.pumpWidget(surface(banner: right));
+    await tester.pump(const Duration(seconds: 1));
+    final shell = find.byKey(const ValueKey('island-morph-shell'));
+    final size = tester.getSize(shell);
+    await tester.pumpWidget(surface(banner: left));
+    await tester.pump();
+    // The new text is there at once; the old one is gone, not fading.
+    expect(find.text('Turn left'), findsOneWidget);
+    expect(find.text('Turn right'), findsNothing);
+    expect(tester.getSize(shell), size);
+    for (final frame in [16, 100, 250]) {
+      await tester.pump(Duration(milliseconds: frame));
+      expect(tester.getSize(shell), size);
+      expect(find.text('Turn right'), findsNothing);
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('Touch shows the Home island at exactly Home size', (
     tester,
   ) async {
