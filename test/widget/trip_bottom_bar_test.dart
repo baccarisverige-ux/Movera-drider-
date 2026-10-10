@@ -4,108 +4,75 @@ import 'package:movera/presentation/driver/accept%20ride/trip_bottom_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:movera/constants/appassets.dart';
 
+Widget _bar({
+  String instruction = 'Pick up Michael',
+  String address = 'Köpmangatan 12',
+  VoidCallback? onPreferences,
+  VoidCallback? onTap,
+}) => MaterialApp(
+  home: Scaffold(
+    body: SizedBox(
+      width: 320,
+      child: TripBottomBar(
+        instruction: instruction,
+        address: address,
+        onPreferences: onPreferences ?? () {},
+        onTap: onTap ?? () {},
+      ),
+    ),
+  ),
+);
+
 void main() {
-  testWidgets(
-    'Collapsed dock shows rider summary and opens preferences and details',
-    (tester) async {
-      var preferences = 0, details = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 320,
-              child: TripBottomBar(
-                etaLabel: '2 min',
-                distanceLabel: '1.4 km',
-                statusLabel: 'Picking up Michael',
-                onPreferences: () => preferences++,
-                onDetails: () => details++,
-              ),
-            ),
-          ),
-        ),
-      );
-      expect(find.text('2 min · 1.4 km'), findsOneWidget);
-      expect(find.text('Picking up Michael'), findsOneWidget);
-      expect(find.text("I've arrived"), findsNothing);
-      expect(find.byKey(const ValueKey('trip-progress-line')), findsOneWidget);
-      final icon = tester.widget<SvgPicture>(find.byType(SvgPicture));
-      expect(icon.bytesLoader, isA<SvgAssetLoader>());
-      expect(
-        (icon.bytesLoader as SvgAssetLoader).assetName,
-        AppAssets.navMenuBranch,
-      );
-      await tester.tap(find.byTooltip('Ride preferences'));
-      await tester.tap(find.byTooltip('Trip details'));
-      expect(preferences, 1);
-      expect(details, 1);
-      expect(tester.takeException(), isNull);
-    },
-  );
-  testWidgets('Waiting dock shows only centered status, never a timer', (
+  testWidgets('Bar shows only the next step, its address and preferences', (
     tester,
   ) async {
+    var preferences = 0, details = 0;
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SizedBox(
-            width: 320,
-            child: TripBottomBar(
-              etaLabel: '1:30',
-              statusLabel: 'Waiting for Angelica at stop 2',
-              waiting: true,
-              onPreferences: () {},
-              onDetails: () {},
-            ),
-          ),
-        ),
-      ),
+      _bar(onPreferences: () => preferences++, onTap: () => details++),
     );
-    final pill = find.byKey(const ValueKey('trip-sheet-waiting-timer'));
-    expect(pill, findsNothing);
-    expect(find.text('1:30'), findsNothing);
-    expect(find.byIcon(Icons.timer_outlined), findsNothing);
+    expect(find.text('Pick up Michael'), findsOneWidget);
+    expect(find.text('Köpmangatan 12'), findsOneWidget);
+    // Nothing else: no times, distances, progress line or details button.
+    expect(find.byType(Text), findsNWidgets(2));
+    expect(find.byTooltip('Trip details'), findsNothing);
+    final icon = tester.widget<SvgPicture>(find.byType(SvgPicture));
     expect(
-      tester.getCenter(find.text('Waiting for Angelica at stop 2')).dx,
-      closeTo(160, 1),
+      (icon.bytesLoader as SvgAssetLoader).assetName,
+      AppAssets.navMenuBranch,
     );
+
+    await tester.tap(find.byTooltip('Ride preferences'));
+    await tester.tap(find.byKey(const ValueKey('trip-bar-details')));
+    expect(preferences, 1);
+    expect(details, 1);
+    expect(tester.getSize(find.byType(TripBottomBar)).height, 76);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'Journey keeps every stop and progresses toward the active point',
-    (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 320,
-              child: TripBottomBar(
-                etaLabel: '7 min',
-                distanceLabel: '2.8 km',
-                statusLabel: 'Toward stop 2',
-                stopCount: 3,
-                nextPointIndex: 2,
-                legFraction: 0.5,
-                onPreferences: _noop,
-                onDetails: _noop,
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final paint = tester.widget<CustomPaint>(
-        find.byKey(const ValueKey('trip-progress-line')),
-      );
-      final painter = paint.painter! as JourneyLanePainter;
-      expect(painter.stopCount, 3);
-      expect(painter.target, 2);
-      expect(painter.progress, 0.5);
-      expect(tester.getSize(find.byType(TripBottomBar)).height, 76);
-      expect(tester.takeException(), isNull);
-    },
-  );
-}
+  testWidgets('Text sits on the left, preferences on the right', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_bar());
+    final text = tester.getTopLeft(find.text('Pick up Michael'));
+    final button = tester.getCenter(find.byTooltip('Ride preferences'));
+    expect(text.dx, closeTo(20, 1));
+    expect(button.dx, greaterThan(260));
+    expect(tester.takeException(), isNull);
+  });
 
-void _noop() {}
+  testWidgets('Long text stays on one line each', (tester) async {
+    await tester.pumpWidget(
+      _bar(
+        instruction: 'Waiting for Maximiliana-Charlotte at stop 2',
+        address: 'Drottning Kristinas väg 61, 114 28 Stockholm, Sverige',
+      ),
+    );
+    for (final key in ['trip-bar-instruction', 'trip-bar-next-address']) {
+      final text = tester.widget<Text>(find.byKey(ValueKey(key)));
+      expect(text.maxLines, 1);
+      expect(text.overflow, TextOverflow.ellipsis);
+    }
+    expect(tester.takeException(), isNull);
+  });
+}

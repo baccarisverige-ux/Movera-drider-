@@ -26,7 +26,6 @@ import 'package:movera/core/location/driver_location_repository.dart';
 import 'package:movera/core/location/driver_location_service.dart';
 import 'package:movera/core/navigation/live_vehicle_animator.dart';
 import 'package:movera/core/navigation/navigation_controller.dart';
-import 'package:movera/core/routing/route_instruction.dart';
 import 'package:movera/widgets/driver_route_style.dart';
 import 'package:movera/core/ride/active_ride_controller.dart';
 import 'package:movera/core/ride/active_ride_repository.dart';
@@ -479,7 +478,6 @@ class _AcceptRideState extends State<AcceptRide>
   bool _hasLiveLocation = false;
   DriverLocation? _lastLocation;
   int _locationEpoch = 0;
-  bool _routeLoading = false;
   bool _stageTransitioning = false;
   DriverRealtimeEvent? _pendingProjection;
   bool _drainingProjection = false;
@@ -784,12 +782,6 @@ class _AcceptRideState extends State<AcceptRide>
     return '${(meters / 1000).toStringAsFixed(1)} km';
   }
 
-  String? get _sheetDistanceText {
-    final meters = _remainingMeters;
-    if (meters == null) { return null; }
-    return '${(meters / 1000).toStringAsFixed(meters < 1000 ? 2 : 1)} km';
-  }
-
   /// One line under the time and distance in the collapsed trip bar.
   String get _tripBarStatus {
     switch (_stage) {
@@ -808,46 +800,26 @@ class _AcceptRideState extends State<AcceptRide>
     }
   }
 
-  /// Sheet copy is independent of the island's rotating waiting clock.
-  String get _sheetStatus {
-    if (_countingWait) {
-      return _paidStopWait
-          ? 'Waiting for ${widget.riderName} at stop ${_stopCursor + 1}'
-          : 'Waiting for ${widget.riderName}';
+  /// First line of the trip sheet: the next thing to do.
+  String get _tripBarInstruction {
+    switch (_stage) {
+      case ActiveRideStage.headingToPickup:
+        return 'Pick up ${widget.riderName}';
+      case ActiveRideStage.waitingForRider:
+        return _riderOnTheWay
+            ? '${widget.riderName} is on the way'
+            : 'Waiting for ${widget.riderName}';
+      case ActiveRideStage.onTrip:
+        if (_paidStopWait) { return 'Waiting at stop ${_stopCursor + 1}'; }
+        if (_stopCursor < widget.stopAddresses.length) {
+          return 'Drive to stop ${_stopCursor + 1}';
+        }
+        return 'Drop off ${widget.riderName}';
     }
-    final fault = _locationStatus ?? _navigation.snapshot.status;
-    if (fault != null) {
-      return fault;
-    }
-    final banner = _navigation.snapshot.banner;
-    if (banner != null &&
-        banner.symbol != NavigationBannerSymbol.arrive &&
-        banner.symbol != NavigationBannerSymbol.straight) {
-      return banner.symbol == NavigationBannerSymbol.roundabout
-          ? '${banner.primary} · ${banner.distanceLabel}' : banner.primary;
-    }
-    if (_showArrivalApproach) {
-      return switch (_approachKind) {
-        ArrivalPointKind.pickup => 'Arriving at pickup',
-        ArrivalPointKind.stop => 'Arriving at stop ${_stopCursor + 1}',
-        ArrivalPointKind.destination => 'Arriving soon',
-      };
-    }
-    if (banner != null && banner.primary.startsWith('Continue')) {
-      return banner.primary;
-    }
-    return switch (_stage) {
-      ActiveRideStage.headingToPickup => 'Toward pickup',
-      ActiveRideStage.waitingForRider => 'Waiting for ${widget.riderName}',
-      ActiveRideStage.onTrip =>
-        _stopCursor < widget.stopAddresses.length
-            ? 'Toward stop ${_stopCursor + 1}'
-            : 'Toward destination',
-    };
   }
 
-  int get _sheetNextPointIndex =>
-      _stage == ActiveRideStage.onTrip ? _stopCursor + 1 : 0;
+  /// Second line: where. Location problems show on the island.
+  String get _tripBarAddress => _nextStopAddress;
 
   /// Share of the way to the next point already driven; null while
   /// waiting or before a road route exists.
@@ -883,22 +855,6 @@ class _AcceptRideState extends State<AcceptRide>
     final minutes = math.max(1, (left / 60).ceil());
     return '$minutes min';
   }
-
-  /// Big line of the trip sheet: minutes once the route is known, before
-  /// that a short phrase for the step the driver is on.
-  String get _sheetEtaText {
-    if (_routeDurationSeconds != null) { return _routeEtaText; }
-    return switch (_stage) {
-      ActiveRideStage.headingToPickup => 'On your way',
-      ActiveRideStage.waitingForRider => 'At pickup',
-      ActiveRideStage.onTrip => _stopCursor < widget.stopAddresses.length
-          ? 'Onward to stop ${_stopCursor + 1}'
-          : 'Final stretch',
-    };
-  }
-
-
-
 
   bool get _tripEndedTooQuickly {
     final started = _onTripStartedAt;

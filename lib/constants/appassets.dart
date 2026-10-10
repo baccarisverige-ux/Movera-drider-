@@ -30,8 +30,6 @@ class AppAssets {
   // Active ride sheet and map controls
   static const String tripCall = 'assets/icons/trip_call.svg';
   static const String tripMessage = 'assets/icons/trip_message.svg';
-  static const String tripSafety = 'assets/icons/trip_safety.svg';
-  static const String tripWaybill = 'assets/icons/trip_waybill.svg';
   static const String mapSafety = 'assets/icons/map_safety.svg';
   static const String mapGoogle = 'assets/icons/map_google.svg';
   static const String mapRecenter = 'assets/icons/map_recenter.svg';
