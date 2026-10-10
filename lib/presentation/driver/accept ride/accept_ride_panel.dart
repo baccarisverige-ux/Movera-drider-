@@ -792,16 +792,10 @@ extension _AcceptRidePanel on _AcceptRideState {
                   if (compact)
                     TripBottomBar(
                       key: const ValueKey<String>('active-ride-compact-dock'),
-                      etaLabel: _sheetEtaText,
-                      distanceLabel: _countingWait ? null : _sheetDistanceText,
-                      statusLabel: _sheetStatus,
-                      stopCount: widget.stopAddresses.length,
-                      nextPointIndex: _sheetNextPointIndex,
-                      legFraction: _legFraction ?? 0,
-                      waiting: _countingWait,
+                      instruction: _tripBarInstruction,
+                      address: _tripBarAddress,
                       onPreferences: _openRidePreferences,
-                      onDetails: _showRideMiddle,
-
+                      onTap: _showRideMiddle,
                     )
                   else ...[
                     // Grip line: the sheet can be pulled up for details.
@@ -818,20 +812,11 @@ extension _AcceptRidePanel on _AcceptRideState {
                     ),
                     TripBottomBar(
                       key: const ValueKey<String>('active-ride-expanded-header'),
-                      etaLabel: _sheetEtaText,
-                      distanceLabel: _countingWait ? null : _sheetDistanceText,
-                      statusLabel: _sheetStatus,
-                      stopCount: widget.stopAddresses.length,
-                      nextPointIndex: _sheetNextPointIndex,
-                      legFraction: _legFraction ?? 0,
-                      waiting: _countingWait,
+                      instruction: _tripBarInstruction,
+                      address: _tripBarAddress,
                       onPreferences: _openRidePreferences,
-                      onDetails: full
-                          ? _showRideMiddle
-                          : _showRideFull,
-                      expanded: full,
+                      onTap: full ? _showRideMiddle : _showRideFull,
                     ),
-                    const Divider(height: 1, thickness: 1, color: Color(0xFFECEEEF)),
                     if (!full) ...[
                       _buildRiderRow(),
                       Padding(
@@ -843,25 +828,37 @@ extension _AcceptRidePanel on _AcceptRideState {
                       Expanded(
                         child: SingleChildScrollView(
                           key: const PageStorageKey<String>('active-ride-scroll'),
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          padding: const EdgeInsets.only(bottom: 16),
                           physics: const BouncingScrollPhysics(),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildRiderRow(padding: const EdgeInsets.symmetric(vertical: 14)),
-                              _buildJourneyDetailsCard(),
-                              if (_stage == ActiveRideStage.onTrip)
-                                _buildSecuredNextTripDetails(),
-                              const SizedBox(height: 12),
-                              _buildSafetyTile(),
-                              const SizedBox(height: 10),
-                              _buildTripOptionsTile(),
-                              const SizedBox(height: 10),
-                              Center(
-                                child: _countingWait
-                                    ? _waitPhaseChip()
-                                    : _liveStatus(),
+                              _buildRiderRow(),
+                              const SizedBox(height: 6),
+                              _sheetDivider(),
+                              _buildRouteList(),
+                              _sheetDivider(),
+                              _buildCurrentWaybillShortcut(),
+                              _sheetRow(
+                                key: const ValueKey<String>('active-ride-safety-tile'),
+                                label: 'Safety',
+                                onTap: () => showSafetyToolKitSheet(context),
                               ),
+                              _sheetDivider(),
+                              _sheetRow(
+                                key: const ValueKey<String>('active-ride-trip-options'),
+                                label: 'Trip options',
+                                onTap: _showTripOptions,
+                              ),
+                              if (_stage == ActiveRideStage.onTrip)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: _buildSecuredNextTripDetails(),
+                                ),
+                              if (_countingWait) ...[
+                                const SizedBox(height: 12),
+                                Center(child: _waitPhaseChip()),
+                              ],
                             ],
                           ),
                         ),
@@ -874,115 +871,47 @@ extension _AcceptRidePanel on _AcceptRideState {
         },
       );
     }
-    Widget _buildJourneyDetailsCard() {
-      final stopCount = widget.stopAddresses.length;
-      return Container(
+    /// Every point of the trip as a plain list, a small dot before each.
+    Widget _buildRouteList() {
+      final points = <String>[
+        widget.pickupAddress,
+        ...widget.stopAddresses,
+        widget.dropoffAddress,
+      ];
+      return Padding(
         key: const ValueKey<String>('active-ride-journey-card'),
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE6E8EA), width: 1.3),
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _journeyPoint(
-              kind: _JourneyPointKind.pickup,
-              label: 'Pickup',
-              address: widget.pickupAddress,
-              detail: widget.pickupArea,
-              isLast: false,
-            ),
-            for (var i = 0; i < stopCount; i++)
-              _journeyPoint(
-                kind: _JourneyPointKind.stop,
-                label: 'Stop ${i + 1}',
-                address: widget.stopAddresses[i],
-                isLast: false,
-              ),
-            _journeyPoint(
-              kind: _JourneyPointKind.dropoff,
-              label: 'Drop-off',
-              address: widget.dropoffAddress,
-              isLast: true,
-            ),
-            _buildCurrentWaybillShortcut(),
-          ],
-        ),
-      );
-    }
-    Widget _journeyPoint({
-      required _JourneyPointKind kind,
-      required String label,
-      required String address,
-      required bool isLast,
-      String? detail,
-    }) {
-      return IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 34,
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: 34,
-                    height: 34,
-                    child: Center(child: _RouteDot(kind: kind)),
-                  ),
-                  if (!isLast)
-                    Expanded(
-                      child: Container(
-                        width: 2,
-                        color: const Color(0xFFD5D9DC),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: isLast ? 0 : 14, top: 1),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            for (final point in points)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                child: Row(
                   children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        color: _AcceptRideState._muted,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      address,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
                         color: _AcceptRideState._ink,
-                        fontSize: 16,
-                        height: 1.25,
-                        fontWeight: FontWeight.w700,
+                        shape: BoxShape.circle,
                       ),
                     ),
-                    if (detail != null && detail.trim().isNotEmpty)
-                      Text(
-                        detail,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        point,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: _AcceptRideState._muted,
-                          fontSize: 12.5,
+                          color: _AcceptRideState._ink,
+                          fontSize: 15,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),
-            ),
           ],
         ),
       );
@@ -1010,119 +939,79 @@ extension _AcceptRidePanel on _AcceptRideState {
         ),
       );
     }
-    Widget _liveStatus() {
-      final text = _hasLiveLocation
-          ? (_routeLoading
-              ? 'Live GPS · updating road route'
-              : 'Live GPS · road route active')
-          : (_locationStatus ?? 'Locating driver…');
-
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(
-              color: _hasLiveLocation ? _AcceptRideState._green : const Color(0xFF9AA4A9),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _AcceptRideState._muted,
-                fontSize: 8.5,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-    /// Rider row of the middle and full sheet: call on the left, the
-    /// rider's name (opens the profile) in the middle, message on the right.
-    Widget _buildRiderRow({
-      EdgeInsets padding = const EdgeInsets.fromLTRB(16, 14, 16, 14),
-    }) {
+    /// Rider row of the middle and full sheet: the name (opens the profile)
+    /// on the left, plain call and message icons on the right.
+    Widget _buildRiderRow() {
       return Padding(
         key: const ValueKey<String>('active-ride-rider-card'),
-        padding: padding,
+        padding: const EdgeInsets.fromLTRB(12, 2, 8, 2),
         child: Row(
           children: [
-            _roundRiderButton(
-              key: const ValueKey<String>('active-ride-call-rider'),
-              tooltip: 'Call rider',
-              onTap: _callRider,
-              child: SvgPicture.asset(
-                AppAssets.tripCall,
-                width: 24,
-                height: 24,
-                colorFilter: const ColorFilter.mode(
-                  _AcceptRideState._ink,
-                  BlendMode.srcIn,
-                ),
-              ),
-            ),
             Expanded(
               child: InkWell(
                 onTap: _showRiderProfile,
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   child: Text(
                     widget.riderName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: _AcceptRideState._ink,
-                      fontSize: 25,
+                      fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: -0.4,
                     ),
                   ),
                 ),
               ),
             ),
-            _roundRiderButton(
+            _riderAction(
+              key: const ValueKey<String>('active-ride-call-rider'),
+              tooltip: 'Call rider',
+              onTap: _callRider,
+              asset: AppAssets.tripCall,
+            ),
+            _riderAction(
               key: const ValueKey<String>('active-ride-message-rider'),
               tooltip: 'Message rider',
               onTap: _messageRider,
-              child: SvgPicture.asset(
-                AppAssets.tripMessage,
-                width: 24,
-                height: 24,
-                colorFilter: const ColorFilter.mode(
-                  _AcceptRideState._ink,
-                  BlendMode.srcIn,
-                ),
-              ),
+              asset: AppAssets.tripMessage,
             ),
           ],
         ),
       );
     }
-    Widget _roundRiderButton({
+    Widget _riderAction({
       required Key key,
       required String tooltip,
       required VoidCallback onTap,
-      required Widget child,
+      required String asset,
     }) {
       return Tooltip(
         key: key,
         message: tooltip,
         child: Material(
-          color: const Color(0xFFF2F3F4),
+          color: Colors.transparent,
           shape: const CircleBorder(),
           child: InkWell(
             onTap: onTap,
             customBorder: const CircleBorder(),
-            child: SizedBox(width: 56, height: 56, child: Center(child: child)),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Center(
+                child: SvgPicture.asset(
+                  asset,
+                  width: 23,
+                  height: 23,
+                  colorFilter: const ColorFilter.mode(
+                    _AcceptRideState._ink,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -1147,149 +1036,50 @@ extension _AcceptRidePanel on _AcceptRideState {
         ),
       );
     }
-    Widget _buildTripOptionsTile() => _sheetTile(
-      key: const ValueKey<String>('active-ride-trip-options'),
-      asset: 'assets/icons/movera_route.svg',
-      label: 'Trip options',
-      onTap: _showTripOptions,
-    );
-    Widget _buildSafetyTile() => _sheetTile(
-      key: const ValueKey<String>('active-ride-safety-tile'),
-      asset: AppAssets.tripSafety,
-      label: 'Safety toolkit',
-      onTap: () => showSafetyToolKitSheet(context),
-    );
-    Widget _sheetTile({
+    Widget _sheetDivider() =>
+        const Divider(height: 1, thickness: 1, color: Color(0xFFECEEEF));
+    /// A plain text row of the full sheet.
+    Widget _sheetRow({
       required Key key,
-      required String asset,
       required String label,
       required VoidCallback onTap,
     }) {
-      return Material(
+      return InkWell(
         key: key,
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE6E8EA), width: 1.3),
-            ),
-            child: Row(
-              children: [
-                SvgPicture.asset(
-                  asset,
-                  width: 22,
-                  height: 22,
-                  colorFilter: const ColorFilter.mode(
-                    _AcceptRideState._ink,
-                    BlendMode.srcIn,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: _AcceptRideState._ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      color: _AcceptRideState._ink,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: Color(0xFFA0A8AC),
-                  size: 22,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
     }
+    /// "Waybill" row, shown once the trip has one.
     Widget _buildCurrentWaybillShortcut() {
       return ValueListenableBuilder<WaybillRecord?>(
         valueListenable: _waybills.currentListenable,
         builder: (context, record, _) {
           if (record == null) { return const SizedBox.shrink(); }
-
           return Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 12, bottom: 8),
-                child: Divider(height: 1, color: Color(0xFFEEF0F1)),
-              ),
-              InkWell(
+              _sheetRow(
                 key: const ValueKey<String>('current-waybill-shortcut'),
-                borderRadius: BorderRadius.circular(12),
-                onTap: () {
-                  showMoveraWaybillSheet(
-                    context,
-                    record,
-                    title: 'Current trip waybill',
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3F4F5),
-                          borderRadius: BorderRadius.circular(11),
-                        ),
-                        alignment: Alignment.center,
-                        child: SvgPicture.asset(
-                          AppAssets.tripWaybill,
-                          width: 20,
-                          height: 20,
-                          colorFilter: const ColorFilter.mode(
-                            _AcceptRideState._ink,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Waybill',
-                              style: TextStyle(
-                                color: _AcceptRideState._ink,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              '${record.service} · ${record.tripId}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _AcceptRideState._muted,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        color: Color(0xFFA0A8AC),
-                        size: 22,
-                      ),
-                    ],
-                  ),
-                ),
+                label: 'Waybill',
+                onTap: () => showMoveraWaybillSheet(context, record),
               ),
+              _sheetDivider(),
             ],
           );
         },
@@ -1557,43 +1347,6 @@ extension _AcceptRidePanel on _AcceptRideState {
     }
 }
 
-enum _JourneyPointKind { pickup, stop, dropoff }
-
-/// Classic route marks: pickup is a black dot, a stop a smaller grey dot,
-/// drop-off a black square, each with a white centre.
-class _RouteDot extends StatelessWidget {
-  const _RouteDot({required this.kind});
-
-  final _JourneyPointKind kind;
-
-  @override
-  Widget build(BuildContext context) {
-    final stop = kind == _JourneyPointKind.stop;
-    final square = kind == _JourneyPointKind.dropoff;
-    final size = stop ? 11.0 : 14.0;
-    final inner = stop ? 4.0 : 5.0;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: stop ? const Color(0xFF8A9195) : _AcceptRideState._ink,
-        shape: square ? BoxShape.rectangle : BoxShape.circle,
-        borderRadius: square ? BorderRadius.circular(2.5) : null,
-      ),
-      alignment: Alignment.center,
-      child: Container(
-        width: inner,
-        height: inner,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: square ? BoxShape.rectangle : BoxShape.circle,
-        ),
-      ),
-    );
-  }
-}
-
-/// Plain white bottom sheet: a handle, then the content at its own height.
 class _CleanSheet extends StatelessWidget {
   const _CleanSheet({super.key, required this.child});
 

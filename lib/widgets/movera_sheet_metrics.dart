@@ -20,7 +20,7 @@ class MoveraSheetMetrics {
 
   /// Content of the middle Active Ride sheet: header, rider row and the
   /// slide action.
-  static const double activeMiddleHeight = 232;
+  static const double activeMiddleHeight = 199;
 
   /// Full middle Active Ride sheet for a phone with [safeBottom].
   static double activeMiddleTotal(double safeBottom) =>

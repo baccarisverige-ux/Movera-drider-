@@ -448,7 +448,6 @@ extension _AcceptRideTrip on _AcceptRideState {
 
       _waitSeconds = 0;
       _waitAnchorAt = null;
-      _routeLoading = false;
       _startWaitTimer();
       await _rideLifecycle.persistNow();
       unawaited(
@@ -478,7 +477,6 @@ extension _AcceptRideTrip on _AcceptRideState {
           _routeDurationSeconds = mappedRoute.durationSeconds;
         }
         if (routeCleared) { _roadGeoPoints = []; _routeDurationSeconds = null; }
-        _routeLoading = _navigation.routeState == RouteLoadState.loading;
         _locationStatus = status;
       });
     }
@@ -607,7 +605,6 @@ extension _AcceptRideTrip on _AcceptRideState {
 
           _routeDurationSeconds = route.durationSeconds;
         }
-        _routeLoading = _navigation.routeState == RouteLoadState.loading;
         _locationStatus = _navigation.status;
       });
     }
@@ -1038,8 +1035,9 @@ extension _AcceptRideTrip on _AcceptRideState {
     }
     void _restoreRideSheet() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) { return; }
-        _AcceptRidePanel(this)._showRideMiddle();
+        if (!mounted || !_ridePanelController.isAttached) { return; }
+        // The trip sheet always rests down; the driver lifts it.
+        unawaited(_ridePanelController.close());
       });
     }
     void _acceptNextTripRadar() {

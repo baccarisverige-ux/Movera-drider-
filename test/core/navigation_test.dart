@@ -303,14 +303,14 @@ void main() {
     expect(MoveraSheetMetrics.collapsedHeight, 108);
     expect(MoveraSheetMetrics.activeCollapsedHeight, 77);
     expect(MoveraSheetMetrics.activeCollapsedTotal(0), 111);
-    expect(MoveraSheetMetrics.activeMiddleHeight, 232);
+    expect(MoveraSheetMetrics.activeMiddleHeight, 199);
     expect(
       MoveraSheetMetrics.activeSnapPoint(
         collapsed: 111,
-        middle: 266,
+        middle: 233,
         expanded: 732,
       ),
-      closeTo(0.25, 0.01),
+      closeTo(0.20, 0.01),
     );
     expect(MoveraSheetMetrics.middleFraction, 0.46);
     expect(MoveraSheetMetrics.expandedFraction, 0.90);

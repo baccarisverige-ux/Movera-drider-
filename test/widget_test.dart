@@ -2316,8 +2316,21 @@ void main() {
         find.byKey(const ValueKey<String>('waybill-waybill-current-test')),
         findsOneWidget,
       );
-      expect(find.text('Current trip waybill'), findsOneWidget);
+      expect(find.text('Waybill'), findsWidgets);
+      // Fare marked for rounding, then what the passenger paid and what the
+      // driver keeps after Movera's fee.
+      expect(find.text('111,02 kr*'), findsOneWidget);
       expect(find.text('111,02 kr'), findsWidgets);
+      await tester.scrollUntilVisible(
+        find.text('83,26 kr'),
+        200,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey<String>('waybill-waybill-current-test')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(find.text('−27,76 kr'), findsOneWidget);
+      expect(find.text('83,26 kr'), findsOneWidget);
       _expectNoException(tester);
     },
   );
@@ -2484,8 +2497,8 @@ void main() {
         find.byKey(const ValueKey<String>('active-ride-journey-card')),
         findsOneWidget,
       );
-      expect(find.text('Stop 1'), findsOneWidget);
-      expect(find.text('Stop 2'), findsOneWidget);
+      // Every point, in order, as plain addresses.
+      expect(find.text('Kungsgatan 44, Stockholm'), findsWidgets);
       expect(find.text('Vasagatan 10, Stockholm'), findsOneWidget);
       expect(find.text('Liljeholmen, Stockholm'), findsOneWidget);
 
@@ -2494,12 +2507,11 @@ void main() {
         find.byKey(const ValueKey<String>('active-ride-compact-dock')),
         findsOneWidget,
       );
-      // The flat bar names the next point with its mark; a stop is an orange
-      // diamond, never the final destination.
+      // The flat bar names the next step and where it is.
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('active-ride-compact-dock')),
-          matching: find.byKey(const ValueKey<String>('trip-bar-next-address')),
+          matching: find.text('Kungsgatan 44, Stockholm'),
         ),
         findsOneWidget,
       );
@@ -2545,7 +2557,8 @@ void main() {
         _activeRidePanel(tester).controller!.panelPosition,
         closeTo(0, .01),
       );
-      await tester.tap(find.byTooltip('Trip details'));
+      // Tapping the bar lifts it to the middle sheet with the action.
+      await tester.tap(find.byKey(const ValueKey('trip-bar-details')));
       await _advanceAnimation(tester, const Duration(milliseconds: 520));
       expect(
         find.byKey(const ValueKey('active-ride-arrived-button')),
@@ -2617,10 +2630,10 @@ void main() {
       find.byKey(const ValueKey<String>('active-ride-arrived-button')),
       findsOneWidget,
     );
-    // The middle sheet has no details button; tapping its header opens
-    // the full trip details.
-    expect(find.byTooltip('Trip details'), findsOneWidget);
-    await tester.tap(find.byTooltip('Trip details'));
+    // No details button: tapping the middle sheet's header opens the full
+    // trip details.
+    expect(find.byTooltip('Trip details'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey<String>('trip-bar-details')));
     for (var i = 0; i < 12; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
