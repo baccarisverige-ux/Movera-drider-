@@ -10,8 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movera/presentation/driver/accept%20ride/trip_island.dart';
 import 'package:movera/core/routing/route_instruction.dart';
-import 'package:movera/presentation/driver/accept%20ride/navigation_instruction_banner.dart';
 import 'package:movera/presentation/driver/accept%20ride/adaptive_trip_island.dart';
+import 'package:movera/presentation/driver/accept%20ride/island_icons.dart';
 
 Widget surface({
   int? seconds,
@@ -27,8 +27,9 @@ Widget surface({
 }) => MaterialApp(
   theme: ThemeData(fontFamily: fontFamily),
   builder: (context, child) => MediaQuery(
-    data: MediaQuery.of(context)
-        .copyWith(textScaler: TextScaler.linear(textScale)),
+    data: MediaQuery.of(
+      context,
+    ).copyWith(textScaler: TextScaler.linear(textScale)),
     child: child!,
   ),
   home: Scaffold(
@@ -95,8 +96,18 @@ void main() {
       final size = tester.getSize(
         find.byKey(const ValueKey('island-morph-shell')),
       );
-      expect(size.height, closeTo(TripIslandGeometry.height, 0.000001));
-      expect(size.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
+      // Frames include mid-morph sizes: always between Home and the route
+      // island, never smaller than Home.
+      expect(
+        size.height,
+        greaterThanOrEqualTo(TripIslandGeometry.height - .01),
+      );
+      expect(
+        size.height,
+        lessThanOrEqualTo(AdaptiveTripIsland.routeHeight + .01),
+      );
+      expect(size.width, greaterThanOrEqualTo(TripIslandGeometry.width - .01));
+      expect(size.width, lessThanOrEqualTo(640 - 24));
       final boundary = tester.renderObject<RenderRepaintBoundary>(
         find.byKey(const ValueKey('island-visual-proof')),
       );
@@ -229,52 +240,102 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(
-    'Short content stays default width and text is at the capsule center',
+    'Route instructions use the route island: distance large, no cut text',
     (tester) async {
       await tester.pumpWidget(
         surface(
           banner: const NavigationBanner(
-            primary: 'Ready',
-            distanceLabel: '',
-            symbol: NavigationBannerSymbol.straight,
-          ),
-        ),
-      );
-      final shell = find.byKey(const ValueKey('island-morph-shell'));
-      expect(tester.getSize(shell).width, TripIslandGeometry.width);
-      expect(
-        tester.getCenter(find.text('Ready')).dx,
-        closeTo(tester.getCenter(shell).dx, .001),
-      );
-      await tester.pumpWidget(
-        surface(
-          banner: const NavigationBanner(
-            primary: 'Take the next right turn',
+            primary: 'Turn right in 180 m',
             distanceLabel: '180 m',
+            roadName: 'Sveavägen',
             symbol: NavigationBannerSymbol.right,
           ),
         ),
       );
       await tester.pump(const Duration(seconds: 1));
+      final shell = find.byKey(const ValueKey('island-morph-shell'));
       expect(
-        tester.getSize(shell).width,
-        lessThanOrEqualTo(TripIslandGeometry.width * 1.15),
+        tester.getSize(shell),
+        const Size(320 - 24, AdaptiveTripIsland.routeHeight),
       );
-      expect(tester.getSize(shell).height, TripIslandGeometry.height);
-      expect(
-        tester.getCenter(find.text('Take the next right turn')).dx,
-        closeTo(tester.getCenter(shell).dx, .001),
-      );
+      // The distance is shown once, large; the instruction without it.
+      expect(find.text('Turn right'), findsOneWidget);
+      expect(find.text('Sveavägen'), findsOneWidget);
+      expect(find.byKey(const ValueKey('island-distance')), findsOneWidget);
+      expect(find.byKey(const ValueKey('island-route-strip')), findsOneWidget);
+      expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
   );
+  testWidgets('Same size: only the text changes, no morph', (tester) async {
+    const right = NavigationBanner(
+      primary: 'Turn right in 180 m',
+      distanceLabel: '180 m',
+      roadName: 'Sveavägen',
+      symbol: NavigationBannerSymbol.right,
+    );
+    const left = NavigationBanner(
+      primary: 'Turn left in 90 m',
+      distanceLabel: '90 m',
+      roadName: 'Kungsgatan',
+      symbol: NavigationBannerSymbol.left,
+    );
+    await tester.pumpWidget(surface(banner: right));
+    await tester.pump(const Duration(seconds: 1));
+    final shell = find.byKey(const ValueKey('island-morph-shell'));
+    final size = tester.getSize(shell);
+    await tester.pumpWidget(surface(banner: left));
+    await tester.pump();
+    // The new text is there at once; the old one is gone, not fading.
+    expect(find.text('Turn left'), findsOneWidget);
+    expect(find.text('Turn right'), findsNothing);
+    expect(tester.getSize(shell), size);
+    for (final frame in [16, 100, 250]) {
+      await tester.pump(Duration(milliseconds: frame));
+      expect(tester.getSize(shell), size);
+      expect(find.text('Turn right'), findsNothing);
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('Touch shows the Home island at exactly Home size', (
+    tester,
+  ) async {
+    await tester.pumpWidget(surface());
+    await tester.tap(find.byKey(const ValueKey('island-morph-shell')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(find.byKey(const ValueKey('trip-default-island')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('island-morph-shell'))),
+      const Size(TripIslandGeometry.width, TripIslandGeometry.height),
+    );
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 3));
+  });
+  testWidgets('Trip island sits exactly where Home draws its island', (
+    tester,
+  ) async {
+    late double top;
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(padding: EdgeInsets.only(top: 47)),
+        child: Builder(
+          builder: (context) {
+            top = AdaptiveTripIsland.islandTop(context);
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+    expect(top, 43, reason: 'Home: max(top padding - 4, 10).');
+  });
   testWidgets('Normal islands stay compact at phone width', (tester) async {
     await tester.pumpWidget(surface(width: 375));
     final driving = tester.getSize(
       find.byKey(const ValueKey('island-morph-shell')),
     );
-    expect(driving.height, TripIslandGeometry.height);
-    expect(driving.width, lessThanOrEqualTo(TripIslandGeometry.maximumWidth));
+    expect(driving, const Size(375 - 24, AdaptiveTripIsland.routeHeight));
     await tester.pumpWidget(surface(width: 375, seconds: 155));
     await tester.pump(const Duration(seconds: 1));
     final waiting = tester.getSize(
@@ -336,15 +397,16 @@ void main() {
       var route = 0;
       await tester.pumpWidget(surface(route: () => route++));
       expect(find.text('Roundabout, exit 3'), findsOneWidget);
+      // Swedish roundabout: counterclockwise, exit number on the icon.
       final cue = tester
           .widgetList<CustomPaint>(find.byType(CustomPaint))
           .map((paint) => paint.painter)
-          .whereType<NavigationCuePainter>()
+          .whereType<RoundaboutCuePainter>()
           .single;
       expect(cue.exitNumber, '3');
       expect(find.text('Sveavägen 20'), findsNothing);
       expect(find.text('To pickup'), findsNothing);
-      expect(find.text('150 m · Sveavägen'), findsOneWidget);
+      expect(find.text('Sveavägen'), findsOneWidget);
       await tester.tap(find.byTooltip('Trip route and options'));
       await tester.pump();
       expect(

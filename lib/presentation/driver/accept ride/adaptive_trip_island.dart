@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:movera/core/island/trip_island_controller.dart';
 
+import 'island_icons.dart';
 import 'island_waiting_motion.dart';
 
 import 'package:movera/core/routing/route_instruction.dart';
@@ -60,6 +61,16 @@ class AdaptiveTripIsland extends StatefulWidget {
       onSafety,
       onWait;
 
+  /// Home draws its island here: just under the clock and camera.
+  static double islandTop(BuildContext context) =>
+      math.max(MediaQuery.paddingOf(context).top - 4, 10.0);
+
+  /// Width of the route island; never wider than the screen allows.
+  static const routeWidth = 366.0;
+
+  /// Height of the route island: top information plus the darker strip.
+  static const routeHeight = 124.0;
+
   @override
   State<AdaptiveTripIsland> createState() => _AdaptiveTripIslandState();
 }
@@ -110,7 +121,7 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
   Widget build(BuildContext context) => Padding(
     padding: EdgeInsets.fromLTRB(
       12,
-      MediaQuery.paddingOf(context).top + 8,
+      AdaptiveTripIsland.islandTop(context),
       12,
       0,
     ),
@@ -123,7 +134,6 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
             presentation.kind == TripIslandKind.waitingMessage;
         final waitingMessage =
             presentation.kind == TripIslandKind.waitingMessage;
-        final live = widget.banner;
         final title = presentation.title;
         final subtitle = presentation.subtitle;
         final accent = presentation.kind == TripIslandKind.status
@@ -143,10 +153,6 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         );
-        // Size follows measured text. Timer ticks reserve a fixed digit width.
-        final measuredTitle = waiting && !waitingMessage
-            ? '${'8' * math.max(2, (widget.waitingSeconds! ~/ 60).toString().length)}:88'
-            : title;
         double measure(String text, TextStyle style) {
           final painter = TextPainter(
             text: TextSpan(text: text, style: style),
@@ -156,24 +162,118 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
           return painter.width;
         }
 
-        final maximumWidth = math.min(
-          available,
-          TripIslandGeometry.maximumWidth,
-        );
-        final minWidth = math.min(maximumWidth, TripIslandGeometry.width);
-        final desired =
-            math.max(
-              measure(measuredTitle, heading),
-              measure(subtitle, const TextStyle(fontSize: 9)),
-            ) +
-            84;
-        final width = desired.clamp(minWidth, maximumWidth).toDouble();
-        final size = Size(
-          _controller.defaultFace
-              ? math.min(available, TripIslandGeometry.width)
-              : width,
+        // Never smaller than the Home island.
+        final home = Size(
+          math.min(available, TripIslandGeometry.width),
           TripIslandGeometry.height,
         );
+        final route =
+            !_controller.defaultFace &&
+            (presentation.kind == TripIslandKind.guidance ||
+                presentation.kind == TripIslandKind.arrival);
+        Size size;
+        double? radius;
+        Widget content;
+        if (_controller.defaultFace) {
+          size = home;
+          content = TripIsland(
+            key: const ValueKey('trip-default-island'),
+            lastTripLabel: widget.lastTripLabel,
+            onMenu: widget.onMenu,
+            onSearch: widget.onSearch,
+            onHistory: widget.onHistory,
+          );
+        } else if (route) {
+          size = Size(
+            math.min(available, AdaptiveTripIsland.routeWidth),
+            AdaptiveTripIsland.routeHeight,
+          );
+          radius = 26;
+          content = _routeIsland(presentation, accent, size);
+        } else {
+          // A message sizes the island to its words; the height stays Home's.
+          final measuredTitle = waiting && !waitingMessage
+              ? '${'8' * math.max(2, (widget.waitingSeconds! ~/ 60).toString().length)}:88'
+              : title;
+          final desired =
+              math.max(
+                measure(measuredTitle, heading),
+                measure(subtitle, const TextStyle(fontSize: 9)),
+              ) +
+              84;
+          size = Size(
+            desired.clamp(home.width, available).toDouble(),
+            home.height,
+          );
+          content = Padding(
+            key: ValueKey(
+              waiting ? 'trip-waiting-island' : 'trip-status-island',
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        child: waiting
+                            ? Icon(
+                                Icons.timer_outlined,
+                                color: accent,
+                                size: 22,
+                              )
+                            : Tooltip(
+                                message: 'Trip route and options',
+                                child: InkWell(
+                                  onTap: widget.onRoute,
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: SizedBox(
+                                    height: 28,
+                                    child: Icon(
+                                      Icons.info_outline_rounded,
+                                      color: accent,
+                                      size: 22,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: waiting && !waitingMessage
+                            ? InkWell(
+                                key: const ValueKey('island-waiting-timer'),
+                                onTap: widget.onWait,
+                                child: _message(
+                                  title,
+                                  subtitle,
+                                  heading,
+                                  clock: true,
+                                ),
+                              )
+                            : KeyedSubtree(
+                                key: waiting
+                                    ? const ValueKey('island-waiting-name')
+                                    : null,
+                                child: _message(title, subtitle, heading),
+                              ),
+                      ),
+                      // Symmetric slots keep text at the island's true center.
+                      const SizedBox(width: 30),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 1),
+                if (waiting)
+                  IslandWaitingLane(color: accent)
+                else
+                  const SizedBox(height: 3),
+              ],
+            ),
+          );
+        }
         final face = _controller.defaultFace
             ? 'default'
             : presentation.identity;
@@ -188,118 +288,272 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
               onLongPress: waiting ? null : _showTools,
               child: IslandMorph(
                 size: size,
+                radius: radius,
+                // The Home island draws its own shell: no double outline.
+                shell: !_controller.defaultFace,
                 face: face,
                 reducedMotion: MediaQuery.disableAnimationsOf(context),
-                child: _controller.defaultFace
-                    ? TripIsland(
-                        key: const ValueKey('trip-default-island'),
-                        lastTripLabel: widget.lastTripLabel,
-                        onMenu: widget.onMenu,
-                        onSearch: widget.onSearch,
-                        onHistory: widget.onHistory,
-                      )
-                    : Padding(
-                        key: ValueKey(
-                          waiting
-                              ? 'trip-waiting-island'
-                              : 'trip-guidance-island',
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 3,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 24,
-                                    child: waiting
-                                        ? Icon(
-                                            Icons.timer_outlined,
-                                            color: accent,
-                                            size: 22,
-                                          )
-                                        : Tooltip(
-                                            message: 'Trip route and options',
-                                            child: InkWell(
-                                              onTap: widget.onRoute,
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                              child: SizedBox(
-                                                height: 28,
-                                                child: Center(
-                                                  child:
-                                                      presentation.kind ==
-                                                          TripIslandKind.status
-                                                      ? Icon(
-                                                          Icons
-                                                              .info_outline_rounded,
-                                                          color: accent,
-                                                          size: 22,
-                                                        )
-                                                      : _cue(
-                                                          presentation,
-                                                          live,
-                                                          accent,
-                                                        ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: waiting && !waitingMessage
-                                        ? InkWell(
-                                            key: const ValueKey(
-                                              'island-waiting-timer',
-                                            ),
-                                            onTap: widget.onWait,
-                                            child: _message(
-                                              title,
-                                              subtitle,
-                                              heading,
-                                              clock: true,
-                                            ),
-                                          )
-                                        : KeyedSubtree(
-                                            key: waiting
-                                                ? const ValueKey(
-                                                    'island-waiting-name',
-                                                  )
-                                                : null,
-                                            child: _message(
-                                              title,
-                                              subtitle,
-                                              heading,
-                                            ),
-                                          ),
-                                  ),
-                                  // Symmetric slots keep text at the island's true center.
-                                  const SizedBox(width: 6),
-                                  const SizedBox(width: 24),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 1),
-                            if (waiting)
-                              IslandWaitingLane(color: accent)
-                            else
-                              _routeProgress(
-                                accent,
-                                presentation.kind != TripIslandKind.status,
-                              ),
-                          ],
-                        ),
-                      ),
+                child: content,
               ),
             ),
           ),
         );
       },
+    ),
+  );
+
+  static final _distanceText = RegExp(
+    r'(?:\s*·\s*|\s+in\s+|\s+)?(\d+(?:[.,]\d+)?)\s?(km|m)\b',
+    caseSensitive: false,
+  );
+
+  /// "300 m" -> ("300", "m"); "now" -> ("Now", null).
+  static (String, String?)? _distanceParts(String? text) {
+    if (text == null) return null;
+    if (RegExp(r'^\s*now\s*$', caseSensitive: false).hasMatch(text)) {
+      return ('Now', null);
+    }
+    final match = _distanceText.firstMatch(text);
+    if (match == null) return null;
+    return (match.group(1)!, match.group(2)!.toLowerCase());
+  }
+
+  /// Route island: top information (cue, large distance, instruction,
+  /// street, radar) and a darker strip with the arrival time and progress.
+  Widget _routeIsland(TripIslandFace face, Color accent, Size size) {
+    final live = widget.banner;
+    final arrival = face.kind == TripIslandKind.arrival;
+    final distance = arrival
+        ? (_distanceParts(widget.distance) ?? _distanceParts(widget.eta))
+        : (_distanceParts(live?.distanceLabel) ??
+              _distanceParts(face.title) ??
+              _distanceParts(widget.distance));
+    // The instruction without the distance; the distance is shown large.
+    var title = face.title
+        .replaceAll(_distanceText, '')
+        .replaceAll(RegExp(r'\s*·\s*$'), '')
+        .trim();
+    if (title.isEmpty) title = face.title;
+    final road = live?.roadName?.trim() ?? '';
+    final line2 = arrival
+        ? widget.address
+        : [
+            for (final part in face.subtitle.split(' · '))
+              if (part.isNotEmpty &&
+                  _distanceParts(part) == null &&
+                  !title.contains(part))
+                part,
+            if (road.isNotEmpty &&
+                !title.contains(road) &&
+                !face.subtitle.contains(road))
+              road,
+          ].join(' · ');
+    final percent = (widget.progress.clamp(0, 1) * 100).round();
+    return SizedBox(
+      key: const ValueKey('trip-guidance-island'),
+      width: size.width,
+      height: size.height,
+      child: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 10, 6),
+              child: Row(
+                children: [
+                  Tooltip(
+                    message: 'Trip route and options',
+                    child: InkWell(
+                      key: const ValueKey('island-route-cue'),
+                      onTap: widget.onRoute,
+                      borderRadius: BorderRadius.circular(16),
+                      child: SizedBox(
+                        width: 74,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: _cue(
+                                face,
+                                live,
+                                Colors.white,
+                                arrivalColor: accent,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            if (distance != null)
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: distance.$1,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: distance.$2 == null
+                                              ? 22
+                                              : 25,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures(),
+                                          ],
+                                        ),
+                                      ),
+                                      if (distance.$2 != null)
+                                        TextSpan(
+                                          text: distance.$2,
+                                          style: const TextStyle(
+                                            color: _muted,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  key: const ValueKey('island-distance'),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Semantics(
+                      label: [title, if (line2.isNotEmpty) line2].join(', '),
+                      excludeSemantics: true,
+                      child: MediaQuery.withClampedTextScaling(
+                        maxScaleFactor: 1.2,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: line2.isEmpty ? 2 : 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w700,
+                                height: 1.15,
+                              ),
+                            ),
+                            if (line2.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                line2,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _muted,
+                                  fontSize: 12.5,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (widget.radarVisible) ...[
+                    const SizedBox(width: 6),
+                    _radarButton(),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          // The darker strip: arrival time and the leg's progress.
+          Container(
+            key: const ValueKey('island-route-strip'),
+            height: 34,
+            color: const Color(0x14FFFFFF),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Text(
+                  _arrivalLine(),
+                  style: const TextStyle(
+                    color: Color(0xFF34D399),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: _routeProgress(arrival ? accent : _blue, true)),
+                const SizedBox(width: 8),
+                Text(
+                  '$percent%',
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// "4 min · 21:18": time left and the clock time of arrival.
+  String _arrivalLine() {
+    final minutes = RegExp(r'^(\d+)\s*min').firstMatch(widget.eta);
+    if (minutes == null) return widget.eta;
+    final at = DateTime.now().add(
+      Duration(minutes: int.parse(minutes.group(1)!)),
+    );
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${widget.eta} · ${two(at.hour)}:${two(at.minute)}';
+  }
+
+  /// Radar on/off on the route island: a dot with waves, green when on.
+  Widget _radarButton() => Tooltip(
+    message: widget.radarOn ? 'Turn radar off' : 'Turn radar on',
+    child: InkResponse(
+      key: const ValueKey('island-radar'),
+      onTap: widget.onRadar,
+      radius: 26,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: widget.radarOn
+              ? const Color(0x2934D399)
+              : const Color(0xFF23262B),
+          border: Border.all(
+            color: widget.radarOn
+                ? const Color(0xFF34D399)
+                : const Color(0x33FFFFFF),
+            width: widget.radarOn ? 1.6 : 1,
+          ),
+          boxShadow: widget.radarOn
+              ? const [BoxShadow(color: Color(0x7334D399), blurRadius: 14)]
+              : null,
+        ),
+        child: Center(
+          child: CustomPaint(
+            size: const Size.square(23),
+            painter: RadarWavesPainter(
+              widget.radarOn ? const Color(0xFF34D399) : _muted,
+            ),
+          ),
+        ),
+      ),
     ),
   );
 
@@ -376,7 +630,12 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
     },
   );
 
-  Widget _cue(TripIslandFace face, NavigationBanner? live, Color accent) {
+  Widget _cue(
+    TripIslandFace face,
+    NavigationBanner? live,
+    Color accent, {
+    Color arrivalColor = const Color(0xFFFF818B),
+  }) {
     final arrival = face.kind == TripIslandKind.arrival;
     final exit =
         live?.exitNumber ??
@@ -389,16 +648,25 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
           ? 'Arrival'
           : '${live?.symbol.name ?? 'To destination'}${exit == null ? '' : ', exit $exit'}',
       child: arrival
-          ? const Icon(
-              Icons.location_on_rounded,
-              color: Color(0xFFFF818B),
-              size: 24,
-            )
+          ? Icon(Icons.location_on_rounded, color: arrivalColor, size: 24)
           : live == null
           ? const Icon(
               Icons.person_outline_rounded,
               color: Colors.white,
               size: 24,
+            )
+          : live.symbol == NavigationBannerSymbol.roundabout
+          ? CustomPaint(
+              size: const Size(24, 24),
+              painter: RoundaboutCuePainter(
+                exitDegrees: RoundaboutCuePainter.degreesFor(
+                  exitAngle: live.exitAngleDegrees,
+                  exitNumber: exit,
+                ),
+                exitNumber: exit,
+                color: accent,
+                fontFamily: DefaultTextStyle.of(context).style.fontFamily,
+              ),
             )
           : CustomPaint(
               size: const Size(24, 24),
@@ -471,17 +739,40 @@ class _AdaptiveTripIslandState extends State<AdaptiveTripIsland> {
         ? '${(widget.progress.clamp(0, 1) * 100).round()} percent'
         : 'Unavailable',
     child: TweenAnimationBuilder<double>(
-      tween: Tween<double>(end: available ? widget.progress.clamp(0, 1) : 0),
+      tween: Tween<double>(
+        end: available ? widget.progress.clamp(0, 1).toDouble() : 0,
+      ),
       duration: MediaQuery.disableAnimationsOf(context)
           ? Duration.zero
           : const Duration(milliseconds: 350),
-      builder: (context, progress, _) => ClipRRect(
-        borderRadius: BorderRadius.circular(2),
-        child: LinearProgressIndicator(
-          value: progress,
-          minHeight: 3,
-          color: accent,
-          backgroundColor: const Color(0xFF353C46),
+      builder: (context, progress, _) => SizedBox(
+        height: 12,
+        child: Stack(
+          alignment: Alignment.centerLeft,
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2C323B),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            FractionallySizedBox(
+              widthFactor: progress,
+              child: Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment(progress * 2 - 1, 0),
+              child: Icon(Icons.navigation_rounded, size: 12, color: accent),
+            ),
+          ],
         ),
       ),
     ),
